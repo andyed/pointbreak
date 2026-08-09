@@ -29,7 +29,15 @@ follow-cam. Next:
 - [ ] A-frame mode (Middle Peak)
 - [ ] Preset bank: Cowell's / Jack's / Second Peak / First Peak / The Slot / Middle Peak
 
-## Phase 2 — substrate
+## Phase 2 — web-three (SPEC'D: docs/WEB_THREE_SPEC.md)
+- [ ] M0 grid + vertical displacement + shared model GLSL (extract model-glsl.js)
+- [ ] M1 shading pass: fbm detail normals, fresnel+glitter, subsurface, foam-in-surface
+      — acceptance: 10 s capture evokes ocean (grade vs Surfline PP cam, not stills)
+- [ ] M2 horizontal choppy displacement -> pitching lip when xi plunges
+- [ ] M3 glTF surfer on the ride line
+- Surfline PP cam (ground truth): https://www.surfline.com/surf-report/pleasure-point/5842041f4e65fad6a7708807
+
+## Phase 2b — substrate (raymarcher, now maintenance-only)
 - [ ] FFTOcean_V1.0.tox as deep-water substrate; zipper modulates
       displacement/sharpness/foam
 - [ ] Iribarren-driven pocket geometry (spill fringe vs thrown lip)
