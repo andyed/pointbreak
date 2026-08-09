@@ -7,9 +7,23 @@
 - [x] Reconcile MODEL.md numbers against verified literature (peel-angle ranges,
       Iribarren thresholds, Pleasure Point bathymetry if published)
 
-## Phase 1 — proof of read (TD via tdmcp)
-- [ ] v0: flat-field zipper — three zones (face/pocket/foam), no water shading.
-      Question to answer: does the zipper READ as a peeling wave?
+## MISSION (reprioritized 2026-08-09): simulate the SURFER
+The wave is the stage; the ride is the show. v0 surfer shipped in web/ —
+closed-form rider on the zipper (no state): face position + 6s pump cycle +
+follow-cam. Next:
+- [ ] Surfer visibility: occlusion by foreground crests (partially fixed via
+      16 m cliff camera), silhouette legibility at distance, spray at the board
+- [ ] Ride grammar: takeoff (paddle -> pop), bottom/top turn linked to face
+      shape, ξ-aware style (carves on mush, tube stance when plunging),
+      kickout at closeout sections
+- [ ] Wipeouts: section outruns surfer -> fall + tumble in whitewater
+- [ ] Camera language: cut between rides, drone follow mode
+- [ ] Surfer as the musical protagonist in the eventual Psychodeli port
+      (rider = melody line over the wave's phrase)
+
+## Phase 1 — proof of read (web first, then TD via tdmcp)
+- [x] v0 web build (web/): raymarched cliff view + ortho drone view, zipper +
+      sets + sections + A-frame + presets + live SC116 fetch. IT READS.
 - [ ] Sets + lulls (two-component beat)
 - [ ] Sections (crest noise, secondary zippers)
 - [ ] A-frame mode (Middle Peak)

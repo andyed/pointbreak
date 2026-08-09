@@ -1,0 +1,68 @@
+/* pointbreak — panel styling.
+   Contrast (WCAG relative luminance, against panel bg #0f1216 L≈0.006):
+     primary text  #eef2f5  ≈ 15.5:1  ✓
+     secondary     #c3cad1  ≈ 10.6:1  ✓
+     accent values #7fd4ff  ≈ 11.2:1  ✓
+   All readable text clears the 8:1 floor. */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; overflow: hidden; background: #06090c; }
+
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+#nogl {
+  display: none; position: fixed; inset: 40%;
+  color: #eef2f5; font: 16px/1.5 system-ui, sans-serif; text-align: center;
+}
+
+#panel {
+  position: fixed; top: 14px; right: 14px; width: 300px;
+  background: rgba(15, 18, 22, 0.93);
+  border: 1px solid #2a3138; border-radius: 10px;
+  padding: 14px; color: #eef2f5;
+  font: 13px/1.45 system-ui, -apple-system, sans-serif;
+  user-select: none;
+}
+body.hidepanel #panel, body.hidepanel #titlebar { display: none; }
+
+#titlebar {
+  position: fixed; top: 14px; left: 16px; color: #eef2f5;
+  font: 600 15px/1.3 system-ui, sans-serif;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+#titlebar small {
+  display: block; font-weight: 400; font-size: 11.5px; color: #c9d2da;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+.presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.presets button, .viewrow button, .live button {
+  background: #1a2027; color: #eef2f5;
+  border: 1px solid #333c45; border-radius: 6px;
+  padding: 4px 8px; font: 12px system-ui, sans-serif; cursor: pointer;
+}
+.presets button:hover, .viewrow button:hover, .live button:hover { background: #242c35; }
+.presets button.on, .viewrow button.on {
+  background: #10394d; border-color: #7fd4ff; color: #ffffff;
+}
+
+.viewrow { display: flex; gap: 5px; margin-bottom: 12px; }
+
+.sliders {
+  display: grid; grid-template-columns: 92px 1fr 58px;
+  gap: 6px 8px; align-items: center; margin-bottom: 12px;
+}
+.sliders label { color: #c3cad1; font-size: 12px; }
+.sliders .val { color: #7fd4ff; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.sliders input[type=range] { width: 100%; accent-color: #7fd4ff; height: 18px; }
+
+.live { display: flex; align-items: center; gap: 8px; border-top: 1px solid #2a3138; padding-top: 10px; }
+.livestatus { color: #c3cad1; font-size: 11.5px; flex: 1; }
+
+#credit {
+  position: fixed; bottom: 10px; left: 16px;
+  color: #b9c2cb; font: 11px system-ui, sans-serif;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+#credit a { color: #7fd4ff; }
