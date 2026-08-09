@@ -20,6 +20,16 @@ function. The ingredients:
   direction rotated by angle θ from the swell direction. At Pleasure Point this is the
   gently sloping mudstone shelf; the tilt is the entire mechanism.
 
+In Mead & Black's (2001a,b) bathymetric-component taxonomy this shelf is a **wedge**
+— their name for exactly this: a planar component tilted against the favored swell
+direction, the main breaking component of most world-class breaks. Our "sections" are
+their **ridge**/**pinnacle** components (local bed steepenings that drop α and spike
+intensity), and Middle Peak's bump is a **focus**. The reduction isn't a cartoon; it
+keeps the two components that matter and drops the preconditioning ones (ramp,
+platform) that only organize the swell before it arrives. USGS OFR 2007-1270
+(Storlazzi et al.) surveyed the actual Pleasure Point bathymetry — the shelf-geometry
+ground truth when we want real numbers for the tilt and slope.
+
 Three standard relations turn those ingredients into a peeling wave:
 
 ### 1.1 Dispersion and shoaling
@@ -48,10 +58,14 @@ That progression **is the peel**. The breakpoint travels along the crest at
 
     V_p ≈ c / sin(α)
 
-where α is the **peel angle** (Walker's parameter: the angle between the advancing
+where α is the **peel angle** (Walker 1974: the angle between the advancing
 whitewater front and the unbroken crest). α → 0 is a closeout (the whole wave breaks
-at once, V_p → ∞); α → 90° is the slowest possible peel (V_p = c). The shelf tilt θ
-sets α almost directly. One geometric parameter spans the entire local taxonomy:
+at once, V_p → ∞); α → 90° is the slowest possible peel (V_p = c). Walker's makeable
+criterion — a surfer with attainable speed V_s can make the wave iff V_s ≥ c/sin(α) —
+puts the practical floor near α ≈ 30°; Hutt et al. (2001) calibrated the whole band
+against surfer skill (beginners ≈ 70–90°, intermediates ≈ 46–55°, advanced ≈ 29–45°,
+pros down to ≈ 20°). The shelf tilt θ sets α almost directly. One geometric parameter
+spans the entire local taxonomy, consistent with those verified bands:
 
 | α (peel angle) | character | Santa Cruz reference |
 |---|---|---|
@@ -66,11 +80,16 @@ The Iribarren number (surf similarity parameter) classifies how the wave breaks:
 
     ξ = tan(β) / √(H/L₀)
 
-where β is bottom slope and L₀ deep-water wavelength. Low ξ → spilling (mushy,
-foam dribbles down the face); mid ξ → plunging (the lip throws, barrels); high ξ →
-surging. Visually this is a single "barrel-ness" parameter controlling lip geometry
-and foam behavior. It is independent of peel angle — a wave can peel slowly AND
-plunge — which is why two knobs, not one, are needed for spot character.
+where β is bottom slope and L₀ deep-water wavelength. Battjes (1974) thresholds
+(deep-water form): spilling ξ₀ < 0.5, plunging 0.5–3.3, surging > 3.3. Visually this
+is a single "barrel-ness" parameter controlling lip geometry and foam behavior. It is
+independent of peel angle — a wave can peel slowly AND plunge — which is why two
+knobs, not one, are needed for spot character.
+
+Refinement for later: Mead & Black (2001c) show ξ under-resolves differences *within*
+the plunging class; their orthogonal-seabed-gradient → vortex-ratio regression
+(Y = 0.065·X + 0.821, R² 0.71) is the better dial for barrel *shape* once plunging.
+v0 uses ξ alone; the vortex-ratio refinement waits for the substrate phase.
 
 ## 2. The zipper: kinematic runtime reduction
 

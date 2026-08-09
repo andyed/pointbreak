@@ -3,8 +3,8 @@
 ## Phase 0 — model on paper (current)
 - [x] Core parametrization written (`docs/MODEL.md`)
 - [x] Shader-ready zipper sketch (`glsl/zipper.md`)
-- [ ] Research docs land (CDIP data, surf-science refs, TD recon) — delegated
-- [ ] Reconcile MODEL.md numbers against verified literature (peel-angle ranges,
+- [x] Research docs land (CDIP data, surf-science refs, TD recon)
+- [x] Reconcile MODEL.md numbers against verified literature (peel-angle ranges,
       Iribarren thresholds, Pleasure Point bathymetry if published)
 
 ## Phase 1 — proof of read (TD via tdmcp)

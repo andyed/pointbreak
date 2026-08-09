@@ -16,7 +16,7 @@ band in `v`; the zipper is a moving point in `u`.
 uniform float u_time;
 uniform float u_period;        // T, seconds (12-15 groundswell)
 uniform float u_peelAngle;     // alpha, radians (0.5..1.3; ~1.0 = Second Peak)
-uniform float u_iribarren;     // xi, barrel-ness (0.3 spill .. 1.2 plunge)
+uniform float u_iribarren;     // xi0, barrel-ness (Battjes: <0.5 spill, 0.5-3.3 plunge)
 uniform float u_sectionNoise;  // sigma_h (0 = Cowell's, 1 = the Slot)
 uniform float u_groupDf;       // delta-f for set beating (~0.006 Hz)
 uniform float u_foamDecay;     // tau, seconds (~5)
@@ -80,7 +80,7 @@ float age = abs(u - zipperU(t, t_n, c)) / Vp;      // seconds since/until break
 // ZONE 1 — green face (ahead): steepness ramps as break approaches.
 //   Drive a Gerstner-style sharpness Q: Q = mix(Q_deep, Q_cusp, exp(-age/ramp))
 // ZONE 2 — the pocket (|u - zipperU| small): peak intensity.
-//   Iribarren shapes it: lip throw ~ smoothstep(0.4, 1.0, u_iribarren)
+//   Iribarren shapes it: lip throw ~ smoothstep(0.5, 1.5, u_iribarren)  // Battjes spill/plunge boundary
 //   Pocket width ~ 1/sin(alpha) (fast peels have long sections working at once)
 // ZONE 3 — whitewater (behind): foam = exp(-age / u_foamDecay), advected +v.
 ```
