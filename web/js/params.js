@@ -28,7 +28,7 @@ export const PRESETS = {
 export const DEFAULT_PRESET = 'secondpeak';
 
 export function makeState() {
-  return { ...PRESETS[DEFAULT_PRESET], speed: 1, view: 1, paused: false, preset: DEFAULT_PRESET };
+  return { ...PRESETS[DEFAULT_PRESET], speed: 1, view: 1, surfer: 0, paused: false, preset: DEFAULT_PRESET };
 }
 
 export function applyPreset(state, key) {

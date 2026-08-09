@@ -43,7 +43,7 @@ gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
 const U = {};
 for (const name of ['u_res', 'u_time', 'u_T', 'u_H0', 'u_alpha', 'u_xi',
-  'u_sections', 'u_dF', 'u_tau', 'u_chop', 'u_aframe', 'u_view']) {
+  'u_sections', 'u_dF', 'u_tau', 'u_chop', 'u_aframe', 'u_view', 'u_surfer']) {
   U[name] = gl.getUniformLocation(prog, name);
 }
 
@@ -83,6 +83,7 @@ function frame(now) {
   gl.uniform1f(U.u_chop, state.chop);
   gl.uniform1f(U.u_aframe, state.aframe);
   gl.uniform1f(U.u_view, state.view);
+  gl.uniform1f(U.u_surfer, state.surfer);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   requestAnimationFrame(frame);
 }

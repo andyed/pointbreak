@@ -39,6 +39,11 @@ export function buildUI(state, onChange) {
     viewBtns.push(b);
     viewRow.appendChild(b);
   });
+  const surferBtn = document.createElement('button');
+  surferBtn.textContent = 'Surfer';
+  surferBtn.title = 'Toggle the rider (S)';
+  surferBtn.addEventListener('click', () => { state.surfer = 1 - state.surfer; refresh(); onChange(); });
+  viewRow.appendChild(surferBtn);
   panel.appendChild(viewRow);
 
   // --- sliders ---
@@ -102,6 +107,7 @@ export function buildUI(state, onChange) {
   function markPreset() {
     for (const [key, b] of Object.entries(presetBtns)) b.classList.toggle('on', state.preset === key);
     viewBtns.forEach((b, i) => b.classList.toggle('on', state.view === i));
+    surferBtn.classList.toggle('on', state.surfer === 1);
   }
 
   function refresh() {
@@ -120,6 +126,7 @@ export function buildUI(state, onChange) {
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= presetKeys.length) { selectPreset(presetKeys[n - 1]); return; }
     if (e.key === 'v' || e.key === 'V') { state.view = 1 - state.view; refresh(); onChange(); }
+    if (e.key === 's' || e.key === 'S') { state.surfer = 1 - state.surfer; refresh(); onChange(); }
     if (e.key === ' ') { state.paused = !state.paused; e.preventDefault(); }
     if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('hidepanel');
   });

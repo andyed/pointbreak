@@ -23,6 +23,7 @@ uniform float u_tau;      // foam e-folding, s
 uniform float u_chop;     // local wind-sea texture 0..1
 uniform float u_aframe;   // 0 point break, 1 Middle Peak (abs fold)
 uniform float u_view;     // 0 drone (ortho top-down), 1 cliff (raymarch)
+uniform float u_surfer;   // 0 off, 1 riding
 
 out vec4 fragColor;
 
@@ -45,12 +46,26 @@ float vnoise2(vec2 p){
 // ---------- bathymetry: the break line (peel line) ----------
 // z increases shoreward. Break starts at low x (right-hander peeling +x).
 // A-frame: fold x about 0 -> two mirrored zippers.
+// crests bow gently seaward at the edges — long lines following the coast
+// contour around the point (ref: "long, sloping lines follow the contour")
+float coastCurve(float x){
+  float xx = mix(x, abs(x), u_aframe);
+  return xx*xx/5000.0;
+}
+
 float breakLine(float x){
   float xx = mix(x, abs(x), u_aframe);
   float m  = tan(clamp(u_alpha, 0.06, 1.45));  // alpha->0 guarded: closeout, not NaN
   // sections: shallow patches meet the break criterion early (z_b pulled seaward)
   float sec = u_sections * 55.0 * (vnoise1(xx*0.02+7.3) - 0.5) * 2.0;
-  return m*xx + min(sec, 0.0)*step(0.05, u_sections);   // z_b(0)=0: line centered
+  return m*xx - coastCurve(x) + min(sec, 0.0)*step(0.05, u_sections);
+}
+
+// the reef is finite: breaking ramps in at the takeoff and the lines
+// "lose steam in deeper water" past the end of the shelf
+float reefWindow(float x){
+  float xx = mix(x, abs(x), u_aframe);
+  return smoothstep(-110.0, -35.0, xx) * (1.0 - smoothstep(215.0, 290.0, xx));
 }
 
 // ---------- the surfer ----------
@@ -65,8 +80,8 @@ vec4 surferState(float t){
 
   // ride window runs TOWARD the cliff camera (distant takeoff -> hero frame),
   // and in A-frame mode starts at the apex either way
-  float x0 = 15.0;
-  float span = 195.0;
+  float x0 = -18.0;   // takeoff right beside the boil
+  float span = 225.0;
   float rideT = span/max(vx, 0.5);
   float ph = mod(t, rideT);
   float xApprox = x0 + vx*ph;
@@ -78,7 +93,7 @@ vec4 surferState(float t){
   // pumping: carve down (bottom turn) and back up the face, ~6 s cycle
   float pump    = sin(t*2.0*PI/6.0);
   float faceOff = 11.0 + 5.0*pump;         // metres seaward of the break line
-  float zs      = m*xs - faceOff;
+  float zs      = m*xs - xs*xs/5000.0 - faceOff;   // track the bowed break line
   float vz      = m*vx - 5.0*(2.0*PI/6.0)*cos(t*2.0*PI/6.0);
   return vec4(xs, zs, vx, vz);
 }
@@ -104,49 +119,79 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float w = 2.0*PI/u_T;
   float zb = breakLine(x);
   float d  = zb - z;                       // >0 seaward of break line
+  float reef = reefWindow(x);              // 0 off the shelf: mellow takeoff, fade-out
 
   // shoaling: grow + sharpen approaching the line (Green's-law stand-in)
-  float grow  = 1.0 + 0.85*exp(-max(d,0.0)/90.0);
-  brk         = smoothstep(-6.0, 14.0, z - zb);
+  float grow  = 1.0 + 0.85*exp(-max(d,0.0)/90.0)*reef;
+  brk         = smoothstep(-6.0, 14.0, z - zb) * reef;
   float decay = 1.0 - 0.68*brk;            // broken wave has dumped its energy
 
-  float theta  = w*t - k*z;                // increases with t; crest at theta=0 mod 2pi
+  float theta  = w*t - k*(z + coastCurve(x));  // crest at theta=0 mod 2pi; bowed lines
   float env    = setEnv(z, t);
   float env2   = env*env;                  // lulls really disappear
   float q      = 1.6 + 3.2*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
   float amp    = 0.5*u_H0 * grow * decay * env;
   float h      = amp * crestShape(-theta, q) * 2.0;
 
-  // wind chop: broadband local texture, killable (groundswell purity)
-  h += u_chop * 0.22 * (vnoise2(xz*0.11 + vec2(0.0, t*0.6)) - 0.5)
-     + u_chop * 0.10 * (vnoise2(xz*0.31 - vec2(t*0.9, 0.0)) - 0.5);
+  // the boil: fixed upwelling over a shallow rock beside the takeoff —
+  // glassy dome, chop suppressed, waves kink slightly over it
+  float m_ = tan(clamp(u_alpha, 0.06, 1.45));
+  vec2 boilPos = vec2(-22.0, m_*22.0*u_aframe + m_*(-22.0)*(1.0-u_aframe) - 8.0);
+  float boil = exp(-dot(xz - boilPos, xz - boilPos)/(2.0*5.5*5.5));
+  h += 0.10*u_H0*boil*(0.8 + 0.2*sin(t*0.7));
+
+  // wind chop: broadband local texture, killable; the boil slicks it flat
+  float chopG = u_chop * (1.0 - 0.9*boil);
+  h += chopG * 0.22 * (vnoise2(xz*0.11 + vec2(0.0, t*0.6)) - 0.5)
+     + chopG * 0.10 * (vnoise2(xz*0.31 - vec2(t*0.9, 0.0)) - 0.5);
 
   // time since last crest passed this point
   float tSince = mod(theta, 2.0*PI)/w;
-
-  // foam: refreshed by each (big-enough) crest passage inside the surf zone
-  foam = brk * env2 * exp(-tSince/max(u_tau, 0.5));
-  // bore front: bright band right at the break line on the freshly broken side
-  foam += brk * env2 * exp(-abs(z - zb)/12.0) * 0.6 * exp(-tSince/(0.5*u_T));
-  foam = clamp(foam, 0.0, 1.0);
+  float tau = max(u_tau, 0.5);
 
   // pocket: crest currently crossing the break line — the zipper's locus
   float crestNear = smoothstep(0.55, 0.98, cos(theta));
-  pocket = crestNear * exp(-(d*d)/(2.0*22.0*22.0)) * env2;
-
-  // unbroken crest lines (approaching swell should be legible from above)
+  pocket = crestNear * exp(-(d*d)/(2.0*22.0*22.0)) * env2 * reef;
+  // unbroken crest lines (approaching swell stays legible from above)
   crest = crestNear * (1.0 - brk) * env2;
+
+  // the broken front is a rolling foamy mound, not a flat sheet — give it height
+  float boreBand = brk * env2 * exp(-abs(z - zb)/9.0);
+  h += 0.30*u_H0 * boreBand * (0.75 + 0.25*vnoise2(vec2(x*0.2, t*0.8)));
+
+  // fresh whitewater, broken into shore-normal streaks (never a solid sheet)
+  float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.16, z*0.028) + vec2(1.7, t*0.015));
+  foam = brk * env2 * exp(-tSince/tau) * streaks;
+  foam += boreBand * 0.85 * exp(-tSince/(0.5*u_T));
+
+  // foam lace: dimmer, longer-lived residue; two octaves so cells don't read blocky
+  float laceN = vnoise2(vec2(x*0.22, z*0.045) + vec2(0.0, t*0.02))*0.62
+              + vnoise2(vec2(x*0.74, z*0.15) - vec2(t*0.01, 0.0))*0.38;
+  float lace = brk * env2 * exp(-tSince/(2.4*tau)) * smoothstep(0.45, 0.72, laceN);
+  foam += lace * 0.4;
+
+  // pocket spray: whitewater thrown at the zipper itself, heavier when plunging
+  foam += pocket * (0.45 + 0.75*smoothstep(0.3, 1.4, u_xi));
+
+  // spilling crumb: low-xi waves dribble foam down the face before fully breaking
+  float crumb = crestNear * (1.0 - brk) * env2
+              * exp(-max(d, 0.0)/28.0) * smoothstep(0.55, 0.2, u_xi);
+  foam += crumb * 0.6 * (0.6 + 0.4*vnoise2(xz*0.4 + vec2(t*0.3, 0.0)));
+
+  foam = clamp(foam, 0.0, 1.0);
 
   // along-crest texture so whitewater isn't a uniform bar
   foam *= 0.72 + 0.28*vnoise1(x*0.045 + 3.1);
 
   // surfer's wake: a bright pencil line trailing along the face
-  vec4 s = surferState(t);
-  float behind = smoothstep(s.x + 2.0, s.x - 6.0, x) * smoothstep(s.x - 80.0, s.x - 30.0, x);
-  float m2 = tan(clamp(u_alpha, 0.06, 1.45));
-  float pathZ = m2*mix(x, abs(x), u_aframe) - 11.0;
-  float wake = behind * exp(-pow(z - pathZ, 2.0)/(2.0*3.0*3.0));
-  foam = clamp(foam + wake*0.75, 0.0, 1.0);
+  if (u_surfer > 0.5) {
+    vec4 s = surferState(t);
+    float behind = smoothstep(s.x + 2.0, s.x - 6.0, x) * smoothstep(s.x - 80.0, s.x - 30.0, x);
+    float m2 = tan(clamp(u_alpha, 0.06, 1.45));
+    float pathZ = m2*mix(x, abs(x), u_aframe) - 11.0;
+    float wake = behind * exp(-pow(z - pathZ, 2.0)/(2.0*3.0*3.0));
+    foam = clamp(foam + wake*0.75, 0.0, 1.0);
+  }
 
   h *= VIS;
   if (!(h == h)) h = 0.0;  // NaN guard
@@ -159,25 +204,27 @@ float oceanH(vec2 xz, float t){ float f,p,b,c; return ocean(xz, t, f, p, b, c); 
 vec3 sunDir = normalize(vec3(-0.45, 0.42, -0.28));
 
 vec3 skyColor(vec3 rd, float t){
-  float horiz = pow(1.0 - max(rd.y, 0.0), 3.0);
-  vec3 sky = mix(vec3(0.22, 0.45, 0.68), vec3(0.75, 0.86, 0.93), horiz);
-  float sun = pow(max(dot(rd, sunDir), 0.0), 500.0);
-  sky += vec3(1.0, 0.9, 0.7)*sun*2.0;
-  // cheap drifting clouds
+  // marine-layer haze: near-white horizon, soft grey-blue zenith (ref photos)
+  float horiz = pow(1.0 - max(rd.y, 0.0), 2.2);
+  vec3 sky = mix(vec3(0.52, 0.62, 0.72), vec3(0.88, 0.90, 0.91), horiz);
+  float sun = pow(max(dot(rd, sunDir), 0.0), 300.0);
+  sky += vec3(0.9, 0.85, 0.75)*sun*0.8;          // diffuse glow, no hard disc
+  // thin high overcast rather than puffy cumulus
   if (rd.y > 0.02) {
     vec2 cp = rd.xz/(rd.y+0.08)*1.6 + vec2(t*0.004, 0.0);
     float cl = vnoise2(cp)*0.6 + vnoise2(cp*2.7)*0.3;
-    sky = mix(sky, vec3(0.96), smoothstep(0.55, 0.85, cl)*0.7*smoothstep(0.02,0.2,rd.y));
+    sky = mix(sky, vec3(0.93, 0.93, 0.92), smoothstep(0.5, 0.85, cl)*0.45*smoothstep(0.02,0.2,rd.y));
   }
   return sky;
 }
 
 vec3 waterColor(vec2 xz, float h, vec3 N, vec3 V, float foam, float pocket, float brk, float crest, float t){
   // base: deep offshore blue -> shelf teal near the line -> sandy turquoise inside
+  // cold NorCal Pacific (ref photos): slate blue -> grey-green -> murky sand-green
   float shoreT = smoothstep(-250.0, 60.0, xz.y - breakLine(xz.x));
-  vec3 deep  = vec3(0.045, 0.17, 0.28);
-  vec3 shelf = vec3(0.05, 0.30, 0.33);
-  vec3 inner = vec3(0.13, 0.42, 0.42);
+  vec3 deep  = vec3(0.10, 0.15, 0.19);
+  vec3 shelf = vec3(0.11, 0.21, 0.22);
+  vec3 inner = vec3(0.19, 0.27, 0.26);
   vec3 base  = mix(deep, mix(shelf, inner, smoothstep(0.5,1.0,shoreT)), shoreT);
 
   // crest faces catch light; unbroken swell lines stay legible from above
@@ -188,19 +235,20 @@ vec3 waterColor(vec2 xz, float h, vec3 N, vec3 V, float foam, float pocket, floa
   float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);
   vec3 refl = skyColor(reflect(-V, N), t);
   vec3 col = mix(base, refl, clamp(fres*0.75, 0.0, 0.75));
-  float spec = pow(max(dot(reflect(-sunDir, N), -V), 0.0), 90.0);
-  col += vec3(1.0, 0.95, 0.85)*spec*0.9;
+  float spec = pow(max(dot(reflect(-sunDir, N), -V), 0.0), 40.0);   // diffuse marine-layer light
+  col += vec3(0.9, 0.88, 0.84)*spec*0.45;
 
   // the pocket: glassy lit face; xi decides lip character
-  vec3 pocketCol = mix(vec3(0.10, 0.55, 0.50), vec3(0.05, 0.42, 0.47), clamp(u_xi*0.4,0.0,1.0));
+  vec3 pocketCol = mix(vec3(0.15, 0.38, 0.36), vec3(0.10, 0.30, 0.33), clamp(u_xi*0.4,0.0,1.0));
   col = mix(col, pocketCol, clamp(pocket*1.4, 0.0, 0.85));
   // thrown-lip spray for plunging waves (Battjes: plunging above ~0.5)
   float lip = smoothstep(0.5, 1.5, u_xi) * pocket;
   col = mix(col, vec3(0.97), clamp(lip*1.2*vnoise2(xz*0.6 + t), 0.0, 0.9));
 
-  // whitewater: clumpy foam
-  float ftex = 0.65 + 0.35*vnoise2(xz*0.35 + vec2(t*0.15, -t*0.1));
-  col = mix(col, vec3(0.93, 0.96, 0.97)*ftex, clamp(foam*1.25, 0.0, 0.95));
+  // whitewater: clumpy foam, fine octave on top so cells stay organic
+  float ftex = 0.58 + 0.42*(vnoise2(xz*0.35 + vec2(t*0.15, -t*0.1))*0.6
+                          + vnoise2(xz*1.15 - vec2(t*0.08, t*0.05))*0.4);
+  col = mix(col, vec3(0.93, 0.95, 0.96)*ftex, clamp(foam*1.15, 0.0, 0.92));
   return col;
 }
 
@@ -261,11 +309,12 @@ vec3 droneView(vec2 uv, float t){
   vec2 xz = vec2(uv.x*170.0*aspect, -uv.y*170.0 + 10.0);
   vec3 V = normalize(vec3(0.28, 1.0, -0.42));   // oblique for specular life
   vec3 col = shade(xz, t, V);
-  // surfer marker
-  vec4 s = surferState(t);
-  float d = length(xz - s.xy);
-  col = mix(col, vec3(0.05, 0.06, 0.07), smoothstep(2.6, 1.2, d));
-  col = mix(col, vec3(1.0), smoothstep(1.2, 2.2, d)*smoothstep(3.4, 2.6, d)*0.85);
+  if (u_surfer > 0.5) {
+    vec4 s = surferState(t);
+    float d = length(xz - s.xy);
+    col = mix(col, vec3(0.05, 0.06, 0.07), smoothstep(2.6, 1.2, d));
+    col = mix(col, vec3(1.0), smoothstep(1.2, 2.2, d)*smoothstep(3.4, 2.6, d)*0.85);
+  }
   return col;
 }
 
@@ -273,13 +322,14 @@ vec3 droneView(vec2 uv, float t){
 float mapH(vec3 p, float t){ return p.y - oceanH(p.xz, t); }
 
 vec3 cliffView(vec2 uv, float t){
-  // follow-cam on the shoulder: track the surfer, telephoto zoom with distance
+  // camera on the cliff: follow the surfer when riding, else a fixed lineup shot
   float xCam = 210.0;
   vec3 ro = vec3(xCam, 16.0, breakLine(xCam) - 45.0);  // cliff height: shoot OVER foreground crests
+  vec3 taFixed = vec3(-120.0, 3.0, breakLine(-120.0) - 10.0);
   vec4 s = surferState(t);
-  vec3 ta = vec3(s.x, 2.0, s.y);
+  vec3 ta = mix(taFixed, vec3(s.x, 2.0, s.y), u_surfer);
   float dist = length(ta.xz - ro.xz);
-  float zoom = clamp(1500.0/max(dist, 40.0), 2.0, 6.5);
+  float zoom = mix(2.1, clamp(1500.0/max(dist, 40.0), 2.0, 6.5), u_surfer);
   vec3 fw = normalize(ta - ro);
   vec3 rt = normalize(cross(fw, vec3(0.0,1.0,0.0)));
   vec3 up = cross(rt, fw);
@@ -307,7 +357,7 @@ vec3 cliffView(vec2 uv, float t){
     }
     vec3 p = ro + rd*tt;
     col = shade(p.xz, t, -rd);
-    float fog = 1.0 - exp(-tt*0.0009);
+    float fog = 1.0 - exp(-tt*0.0006);
     col = mix(col, skyColor(rd, t)*0.9 + 0.1, fog);
   } else if (rd.y < -0.001) {
     // downward ray that outran the march: far water plane, fogged to horizon —
@@ -324,7 +374,7 @@ vec3 cliffView(vec2 uv, float t){
 
   // the surfer occludes water behind them
   float tS;
-  if (hitSurfer(ro, rd, t, tt, tS)) {
+  if (u_surfer > 0.5 && hitSurfer(ro, rd, t, tt, tS)) {
     vec3 sp = ro + rd*tS;
     float rim = pow(1.0 - abs(dot(rd, vec3(0.0, 1.0, 0.0))), 2.0);
     col = vec3(0.06, 0.07, 0.08) + vec3(0.25, 0.28, 0.30)*rim*0.4;
