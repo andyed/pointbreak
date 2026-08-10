@@ -20,15 +20,18 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
       verified in web-three (set-phase bands in the drone view)
 - [x] Sections (crest noise, secondary zippers) — u_sections pulls the break
       line seaward in patches; verified in web-three (The Slot, σ=0.5)
-- [x] A-frame mode (Middle Peak) — abs(x) fold via u_aframe; verified in
-      web-three (mirrored double zipper in the Middle Peak drone capture)
-- [x] Preset bank: Cowell's / Jack's / Second Peak / First Peak / The Hook /
-      The Slot / Middle Peak — keys 1–7, imported by web-three from
-      web/js/params.js; all seven verified rendering from the Cliff camera
+- [x] A-frame mode — abs(x) fold via u_aframe; verified in web-three (mirrored
+      double zipper). Demoted from a named preset to a parameter on 2026-08-10:
+      the wave that demonstrates it is on the west side, not this point.
+- [x] Preset bank of seven on keys 1–7, imported by web-three from
+      web/js/params.js; all verified rendering. NOTE: the original bank borrowed
+      three west-side names (Cowell's, The Slot, Middle Peak); retargeted to the
+      real Pleasure Point canon on 2026-08-10 — Sewers, First Peak, Second Peak,
+      Jack's (38th), The Hook, Sharks, Privates.
 - [x] Real-data stage profiles: OSM `u`/canon windows + NCEI equal-elevation
       contour fits drive the shared GLSL, JS surfer twin, and both renderers
-      for Jack's/38th, Second Peak, First Peak, and The Hook; borrowed West
-      Side presets fail truthfully to the synthetic stage
+      for the mapped sites; superseded 2026-08-10 — six of seven now carry
+      surveyed profiles, and only Privates falls back to the synthetic stage
 
 ## Phase 2 — web-three (SPEC'D: docs/WEB_THREE_SPEC.md)
 - [x] M0 grid + vertical displacement + shared model GLSL (extract model-glsl.js)
@@ -83,7 +86,22 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 
 ## Phase 3 — today's ocean
 - [ ] CDIP polling (Web Client DAT) → live T, Hs, direction, bandwidth
+      (web/ already fetches and sets H0 and T only)
 - [ ] "Right now at Pleasure Point" mode
+- [ ] Real forcing via surfpy (MIT, Python, NDBC + WaveWatch III): decompose a
+      measured spectrum into swell components at build time and emit a
+      generated data file, same pattern as build_geo_profiles.py. Supplies the
+      two inputs the model does not have — swell DIRECTION (the reason
+      refraction is unmodelled) and real spectral components (the set beat is
+      currently invented). Direction is also the prerequisite for the emergent
+      break line in Phase 2c.
+- [ ] FIRST VALIDATION PASS — the largest gap in the whole project. Drive the
+      model with a specific historical swell and compare breaking position and
+      height against an independent estimate (a forecast API, or the Surfline
+      PP cam for that date). Not rigorous validation, but it moves the claim
+      from "looks plausible" to "agrees with something that isn't us on N
+      days". Until this exists, every public artifact must keep saying
+      unvalidated.
 
 ## Someday
 - [ ] Web explainer essay (zipper math, interactive)

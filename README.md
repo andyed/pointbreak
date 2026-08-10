@@ -114,6 +114,34 @@ line (α from swell-vs-contour geometry rather than a knob), refraction, live
 CDIP direction, and a contour representation flexible enough for Privates. See
 `TODO.md`.
 
+## Related work
+
+Most open surf tooling models **forcing** — what the ocean is doing offshore.
+This models **transformation** — what one seabed does to that forcing. The two
+compose rather than compete, and the forcing side is better solved elsewhere:
+
+- [surfpy](https://github.com/mpiannucci/surfpy) (MIT, Python) — NDBC buoy data
+  and WaveWatch III, with spectra and swell components. The natural source for
+  the two things this model currently lacks: **swell direction**, which is why
+  refraction is unmodelled, and **real spectral components**, since the two-
+  component beat that produces sets here is invented rather than measured.
+  Python fits our build-time pattern (a script emitting a generated data file,
+  like `data/model/build_geo_profiles.py`), not the browser runtime.
+  *Assessed from its module listing, not its internals — it shows no shoaling
+  or breaking module, but that is not a careful reading of `wavemodel.py`.*
+- [spitcast-api-docs](https://github.com/jackmullis/spitcast-api-docs) —
+  California spot forecasts including Santa Cruz, NOAA-derived. Useful as a
+  comparison reference; **no declared licence** and its own docs say uptime is
+  not guaranteed, so not something to depend on.
+- [Meta Surf Forecast](https://github.com/swellnet/meta-surf-forecast) —
+  aggregates buoys and forecast sources.
+- [Surfline's Pleasure Point cam](https://www.surfline.com/surf-report/pleasure-point/5842041f4e65fad6a7708807)
+  — the visual ground truth `docs/WEB_THREE_SPEC.md` grades renders against.
+
+The academic prior art the model actually derives from (Walker's peel angle,
+Mead & Black's bathymetric components, Hutt's skill bands, Battjes' Iribarren
+thresholds, McCowan's breaker index) is cited in `docs/MODEL.md`.
+
 ## Licence
 
 Code, docs and figures: **MIT** ([LICENSE](LICENSE)).
