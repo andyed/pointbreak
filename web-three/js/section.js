@@ -15,7 +15,7 @@
 // Deliberately a 2D canvas overlay rather than 3D geometry: a profile read
 // against a depth axis is a chart, and charts belong in chart space.
 
-import { bedElevAt, MSL_ABOVE_NAVD88 } from './bed.js';
+import { bedElevBlended, MSL_ABOVE_NAVD88, planeResidualRms } from './bed.js';
 
 const GAMMA = 0.78;        // must match model-glsl.js
 const G = 9.81;
@@ -52,7 +52,7 @@ export function makeSection(container) {
     return H0 * Ks;
   }
 
-  function draw(state, xStation = 0, tide = 0) {
+  function draw(state, xStation = 0, tide = 0, bedShape = 0) {
     if (!W || !H) return;
     ctx.clearRect(0, 0, W, H);
     const spot = state.geoSpot;
@@ -71,7 +71,7 @@ export function makeSection(container) {
     let yMin = -2, yMax = 2;
     for (let i = 0; i <= N; i++) {
       const z = Z0 + (Z1 - Z0) * (i / N);
-      const bed = bedElevAt(spot, xStation, z) - wl;   // m relative to water
+      const bed = bedElevBlended(spot, xStation, z, bedShape) - wl;  // m rel. water
       const depth = Math.max(-bed, 0);
       const Hsh = shoaled(state.H0, state.T, Math.max(depth, 0.35));
       const Hlim = GAMMA * Math.max(depth, 0.35);
@@ -158,8 +158,13 @@ export function makeSection(container) {
     }
     ctx.fillStyle = SLATE;
     ctx.textAlign = 'right';
-    ctx.fillText(`x=${xStation} m · tide ${tide >= 0 ? '+' : ''}${tide.toFixed(1)} m · seaward ←`,
-                 W - pad.r, H - 10);
+    // top-right: the legend owns the bottom strip, and at narrow widths the
+    // two collided
+    const bedLabel = bedShape
+      ? `PLANE (reef removed, ${planeResidualRms(spot).toFixed(1)} m rms)`
+      : 'measured bed';
+    ctx.fillText(`${bedLabel} · x=${xStation} m · tide ${tide >= 0 ? '+' : ''}${tide.toFixed(1)} m · seaward ←`,
+                 W - pad.r, 11);
     ctx.textAlign = 'left';
   }
 

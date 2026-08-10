@@ -259,6 +259,7 @@ ${DETAIL_GLSL}
 // The marine layer hugs the surface (HAZE_H): near-horizontal cliff rays run
 // their whole length through it, but the drone's near-vertical rays only
 // cross HAZE_H metres of haze — without this the top-down view greys out.
+uniform float u_camUnder;   // 1 when the eye is below the water surface
 const float FOG_DENSITY = 0.0011;
 const float HAZE_H      = 70.0;
 
@@ -443,6 +444,21 @@ void main() {
   float fog = 1.0 - exp(-dist * inLayer * FOG_DENSITY);
   col = mix(col, skyColor(-V, t), fog);
 
+  // ---- 6. seen from underneath ----
+  // Above ~48.6deg from vertical the surface is a total-internal mirror, and
+  // everything the sky contributes is squeezed into Snell's window overhead.
+  // Sharing the ABOVE-water branch here is what made an early dive look like a
+  // grey lid: the surface was being lit as if the sun were on this side of it.
+  if (u_camUnder > 0.5) {
+    float up = clamp(dot(Ng, normalize(vWorldPos - cameraPosition)), 0.0, 1.0);
+    float window = smoothstep(0.62, 0.80, up);       // sin(48.6deg) ~ 0.75
+    vec3 through = skyColor(refract(-V, -Ng, 1.0/1.333), t);
+    vec3 mirror  = vec3(0.07, 0.16, 0.17) * 1.4;     // the water column, mirrored back
+    col = mix(mirror, through, window);
+    col = mix(col, vec3(0.93, 0.95, 0.96), clamp(foamM, 0.0, 0.9));  // foam from below
+    col = mix(vec3(0.06, 0.15, 0.16), col, exp(-0.022*dist));        // murk
+  }
+
   // gentle grade for parity with web/'s output transform
   col = pow(clamp(col, 0.0, 1.0), vec3(0.92));
   if (!(col.r == col.r)) col = vec3(0.0);   // NaN guard (house rule)
@@ -468,6 +484,98 @@ ${SKY_GLSL}
 void main() {
   vec3 col = skyColor(normalize(vDir), u_time);
   col = pow(clamp(col, 0.0, 1.0), vec3(0.92));   // same grade as the water
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+// ---------------------------------------------------------------------------
+// Seabed pass — the floor, drawn as its own surface so the free camera can
+// dive and actually see the bottom descend. Before this, nothing existed below
+// the water surface at all: diving got you the underside of the water plane
+// (DoubleSide) and empty fog.
+//
+// Deliberately coarse (see main.js): the bed is a smooth ~7 m-post field, so
+// it needs a fraction of the water grid's density and none of its ocean()
+// evaluations. Land above the waterline is discarded here — the water mesh's
+// land branch already owns it, and drawing both would z-fight.
+// ---------------------------------------------------------------------------
+export const BED_VERT = `
+uniform float u_time;
+varying vec3  vBedPos;
+varying float vBedDepth;   // metres of water overhead (0 at the waterline)
+${MODEL_GLSL}
+
+// Past the finite NCEI patch, bedElevM clamps to the edge value, which would
+// read as an infinite flat floor out to the 4 km skirt. Ramp it down instead,
+// and keep it clearly a fade-to-deep rather than a claim about real depth.
+float bedOutside(vec2 xz){
+  vec2 lo = u_bedRect.xy, hi = u_bedRect.zw;
+  vec2 d = max(max(lo - xz, xz - hi), vec2(0.0));
+  return length(d);
+}
+
+void main(){
+  vec2 xz = position.xz;
+  float e = bedElevM(xz) - u_waterLevel;
+  e -= 0.045 * bedOutside(xz);          // extrapolation, not data — see above
+  vec3 P = vec3(xz.x, e, xz.y);
+  vBedPos = P;
+  vBedDepth = max(-e, 0.0);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
+}
+`;
+
+export const BED_FRAG = `
+precision highp float;
+uniform float u_time;
+varying vec3  vBedPos;
+varying float vBedDepth;
+${MODEL_GLSL}
+${DETAIL_GLSL}
+
+vec3 sunDirB = normalize(vec3(-0.45, 0.42, -0.28));
+
+void main(){
+  // land is the water mesh's job (its vLand branch) — discarding here keeps
+  // the two surfaces from fighting over the same fragments above the waterline
+  if (vBedDepth <= 0.02) discard;
+
+  vec2 xz = vBedPos.xz;
+  // normal by finite difference on the bed field itself
+  float e = 1.5;
+  float hx = bedElevM(xz + vec2(e,0.0)) - bedElevM(xz - vec2(e,0.0));
+  float hz = bedElevM(xz + vec2(0.0,e)) - bedElevM(xz - vec2(0.0,e));
+  vec3 N = normalize(vec3(-hx, 2.0*e, -hz));
+
+  // sand, roughening to darker reef on steep faces — slope is the only
+  // substrate cue the DEM actually supports, so it is the only one used
+  float slope = 1.0 - clamp(N.y, 0.0, 1.0);
+  vec3 sand = vec3(0.60, 0.53, 0.41);
+  vec3 reef = vec3(0.24, 0.26, 0.22);
+  float grain = vnoise2(xz*1.9)*0.55 + vnoise2(xz*0.5)*0.45;
+  vec3 albedo = mix(sand, reef, smoothstep(0.05, 0.35, slope)) * (0.85 + 0.3*grain);
+
+  float lam = 0.35 + 0.65*clamp(dot(N, sunDirB), 0.0, 1.0);
+
+  // Beer-Lambert down from the surface and back to the eye. Same coastal
+  // coefficients as the water surface's bottom tint, so a bed seen from above
+  // through the surface and the same bed seen from underwater agree.
+  // Two separate paths, which the first version conflated: sunlight travelling
+  // DOWN the column is attenuated at the full coastal rate, but sight distance
+  // through the water is deliberately gentler. Real Monterey Bay visibility is
+  // ~3-6 m; at that rate the seafloor is a black frame and illustrates nothing,
+  // so horizontal sight is a stated legibility allowance, not a claim.
+  vec3 kExt = vec3(0.45, 0.20, 0.16);
+  // Floor the downwelling term: pure exp() over a 3 m column lands the sand at
+  // ~(0.08,0.17,0.15), which is the murk colour to two decimals — the bed was
+  // being drawn and was simply invisible against the water. Ambient scattering
+  // in shallow water is real; this keeps the depth trend while restoring the
+  // contrast that makes the floor readable as a surface.
+  vec3 lightAtBed = mix(vec3(0.38), exp(-kExt * vBedDepth), 0.72) * 1.8;
+  float sight = length(cameraPosition - vBedPos);
+  vec3 col = albedo * lam * lightAtBed;
+  vec3 murk = vec3(0.05, 0.12, 0.13);
+  col = mix(col, murk, 1.0 - exp(-0.028 * sight));   // e-fold ~36 m
   gl_FragColor = vec4(col, 1.0);
 }
 `;

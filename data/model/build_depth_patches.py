@@ -97,10 +97,47 @@ def build():
                               / (E_MAX - E_MIN) * 65535))
                 vals.append(min(max(q, 0), 65535))
 
+        # Least-squares plane through the real bed: elev = a + b*x + c*z.
+        # This is the A/B counterfactual — the same overall depth scale, slope
+        # and orientation with the STRUCTURE removed, so toggling it isolates
+        # "shape of the reef" from "how deep and how steep it is". A hand-picked
+        # ramp would confound the two.
+        n = len(vals)
+        sx = sz = sxx = szz = sxz = se = sxe = sze = 0.0
+        for j in range(NZ):
+            z = Z0 + (Z1 - Z0) * j / (NZ - 1)
+            for i in range(NX):
+                x = X0 + (X1 - X0) * i / (NX - 1)
+                e = (vals[j * NX + i] / 65535) * (E_MAX - E_MIN) + E_MIN
+                sx += x; sz += z; se += e
+                sxx += x * x; szz += z * z; sxz += x * z
+                sxe += x * e; sze += z * e
+        # solve the 3x3 normal equations by Cramer's rule
+        M = [[n, sx, sz], [sx, sxx, sxz], [sz, sxz, szz]]
+        rhs = [se, sxe, sze]
+        def det3(m):
+            return (m[0][0]*(m[1][1]*m[2][2] - m[1][2]*m[2][1])
+                    - m[0][1]*(m[1][0]*m[2][2] - m[1][2]*m[2][0])
+                    + m[0][2]*(m[1][0]*m[2][1] - m[1][1]*m[2][0]))
+        D = det3(M)
+        def sub(col):
+            return det3([[rhs[r] if c == col else M[r][c] for c in range(3)]
+                         for r in range(3)])
+        plane = [sub(0)/D, sub(1)/D, sub(2)/D] if abs(D) > 1e-9 else [0.0, 0.0, 0.0]
+        rms = (sum(((vals[j*NX+i]/65535)*(E_MAX-E_MIN)+E_MIN
+                    - (plane[0] + plane[1]*(X0+(X1-X0)*i/(NX-1))
+                       + plane[2]*(Z0+(Z1-Z0)*j/(NZ-1))))**2
+                   for j in range(NZ) for i in range(NX)) / n) ** 0.5
+
         raw = struct.pack('<%dH' % len(vals), *vals)
         patches[name] = {
             'elevMinM': round(lo, 2),
             'elevMaxM': round(hi, 2),
+            # a + b*x + c*z, metres NAVD88 on the stage frame
+            'planeFit': [round(v, 6) for v in plane],
+            # how much vertical structure the plane throws away — this IS the
+            # reef, quantified. Small rms means the A/B has little to show.
+            'planeResidualRmsM': round(rms, 2),
             # fraction of the patch that is dry land at MSL — a quick sanity
             # signal that the stage actually contains a shoreline
             'landFractionAtMsl': round(

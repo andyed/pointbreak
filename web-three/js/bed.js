@@ -114,14 +114,32 @@ export const BED_GRID = PP_DEPTH_DATA.grid;
 
 // Bind the patch for `spotName` (an OSM canon name) into the uniform block.
 // Returns true when real bathymetry is driving the model.
-export function applyBed(uniforms, spotName, tideM = 0) {
+export function applyBed(uniforms, spotName, tideM = 0, bedShape = 0) {
   const tex = spotName ? decode(spotName) : null;
   const g = BED_GRID;
+  const patch = spotName ? PP_DEPTH_DATA.patches[spotName] : null;
   uniforms.u_bed.value = tex || EMPTY_BED;
   uniforms.u_depthMix.value = tex ? 1 : 0;
   uniforms.u_bedRect.value.set(g.x0, g.z0, g.x1, g.z1);
   uniforms.u_bedSize.value.set(g.nx, g.nz);
   uniforms.u_bedElev.value.set(g.elevMinM, g.elevMaxM);
   uniforms.u_waterLevel.value = MSL_ABOVE_NAVD88 + tideM;
+  uniforms.u_bedShape.value = tex ? bedShape : 0;
+  const pf = patch?.planeFit || [0, 0, 0];
+  uniforms.u_bedPlane.value.set(pf[0], pf[1], pf[2]);
   return Boolean(tex);
+}
+
+// CPU twin of the same blend, for the cross-section and cameras.
+export function bedElevBlended(spotName, x, z, bedShape = 0) {
+  const measured = bedElevAt(spotName, x, z);
+  if (!bedShape) return measured;
+  const pf = PP_DEPTH_DATA.patches[spotName]?.planeFit;
+  if (!pf) return measured;
+  const plane = pf[0] + pf[1] * x + pf[2] * z;
+  return measured + (plane - measured) * bedShape;
+}
+
+export function planeResidualRms(spotName) {
+  return PP_DEPTH_DATA.patches[spotName]?.planeResidualRmsM ?? 0;
 }

@@ -35,6 +35,8 @@ uniform vec4 u_bedRect;   // patch extent in stage metres: x0, z0, x1, z1
 uniform vec2 u_bedSize;   // patch texel dimensions (nx, nz)
 uniform vec2 u_bedElev;   // quantization window, m NAVD88: min, max
 uniform float u_waterLevel; // MSL above NAVD88 + tide offset, m
+uniform float u_bedShape; // 0 = measured seabed, 1 = its least-squares plane
+uniform vec3 u_bedPlane;  // a + b*x + c*z, the counterfactual "no reef" bed
 
 // ---------- constants ----------
 const float PI  = 3.14159265;
@@ -116,7 +118,13 @@ float bedElevM(vec2 xz){
   vec2 f = tc - vec2(i0);
   float e00 = bedTexel(i0),                e10 = bedTexel(i0 + ivec2(1,0));
   float e01 = bedTexel(i0 + ivec2(0,1)),   e11 = bedTexel(i0 + ivec2(1,1));
-  return mix(mix(e00, e10, f.x), mix(e01, e11, f.x), f.y);
+  float measured = mix(mix(e00, e10, f.x), mix(e01, e11, f.x), f.y);
+  // A/B counterfactual: the least-squares plane through this same patch keeps
+  // the depth scale, mean slope and orientation and throws away only the
+  // structure (2.5-3.8 m RMS at these spots). Toggling it isolates the effect
+  // of reef SHAPE from the effect of depth, which a hand-drawn ramp could not.
+  float plane = u_bedPlane.x + u_bedPlane.y*xz.x + u_bedPlane.z*xz.y;
+  return mix(measured, plane, u_bedShape);
 }
 
 // Still-water depth, metres. Zero on land — the shoreline is wherever this

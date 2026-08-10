@@ -67,8 +67,15 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 - [x] Forward pitch: phase skew proportional to breaking excess
 - [ ] Emergent break line: alpha as a consequence of contour-vs-swell geometry
       rather than an authored knob (the depth field makes this reachable)
-- [ ] Tide as a live control (uniform exists; no UI yet) -> Privates only
-      breaking on a lower tide falls out of this
+- [x] Tide as a live control ([ and ]) -> the break point slides while the
+      breaking DEPTH stays fixed; Privates-on-a-lower-tide falls out of this
+- [x] Underwater: seabed as its own mesh, surface-from-below (Snell's window +
+      total internal reflection), murk, and a deepening ramp past the finite
+      NCEI patch (extrapolation, flagged as such in BED_VERT)
+- [x] Bed A/B (B): swap the measured bed for its own least-squares plane —
+      same depth scale and mean slope, structure removed (2.5-3.8 m rms).
+      Removing the reef collapses the peel; this is the causal demo.
+- [x] Cross-section station along-shore (, and .)
 - [ ] DEM land artifacts: cliff-top structures read as rectangular steps at
       7 m posts; decide whether to smooth land or keep it honest
 

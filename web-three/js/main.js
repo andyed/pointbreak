@@ -10,9 +10,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS, describeGeoState } from '../../web/js/params.js';
-import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG } from './shaders.js';
+import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
-import { coastCurve } from './model-js.js';
+import { coastCurve, oceanH as oceanHJS } from './model-js.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop } from './bed.js';
 import { makeSection } from './section.js';
 
@@ -96,8 +96,11 @@ const uniforms = {
   u_bedSize:    { value: new THREE.Vector2(1, 1) },
   u_bedElev:    { value: new THREE.Vector2(-30, 30) },
   u_waterLevel: { value: MSL_ABOVE_NAVD88 },
+  u_bedShape:   { value: 0 },
+  u_bedPlane:   { value: new THREE.Vector3() },
+  u_camUnder:   { value: 0 },
 };
-applyBed(uniforms, state.geoSpot, state.tide || 0);
+applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
 const mat = new THREE.ShaderMaterial({
   vertexShader: GRID_VERT,
@@ -106,6 +109,29 @@ const mat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
 scene.add(new THREE.Mesh(geo, mat));
+
+// ---------- the seabed ----------
+// Its own surface so the free camera can dive and watch the floor descend.
+// A quarter of the water grid's density in each axis: the bed is a smooth
+// ~7 m-post field with no ocean() evaluations, so this costs ~1.5% of the
+// water pass. Same footprint and skirt stretch, so the two agree at the edges.
+const bedGeo = new THREE.PlaneGeometry(STAGE_W, STAGE_D, SEG_X / 4, SEG_Z / 4);
+bedGeo.rotateX(-Math.PI / 2);
+bedGeo.translate(0, 0, STAGE_Z0);
+{
+  const pos = bedGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setX(i, stretchAxis(pos.getX(i), STAGE_W / 2));
+    pos.setZ(i, STAGE_Z0 + stretchAxis(pos.getZ(i) - STAGE_Z0, STAGE_D / 2));
+  }
+  bedGeo.computeBoundingSphere();
+}
+const bedMat = new THREE.ShaderMaterial({
+  vertexShader: BED_VERT, fragmentShader: BED_FRAG, uniforms,
+  side: THREE.DoubleSide,
+});
+const bedMesh = new THREE.Mesh(bedGeo, bedMat);
+scene.add(bedMesh);
 
 // ---------- sky dome ----------
 // Same procedural marine-layer sky the water reflects and fogs toward, drawn
@@ -236,13 +262,21 @@ window.addEventListener('keydown', (e) => {
   // the tide, which is the cheapest lever that proves it — the breaking point
   // slides along the profile and the whitewater band moves with it.
   if (e.key === 'c' || e.key === 'C') { showSection = !showSection; section.el.style.display = showSection ? '' : 'none'; }
-  if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.25, -1.0); applyBed(uniforms, state.geoSpot, state.tide); refreshHUD(); }
-  if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.25, 2.0); applyBed(uniforms, state.geoSpot, state.tide); refreshHUD(); }
+  if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.25, -1.0); refreshHUD(); }
+  if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.25, 2.0); refreshHUD(); }
+  // B swaps the measured seabed for its own least-squares plane: same depth
+  // scale and mean slope, structure removed. The A/B that isolates reef SHAPE.
+  if (e.key === 'b' || e.key === 'B') { state.bedShape = state.bedShape ? 0 : 1; refreshHUD(); }
+  // , and . slide the cross-section's transect along the shore, so the profile
+  // can be read where the wave is actually peeling rather than only at x=0.
+  if (e.key === ',') sectionX = Math.max(sectionX - 25, -250);
+  if (e.key === '.') sectionX = Math.min(sectionX + 25, 250);
 });
 
 // ---------- cross-section overlay ----------
 const section = makeSection(document.body);
 let showSection = false;
+let sectionX = 0;
 section.el.style.display = 'none';
 
 // ---------- resize ----------
@@ -280,10 +314,16 @@ function frame(now) {
   uniforms.u_geoMix.value = state.geoMix;
   uniforms.u_contourFit.value.set(state.contourX2, state.contourX3);
   uniforms.u_stageBounds.value.set(state.stageStart, state.stageEnd);
-  applyBed(uniforms, state.geoSpot, state.tide || 0);
+  applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
+  // Underwater is a camera state, not a fragment test: sample the JS twin's
+  // surface height under the eye. gl_FrontFacing would conflate "below the
+  // water" with "under M2's folded lip", which is a different thing entirely.
+  const camH = oceanHJS(camera.position.x, camera.position.z, simTime, modelP());
+  uniforms.u_camUnder.value = camera.position.y < camH ? 1 : 0;
+  bedMesh.visible = uniforms.u_depthMix.value > 0.5;
   // The section is a chart, not an animation: it only depends on bed, swell
   // and tide, so redraw on change rather than every frame.
-  if (showSection) section.draw(state, 0, state.tide || 0);
+  if (showSection) section.draw(state, sectionX, state.tide || 0, state.bedShape || 0);
 
   // surfer pose + Follow camera share one surferState/surfaceAt evaluation.
   // The follow shot tracks the ride line even with the rider hidden (S off)
