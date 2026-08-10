@@ -368,6 +368,16 @@
   .limits li { margin-bottom: 0.55rem; }
   .limits strong { color: #e6e4d2; }
   h3.sub { font-size: 1.15rem; margin: 2rem 0 0.4rem 0; color: #e6e4d2; }
+
+  /* Source + licence, directly under the deck: people ask 'is this open?'
+     before they ask anything else about a model. */
+  .source-line {
+    max-width: 70ch; margin: 0.9rem 0 0 0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.95rem; line-height: 1.6; color: #cccbbb;
+  }
+  .source-line a { color: #c9a86a; }
+  .source-line strong { color: #e6e4d2; }
 </style>
 </head>
 <body>
@@ -378,6 +388,12 @@
   <p class="kicker">Work in progress &middot; Santa Cruz, California</p>
   <h1>Modelling the waves at Pleasure Point</h1>
   <p class="deck">A first pass, about a day old. Public coastline and seafloor survey data for a long point break on the east side of Santa Cruz, and a WebGL model that tries to turn that data into breaking waves. The measurements are solid. The model is a start.</p>
+  <p class="source-line">
+    Source, data and build scripts:
+    <a href="https://github.com/andyed/pointbreak" target="_blank" rel="noopener">github.com/andyed/pointbreak</a>
+    &middot; code, writing and figures <strong>MIT</strong>; OpenStreetMap-derived data ODbL 1.0;
+    NOAA bathymetry public domain.
+  </p>
   </header>
 
   <main>

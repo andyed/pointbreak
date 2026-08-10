@@ -4,7 +4,7 @@ Date: 2026-08-09. Recon for building a surf point-break simulator in TouchDesign
 
 ## 1. tdmcp (MindDesigner) capabilities
 
-Repo: `/Users/andyed/Documents/dev/tdmcp` (v0.13.1). Node MCP server + a Python **bridge** running inside TD (`/project1/tdmcp_bridge`, port 9980; health check `curl http://127.0.0.1:9980/api/info`). 508 tools in three layers (artist generators → building blocks → atomic node CRUD), backed by an embedded knowledge base of 629 operators + 68 Python classes. Docs: `docs/reference/tools.md` (7,418 lines), `architecture.md`, `bridge-api.md`.
+Repo: `~/Documents/dev/tdmcp` (v0.13.1). Node MCP server + a Python **bridge** running inside TD (`/project1/tdmcp_bridge`, port 9980; health check `curl http://127.0.0.1:9980/api/info`). 508 tools in three layers (artist generators → building blocks → atomic node CRUD), backed by an embedded knowledge base of 629 operators + 68 Python classes. Docs: `docs/reference/tools.md` (7,418 lines), `architecture.md`, `bridge-api.md`.
 
 Core loop (architecture.md): **create → verify (`get_td_node_errors`) → preview (`get_preview`)**, with auto left→right network layout.
 
@@ -34,7 +34,7 @@ Security note: the bridge executes arbitrary Python and listens on all interface
 ## 2. House conventions — PSYCHODELI_NATIVE_V3_MATH
 
 Not a standalone file: it is a COMP at `/project1/PSYCHODELI_NATIVE_V3_MATH` **inside**
-`/Users/andyed/Documents/dev/psychodeli-audio-lab/output/touchdesigner/Psychodeli-Warehouse-Signal-TD-v1.30-Native-Shader-Studio.toe`
+`~/Documents/dev/psychodeli-audio-lab/output/touchdesigner/Psychodeli-Warehouse-Signal-TD-v1.30-Native-Shader-Studio.toe`
 (same .toe also carries the earlier `PSYCHODELI_NATIVE_V2` with a 40_FINISH variant; v1.24/v1.27 siblings exist; preview PNG `Psychodeli-Native-Shader-Studio-preview.png` beside them). Inspect without opening TD via `/Applications/TouchDesigner.app/Contents/MacOS/toeexpand <file>.toe` (writes `<file>.toe.dir` + `.toc`).
 
 Module structure — numbered stage COMPs, "truth flows left to right":

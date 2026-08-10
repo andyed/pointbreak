@@ -18,7 +18,7 @@
 
 const PW_CANDIDATES = [
   process.env.PLAYWRIGHT_DIR,
-  '/Users/andyed/.hermes/hermes-agent/node_modules/playwright/index.mjs',
+  new URL('../../node_modules/playwright/index.mjs', import.meta.url).pathname,
   new URL('../../../psychodeli-webgl-port/node_modules/playwright/index.mjs', import.meta.url).pathname,
 ].filter(Boolean);
 let chromium;

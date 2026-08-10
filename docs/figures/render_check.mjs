@@ -1,5 +1,20 @@
-// Headless SVG -> PNG render check, using the playwright install cached under hermes-agent.
-import { chromium } from '/Users/andyed/.hermes/hermes-agent/node_modules/playwright/index.mjs';
+// Headless SVG -> PNG render check.
+// This repo ships no node_modules on purpose, so Playwright is resolved from
+// wherever it already exists rather than hardcoded to one machine.
+// Override with PLAYWRIGHT_DIR=/path/to/playwright/index.mjs
+const PW_CANDIDATES = [
+  process.env.PLAYWRIGHT_DIR,
+  new URL('../../node_modules/playwright/index.mjs', import.meta.url).pathname,
+  new URL('../../../psychodeli-webgl-port/node_modules/playwright/index.mjs', import.meta.url).pathname,
+].filter(Boolean);
+let chromium;
+for (const c of PW_CANDIDATES) {
+  try { ({ chromium } = await import(c)); break; } catch { /* try next */ }
+}
+if (!chromium) {
+  console.error('playwright not found. Set PLAYWRIGHT_DIR=/path/to/playwright/index.mjs');
+  process.exit(1);
+}
 import { readFileSync } from 'fs';
 import path from 'path';
 

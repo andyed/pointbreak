@@ -376,15 +376,20 @@ p.append(halo_text(P_X + 4, P_CAP_Y,
                    size=16, weight=600, cls="lbl-dim", anchor="start"))
 
 # ---- display type, upper left, on clean page background
+#
+# Place name only, deliberately: no subtitle or deck. The card carried the
+# page's subtitle once and immediately went stale when the page was retitled,
+# leaving the art contradicting its own og:title in every unfurl. The card is
+# regenerated far less often than the prose is edited, so it states only what
+# cannot go out of date -- where this is, and where the numbers came from.
+# If you add a headline line back, it has to be re-rendered with the page.
 TX = 195
-p.append(f'<text class="kicker" x="{TX}" y="96" font-size="18" font-weight="700">'
+p.append(f'<text class="kicker" x="{TX}" y="110" font-size="18" font-weight="700">'
          'COASTAL GEOGRAPHY &#183; SANTA CRUZ</text>')
-p.append(f'<line class="rule" x1="{TX}" y1="116" x2="{TX + 92}" y2="116"/>')
-p.append(f'<text class="title" x="{TX}" y="192" font-size="70" font-weight="400">'
+p.append(f'<line class="rule" x1="{TX}" y1="130" x2="{TX + 92}" y2="130"/>')
+p.append(f'<text class="title" x="{TX}" y="208" font-size="70" font-weight="400">'
          'Pleasure Point</text>')
-p.append(f'<text class="deck" x="{TX}" y="238" font-size="30" font-weight="500">'
-         'a measured field guide</text>')
-p.append(f'<text class="credit" x="{TX}" y="280" font-size="17" font-weight="500">'
+p.append(f'<text class="credit" x="{TX}" y="258" font-size="17" font-weight="500">'
          'OpenStreetMap coastline &#183; NOAA NCEI bathymetry</text>')
 
 # ---- bottom furniture: what u means, and who made it
