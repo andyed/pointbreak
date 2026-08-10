@@ -1,9 +1,10 @@
 # Zipper — GLSL-ready parametrization
 
 The break layer from `docs/MODEL.md` §2, reduced to shader form. Written as a
-fragment-shader field function so it drops into a GLSL TOP (TouchDesigner) or a
-WebGL fragment shader unchanged. No textures required for v0; everything is
-closed-form.
+fragment-shader field function so it drops into a WebGL fragment shader — or a
+GLSL TOP, if the parked TouchDesigner vehicle is ever picked up — unchanged.
+Closed-form apart from the seabed, which the web builds now sample from a
+texture (see MODEL.md §2.2); everything here is the pre-bathymetry break layer.
 
 ## Coordinate frame
 
@@ -94,10 +95,14 @@ reads as a peeling wave.
 The zipper layer is substrate-agnostic:
 
 - **v0 (proof of read):** flat colored field, zones only. Does the zipper read?
-- **v1 (TD):** composite over the FFTOcean .tox height/normal output; zipper
-  modulates displacement amplitude (face), sharpness (pocket), and a foam mask
-  (whitewater) fed to the substrate's shading.
-- **v2 (web/Psychodeli):** same field warps the fractal domain — face = domain
+- **v1 (TD, PARKED — never built):** composite over the FFTOcean .tox
+  height/normal output; zipper modulates displacement amplitude (face),
+  sharpness (pocket), and a foam mask (whitewater) fed to the substrate's
+  shading.
+- **v1 (web, SHIPPED instead):** no substrate. The grid is displaced directly
+  from the model, and depth comes from measured bathymetry rather than from a
+  synthetic ocean underneath.
+- **v2 (Psychodeli):** same field warps the fractal domain — face = domain
   steepening, pocket = intensity locus, foam = brightness/turbulence decay.
 
 ## Tuning invariants

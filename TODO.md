@@ -55,10 +55,12 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
       over the wave's phrase)
 - Surfline PP cam (ground truth): https://www.surfline.com/surf-report/pleasure-point/5842041f4e65fad6a7708807
 
-## Phase 2b — substrate (raymarcher, now maintenance-only)
-- [ ] FFTOcean_V1.0.tox as deep-water substrate; zipper modulates
-      displacement/sharpness/foam
-- [ ] Iribarren-driven pocket geometry (spill fringe vs thrown lip)
+## Phase 2b — substrate (PARKED with the TouchDesigner vehicle)
+- [~] FFTOcean_V1.0.tox as deep-water substrate — parked. web-three displaces
+      the grid from the model directly and gets depth from the NCEI seabed, so
+      there is no substrate to composite over. Only revisit alongside TD.
+- [ ] Iribarren-driven pocket geometry (spill fringe vs thrown lip) — still
+      live; belongs to web-three, not to a substrate
 
 ## Phase 2c — real depth (landed 2026-08-10, docs/MODEL.md 2.2)
 - [x] NCEI seabed as `u_bed`; depth = (MSL-NAVD88 0.905 m + tide) - bed
@@ -86,4 +88,4 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 ## Someday
 - [ ] Web explainer essay (zipper math, interactive)
 - [ ] Psychodeli+ port: zipper as musical-phrase primitive
-- [ ] PointBreak.tox release on derivative.ca
+- [ ] PointBreak.tox release on derivative.ca (needs the parked TD vehicle first)

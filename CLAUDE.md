@@ -13,13 +13,19 @@ and implementation disagree, fix one deliberately and record why.
 
 - **Method-named, not venue-named** — the repo is `pointbreak`, artifacts are named
   after the mechanism (zipper, shelf, pocket), never after a platform or venue.
-- **TouchDesigner work goes through tdmcp** (`~/Documents/dev/tdmcp`) — build node
-  networks via the MCP bridge, don't hand-describe node graphs. House module
-  convention follows psychodeli-audio-lab's `PSYCHODELI_NATIVE_V3_MATH`:
-  numbered GUI-readable modules (`00_…` → `50_…`) under `/project1`.
-- **The FFT ocean substrate is commodity** — use the community FFTOcean .tox (or a
-  Gerstner sum); the zipper/break layer is this project's contribution. Don't
-  rewrite deep-water ocean.
+- **TouchDesigner is PARKED** (2026-08-10). It was planned as vehicle 1 and never
+  started; `td/` is empty and gitignored. The web builds took the model somewhere
+  the TD plan never went (measured bathymetry, a real shoreline), so TD is a
+  possible later port, not pending work. If it is ever picked up: go through
+  tdmcp (`~/Documents/dev/tdmcp`) — build node networks via the MCP bridge, don't
+  hand-describe node graphs — and follow psychodeli-audio-lab's
+  `PSYCHODELI_NATIVE_V3_MATH` module convention (`00_…` → `50_…` under
+  `/project1`). Recon: `docs/research/TD_IMPLEMENTATION.md`.
+- **Don't rewrite deep-water ocean.** This was written when the plan was to
+  composite the zipper over a community FFTOcean `.tox`. web-three composites
+  over nothing — it displaces a grid from the shared model — so the rule now only
+  binds if a substrate is ever added back: take a commodity one (FFTOcean, or a
+  Gerstner sum). The zipper/break layer is this project's contribution.
 - **Rate independence** — all motion in seconds, one global speed scale, never bake
   frame rate into constants. `isFinite()`/NaN guards, `sin(α)` floors (α→0 is a
   closeout, not a NaN).

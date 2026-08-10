@@ -1,0 +1,27 @@
+# TouchDesigner vehicle — planned first, never started. The web builds took
+# the model somewhere the original TD plan never went (real bathymetry, a
+# shoreline), so this is parked rather than in progress. Ignored so a local
+# .toe/.tox scratch dir doesn't imply work that isn't happening.
+# The recon that was done is kept: docs/research/TD_IMPLEMENTATION.md.
+td/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node — this repo deliberately has no dependencies; Playwright for the capture
+# scripts is resolved from a sibling repo (see scripts/capture_presets.mjs).
+node_modules/
+
+# Local scratch and staging
+.deploy/
+scratch/
+*.local
