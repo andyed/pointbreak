@@ -26,7 +26,11 @@ const N = 220;
 const INK = '#e6e4d2', BG = 'rgba(15,18,22,0.93)';
 const TEAL = '#4a8f85', SAND = '#c9a86a', FOAM = '#eef2f3', SLATE = '#8fa3ad';
 
-export function makeSection(container) {
+// opts.onTide(metres) fires while the still-water line is dragged. The tide is
+// the only continuous control the chart owns, and the water line is where a
+// reader already looks for it — keys still work, but nobody guesses [ and ].
+export function makeSection(container, opts = {}) {
+  const onTide = opts.onTide || (() => {});
   const wrap = document.createElement('div');
   wrap.className = 'section-panel';
   const cv = document.createElement('canvas');
@@ -34,6 +38,9 @@ export function makeSection(container) {
   container.appendChild(wrap);
   const ctx = cv.getContext('2d');
   let W = 0, H = 0;
+  let view = null;          // last draw's vertical scale + water-line position
+  let hot = false;          // pointer is on the handle, or dragging it
+  let drag = null;          // { y0, tide0, mPerPx } frozen at pointerdown
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -44,6 +51,45 @@ export function makeSection(container) {
   }
   new ResizeObserver(resize).observe(wrap);
   resize();
+
+  // ---- tide drag ----
+  // Grab band is generous (14 px) because the line is 1 px and this is the
+  // only handle on the chart. Pointer events cover mouse and touch; the CSS
+  // sets touch-action: none so a vertical drag doesn't scroll the page.
+  const GRAB_PX = 14;
+  const near = (e) => view && Math.abs(e.offsetY - view.waterY) <= GRAB_PX
+                   && e.offsetX >= view.left && e.offsetX <= view.right;
+
+  cv.addEventListener('pointermove', (e) => {
+    if (drag) {
+      // metres per pixel frozen at grab time: the axis rescales as the tide
+      // moves, so live values would make the drag chase itself
+      const t = Math.min(Math.max(drag.tide0 - (e.clientY - drag.y0) * drag.mPerPx, -1), 2);
+      onTide(Math.round(t * 100) / 100);
+      return;
+    }
+    const h = near(e);
+    if (h !== hot) { hot = h; cv.style.cursor = h ? 'ns-resize' : 'default'; }
+  });
+
+  cv.addEventListener('pointerdown', (e) => {
+    if (!near(e)) return;
+    drag = { y0: e.clientY, tide0: view.tide, mPerPx: view.mPerPx };
+    hot = true;
+    cv.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  const endDrag = (e) => {
+    if (!drag) return;
+    drag = null;
+    try { cv.releasePointerCapture(e.pointerId); } catch { /* already gone */ }
+    hot = near(e);
+    cv.style.cursor = hot ? 'ns-resize' : 'default';
+  };
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+  cv.addEventListener('pointerleave', () => { if (!drag) { hot = false; cv.style.cursor = 'default'; } });
 
   // Green's law, identical to the GLSL: Ks = sqrt(cg0/cg), shallow cg = sqrt(gh)
   function shoaled(H0, T, depth) {
@@ -79,8 +125,19 @@ export function makeSection(container) {
       yMin = Math.min(yMin, bed - 0.5);
       yMax = Math.max(yMax, Math.min(Hsh, 6), bed + 1);
     }
+    // Clamp the axis to the water action. The cliff runs to about +11 m, and
+    // letting it set yMax squeezed everything that matters — including the
+    // tide's own 3 m range — into a sliver, which made the water line twitchy
+    // to drag (24 px covered the whole range). The cliff simply clips.
+    yMax = Math.min(yMax, 6);
+    yMin = Math.max(yMin, -10);
+
     const sx = (z) => pad.l + ((z - Z0) / (Z1 - Z0)) * pw;
     const sy = (v) => pad.t + ph - ((v - yMin) / (yMax - yMin)) * ph;
+    // captured for the drag handler: metres per pixel is recomputed every draw
+    // (yMin/yMax float with the tide), so a drag freezes the value it started
+    // with rather than chasing its own feedback.
+    view = { mPerPx: (yMax - yMin) / ph, waterY: sy(0), tide, left: pad.l, right: W - pad.r };
 
     // depth axis
     ctx.strokeStyle = 'rgba(143,163,173,0.25)';
@@ -91,6 +148,9 @@ export function makeSection(container) {
       ctx.beginPath(); ctx.moveTo(pad.l, sy(v)); ctx.lineTo(W - pad.r, sy(v)); ctx.stroke();
       ctx.fillText(`${v > 0 ? '+' : ''}${v}`, 6, sy(v) + 4);
     }
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(pad.l, pad.t, pw, ph); ctx.clip();
 
     // water body
     ctx.fillStyle = 'rgba(74,143,133,0.20)';
@@ -109,10 +169,25 @@ export function makeSection(container) {
     samples.forEach((s, i) => i ? ctx.lineTo(sx(s.z), sy(s.bed)) : ctx.moveTo(sx(s.z), sy(s.bed)));
     ctx.strokeStyle = SAND; ctx.lineWidth = 2; ctx.stroke();
 
-    // still water line
-    ctx.beginPath(); ctx.moveTo(sx(Z0), sy(0)); ctx.lineTo(sx(Z1), sy(0));
-    ctx.strokeStyle = FOAM; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.stroke();
+    // still water line — also the tide handle
+    const wy = sy(0);
+    ctx.beginPath(); ctx.moveTo(sx(Z0), wy); ctx.lineTo(sx(Z1), wy);
+    ctx.strokeStyle = FOAM; ctx.setLineDash([4, 4]);
+    ctx.lineWidth = hot ? 2 : 1; ctx.stroke();
     ctx.setLineDash([]);
+    // grip on the seaward end, brightened while hovered or dragged
+    const gx = pad.l + 16;
+    ctx.fillStyle = hot ? FOAM : 'rgba(238,242,243,0.55)';
+    ctx.beginPath(); ctx.roundRect(gx - 13, wy - 5, 26, 10, 5); ctx.fill();
+    ctx.strokeStyle = BG; ctx.lineWidth = 1;
+    for (const o of [-3, 0, 3]) {
+      ctx.beginPath(); ctx.moveTo(gx - 6, wy + o); ctx.lineTo(gx + 6, wy + o); ctx.stroke();
+    }
+    if (hot) {
+      ctx.fillStyle = INK;
+      ctx.font = '600 11px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillText('drag to change tide', gx + 20, wy - 8);
+    }
 
     // the two competing curves, clipped to water
     const wet = samples.filter((s) => s.depth > 0.05);
@@ -127,6 +202,8 @@ export function makeSection(container) {
     };
     line('Hlim', SLATE, [5, 3]);   // gamma*h — the ceiling
     line('Hsh', TEAL, []);         // H0*Ks   — the shoaling wave
+
+    ctx.restore();
 
     // breaking point: seaward-most crossing of Hsh over gamma*h
     let brk = null;

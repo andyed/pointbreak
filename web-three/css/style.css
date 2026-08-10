@@ -53,5 +53,5 @@ body.hidepanel #titlebar, body.hidepanel #hud { display: none; }
   border: 1px solid #2a3138; border-radius: 8px;
   padding: 4px 6px 2px;
 }
-.section-panel canvas { display: block; width: 100%; height: 100%; }
+.section-panel canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 body.hidepanel .section-panel { display: none; }

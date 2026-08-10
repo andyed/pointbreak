@@ -3,6 +3,8 @@
 A real-time model of the waves at Pleasure Point, a long point break on the east
 side of Santa Cruz. Started 2026-08-09; it is early and unfinished.
 
+[![Pleasure Point — the measured coastline, the seabed under it, and the model built on both](docs/figures/og-card.png)](https://mindbendingpixels.com/pleasurepoint/)
+
 **Visual essay (live):** https://mindbendingpixels.com/pleasurepoint/ — the
 geography, the data behind it, and the model embedded and labelled work in
 progress.

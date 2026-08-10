@@ -274,7 +274,10 @@ window.addEventListener('keydown', (e) => {
 });
 
 // ---------- cross-section overlay ----------
-const section = makeSection(document.body);
+const section = makeSection(document.body, {
+  // dragging the water line is the discoverable form of the [ and ] keys
+  onTide: (t) => { state.tide = t; refreshHUD(); },
+});
 let showSection = false;
 let sectionX = 0;
 section.el.style.display = 'none';
