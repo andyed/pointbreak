@@ -1,9 +1,14 @@
-# Pleasure Point — visitor's-guide ground truth (Surfer.com)
+# Pleasure Point — visitor's-guide ground truth
 
-Source: "A Visitor's Guide to Longboarding Pleasure Point," Surfer.com.
-https://www.surfer.com/culture/a-visitors-guide-to-longboarding-pleasure-point
-(Read 2026-08-09. Culture/geography source, not a measurement source — use for
-preset character and naming, not for numbers that MODEL.md derives elsewhere.)
+Two guide sources, read 2026-08-09. Culture/geography sources, not measurement
+sources — use for preset character, naming, and along-point structure, not for
+numbers that MODEL.md derives elsewhere.
+
+1. "A Visitor's Guide to Longboarding Pleasure Point," Surfer.com.
+   https://www.surfer.com/culture/a-visitors-guide-to-longboarding-pleasure-point
+2. "A Beginner's Guide to Surfing Pleasure Point," Sunny California (local
+   surf shop blog).
+   https://sunnycalifornia.com/blogs/news/beginners-guide-surfing-pleasure-point
 
 ## Facts extracted
 
@@ -38,8 +43,54 @@ preset character and naming, not for numbers that MODEL.md derives elsewhere.)
 - **Stage extent**: First Peak → 38th Ave spans several takeoff zones; the
   ~600×500 m stage should keep the down-point neighbors (at least Second Peak)
   inside the playable area rather than modeling First Peak in isolation.
-- **The Hook** is a distinct spot outside PP proper — fine as a preset name
-  later, but it is not one of the point's takeoff zones.
+- **The Hook**: at 41st Ave, technically outside "PP proper" (which begins at
+  33rd) but part of the same continuous down-point sequence — see the spot
+  canon below.
+
+## The golden rule (Sunny California guide) — along-point gradient
+
+> "the waves get larger, faster, and more powerful as you move up the point"
+
+This is the single most model-shaped fact in either guide: wave character is a
+**monotonic function of down-point position**, not a set of independent spots.
+The spots are positions on ONE continuous zipper whose parameters vary with u
+(the down-point coordinate):
+
+- α(u): low at the top (fast, steep, tapered walls) → high down-point (soft,
+  slow, forgiving). Peel angle is a *field*, not a constant.
+- Effective power/size decays down-point (shelter increases).
+- **Activation threshold rises down-point**: Jack's "needs a bit more swell to
+  really activate"; Privates "can shut down if there is little to no swell."
+  Small swell = only the upper point breaks; big swell = everything lights up.
+- Tide matters down-point: Privates "usually breaks on a lower tide" — tide is
+  a Phase 3 today's-ocean input, and a hazard cue (high tide pins exits
+  against the cliff; strong down-point current).
+
+Design consequence: presets can collapse from separate parameter *sets* into
+takeoff *positions* u₀ along one continuous point, with α(u), depth(u), and an
+activation threshold(u). One model, seven doors into it.
+
+## Spot canon, top → down-point (Sunny California guide)
+
+1. **Sewers** — very top; fastest, most competitive.
+2. **First Peak** — premier high-performance right; steeper tapered walls,
+   shortboard zone.
+3. **Second Peak** — toward 38th; softer, slower; longboard/progression zone
+   (~90 m peel per the Surfer.com guide).
+4. **38th Ave / Jack's** — O'Neill's green house overlooks it; needs more
+   swell to activate; gentle rollers when on.
+5. **The Hook** — 41st Ave; classic right, mixed bag, handles size, a bit
+   faster; own parking lot, steep stair exit.
+6. **Sharks** — further down; space, mellow lines.
+7. **Privates** — most sheltered; slow easy takeoffs; lower-tide, needs swell.
+
+Exactly seven spots — matches the 1–7 preset keys. NOTE: the current preset
+bank (TODO Phase 1: Cowell's / Jack's / Second Peak / First Peak / The Slot /
+Middle Peak) mixes in **West Side** spots — Cowell's, The Slot, and Middle Peak
+are Steamer Lane–area waves, a few miles from Pleasure Point. Candidate
+correction: retarget the preset bank to the PP canon above (decision pending —
+flagged 2026-08-09; the A-frame mechanism keeps its Middle Peak *mechanism*
+name per method-naming convention even if the preset renames).
 
 ## Color for the eventual explainer essay
 
