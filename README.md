@@ -67,3 +67,16 @@ turns, wipeouts) and a glTF rider — see `TODO.md`. TouchDesigner vehicle not
 started. Jack's/38th, Second Peak, First Peak, and The Hook now use generated
 OSM/NCEI stage profiles; the borrowed West Side presets remain visibly marked
 as synthetic.
+
+## Licence
+
+Code, docs and figures: **MIT** ([LICENSE](LICENSE)).
+
+The data is not uniformly MIT and cannot be — the OpenStreetMap-derived files
+carry ODbL's share-alike obligation. [LICENSES.md](LICENSES.md) gives the
+file-by-file split: MIT for code/writing/renders, ODbL 1.0 for the OSM-derived
+database files, public domain for the NOAA NCEI bathymetry, MIT for vendored
+three.js.
+
+Nothing here is validated against measurements of Pleasure Point. It is a
+model, not a surf report.

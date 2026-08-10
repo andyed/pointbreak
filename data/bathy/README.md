@@ -28,3 +28,8 @@ Cruz tide station rather than a guessed constant.
 curl -s "https://www.ngdc.noaa.gov/thredds/dodsC/regional/monterey_13_navd88_2012.nc.ascii?Band1%5B13478:1:13738%5D%5B4644:1:5292%5D" -o bathy_subset.ascii
 python3 process_bathy.py
 ```
+
+## Licence
+
+NOAA NCEI data: work of the U.S. Government, public domain. The processing
+script is MIT. See ../../LICENSES.md.

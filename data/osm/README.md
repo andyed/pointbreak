@@ -27,3 +27,8 @@ curl -s "https://overpass.kumi.systems/api/interpreter" \
 # (see git history for the refs query)
 python3 process.py
 ```
+
+## Licence
+
+These files are a derivative database of OpenStreetMap: **ODbL 1.0**, not MIT.
+Data (c) OpenStreetMap contributors. See ../../LICENSES.md.
