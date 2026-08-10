@@ -1,10 +1,16 @@
 // Shared model GLSL — the one executable form of docs/MODEL.md (see
 // WEB_THREE_SPEC.md "Architecture"). Both renderers splice this string:
 // web/ into its raymarch fragment shader, web-three/ into its displacement
-// vertex shader. Version-agnostic GLSL (no in/out/varying, no texture calls)
-// so it compiles under raw #version 300 es and under three.js ShaderMaterial
-// prefixes alike. Renderer-specific uniforms (u_res, u_time, u_view) stay in
-// the renderers; everything here is model state.
+// vertex shader. Version-agnostic GLSL (no in/out/varying) so it compiles
+// under raw #version 300 es and under three.js ShaderMaterial prefixes alike.
+// Renderer-specific uniforms (u_res, u_time, u_view) stay in the renderers;
+// everything here is model state.
+//
+// 2026-08-10: this file previously forbade texture calls. Lifted deliberately
+// (MODEL.md 2.2): the seabed is real data now, and a sampler is the only sane
+// way to carry a 96x84 NCEI patch onto the GPU. texelFetch + manual bilinear
+// keeps it portable — no float-texture or linear-filter extension needed.
+// Both vehicles are WebGL2, so `uniform sampler2D` compiles in both prefixes.
 
 export const MODEL_GLSL = `
 // ---------- model uniforms ----------
@@ -22,12 +28,22 @@ uniform float u_geoMix;   // 1 = OSM/NCEI stage profile, 0 = synthetic fallback
 uniform vec2 u_contourFit;// NCEI equal-elevation contour: x2*x^2 + x3*x^3
 uniform vec2 u_stageBounds;// OSM canon-neighbor midpoints in local stage metres
 
+// ---------- seabed (NCEI patch on the stage frame) ----------
+uniform sampler2D u_bed;  // RGBA8: R high byte, G low byte of NAVD88 elevation
+uniform float u_depthMix; // 1 = real seabed drives the model, 0 = synthetic
+uniform vec4 u_bedRect;   // patch extent in stage metres: x0, z0, x1, z1
+uniform vec2 u_bedSize;   // patch texel dimensions (nx, nz)
+uniform vec2 u_bedElev;   // quantization window, m NAVD88: min, max
+uniform float u_waterLevel; // MSL above NAVD88 + tide offset, m
+
 // ---------- constants ----------
 const float PI  = 3.14159265;
 const float G   = 9.81;
 const float LAM = 90.0;   // display wavelength, m (shoaled ~15 s swell at ~8 m depth)
 const float VIS = 3.2;    // visual amplitude gain: physical heights are nearly
                           // invisible at landscape scale; exaggerate, don't lie about kinematics
+const float GAMMA = 0.78; // depth-limited breaker index H/h (McCowan solitary-wave
+                          // limit; Battjes/Nairn put field values ~0.7-0.9)
 
 // ---------- hash / noise ----------
 float hash11(float p){ p = fract(p*0.1031); p *= p+33.33; return fract((p+p)*p); }
@@ -78,6 +94,41 @@ float breakLine(float x){
 float reefWindow(float x){
   float xx = mix(x, abs(x), u_aframe);
   return smoothstep(-110.0, -35.0, xx) * (1.0 - smoothstep(215.0, 290.0, xx));
+}
+
+// ---------- seabed: real depth, not distance-to-an-authored-line ----------
+// One texel-fetch quad with hand-rolled bilinear. RGBA8 + manual decode rather
+// than a float texture: no extension, exact on every WebGL2 device, and the
+// 16-bit window (60 m across 65535 steps) quantizes at ~0.9 mm — three orders
+// below DEM error, so this is storage, not a modelling choice.
+float bedTexel(ivec2 p){
+  ivec2 q = clamp(p, ivec2(0), ivec2(u_bedSize) - ivec2(1));
+  vec4 t = texelFetch(u_bed, q, 0);
+  float unit = (t.r*255.0*256.0 + t.g*255.0) / 65535.0;
+  return mix(u_bedElev.x, u_bedElev.y, unit);
+}
+
+// Seabed elevation, metres NAVD88 (positive = dry land above the datum).
+float bedElevM(vec2 xz){
+  vec2 uv = (xz - u_bedRect.xy) / max(u_bedRect.zw - u_bedRect.xy, vec2(1e-3));
+  vec2 tc = clamp(uv, 0.0, 1.0) * (u_bedSize - 1.0);
+  ivec2 i0 = ivec2(floor(tc));
+  vec2 f = tc - vec2(i0);
+  float e00 = bedTexel(i0),                e10 = bedTexel(i0 + ivec2(1,0));
+  float e01 = bedTexel(i0 + ivec2(0,1)),   e11 = bedTexel(i0 + ivec2(1,1));
+  return mix(mix(e00, e10, f.x), mix(e01, e11, f.x), f.y);
+}
+
+// Still-water depth, metres. Zero on land — the shoreline is wherever this
+// crosses zero, so the beach is a consequence of the data, not a drawn prop.
+float waterDepthM(vec2 xz){
+  return max(u_waterLevel - bedElevM(xz), 0.0);
+}
+
+// Depth the wave physics should use: floored so shoaling and H/d stay finite
+// in the swash, where the model has nothing useful to say anyway.
+float modelDepthM(vec2 xz){
+  return max(waterDepthM(xz), 0.35);
 }
 
 // ---------- the surfer ----------
@@ -139,16 +190,57 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float d  = zb - z;                       // >0 seaward of break line
   float reef = reefWindow(x);              // 0 off the shelf: mellow takeoff, fade-out
 
-  // shoaling: grow + sharpen approaching the line (Green's-law stand-in)
-  float grow  = 1.0 + 0.85*exp(-max(d,0.0)/90.0)*reef;
-  brk         = smoothstep(-6.0, 14.0, z - zb) * reef;
-  float decay = 1.0 - 0.68*brk;            // broken wave has dumped its energy
+  // ---- shoaling ----
+  // Synthetic stand-in (kept for presets with no bathymetry behind them) and
+  // the real thing: Green's law Ks = sqrt(cg0/cg), shallow-water cg = sqrt(gh).
+  // Capped at 2.6 because breaking intervenes long before Ks runs away.
+  float dep     = modelDepthM(xz);
+  float growSyn = 1.0 + 0.85*exp(-max(d,0.0)/90.0)*reef;
+  float cg0     = G*u_T/(4.0*PI);          // deep-water group speed, gT/4pi
+  float Ks      = clamp(sqrt(cg0/sqrt(G*dep)), 0.7, 2.6);
+  float Hsh     = u_H0 * Ks;               // shoaled height if it never broke
+  float Hlim    = GAMMA * dep;             // most height this depth can carry
+  // Depth-limited breaking: past the limit a wave is a bore whose height is
+  // set by the water it is in, not by the swell that made it. Without this cap
+  // Green's law keeps growing the wave across the whole inner shelf and the
+  // stage reads as one undifferentiated foam field instead of a peeling wave.
+  float growGeo = min(Hsh, Hlim) / max(u_H0, 0.05);
+  float grow    = mix(growSyn, growGeo, u_depthMix);
+
+  // ---- breaking ----
+  // The zipper still owns the PEEL (that is this project's contribution), but
+  // depth now owns PERMISSION: a wave cannot break in deep water, and must in
+  // the shallows. gamma = H/h against McCowan's ~0.78 gates the zipper mask,
+  // which is what finally carries whitewater all the way to the sand.
+  float brkZip  = smoothstep(-6.0, 14.0, z - zb) * reef;
+  // Break where the shoaled wave exceeds what the depth can carry. Comparing
+  // Hsh against the limit (rather than H/d against gamma) is the same McCowan
+  // criterion but survives the cap above, which pins H/d at gamma everywhere
+  // shallow and would otherwise report "breaking" across the entire inside.
+  // PHYSICAL heights only: VIS is a viewing exaggeration (see its
+  // declaration), and letting it in here made the threshold ~3x too eager.
+  float excess  = Hsh / max(Hlim, 0.05);
+  float gate    = smoothstep(0.90, 1.25, excess);
+  brk           = mix(brkZip, max(brkZip, gate*step(0.02, u_depthMix)), u_depthMix);
+  float decay   = 1.0 - 0.68*brk;          // broken wave has dumped its energy
+
+  // ---- the wave dies in the swash ----
+  // Without this the inshore wave settles at 32% amplitude and runs to the
+  // stage edge forever, which is exactly why the beach was invisible.
+  float shoreFade = mix(1.0, smoothstep(0.0, 1.6, waterDepthM(xz)), u_depthMix);
 
   float theta  = w*t - k*(z + coastCurve(x));  // crest at theta=0 mod 2pi; bowed lines
+  // ---- forward pitch ----
+  // Real shoaling waves are asymmetric: steep front face, gentle back. Skewing
+  // the phase by sin(theta) steepens the shoreward face, scaled by how close
+  // this water is to breaking. Symmetric crests are most of what reads as
+  // "moving bump" instead of "wave about to break".
+  float skew   = mix(0.0, clamp(excess*0.62, 0.0, 0.8), u_depthMix);
+  theta       -= skew*sin(theta);
   float env    = setEnv(z, t);
   float env2   = env*env;                  // lulls really disappear
   float q      = 1.6 + 3.2*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
-  float amp    = 0.5*u_H0 * grow * decay * env;
+  float amp    = 0.5*u_H0 * grow * decay * env * shoreFade;
   float h      = amp * crestShape(-theta, q) * 2.0;
 
   // the boil: fixed upwelling over a shallow rock beside the takeoff —

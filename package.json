@@ -5,6 +5,8 @@
   "scripts": {
     "build:geo": "python3 data/model/build_geo_profiles.py",
     "check:geo": "python3 data/model/build_geo_profiles.py --check",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "build:depth": "python3 data/model/build_depth_patches.py",
+    "check:depth": "python3 data/model/build_depth_patches.py --check"
   }
 }

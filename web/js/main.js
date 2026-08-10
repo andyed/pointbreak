@@ -44,8 +44,24 @@ gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 const U = {};
 for (const name of ['u_res', 'u_time', 'u_T', 'u_H0', 'u_alpha', 'u_xi',
   'u_sections', 'u_dF', 'u_tau', 'u_chop', 'u_aframe', 'u_view', 'u_surfer',
-  'u_geoMix', 'u_contourFit', 'u_stageBounds']) {
+  'u_geoMix', 'u_contourFit', 'u_stageBounds',
+  // The raymarcher is the reference implementation and stays depth-free:
+  // u_depthMix = 0 collapses every seabed term in model-glsl.js back to the
+  // synthetic stand-ins. The sampler is still bound to a 1x1 texture because
+  // an unbound sampler is undefined behaviour, not a no-op.
+  'u_bed', 'u_depthMix', 'u_bedRect', 'u_bedSize', 'u_bedElev', 'u_waterLevel']) {
   U[name] = gl.getUniformLocation(prog, name);
+}
+
+// 1x1 placeholder on unit 0 so u_bed is never an unbound sampler.
+{
+  const bedTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, bedTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                new Uint8Array([0, 0, 0, 255]));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 }
 
 const state = makeState();
@@ -88,6 +104,12 @@ function frame(now) {
   gl.uniform1f(U.u_geoMix, state.geoMix);
   gl.uniform2f(U.u_contourFit, state.contourX2, state.contourX3);
   gl.uniform2f(U.u_stageBounds, state.stageStart, state.stageEnd);
+  gl.uniform1i(U.u_bed, 0);
+  gl.uniform1f(U.u_depthMix, 0.0);
+  gl.uniform4f(U.u_bedRect, -1.0, -1.0, 1.0, 1.0);
+  gl.uniform2f(U.u_bedSize, 1.0, 1.0);
+  gl.uniform2f(U.u_bedElev, -30.0, 30.0);
+  gl.uniform1f(U.u_waterLevel, 0.905);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   requestAnimationFrame(frame);
 }

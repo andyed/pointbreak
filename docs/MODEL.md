@@ -141,6 +141,44 @@ water depth: the local NAVD88-to-MSL/tidal-datum conversion remains unresolved.
 West Side presets and the Middle Peak A-frame keep the original synthetic
 quadratic rather than borrowing unrelated Pleasure Point geography.
 
+### 2.2 Real depth (2026-08-10)
+
+§2.1 gave the stage a measured *planform*. This gives it a measured *floor*.
+`data/model/build_depth_patches.py` resamples the NCEI DEM onto each mapped
+spot's stage frame (96×84 posts over 680×580 m, uint16, ~0.9 mm quantization)
+and both vehicles bind it as `u_bed`.
+
+- **Water level.** `depth = (MSL−NAVD88 + tide) − bed`, with MSL−NAVD88 =
+  **0.905 m** from NOAA CO-OPS **9413450 (Monterey)** — the nearest station
+  publishing a NAVD88 relationship (Santa Cruz 9413745 is secondary and
+  publishes none). The ~40 km extrapolation is carried explicitly in
+  `mslSource`, not baked into a bare constant. This resolves the datum TODO
+  that §2.1 deliberately refused to guess.
+- **Shoaling** is Green's law, `Ks = √(cg₀/cg)` with shallow `cg = √(gh)`,
+  replacing the `exp(−d/90)` distance-to-break stand-in.
+- **Depth-limited breaking.** `H = min(H₀·Ks, γh)` with γ = 0.78 (McCowan;
+  field values ~0.7–0.9). Past the limit a wave is a bore whose height is set
+  by the water it is in. Breaking is flagged where `H₀·Ks` exceeds `γh`.
+- **The zipper still owns the peel.** Depth owns *permission*, not direction:
+  the breaking gate multiplies the zipper mask rather than replacing it, so
+  α remains the authored character knob. A fully emergent break line — α as a
+  consequence of contour-vs-swell geometry — is the obvious next step and is
+  deliberately not taken here.
+- **Forward pitch.** Phase is skewed by `sin θ` in proportion to how far past
+  the breaking limit the wave is, so the shoreward face steepens. Symmetric
+  crests were most of what read as "moving bump" rather than "wave".
+- **The shore is a consequence.** The mesh takes `max(bed, water)`, so the
+  waterline is wherever depth crosses zero and the beach/cliff is data, not a
+  backdrop card. Cameras derive the cliff top from the same field (~11 m at
+  Second Peak) instead of floating at a hand-tuned 16 m.
+- Presets with no bathymetry (the three West Side names, the A-frame) run
+  `u_depthMix = 0`, which collapses every term above back to the §2 stand-ins.
+  The `web/` raymarcher stays depth-free by the same switch.
+
+This supersedes §5's "swash/backwash … texture, not structure" only for the
+static shoreline; currents and backwash remain out of scope. §5's rejection of
+a *shallow-water solver* stands — nothing here integrates a fluid.
+
 This is a 1-D phase traveling along a 2-D curve with a before/after material change.
 A few uniforms; no fluid solver; no FFT required for the break layer itself. The
 zipper motion — not water shading — is the recognizable signature of "a wave peeling."

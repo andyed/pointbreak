@@ -29,6 +29,8 @@ varying float vFoam;
 varying float vPocket;
 varying float vCrest;
 varying float vBrk;
+varying float vLand;   // 1 where the seabed surfaced above the water
+varying float vDepth;  // still-water depth at this point, m (99 = no bathymetry)
 varying float vBoil;
 `;
 
@@ -179,21 +181,40 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   return vec3(xz0.x + off.x*fade, h*fade, xz0.y + off.y*fade);
 }
 
+// Terrain wins wherever the seabed stands above the water surface. Applied
+// after choppyPos so the bed never inherits the wave's horizontal
+// displacement, and applied identically to the FD taps so normals stay
+// correct across the waterline instead of shearing along it. With
+// u_depthMix = 0 the bed sits at -999 m and can never win, so presets with no
+// bathymetry behind them render exactly as before.
+vec3 surfacePos(vec2 xz0, float t, out float foam, out float pocket,
+                out float brk, out float crest, out float land){
+  vec3 P = choppyPos(xz0, t, foam, pocket, brk, crest);
+  float bedY = mix(-999.0, bedElevM(xz0) - u_waterLevel, u_depthMix);
+  land = 0.0;
+  if (bedY > P.y) {
+    P = vec3(xz0.x, bedY, xz0.y);
+    land = 1.0;
+    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0;  // no surf on dry sand
+  }
+  return P;
+}
+
 void main() {
   // geometry is authored in world metres on the XZ stage (see main.js), so
   // position.xz IS the model coordinate — no extra transform to keep in sync
   vec2 xz = position.xz;
 
-  float foam, pocket, brk, crest;
-  vec3 P = choppyPos(xz, u_time, foam, pocket, brk, crest);
+  float foam, pocket, brk, crest, land;
+  vec3 P = surfacePos(xz, u_time, foam, pocket, brk, crest, land);
 
   // normals by finite differences on the DISPLACED positions (spec M2) — the
   // height-only FD of M1 is blind to the fold. Forward differences at one
   // core cell: central would push the (already 3x M1) vertex cost to 5x for
   // a half-cell phase shift invisible at ~1.2 m cells.
-  float f2, p2, b2, c2;
-  vec3 Px = choppyPos(xz + vec2(u_cell.x, 0.0), u_time, f2, p2, b2, c2);
-  vec3 Pz = choppyPos(xz + vec2(0.0, u_cell.y), u_time, f2, p2, b2, c2);
+  float f2, p2, b2, c2, l2;
+  vec3 Px = surfacePos(xz + vec2(u_cell.x, 0.0), u_time, f2, p2, b2, c2, l2);
+  vec3 Pz = surfacePos(xz + vec2(0.0, u_cell.y), u_time, f2, p2, b2, c2, l2);
   vec3 N = cross(Pz - P, Px - P);            // +y up for an unfolded surface
   if (!(dot(N, N) > 1e-12)) N = vec3(0.0, 1.0, 0.0);   // degenerate fold cell
   N = normalize(N);
@@ -211,7 +232,7 @@ void main() {
   float fade = farFadeAt(xz);
   float vAmp = 0.16 * (0.5 + 0.5*u_chop)
              * (1.0 - 0.85*clamp(foam, 0.0, 1.0)) * (1.0 - 0.9*boil);
-  P.y += detailH(P.xz, u_time) * vAmp * fade;
+  P.y += detailH(P.xz, u_time) * vAmp * fade * (1.0 - land);  // sand doesn't ripple
 
   vWorldPos = P;
   vNormal   = N;
@@ -220,6 +241,8 @@ void main() {
   vCrest    = crest;
   vBrk      = brk;
   vBoil     = boil;
+  vLand     = land;
+  vDepth    = mix(99.0, waterDepthM(xz), u_depthMix);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
 }
 `;
@@ -262,6 +285,34 @@ void main() {
   vec3 V = normalize(cameraPosition - vWorldPos);
   float dist = length(cameraPosition - vWorldPos);
   float boil  = clamp(vBoil, 0.0, 1.0);
+
+  // ---- 0. land ----
+  // The shore is not a backdrop card: it is the NCEI seabed wherever the bed
+  // stands above the water surface, so the waterline is wherever depth crosses
+  // zero. Beach-to-cliff by height above the water, wet-dark near the
+  // waterline (the swash keeps the lower band saturated), matched to the
+  // marine-layer reference in docs/research/VISUAL_GROUND_TRUTH.md.
+  if (vLand > 0.5) {
+    float above = vWorldPos.y;                       // m above still water
+    vec3 wetSand  = vec3(0.30, 0.27, 0.23);
+    vec3 drySand  = vec3(0.60, 0.53, 0.41);
+    vec3 cliffCol = vec3(0.52, 0.46, 0.36);
+    float wetness = 1.0 - smoothstep(0.05, 1.30, above);
+    vec3 albedo = mix(mix(drySand, wetSand, wetness), cliffCol,
+                      smoothstep(1.8, 6.5, above));
+    // roughen with the same noise field the water uses, so the two surfaces
+    // read as one scene rather than two asset libraries
+    float grain = vnoise2(xz*1.7)*0.55 + vnoise2(xz*0.42)*0.45;
+    albedo *= 0.86 + 0.28*grain;
+    vec3 Nl = normalize(vNormal);
+    float lam = 0.42 + 0.58*clamp(dot(Nl, sunDir), 0.0, 1.0);
+    vec3 col = albedo * lam;
+    float dyL = max(cameraPosition.y - vWorldPos.y, 0.0);
+    float inLayerL = dyL > HAZE_H ? HAZE_H / dyL : 1.0;
+    col = mix(col, skyColor(-V, t), 1.0 - exp(-dist * inLayerL * FOG_DENSITY));
+    gl_FragColor = vec4(col, 1.0);
+    return;
+  }
 
   // foam mask: vFoam interpolates the model's bore mask across grid cells, so
   // its edges land on ruler-straight cell-aligned lines (M1 critique #5).

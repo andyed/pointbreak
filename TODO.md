@@ -60,6 +60,18 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
       displacement/sharpness/foam
 - [ ] Iribarren-driven pocket geometry (spill fringe vs thrown lip)
 
+## Phase 2c — real depth (landed 2026-08-10, docs/MODEL.md 2.2)
+- [x] NCEI seabed as `u_bed`; depth = (MSL-NAVD88 0.905 m + tide) - bed
+- [x] Green's-law shoaling + depth-limited breaking (gamma 0.78)
+- [x] Shoreline/beach/cliff as `max(bed, water)`; cameras derive the cliff top
+- [x] Forward pitch: phase skew proportional to breaking excess
+- [ ] Emergent break line: alpha as a consequence of contour-vs-swell geometry
+      rather than an authored knob (the depth field makes this reachable)
+- [ ] Tide as a live control (uniform exists; no UI yet) -> Privates only
+      breaking on a lower tide falls out of this
+- [ ] DEM land artifacts: cliff-top structures read as rectangular steps at
+      7 m posts; decide whether to smooth land or keep it honest
+
 ## Phase 3 — today's ocean
 - [ ] CDIP polling (Web Client DAT) → live T, Hs, direction, bandwidth
 - [ ] "Right now at Pleasure Point" mode

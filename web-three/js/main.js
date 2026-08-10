@@ -13,6 +13,7 @@ import { makeState, applyPreset, PRESETS, describeGeoState } from '../../web/js/
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { coastCurve } from './model-js.js';
+import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop } from './bed.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -88,7 +89,14 @@ const uniforms = {
   u_geoMix:   { value: state.geoMix },
   u_contourFit: { value: new THREE.Vector2(state.contourX2, state.contourX3) },
   u_stageBounds: { value: new THREE.Vector2(state.stageStart, state.stageEnd) },
+  u_bed:        { value: EMPTY_BED },
+  u_depthMix:   { value: 0 },
+  u_bedRect:    { value: new THREE.Vector4() },
+  u_bedSize:    { value: new THREE.Vector2(1, 1) },
+  u_bedElev:    { value: new THREE.Vector2(-30, 30) },
+  u_waterLevel: { value: MSL_ABOVE_NAVD88 },
 };
+applyBed(uniforms, state.geoSpot, state.tide || 0);
 
 const mat = new THREE.ShaderMaterial({
   vertexShader: GRID_VERT,
@@ -152,11 +160,23 @@ controls.maxDistance = 2000;
 // Follow = web/'s surfer-follow cliff shot: telephoto from the point, target
 // tracking surferState, zoom ∝ 1/distance (updated per-frame in the loop —
 // the pos/target here only seed the switch-in frame).
+// Cliff/Follow stand on the REAL cliff once bathymetry is loaded: 12 m inland
+// of the measured waterline at the camera's along-shore station, eye height
+// above the actual ground. Before the seabed existed these shots sat at a
+// hand-tuned 16 m over open water, which now puts them inland of the shore
+// and buries the lineup behind a sand berm.
+const EYE_H = 3.6;                    // standing height above the cliff top
+function cliffStation(x) {
+  if (!state.geoSpot) return [x, 16, breakLineJS(x) - 45];
+  const top = cliffTop(state.geoSpot, x, MSL_ABOVE_NAVD88);
+  return [x, top.elev + EYE_H, top.z];
+}
+
 const CAM_PRESETS = [
   { name: 'Free',   pos: () => [-140, 55, -230],                              target: () => [40, 0, 40] },
-  { name: 'Cliff',  pos: () => [210, 16, breakLineJS(210) - 45],              target: () => [-120, 3, breakLineJS(-120) - 10] },
+  { name: 'Cliff',  pos: () => cliffStation(210),                             target: () => [-120, 3, breakLineJS(-120) - 10] },
   { name: 'Drone',  pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
-  { name: 'Follow', pos: () => [210, 16, breakLineJS(210) - 45],              target: () => [0, 2, breakLineJS(0) - 11] },
+  { name: 'Follow', pos: () => cliffStation(210),                             target: () => [0, 2, breakLineJS(0) - 11] },
 ];
 let camIdx = 0;
 const BASE_FOV = 50;
@@ -248,6 +268,7 @@ function frame(now) {
   uniforms.u_geoMix.value = state.geoMix;
   uniforms.u_contourFit.value.set(state.contourX2, state.contourX3);
   uniforms.u_stageBounds.value.set(state.stageStart, state.stageEnd);
+  applyBed(uniforms, state.geoSpot, state.tide || 0);
 
   // surfer pose + Follow camera share one surferState/surfaceAt evaluation.
   // The follow shot tracks the ride line even with the rider hidden (S off)
