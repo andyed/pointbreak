@@ -12,6 +12,7 @@ import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS, describeGeoState } from '../../web/js/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
+import { makeSprayMesh, updateSpray } from './spray.js';
 import { coastCurve, oceanH as oceanHJS } from './model-js.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop } from './bed.js';
 import { makeSection } from './section.js';
@@ -155,6 +156,10 @@ scene.add(skyMesh);
 // model's own u_surfer path; it lines up because both read surferState.
 const surferGroup = makeSurferMesh();
 scene.add(surferGroup);
+
+// Lip Spray
+const sprayMesh = makeSprayMesh();
+scene.add(sprayMesh);
 
 // snapshot of the model uniforms for the JS twin (alpha already in radians)
 function modelP() {
@@ -336,6 +341,10 @@ function frame(now) {
   if (surferGroup.visible || following) {
     const sWorld = updateSurfer(surferGroup, simTime, modelP());
     if (following) updateFollowCam(sWorld);
+  }
+
+  if (!state.paused) {
+      updateSpray(sprayMesh, simTime, dt * state.speed, modelP());
   }
 
   // OrbitControls.update() re-derives position from its spherical state and

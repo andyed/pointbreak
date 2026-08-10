@@ -159,15 +159,18 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
 
   vec2 off = lam * grad;
 
-  // lip throw: toward-crest convergence alone folds the crest symmetrically;
-  // a plunging lip is thrown SHOREWARD (+z, the propagation direction) with
-  // the top of the crest leading — height-weighting tips the throw into an
-  // overhang instead of a shear of the whole water column. Amplitude is
-  // jittered along the crest (~10 m noise, drifting in time) so the fold
-  // fingers like a real lip instead of creasing on a ruler-straight line.
+  // lip throw & curl: toward-crest convergence folds the crest symmetrically;
+  // a plunging lip is thrown SHOREWARD (+z) and curled DOWNWARD (-y).
+  // This forms a cycloid-like barrel instead of a flat horizontal overhang.
   float hN = clamp(h / max(u_H0*VIS, 0.001), 0.0, 1.4);
   float lipJit = 0.65 + 0.7*vnoise2(vec2(xz0.x*0.11, t*0.45));
-  off.y += 7.5 * pocket * plunge * hN * lipJit;
+  
+  float throwMag = 7.5 * pocket * plunge * hN * lipJit;
+  off.y += throwMag;
+  
+  // Curl downward: scale drop by how far forward it's thrown
+  float dropMag = 3.5 * pocket * plunge * pow(hN, 2.0) * lipJit;
+  h -= dropMag;
 
   // guards: bounded (foam-front FD spikes must not shred the mesh), finite,
   // and faded with the skirt exactly like the height
