@@ -10,7 +10,12 @@
 //   3. subsurface transmission through thin backlit crests
 //   4. foam IN the surface (rough normals, lit albedo, kills fresnel locally)
 //   5. aerial perspective (fog matched to the sky dome; far skirt, no seam)
-// The model itself is untouched — everything here is renderer-side texture.
+// M2 is horizontal choppy displacement (spec "Displacement") — the reason
+// web-three exists: grid points slide toward the crests (Tessendorf choppy),
+// past the cusp limit at the pocket when xi plunges, so the lip pitches and
+// folds. Normals come from finite differences on the DISPLACED positions.
+// The model itself is untouched — everything here is renderer-side geometry
+// and texture.
 
 import { MODEL_GLSL } from '../../web/js/model-glsl.js';
 
@@ -101,22 +106,97 @@ ${DETAIL_GLSL}
 const vec2 STAGE_HALF   = vec2(300.0, 250.0);
 const vec2 STAGE_CENTER = vec2(0.0, 10.0);
 
+// far skirt: the stretched outer cells (see main.js) are far bigger than
+// LAM and would alias the carrier into low-frequency junk, so displacement
+// and its bookkeeping fade to mean sea level; fog has ~killed the surface
+// by then, only the fresnel-on-flat-water read remains (which is correct).
+// Factored out because M2's displaced-position FD samples need the same fade.
+float farFadeAt(vec2 xz){
+  vec2 dOut = max(abs(xz - STAGE_CENTER) - STAGE_HALF, vec2(0.0));
+  return 1.0 - smoothstep(100.0, 800.0, length(dOut));
+}
+
+// ---- M2: choppy horizontal displacement (the reason web-three exists) ----
+// Tessendorf choppy: each grid point slides horizontally toward the nearest
+// crest by lam * grad(h). Sign note: our FD gradient points UP-slope, and
+// sharpening means points converge ON crests (the Gerstner parametric form
+// offsets by +(Q/k)*dh/dx), so the offset here is +lam*grad — the spec's
+// "xy -= lambda*grad" pairs with the spectral -i*k/|k| gradient convention;
+// same physical displacement. lam is in world METRES (grad is dimensionless
+// slope), so nothing here depends on grid resolution.
+// Outs are the model's bookkeeping at the SOURCE point (Tessendorf: material
+// properties travel with the displaced point), already far-faded.
+vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest){
+  float fade = farFadeAt(xz0);
+  if (fade <= 0.001) {   // deep in the skirt: flat calm, skip 5 ocean() evals
+    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0;
+    return vec3(xz0.x, 0.0, xz0.y);
+  }
+
+  float h = ocean(xz0, t, foam, pocket, brk, crest);
+
+  // horizontal height gradient by central FD. e = 2 m: well under LAM/8 so
+  // the carrier slope is resolved, but above the finest bore/chop noise so
+  // the offset field stays smooth instead of shredding the mesh.
+  float e = 2.0;
+  vec2 grad = vec2(
+    oceanH(xz0 + vec2(e, 0.0), t) - oceanH(xz0 - vec2(e, 0.0), t),
+    oceanH(xz0 + vec2(0.0, e), t) - oceanH(xz0 - vec2(0.0, e), t)) / (2.0*e);
+
+  // lambda ramps with steepness near the break line (same shoaling e-fold the
+  // model uses to grow the wave), and the pocket term pushes it PAST the cusp
+  // limit when xi says plunging: converging points overshoot and the crest
+  // folds. Self-intersection accepted per spec — a folding lip that z-fights
+  // beats a smooth mound. Spilling waves (Cowell's) keep lam low: crests
+  // sharpen a little and the bore stays a mound.
+  float d      = breakLine(xz0.x) - xz0.y;        // >0 seaward of the line
+  float steep  = exp(-max(d, 0.0)/70.0) * reefWindow(xz0.x);
+  float plunge = smoothstep(0.45, 1.25, u_xi);    // Battjes: plunging from ~0.5
+  float lam    = (3.5 + 5.5*plunge) * steep       // sharpen approaching the line
+               + 9.0 * pocket * plunge;           // past-cusp at the zipper
+
+  vec2 off = lam * grad;
+
+  // lip throw: toward-crest convergence alone folds the crest symmetrically;
+  // a plunging lip is thrown SHOREWARD (+z, the propagation direction) with
+  // the top of the crest leading — height-weighting tips the throw into an
+  // overhang instead of a shear of the whole water column. Amplitude is
+  // jittered along the crest (~10 m noise, drifting in time) so the fold
+  // fingers like a real lip instead of creasing on a ruler-straight line.
+  float hN = clamp(h / max(u_H0*VIS, 0.001), 0.0, 1.4);
+  float lipJit = 0.65 + 0.7*vnoise2(vec2(xz0.x*0.11, t*0.45));
+  off.y += 7.5 * pocket * plunge * hN * lipJit;
+
+  // guards: bounded (foam-front FD spikes must not shred the mesh), finite,
+  // and faded with the skirt exactly like the height
+  float offLen = length(off);
+  off *= min(offLen, 20.0) / max(offLen, 1e-6);
+  if (!(dot(off, off) == dot(off, off))) off = vec2(0.0);   // NaN guard (house rule)
+
+  foam   *= fade;
+  pocket *= fade;
+  crest  *= fade;
+  return vec3(xz0.x + off.x*fade, h*fade, xz0.y + off.y*fade);
+}
+
 void main() {
   // geometry is authored in world metres on the XZ stage (see main.js), so
   // position.xz IS the model coordinate — no extra transform to keep in sync
   vec2 xz = position.xz;
 
   float foam, pocket, brk, crest;
-  float h = ocean(xz, u_time, foam, pocket, brk, crest);
+  vec3 P = choppyPos(xz, u_time, foam, pocket, brk, crest);
 
-  // displaced normal by central finite difference at one core grid cell (the
-  // spec's "finite diff in UV space"): one cell, not a fixed metre step, so
-  // the normal tracks whatever resolution the grid is built at
-  float ex = u_cell.x, ez = u_cell.y;
-  vec3 N = vec3(
-    oceanH(xz - vec2(ex, 0.0), u_time) - oceanH(xz + vec2(ex, 0.0), u_time),
-    2.0*max(ex, ez),
-    oceanH(xz - vec2(0.0, ez), u_time) - oceanH(xz + vec2(0.0, ez), u_time));
+  // normals by finite differences on the DISPLACED positions (spec M2) — the
+  // height-only FD of M1 is blind to the fold. Forward differences at one
+  // core cell: central would push the (already 3x M1) vertex cost to 5x for
+  // a half-cell phase shift invisible at ~1.2 m cells.
+  float f2, p2, b2, c2;
+  vec3 Px = choppyPos(xz + vec2(u_cell.x, 0.0), u_time, f2, p2, b2, c2);
+  vec3 Pz = choppyPos(xz + vec2(0.0, u_cell.y), u_time, f2, p2, b2, c2);
+  vec3 N = cross(Pz - P, Px - P);            // +y up for an unfolded surface
+  if (!(dot(N, N) > 1e-12)) N = vec3(0.0, 1.0, 0.0);   // degenerate fold cell
+  N = normalize(N);
 
   // boil slick — mirrors ocean()'s internal boil dome (same constants); passed
   // down as a varying so both stages can damp ripple detail over the glass
@@ -125,29 +205,22 @@ void main() {
   float boil = exp(-dot(xz - boilPos, xz - boilPos)/(2.0*5.5*5.5));
 
   // fine displacement octaves at reduced amplitude (spec: "full detail lives
-  // in normals"); damped in foam and over the boil, matching the fragment
+  // in normals"); damped in foam and over the boil, matching the fragment.
+  // Sampled at the DISPLACED xz so the vertex bump and the fragment's
+  // detailGrad (which reads vWorldPos.xz) stay the same field.
+  float fade = farFadeAt(xz);
   float vAmp = 0.16 * (0.5 + 0.5*u_chop)
              * (1.0 - 0.85*clamp(foam, 0.0, 1.0)) * (1.0 - 0.9*boil);
-  h += detailH(xz, u_time) * vAmp;
+  P.y += detailH(P.xz, u_time) * vAmp * fade;
 
-  // far skirt: the stretched outer cells (see main.js) are far bigger than
-  // LAM and would alias the carrier into low-frequency junk, so displacement
-  // and its bookkeeping fade to mean sea level; fog has ~killed the surface
-  // by then, only the fresnel-on-flat-water read remains (which is correct)
-  vec2 dOut = max(abs(xz - STAGE_CENTER) - STAGE_HALF, vec2(0.0));
-  float farFade = 1.0 - smoothstep(100.0, 800.0, length(dOut));
-  h *= farFade;
-  N.xz *= farFade;   // flatten normals with the surface, not before it
-
-  vec3 wp = vec3(xz.x, h, xz.y);
-  vWorldPos = wp;
-  vNormal   = normalize(N);
-  vFoam     = foam * farFade;
-  vPocket   = pocket * farFade;
-  vCrest    = crest * farFade;
+  vWorldPos = P;
+  vNormal   = N;
+  vFoam     = foam;      // choppyPos already far-faded the outs
+  vPocket   = pocket;
+  vCrest    = crest;
   vBrk      = brk;
   vBoil     = boil;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(wp, 1.0);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
 }
 `;
 
@@ -212,7 +285,9 @@ void main() {
   float detailVis = exp(-dist * 0.003);
   float damp = (1.0 - 0.85*foamM) * (1.0 - 0.9*boil);
   vec2 g = detailGrad(xz, t) * (0.55 + 0.55*u_chop) * damp * detailVis;
-  vec3 Ng = normalize(vNormal);                          // geometric (wave-scale) normal
+  // M2's folded lip shows its underside (material is DoubleSide); flip the
+  // geometric normal for back faces so the curl shades as a surface, not a hole
+  vec3 Ng = normalize(vNormal) * (gl_FrontFacing ? 1.0 : -1.0);   // wave-scale normal
   vec3 N = normalize(vec3(Ng.x - g.x, Ng.y, Ng.z - g.y)); // + ripple detail
 
   // foam roughness normal (used for foam's own lighting below); influence kept
