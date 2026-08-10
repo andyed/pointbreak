@@ -1,5 +1,5 @@
 <svg viewBox="0 0 1200 630" width="1200" height="630" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif">
-<title>Pleasure Point — a measured field guide</title>
+<title>Pleasure Point — social preview card</title>
 <desc>Social preview card: the measured Pleasure Point coastline in the rotated point frame, with NOAA NCEI depth contours and the seven canon surf breaks labelled by along-point arclength u, plus an inset drone frame from the wave simulation.</desc>
 <!-- Contrast audit, computed at build time (WCAG 2.x sRGB relative
      luminance). Build fails below 8:1. Ratios are RENDERED values:

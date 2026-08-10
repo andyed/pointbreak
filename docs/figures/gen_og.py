@@ -292,7 +292,10 @@ p = []
 p.append(f'<svg viewBox="0 0 {VB_W} {VB_H}" width="{VB_W}" height="{VB_H}" '
          f'xmlns="http://www.w3.org/2000/svg" '
          f'xmlns:xlink="http://www.w3.org/1999/xlink" font-family="{SANS}">')
-p.append('<title>Pleasure Point — a measured field guide</title>')
+# Names the artifact, not the page: this is the SVG's accessible title, and
+# quoting the page's headline here would go stale on the next retitle exactly
+# as the drawn subtitle did.
+p.append('<title>Pleasure Point — social preview card</title>')
 p.append('<desc>Social preview card: the measured Pleasure Point coastline in the '
          'rotated point frame, with NOAA NCEI depth contours and the seven canon '
          'surf breaks labelled by along-point arclength u, plus an inset drone '
