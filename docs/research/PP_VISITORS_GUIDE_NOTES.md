@@ -89,8 +89,10 @@ bank (TODO Phase 1: Cowell's / Jack's / Second Peak / First Peak / The Slot /
 Middle Peak) mixes in **West Side** spots — Cowell's, The Slot, and Middle Peak
 are Steamer Lane–area waves, a few miles from Pleasure Point. Candidate
 correction: retarget the preset bank to the PP canon above (decision pending —
-flagged 2026-08-09; the A-frame mechanism keeps its Middle Peak *mechanism*
-name per method-naming convention even if the preset renames).
+flagged 2026-08-09). **RESOLVED 2026-08-10:** the bank was retargeted to the
+canon above. The A-frame survived as a *parameter* rather than a named site,
+which is the method-naming convention doing its job — the mechanism keeps its
+name, the venue does not.
 
 ## Color for the eventual explainer essay
 

@@ -29,6 +29,6 @@ Profiles with more than 5 m RMS contour-fit error fail closed to the synthetic
 stage.
 
 The current preset bank truthfully maps Jack's to OSM's `38th`, plus Second
-Peak, First Peak, and The Hook. Cowell's, The Slot, and Middle Peak remain
-explicitly synthetic because their names describe West Side waves rather than
-Pleasure Point geography.
+Peak, First Peak, The Hook and Sharks. Only Privates is synthetic: its
+coastline defeats the cubic contour fit (16.5 m RMS), so it fails closed to the
+synthetic stage rather than borrowing a neighbour's bathymetry.

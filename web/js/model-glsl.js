@@ -22,7 +22,7 @@ uniform float u_sections; // crest noise -> early-breaking patches
 uniform float u_dF;       // group beat, Hz (set period = 1/dF)
 uniform float u_tau;      // foam e-folding, s
 uniform float u_chop;     // local wind-sea texture 0..1
-uniform float u_aframe;   // 0 point break, 1 Middle Peak (abs fold)
+uniform float u_aframe;   // 0 point break, 1 A-frame (abs fold); no site sets 1
 uniform float u_surfer;   // 0 off, 1 riding
 uniform float u_geoMix;   // 1 = OSM/NCEI stage profile, 0 = synthetic fallback
 uniform vec2 u_contourFit;// NCEI equal-elevation contour: x2*x^2 + x3*x^3
@@ -59,9 +59,10 @@ float vnoise2(vec2 p){
 // ---------- bathymetry: the break line (peel line) ----------
 // z increases shoreward. Break starts at low x (right-hander peeling +x).
 // A-frame: fold x about 0 -> two mirrored zippers.
-// For mapped Pleasure Point spots, curve comes from the NCEI equal-elevation
-// contour through the OSM surf node. The synthetic quadratic remains the
-// explicit fallback for West Side presets and the A-frame mechanism.
+// For mapped sites the curve comes from the NCEI equal-elevation contour
+// through the OSM surf node. The synthetic quadratic remains the explicit
+// fallback for the one unmapped site (Privates) and for the A-frame mechanism,
+// which folds about x=0 and so cannot use an asymmetric measured contour.
 float geoWeight(){
   return clamp(u_geoMix, 0.0, 1.0) * (1.0 - step(0.5, u_aframe));
 }

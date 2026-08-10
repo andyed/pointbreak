@@ -40,7 +40,8 @@ and implementation disagree, fix one deliberately and record why.
 - **Iribarren ξ** — barrel-ness (spilling < ~0.4 < plunging). Independent of α.
 - **Section noise σ_h** — early-breaking patches; density = sectioniness.
 - **Δf (bandwidth)** — set structure; smaller Δf = longer set cycles.
-- **A-frame** — `abs(u−u0)` substitution, two symmetric zippers. Middle Peak.
+- **A-frame** — `abs(u−u0)` substitution, two symmetric zippers. A parameter,
+  not a site: no Pleasure Point preset ships `aframe: 1`.
 
 ## Related repos
 

@@ -18,10 +18,10 @@ uniform float u_time;
 uniform float u_period;        // T, seconds (12-15 groundswell)
 uniform float u_peelAngle;     // alpha, radians (0.5..1.3; ~1.0 = Second Peak)
 uniform float u_iribarren;     // xi0, barrel-ness (Battjes: <0.5 spill, 0.5-3.3 plunge)
-uniform float u_sectionNoise;  // sigma_h (0 = Cowell's, 1 = the Slot)
+uniform float u_sectionNoise;  // sigma_h (0 = clean, 1 = heavily sectioned)
 uniform float u_groupDf;       // delta-f for set beating (~0.006 Hz)
 uniform float u_foamDecay;     // tau, seconds (~5)
-uniform float u_aframe;        // 0 = point break, 1 = Middle Peak event
+uniform float u_aframe;        // 0 = point break, 1 = A-frame event
 ```
 
 ## Wave train with sets
@@ -54,7 +54,7 @@ float zipperU(float t, float t_n, float c) {
 
 A-frame mode (`u_aframe = 1`): two zippers from apex u=u0, at ±Vp — i.e. use
 `abs(u - u0)` in place of `u` everywhere below. That single substitution is the
-entire Middle Peak implementation.
+entire A-frame implementation.
 
 ## Sections
 

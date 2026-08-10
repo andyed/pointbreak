@@ -92,7 +92,7 @@ then retires.
     web/ geometry. (Mechanical.)
   - **M1** — shading pass 1–4 above. Acceptance: evokes ocean in a 10 s capture.
   - **M2** — horizontal displacement + pitching lip at high ξ. Acceptance: the
-    Slot preset visibly throws; Cowell's still spills.
+    highest-xi site (Sewers) visibly throws; the lowest (Privates) still spills.
   - **M3** — glTF surfer on the ride line. Acceptance: reads as riding, not
     sliding.
 - Perf budget: 60 fps at 1080p on the M-series MacBook, DPR capped 1.5;

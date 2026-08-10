@@ -1,20 +1,33 @@
 # Asset provenance — fig-week.svg raster material
 
-The seven `cliff_*.png` frames in this directory are simulated wave-character
-captures from the pointbreak renderer's preset bank, taken during the
-`wf_bf7f351c-cf9` web-three capture sweep (Playwright headless Chromium,
-Cliff camera, sim time t=42, one frame per preset). Source captures at
-1280×720 live at
-`/private/tmp/claude-501/-Users-andyed-Documents-dev/595c8ebb-16b5-4e6f-a0ad-1916f6721c1c/scratchpad/web-three-caps/final/`
-and were downscaled to 640px wide (Lanczos resample, PIL) for repo weight.
+The seven `cliff_*.png` frames in this directory are renders from the
+pointbreak model, one per Pleasure Point site, captured headlessly at
+1280×720 (Playwright + Chromium, `--use-angle=metal`), Drone camera,
+simulation clock jumped to a fixed t = 42 s so re-runs are comparable.
 
-Regenerate with `web-three-caps/capture-final.js` against the same seven
-preset keys (`cowells`, `jacks`, `secondpeak`, `firstpeak`, `thehook`,
-`theslot`, `middlepeak`) at Cliff camera, sim t=42.
+Regenerate both the captures and the figure:
 
-These are renders of the wave model, not photographs, and not geography —
-three of the seven preset names (Cowell's, The Slot, Middle Peak) are West
-Side (Steamer Lane) spot names carried over from an earlier preset bank; see
-`docs/research/PP_VISITORS_GUIDE_NOTES.md` for the pending Pleasure Point
-canon retarget. The frames claim wave character (peel angle, barrel-ness,
-sectioning), not spot geography.
+```bash
+node scripts/capture_presets.mjs      # writes cliff_<key>.png here
+python3 docs/figures/gen_week.py      # rebuilds fig-week.svg from them
+```
+
+The capture script reads the site keys straight out of `web/js/params.js` and
+asserts the requested preset actually applied before screenshotting, so the
+frames cannot silently drift from the bank. `gen_week.py` reads the same file
+for the parameter line under each panel.
+
+**These are renders, not photographs**, and the model is not validated against
+this break — see the repository README's "What it does not model". The frames
+claim wave character (peel angle, barrel-ness, sectioning), not photographic
+truth.
+
+The file names retain the `cliff_` prefix from the original Cliff-camera sweep
+on 2026-08-09. The camera moved to Drone on 2026-08-10, because the Cliff
+station now stands on the real NCEI terrain and put a foreground of sand in
+half the panels.
+
+Historical note: the first version of this sheet carried three west-side spot
+names (Cowell's, The Slot, Middle Peak) inherited from an early preset bank.
+The bank was retargeted to the real Pleasure Point canon on 2026-08-10 and no
+borrowed names remain.

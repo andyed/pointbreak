@@ -149,7 +149,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // model uses to grow the wave), and the pocket term pushes it PAST the cusp
   // limit when xi says plunging: converging points overshoot and the crest
   // folds. Self-intersection accepted per spec — a folding lip that z-fights
-  // beats a smooth mound. Spilling waves (Cowell's) keep lam low: crests
+  // beats a smooth mound. Spilling sites (low xi, e.g. Privates) keep lam low: crests
   // sharpen a little and the bore stays a mound.
   float d      = breakLine(xz0.x) - xz0.y;        // >0 seaward of the line
   float steep  = exp(-max(d, 0.0)/70.0) * reefWindow(xz0.x);
