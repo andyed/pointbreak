@@ -1,204 +1,94 @@
-<svg viewBox="0 0 1600 705" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-week-title fig-week-desc">
-<!--
-  CONTRAST AUDIT (WCAG 2.x relative-luminance ratios, computed 2026-08-09):
-    cream #e6e4d2 on bg #0f1216      -> 14.66:1  (labels, spec lines, read lines on photos/bg)
-    foam  #eef2f3 on bg #0f1216      -> 16.66:1  (title on bg)
-    cream #e6e4d2 on kelp #1d2b28    -> 11.48:1  (title-card body text)
-    foam  #eef2f3 on kelp #1d2b28    -> 13.04:1  (title-card headline, badge numerals)
-    sand  #c9a86a on bg  #0f1216     ->  8.31:1  (meets floor, but NOT used on kelp: 6.51:1 fails,
-                                                   so sand is restricted to decorative rules/dots only,
-                                                   never set as text here)
-    teal  #4a8f85 on bg  #0f1216     ->  4.97:1  (fails 8:1 -> decorative rules/badges only, no text)
-    slate #6b7f8c on bg  #0f1216     ->  4.51:1  (fails 8:1 -> decorative rules only, no text)
-  All body/caption/label text in this figure uses cream or foam on bg or kelp (>=11.48:1).
-  Photo captions sit on solid #0f1216 below the crop line, never directly over image pixels,
-  so the ratios above hold without needing a scrim.
--->
-<title id="fig-week-title">Seven Waves — the model's moods, mellow to mean</title>
-<desc id="fig-week-desc">Contact sheet of seven simulated wave-character renders from the pointbreak preset bank, ordered by peel angle descending (mellowest first): Cowell's, Jack's, Second Peak, First Peak, The Hook, Middle Peak, The Slot. Each frame is cropped to its lower 55% (the water) to exclude on-screen HUD chrome, paired with its real alpha/xi/sections/T/H0 parameter values and a one-line honest read of the simulated wave character.</desc>
-
+<svg viewBox="0 0 1616 818" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img">
+<title>Seven Pleasure Point sites as simulated wave-character studies</title>
+<desc>Cliff-view frames from the pointbreak model, one per site, ordered apex to down-point, each labelled with the parameters the model ran.</desc>
 <style>
-  :root {
-    --mg-bg: #0f1216;
-    --mg-fg: #e6e4d2;
-    --mg-foam: #eef2f3;
-    --mg-teal: #4a8f85;
-    --mg-slate: #6b7f8c;
-    --mg-kelp: #1d2b28;
-    --mg-sand: #c9a86a;
-  }
-  .bg-fill   { fill: var(--mg-bg, #0f1216); }
-  .kelp-fill { fill: var(--mg-kelp, #1d2b28); }
-  .ink       { fill: var(--mg-fg, #e6e4d2); }
-  .foam      { fill: var(--mg-foam, #eef2f3); }
-  .rule      { stroke: var(--mg-slate, #6b7f8c); stroke-width: 1; opacity: 0.55; }
-  .rule-sand { stroke: var(--mg-sand, #c9a86a); stroke-width: 2; opacity: 0.9; }
-  .badge-fill{ fill: var(--mg-kelp, #1d2b28); stroke: var(--mg-sand, #c9a86a); stroke-width: 1; opacity: 0.96; }
-  .badge-num { fill: var(--mg-foam, #eef2f3); font-weight: 700; }
-  .card      { fill: var(--mg-kelp, #1d2b28); }
-  .sans      { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .mono      { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace; }
-  .label     { font-size: 21px; font-weight: 700; letter-spacing: 0.2px; }
-  .spec      { font-size: 16px; }
-  .read      { font-size: 16px; font-style: italic; }
-  .kicker    { font-size: 15px; font-weight: 600; letter-spacing: 1.4px; }
-  .titlemain { font-size: 32px; font-weight: 800; letter-spacing: 1px; }
-  .subtitle  { font-size: 18px; font-weight: 400; }
-  .legend    { font-size: 16px; }
-  .footnote  { font-size: 16px; }
+ .wk-bg { fill: #0f1216; }
+ .wk-title { fill: #e6e4d2; font: 700 27px Georgia, "Times New Roman", serif; }
+ .wk-sub { fill: #eef2f3; font: 400 15px -apple-system, "Helvetica Neue", Arial, sans-serif; }
+ .wk-name { fill: #eef2f3; font: 700 19px -apple-system, "Helvetica Neue", Arial, sans-serif; }
+ .wk-spec { fill: #e6e4d2; font: 400 14.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+ .wk-read { fill: #cccbbb; font: italic 400 14.5px -apple-system, "Helvetica Neue", Arial, sans-serif; }
+ .wk-foot { fill: #cccbbb; font: 400 14px -apple-system, "Helvetica Neue", Arial, sans-serif; }
+ .wk-badge { fill: #c9a86a; }
+ .wk-badge-t { fill: #0f1216; font: 700 12px -apple-system, "Helvetica Neue", Arial, sans-serif; letter-spacing: .07em; }
+ .wk-rule { stroke: rgba(230,228,210,0.18); stroke-width: 1; }
+ .wk-frame { fill: none; stroke: rgba(230,228,210,0.20); stroke-width: 1; }
 </style>
-
-<rect x="0" y="0" width="1600" height="705" class="bg-fill"/>
-
-<!-- ============ image crop macro data ============
-     source frames: 640x360 (downscaled from 1280x720 captures).
-     lower 55% crop viewBox: y=162 (0.45*360) height=198 (0.55*360) -->
-
-<!-- ================= ROW 1 (mellowest -> ) ================= -->
-
-<!-- 1 Cowell's — alpha 70 -->
-<g>
-  <clipPath id="clip1"><rect x="26" y="33" width="373" height="115.4" rx="3"/></clipPath>
-  <g clip-path="url(#clip1)">
-    <svg x="26" y="33" width="373" height="115.4" viewBox="0 162 640 198" preserveAspectRatio="xMidYMid slice">
-      <image href="assets/cliff_cowells.png" x="0" y="0" width="640" height="360"/>
-    </svg>
-  </g>
-  <circle cx="53" cy="60" r="16" class="badge-fill"/>
-  <text x="53" y="60" text-anchor="middle" dominant-baseline="central" class="sans badge-num" font-size="16">1</text>
-  <line x1="26" y1="164" x2="399" y2="164" class="rule"/>
-  <text x="26" y="190" class="sans label ink">Cowell's</text>
-  <text x="26" y="214" class="mono spec ink">&#945;70&#176; &#183; &#958;0.35 &#183; &#963;0.05 &#183; T12s &#183; H0 0.7m</text>
-  <text x="26" y="238" class="sans read ink">thin feathering crest, barely spilling,</text>
-  <text x="26" y="258" class="sans read ink">almost no sectioning</text>
-</g>
-
-<!-- 2 Jack's — alpha 62 -->
-<g>
-  <clipPath id="clip2"><rect x="417" y="33" width="373" height="115.4" rx="3"/></clipPath>
-  <g clip-path="url(#clip2)">
-    <svg x="417" y="33" width="373" height="115.4" viewBox="0 162 640 198" preserveAspectRatio="xMidYMid slice">
-      <image href="assets/cliff_jacks.png" x="0" y="0" width="640" height="360"/>
-    </svg>
-  </g>
-  <circle cx="444" cy="60" r="16" class="badge-fill"/>
-  <text x="444" y="60" text-anchor="middle" dominant-baseline="central" class="sans badge-num" font-size="16">2</text>
-  <line x1="417" y1="164" x2="790" y2="164" class="rule"/>
-  <text x="417" y="190" class="sans label ink">Jack's</text>
-  <text x="417" y="214" class="mono spec ink">&#945;62&#176; &#183; &#958;0.5 &#183; &#963;0.1 &#183; T13s &#183; H0 1.1m</text>
-  <text x="417" y="238" class="sans read ink">soft crumble along the face,</text>
-  <text x="417" y="258" class="sans read ink">light peel, rare section</text>
-</g>
-
-<!-- 3 Second Peak — alpha 58 -->
-<g>
-  <clipPath id="clip3"><rect x="808" y="33" width="373" height="115.4" rx="3"/></clipPath>
-  <g clip-path="url(#clip3)">
-    <svg x="808" y="33" width="373" height="115.4" viewBox="0 162 640 198" preserveAspectRatio="xMidYMid slice">
-      <image href="assets/cliff_secondpeak.png" x="0" y="0" width="640" height="360"/>
-    </svg>
-  </g>
-  <circle cx="835" cy="60" r="16" class="badge-fill"/>
-  <text x="835" y="60" text-anchor="middle" dominant-baseline="central" class="sans badge-num" font-size="16">3</text>
-  <line x1="808" y1="164" x2="1181" y2="164" class="rule"/>
-  <text x="808" y="190" class="sans label ink">Second Peak</text>
-  <text x="808" y="214" class="mono spec ink">&#945;58&#176; &#183; &#958;0.65 &#183; &#963;0.15 &#183; T14s &#183; H0 1.5m</text>
-  <text x="808" y="238" class="sans read ink">glassy shoulder, mellow crumble</text>
-  <text x="808" y="258" class="sans read ink">at the pocket, longboard peel</text>
-</g>
-
-<!-- 4 First Peak — alpha 50 -->
-<g>
-  <clipPath id="clip4"><rect x="1199" y="33" width="373" height="115.4" rx="3"/></clipPath>
-  <g clip-path="url(#clip4)">
-    <svg x="1199" y="33" width="373" height="115.4" viewBox="0 162 640 198" preserveAspectRatio="xMidYMid slice">
-      <image href="assets/cliff_firstpeak.png" x="0" y="0" width="640" height="360"/>
-    </svg>
-  </g>
-  <circle cx="1226" cy="60" r="16" class="badge-fill"/>
-  <text x="1226" y="60" text-anchor="middle" dominant-baseline="central" class="sans badge-num" font-size="16">4</text>
-  <line x1="1199" y1="164" x2="1572" y2="164" class="rule"/>
-  <text x="1199" y="190" class="sans label ink">First Peak</text>
-  <text x="1199" y="214" class="mono spec ink">&#945;50&#176; &#183; &#958;0.85 &#183; &#963;0.25 &#183; T14s &#183; H0 1.8m</text>
-  <text x="1199" y="238" class="sans read ink">steeper tapered wall, crumble</text>
-  <text x="1199" y="258" class="sans read ink">building toward a lip</text>
-</g>
-
-<!-- ================= ROW 2 ( -> meanest) + title card ================= -->
-
-<!-- 5 The Hook — alpha 48 -->
-<g>
-  <clipPath id="clip5"><rect x="26" y="318" width="373" height="115.4" rx="3"/></clipPath>
-  <g clip-path="url(#clip5)">
-    <svg x="26" y="318" width="373" height="115.4" viewBox="0 162 640 198" preserveAspectRatio="xMidYMid slice">
-      <image href="assets/cliff_thehook.png" x="0" y="0" width="640" height="360"/>
-    </svg>
-  </g>
-  <circle cx="53" cy="345" r="16" class="badge-fill"/>
-  <text x="53" y="345" text-anchor="middle" dominant-baseline="central" class="sans badge-num" font-size="16">5</text>
-  <line x1="26" y1="449" x2="399" y2="449" class="rule"/>
-  <text x="26" y="475" class="sans label ink">The Hook</text>
-  <text x="26" y="499" class="mono spec ink">&#945;48&#176; &#183; &#958;0.8 &#183; &#963;0.2 &#183; T13s &#183; H0 1.5m</text>
-  <text x="26" y="523" class="sans read ink">curling lip at the pocket,</text>
-  <text x="26" y="543" class="sans read ink">mixed crumble and section</text>
-</g>
-
-<!-- 6 Middle Peak — alpha 45 (A-frame) -->
-<g>
-  <clipPath id="clip6"><rect x="417" y="318" width="373" height="115.4" rx="3"/></clipPath>
-  <g clip-path="url(#clip6)">
-    <svg x="417" y="318" width="373" height="115.4" viewBox="0 162 640 198" preserveAspectRatio="xMidYMid slice">
-      <image href="assets/cliff_middlepeak.png" x="0" y="0" width="640" height="360"/>
-    </svg>
-  </g>
-  <circle cx="444" cy="345" r="16" class="badge-fill"/>
-  <text x="444" y="345" text-anchor="middle" dominant-baseline="central" class="sans badge-num" font-size="16">6</text>
-  <line x1="417" y1="449" x2="790" y2="449" class="rule"/>
-  <text x="417" y="475" class="sans label ink">Middle Peak</text>
-  <text x="417" y="499" class="mono spec ink">&#945;45&#176; &#183; &#958;1.1 &#183; &#963;0.3 &#183; T15s &#183; H0 2.2m</text>
-  <text x="417" y="523" class="sans read ink">plunging A-frame peak, curling</text>
-  <text x="417" y="543" class="sans read ink">both directions off the apex</text>
-</g>
-
-<!-- 7 The Slot — alpha 35, meanest -->
-<g>
-  <clipPath id="clip7"><rect x="808" y="318" width="373" height="115.4" rx="3"/></clipPath>
-  <g clip-path="url(#clip7)">
-    <svg x="808" y="318" width="373" height="115.4" viewBox="0 162 640 198" preserveAspectRatio="xMidYMid slice">
-      <image href="assets/cliff_theslot.png" x="0" y="0" width="640" height="360"/>
-    </svg>
-  </g>
-  <circle cx="835" cy="345" r="16" class="badge-fill"/>
-  <text x="835" y="345" text-anchor="middle" dominant-baseline="central" class="sans badge-num" font-size="16">7</text>
-  <line x1="808" y1="449" x2="1181" y2="449" class="rule"/>
-  <text x="808" y="475" class="sans label ink">The Slot</text>
-  <text x="808" y="499" class="mono spec ink">&#945;35&#176; &#183; &#958;1.3 &#183; &#963;0.5 &#183; T15s &#183; H0 2.4m</text>
-  <text x="808" y="523" class="sans read ink">hollow plunging lip, heavy</text>
-  <text x="808" y="543" class="sans read ink">sectioning, closeout-prone</text>
-</g>
-
-<!-- ================= 8th cell: title + legend + footnote card ================= -->
-<g>
-  <rect x="1199" y="310" width="373" height="375" rx="6" class="card"/>
-  <rect x="1199" y="310" width="6" height="375" class="rule-sand" stroke="none" fill="var(--mg-sand, #c9a86a)"/>
-
-  <text x="1223" y="360" class="titlemain foam" font-family="Georgia, 'Times New Roman', serif">SEVEN WAVES</text>
-  <text x="1223" y="386" class="sans subtitle ink">the model's moods, mellow to mean</text>
-  <line x1="1223" y1="402" x2="1548" y2="402" class="rule"/>
-
-  <text x="1223" y="426" class="mono legend ink">&#945; &#8212; peel angle (deg)</text>
-  <text x="1223" y="448" class="mono legend ink">&#958; &#8212; Iribarren (barrel-ness)</text>
-  <text x="1223" y="470" class="mono legend ink">&#963; &#8212; section noise</text>
-  <text x="1223" y="492" class="mono legend ink">T &#8212; period (s)</text>
-  <text x="1223" y="514" class="mono legend ink">H0 &#8212; swell height (m)</text>
-  <line x1="1223" y1="528" x2="1548" y2="528" class="rule"/>
-
-  <text x="1223" y="550" class="sans footnote ink">Simulated wave-character studies from</text>
-  <text x="1223" y="571" class="sans footnote ink">the pointbreak renderer's preset bank.</text>
-  <text x="1223" y="592" class="sans footnote ink">Preset names predate the Pleasure Point</text>
-  <text x="1223" y="613" class="sans footnote ink">spot canon (three are West Side waves);</text>
-  <text x="1223" y="634" class="sans footnote ink">these frames claim wave character, not</text>
-  <text x="1223" y="655" class="sans footnote ink">geography.</text>
-</g>
-
+<rect class="wk-bg" x="0" y="0" width="1616" height="818"/>
+<text class="wk-title" x="40" y="58">SEVEN SITES — one point, apex to down-point</text>
+<rect class="wk-badge" x="1340" y="42" width="236" height="22" rx="3"/>
+<text class="wk-badge-t" x="1351" y="57">WORK-IN-PROGRESS RENDER</text>
+<text class="wk-sub" x="40" y="84">Simulated frames from the pointbreak model — not photographs, and not validated against this break.</text>
+<clipPath id="wk-clip0"><rect x="40" y="100" width="366" height="206" rx="3"/></clipPath>
+<g clip-path="url(#wk-clip0)"><svg x="40" y="100" width="366" height="206" viewBox="141.1 79.2 997.8 561.6" preserveAspectRatio="xMidYMid slice"><image xlink:href="assets/cliff_sewers.png" href="assets/cliff_sewers.png" x="0" y="0" width="1280" height="720"/></svg></g>
+<rect class="wk-frame" x="40" y="100" width="366" height="206" rx="3"/>
+<circle cx="62" cy="122" r="13" fill="#1d2b28" stroke="#c9a86a" stroke-width="1.5"/>
+<text x="62" y="127" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">1</text>
+<text class="wk-name" x="40" y="332">Sewers</text>
+<line class="wk-rule" x1="40" y1="341" x2="406" y2="341"/>
+<text class="wk-spec" x="40" y="362">α38° · ξ1.15 · σ0.4 · T15s · H0 2.2m</text>
+<text class="wk-read" x="40" y="384">hollow plunging lip, heavy</text>
+<text class="wk-read" x="40" y="404">sectioning at the apex</text>
+<clipPath id="wk-clip1"><rect x="430" y="100" width="366" height="206" rx="3"/></clipPath>
+<g clip-path="url(#wk-clip1)"><svg x="430" y="100" width="366" height="206" viewBox="141.1 79.2 997.8 561.6" preserveAspectRatio="xMidYMid slice"><image xlink:href="assets/cliff_firstpeak.png" href="assets/cliff_firstpeak.png" x="0" y="0" width="1280" height="720"/></svg></g>
+<rect class="wk-frame" x="430" y="100" width="366" height="206" rx="3"/>
+<circle cx="452" cy="122" r="13" fill="#1d2b28" stroke="#c9a86a" stroke-width="1.5"/>
+<text x="452" y="127" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">2</text>
+<text class="wk-name" x="430" y="332">First Peak</text>
+<line class="wk-rule" x1="430" y1="341" x2="796" y2="341"/>
+<text class="wk-spec" x="430" y="362">α50° · ξ0.85 · σ0.25 · T14s · H0 1.8m</text>
+<text class="wk-read" x="430" y="384">steeper tapered wall,</text>
+<text class="wk-read" x="430" y="404">crumble building toward a lip</text>
+<clipPath id="wk-clip2"><rect x="820" y="100" width="366" height="206" rx="3"/></clipPath>
+<g clip-path="url(#wk-clip2)"><svg x="820" y="100" width="366" height="206" viewBox="141.1 79.2 997.8 561.6" preserveAspectRatio="xMidYMid slice"><image xlink:href="assets/cliff_secondpeak.png" href="assets/cliff_secondpeak.png" x="0" y="0" width="1280" height="720"/></svg></g>
+<rect class="wk-frame" x="820" y="100" width="366" height="206" rx="3"/>
+<circle cx="842" cy="122" r="13" fill="#1d2b28" stroke="#c9a86a" stroke-width="1.5"/>
+<text x="842" y="127" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">3</text>
+<text class="wk-name" x="820" y="332">Second Peak</text>
+<line class="wk-rule" x1="820" y1="341" x2="1186" y2="341"/>
+<text class="wk-spec" x="820" y="362">α58° · ξ0.65 · σ0.15 · T14s · H0 1.5m</text>
+<text class="wk-read" x="820" y="384">glassy shoulder, mellow</text>
+<text class="wk-read" x="820" y="404">crumble at the pocket</text>
+<clipPath id="wk-clip3"><rect x="1210" y="100" width="366" height="206" rx="3"/></clipPath>
+<g clip-path="url(#wk-clip3)"><svg x="1210" y="100" width="366" height="206" viewBox="141.1 79.2 997.8 561.6" preserveAspectRatio="xMidYMid slice"><image xlink:href="assets/cliff_jacks.png" href="assets/cliff_jacks.png" x="0" y="0" width="1280" height="720"/></svg></g>
+<rect class="wk-frame" x="1210" y="100" width="366" height="206" rx="3"/>
+<circle cx="1232" cy="122" r="13" fill="#1d2b28" stroke="#c9a86a" stroke-width="1.5"/>
+<text x="1232" y="127" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">4</text>
+<text class="wk-name" x="1210" y="332">Jack&#39;s (38th)</text>
+<line class="wk-rule" x1="1210" y1="341" x2="1576" y2="341"/>
+<text class="wk-spec" x="1210" y="362">α62° · ξ0.5 · σ0.1 · T13s · H0 1.1m</text>
+<text class="wk-read" x="1210" y="384">soft crumble along the face,</text>
+<text class="wk-read" x="1210" y="404">light peel, rare section</text>
+<clipPath id="wk-clip4"><rect x="40" y="424" width="366" height="206" rx="3"/></clipPath>
+<g clip-path="url(#wk-clip4)"><svg x="40" y="424" width="366" height="206" viewBox="141.1 79.2 997.8 561.6" preserveAspectRatio="xMidYMid slice"><image xlink:href="assets/cliff_thehook.png" href="assets/cliff_thehook.png" x="0" y="0" width="1280" height="720"/></svg></g>
+<rect class="wk-frame" x="40" y="424" width="366" height="206" rx="3"/>
+<circle cx="62" cy="446" r="13" fill="#1d2b28" stroke="#c9a86a" stroke-width="1.5"/>
+<text x="62" y="451" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">5</text>
+<text class="wk-name" x="40" y="656">The Hook</text>
+<line class="wk-rule" x1="40" y1="665" x2="406" y2="665"/>
+<text class="wk-spec" x="40" y="686">α48° · ξ0.8 · σ0.2 · T13s · H0 1.5m</text>
+<text class="wk-read" x="40" y="708">curling lip at the pocket,</text>
+<text class="wk-read" x="40" y="728">mixed crumble and section</text>
+<clipPath id="wk-clip5"><rect x="430" y="424" width="366" height="206" rx="3"/></clipPath>
+<g clip-path="url(#wk-clip5)"><svg x="430" y="424" width="366" height="206" viewBox="141.1 79.2 997.8 561.6" preserveAspectRatio="xMidYMid slice"><image xlink:href="assets/cliff_sharks.png" href="assets/cliff_sharks.png" x="0" y="0" width="1280" height="720"/></svg></g>
+<rect class="wk-frame" x="430" y="424" width="366" height="206" rx="3"/>
+<circle cx="452" cy="446" r="13" fill="#1d2b28" stroke="#c9a86a" stroke-width="1.5"/>
+<text x="452" y="451" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">6</text>
+<text class="wk-name" x="430" y="656">Sharks</text>
+<line class="wk-rule" x1="430" y1="665" x2="796" y2="665"/>
+<text class="wk-spec" x="430" y="686">α66° · ξ0.45 · σ0.1 · T13s · H0 1m</text>
+<text class="wk-read" x="430" y="708">slow rolling shoulder,</text>
+<text class="wk-read" x="430" y="728">wide mellow lines</text>
+<clipPath id="wk-clip6"><rect x="820" y="424" width="366" height="206" rx="3"/></clipPath>
+<g clip-path="url(#wk-clip6)"><svg x="820" y="424" width="366" height="206" viewBox="141.1 79.2 997.8 561.6" preserveAspectRatio="xMidYMid slice"><image xlink:href="assets/cliff_privates.png" href="assets/cliff_privates.png" x="0" y="0" width="1280" height="720"/></svg></g>
+<rect class="wk-frame" x="820" y="424" width="366" height="206" rx="3"/>
+<circle cx="842" cy="446" r="13" fill="#1d2b28" stroke="#c9a86a" stroke-width="1.5"/>
+<text x="842" y="451" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">7</text>
+<text class="wk-name" x="820" y="656">Privates</text>
+<line class="wk-rule" x1="820" y1="665" x2="1186" y2="665"/>
+<text class="wk-spec" x="820" y="686">α70° · ξ0.35 · σ0.05 · T12s · H0 0.7m</text>
+<text class="wk-read" x="820" y="708">thin feathering crest,</text>
+<text class="wk-read" x="820" y="728">barely spilling, sheltered</text>
+<line class="wk-rule" x1="40" y1="770" x2="1576" y2="770"/>
+<text class="wk-foot" x="40" y="792">α peel angle · ξ Iribarren (barrel-ness) · σ section noise · T period · H0 swell height. Six of the seven run on surveyed NCEI bathymetry; Privates runs on a synthetic stage and is labelled as such in the app.</text>
 </svg>

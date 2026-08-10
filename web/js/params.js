@@ -16,18 +16,25 @@ export const PARAM_DEFS = [
   { key: 'speed',    label: 'Time scale',     min: 0,     max: 3,    step: 0.1,   unit: '×'  },
 ];
 
-// alpha in degrees here; shader gets radians. aframe: 0 = point break, 1 = Middle Peak.
-// geoSpot is deliberately null for West Side presets. Do not silently assign
-// Pleasure Point geography to a borrowed preset name: those remain synthetic
-// until the pending canon-retarget decision is made.
+// alpha in degrees here; shader gets radians. aframe stays a PARAMETER (0 for
+// every site) rather than a named preset: the A-frame is a mechanism, and the
+// wave that demonstrates it is on the west side, not here.
+//
+// The bank is the Pleasure Point canon, ordered apex -> down-point, which is
+// also the golden-rule gradient: alpha rises (mellower) and xi falls (less
+// plunging) as you move away from the corner. Every name is a real site on
+// this point; geoSpot is its OSM surf node. Private's is the one site whose
+// coastline defeats the cubic contour fit (16.5 m RMS), so it runs on the
+// synthetic stage and says so in the app rather than borrowing a neighbour's
+// bathymetry.
 export const PRESETS = {
-  cowells:    { label: "Cowell's",     geoSpot: null,          alpha: 70, xi: 0.35, sections: 0.05, T: 12, H0: 0.7, dF: 0.006, tau: 4,   chop: 0.15, aframe: 0 },
-  jacks:      { label: "Jack's",       geoSpot: '38th',        alpha: 62, xi: 0.5,  sections: 0.1,  T: 13, H0: 1.1, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
-  secondpeak: { label: 'Second Peak',  geoSpot: 'Second Peak', alpha: 58, xi: 0.65, sections: 0.15, T: 14, H0: 1.5, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
-  firstpeak:  { label: 'First Peak',   geoSpot: 'First Peak',  alpha: 50, xi: 0.85, sections: 0.25, T: 14, H0: 1.8, dF: 0.007, tau: 5.5, chop: 0.1,  aframe: 0 },
-  thehook:    { label: 'The Hook',     geoSpot: 'The Hook',    alpha: 48, xi: 0.8,  sections: 0.2,  T: 13, H0: 1.5, dF: 0.007, tau: 5,   chop: 0.15, aframe: 0 },
-  theslot:    { label: 'The Slot',     geoSpot: null,          alpha: 35, xi: 1.3,  sections: 0.5,  T: 15, H0: 2.4, dF: 0.008, tau: 6,   chop: 0.2,  aframe: 0 },
-  middlepeak: { label: 'Middle Peak',  geoSpot: null,          alpha: 45, xi: 1.1,  sections: 0.3,  T: 15, H0: 2.2, dF: 0.008, tau: 6,   chop: 0.2,  aframe: 1 },
+  sewers:     { label: 'Sewers',       geoSpot: 'Sewer Peak',   alpha: 38, xi: 1.15, sections: 0.40, T: 15, H0: 2.2, dF: 0.008, tau: 6,   chop: 0.2,  aframe: 0 },
+  firstpeak:  { label: 'First Peak',   geoSpot: 'First Peak',   alpha: 50, xi: 0.85, sections: 0.25, T: 14, H0: 1.8, dF: 0.007, tau: 5.5, chop: 0.1,  aframe: 0 },
+  secondpeak: { label: 'Second Peak',  geoSpot: 'Second Peak',  alpha: 58, xi: 0.65, sections: 0.15, T: 14, H0: 1.5, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
+  jacks:      { label: "Jack's (38th)", geoSpot: '38th',        alpha: 62, xi: 0.50, sections: 0.10, T: 13, H0: 1.1, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
+  thehook:    { label: 'The Hook',     geoSpot: 'The Hook',     alpha: 48, xi: 0.80, sections: 0.20, T: 13, H0: 1.5, dF: 0.007, tau: 5,   chop: 0.15, aframe: 0 },
+  sharks:     { label: 'Sharks',       geoSpot: "Shark's Cove", alpha: 66, xi: 0.45, sections: 0.10, T: 13, H0: 1.0, dF: 0.006, tau: 4.5, chop: 0.1,  aframe: 0 },
+  privates:   { label: 'Privates',     geoSpot: null,           alpha: 70, xi: 0.35, sections: 0.05, T: 12, H0: 0.7, dF: 0.006, tau: 4,   chop: 0.15, aframe: 0 },
 };
 
 export const DEFAULT_PRESET = 'secondpeak';

@@ -38,21 +38,24 @@ test('generated geo module is current with its OSM/NCEI sources', () => {
 
 
 test('only truthfully mapped presets opt into Pleasure Point geo profiles', () => {
+  // Every preset is now a real Pleasure Point site (the west-side names are
+  // gone). Private's is the sole synthetic: its coastline defeats the cubic
+  // contour fit, so it must NOT quietly inherit a neighbour's bathymetry.
   const expected = {
-    cowells: null,
-    jacks: '38th',
-    secondpeak: 'Second Peak',
+    sewers: 'Sewer Peak',
     firstpeak: 'First Peak',
+    secondpeak: 'Second Peak',
+    jacks: '38th',
     thehook: 'The Hook',
-    theslot: null,
-    middlepeak: null,
+    sharks: "Shark's Cove",
+    privates: null,
   };
   for (const [key, spot] of Object.entries(expected)) assert.equal(PRESETS[key].geoSpot, spot);
 
   const state = makeState();
   assert.equal(state.geoMix, 1);
   assert.equal(state.geoSpot, 'Second Peak');
-  applyPreset(state, 'cowells');
+  applyPreset(state, 'privates');
   assert.equal(state.geoMix, 0);
   assert.equal(state.geoSpot, null);
   applyPreset(state, 'jacks');
@@ -77,14 +80,17 @@ test('mapped profiles use measured curvature and OSM validity bounds', () => {
 });
 
 
-test('synthetic presets retain the original quadratic and finite A-frame path', () => {
+test('the synthetic site keeps the original quadratic, and A-frame stays a parameter', () => {
   const state = makeState();
-  applyPreset(state, 'cowells');
+  applyPreset(state, 'privates');
   let P = modelP(state);
   assert.equal(coastCurve(100, P), 2);
 
-  applyPreset(state, 'middlepeak');
-  P = modelP(state);
+  // No preset ships aframe = 1 any more: the A-frame is a mechanism, and the
+  // wave that demonstrates it is on the west side. It must still work when
+  // set directly, and must stay finite.
+  assert.ok(Object.values(PRESETS).every((p) => p.aframe === 0));
+  P = { ...modelP(state), aframe: 1 };
   assert.equal(coastCurve(-100, P), coastCurve(100, P));
   for (const t of [0, 10, 42]) {
     const surfer = surferState(t, P);
