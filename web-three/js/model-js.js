@@ -1,0 +1,184 @@
+// JS twin of the model math the CPU needs — surfer placement and the Follow
+// camera cannot read the GPU, so the HEIGHT path of model-glsl.js (carrier +
+// boil + chop + bore), the M2 choppy offset, and surferState() are re-derived
+// here in plain JS. MODEL.md stays the source of truth; model-glsl.js is its
+// executable form; this file copies constants from there verbatim.
+// KEEP IN SYNC: any change to the shader model must land here too (the foam /
+// pocket / crest *shading* bookkeeping is deliberately NOT mirrored — only
+// what moves geometry). Grep marker: MODEL-TWIN.
+//
+// All functions take (…, t, P) where t is SIMULATION seconds (the one shared
+// clock; rate independence lives in main.js) and P is a plain-object snapshot
+// of the model uniforms: { T, H0, alphaRad, xi, sections, dF, chop, aframe }.
+
+const PI  = Math.PI;
+const LAM = 90.0;   // MODEL-TWIN: display wavelength, m
+const VIS = 3.2;    // MODEL-TWIN: visual amplitude gain
+
+// ---------- GLSL-style helpers ----------
+const fract = (x) => x - Math.floor(x);
+const clamp = (x, a, b) => Math.min(Math.max(x, a), b);
+const mix   = (a, b, t) => a + (b - a) * t;
+function smoothstep(a, b, x) {
+  const t = clamp((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
+// ---------- hash / noise (bit-for-bit the model-glsl formulas) ----------
+function hash11(p) { p = fract(p * 0.1031); p *= p + 33.33; return fract((p + p) * p); }
+function hash21(x, y) {
+  // GLSL: q = fract(p.xyx*0.1031); q += dot(q, q.yzx + 33.33)
+  let qx = fract(x * 0.1031), qy = fract(y * 0.1031), qz = fract(x * 0.1031);
+  const d = qx * (qy + 33.33) + qy * (qz + 33.33) + qz * (qx + 33.33);
+  qx += d; qy += d; qz += d;
+  return fract((qx + qy) * qz);
+}
+function vnoise1(x) {
+  const i = Math.floor(x); let f = x - i; f = f * f * (3 - 2 * f);
+  return mix(hash11(i), hash11(i + 1), f);
+}
+function vnoise2(x, y) {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  let fx = x - ix, fy = y - iy;
+  fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  return mix(
+    mix(hash21(ix, iy),     hash21(ix + 1, iy),     fx),
+    mix(hash21(ix, iy + 1), hash21(ix + 1, iy + 1), fx), fy);
+}
+
+// ---------- bathymetry (MODEL-TWIN of coastCurve / breakLine / reefWindow) ----------
+export function coastCurve(x, P) {
+  const xx = mix(x, Math.abs(x), P.aframe);
+  return xx * xx / 5000;
+}
+
+export function breakLine(x, P) {
+  const xx = mix(x, Math.abs(x), P.aframe);
+  const m  = Math.tan(clamp(P.alphaRad, 0.06, 1.45));  // alpha->0 guarded: closeout, not NaN
+  const sec = P.sections * 55 * (vnoise1(xx * 0.02 + 7.3) - 0.5) * 2;
+  return m * xx - coastCurve(x, P) + Math.min(sec, 0) * (P.sections >= 0.05 ? 1 : 0);
+}
+
+function reefWindow(x, P) {
+  const xx = mix(x, Math.abs(x), P.aframe);
+  return smoothstep(-110, -35, xx) * (1 - smoothstep(215, 290, xx));
+}
+
+function setEnv(z, t, P) {
+  const cg = 0.5 * LAM / P.T;                 // deep-water group speed = c/2
+  return 0.5 + 0.5 * Math.cos(2 * PI * P.dF * (t - z / cg));
+}
+
+function crestShape(phase, q) {
+  const c01 = Math.max(0.5 + 0.5 * Math.cos(phase), 0);   // pow(neg, frac) guard
+  return Math.pow(c01, q) - 0.5 / q;
+}
+
+// ---------- ocean height (MODEL-TWIN of ocean()'s h path only) ----------
+export function oceanH(x, z, t, P) {
+  const k = 2 * PI / LAM, w = 2 * PI / P.T;
+  const zb = breakLine(x, P);
+  const d  = zb - z;                          // >0 seaward of break line
+  const reef = reefWindow(x, P);
+
+  const grow  = 1 + 0.85 * Math.exp(-Math.max(d, 0) / 90) * reef;
+  const brk   = smoothstep(-6, 14, z - zb) * reef;
+  const decay = 1 - 0.68 * brk;
+
+  const theta = w * t - k * (z + coastCurve(x, P));
+  const env   = setEnv(z, t, P), env2 = env * env;
+  const q     = 1.6 + 3.2 * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * P.xi);
+  const amp   = 0.5 * P.H0 * grow * decay * env;
+  let h = amp * crestShape(-theta, q) * 2;
+
+  // the boil beside the takeoff (glassy dome, kinks the surface slightly)
+  const m_ = Math.tan(clamp(P.alphaRad, 0.06, 1.45));
+  const bx = -22, bz = m_ * 22 * P.aframe + m_ * (-22) * (1 - P.aframe) - 8;
+  const boil = Math.exp(-((x - bx) * (x - bx) + (z - bz) * (z - bz)) / (2 * 5.5 * 5.5));
+  h += 0.10 * P.H0 * boil * (0.8 + 0.2 * Math.sin(t * 0.7));
+
+  // wind chop (the boil slicks it flat)
+  const chopG = P.chop * (1 - 0.9 * boil);
+  h += chopG * 0.22 * (vnoise2(x * 0.11, z * 0.11 + t * 0.6) - 0.5)
+     + chopG * 0.10 * (vnoise2(x * 0.31 - t * 0.9, z * 0.31) - 0.5);
+
+  // the broken front's foamy mound has height
+  const boreBand = brk * env2 * Math.exp(-Math.abs(z - zb) / 9);
+  h += 0.30 * P.H0 * boreBand * (0.75 + 0.25 * vnoise2(x * 0.2, t * 0.8));
+
+  h *= VIS;
+  return Number.isFinite(h) ? h : 0;   // NaN guard (house rule)
+}
+
+// ---------- standable surface sample (partial mirror of GRID_VERT's choppyPos) ----------
+// The renderer slides every surface point horizontally (M2 choppy), so a body
+// placed at raw model (x, z) would sit beside the drawn water. Returns the
+// height at the SOURCE point plus the SHARPENING part of the vertex shader's
+// offset — world position ≈ (x + ox, h, z + oz).
+// Deliberate deviation from choppyPos: the two pocket-gated terms (past-cusp
+// lambda and the shoreward lip throw) are omitted. Those terms ARE the fold —
+// they map a pocket source point into the thrown lip, and placing the rider
+// there buried the board in whitewater on plunging presets (Slot close-up,
+// M3 verification). A surfer stands on the face under the lip, not inside
+// it, so the rider follows only the standable displacement.
+// The far fade is omitted too: the ride line lives deep inside the stage
+// (fade = 1 there). Normal is a height-FD normal (e = 2 m, same step as the
+// shaders): adequate on the unbroken face; displaced-position FD only
+// matters inside the fold, where no one is standing.
+export function surfaceAt(x, z, t, P) {
+  const h = oceanH(x, z, t, P);
+  const e = 2.0;
+  const hpx = oceanH(x + e, z, t, P), hmx = oceanH(x - e, z, t, P);
+  const hpz = oceanH(x, z + e, t, P), hmz = oceanH(x, z - e, t, P);
+  const gx = (hpx - hmx) / (2 * e), gz = (hpz - hmz) / (2 * e);
+
+  const d      = breakLine(x, P) - z;
+  const steep  = Math.exp(-Math.max(d, 0) / 70) * reefWindow(x, P);
+  const plunge = smoothstep(0.45, 1.25, P.xi);
+  const lam    = (3.5 + 5.5 * plunge) * steep;   // sharpening only — no fold terms
+
+  let ox = lam * gx, oz = lam * gz;
+  const len = Math.hypot(ox, oz);
+  if (len > 20) { ox *= 20 / len; oz *= 20 / len; }   // same 20 m clamp as the shader
+  if (!Number.isFinite(ox) || !Number.isFinite(oz)) { ox = 0; oz = 0; }
+
+  let nx = hmx - hpx, ny = 2 * e, nz = hmz - hpz;
+  const nl = Math.hypot(nx, ny, nz);
+  if (nl > 1e-9 && Number.isFinite(nl)) { nx /= nl; ny /= nl; nz /= nl; }
+  else { nx = 0; ny = 1; nz = 0; }                     // degenerate guard
+
+  // plunge is also returned: the omitted fold terms converge extra water onto
+  // the crest, so the DRAWN surface sits O(1 m) above h near the pocket on
+  // plunging presets — callers placing bodies compensate with plunge (the
+  // Slot buried the board to the shins without this; M3 verification)
+  return { h, ox, oz, nx, ny, nz, plunge };
+}
+
+// ---------- the surfer (MODEL-TWIN of surferState) ----------
+// Closed-form rider on the zipper: no state. Ride the face just seaward of
+// the break line, pumping between bottom turn and top turn on a 6 s cycle.
+// Returns model-space position + ground velocity + the pump phase value.
+export const PUMP_PERIOD = 6.0;   // seconds, same cycle the wake/lean shaders use
+
+export function surferState(t, P) {
+  const k = 2 * PI / LAM;
+  const w = 2 * PI / P.T;
+  const m = Math.tan(clamp(P.alphaRad, 0.06, 1.45));
+  const vx = (LAM / P.T) / m;                 // zipper ground speed along x
+
+  const x0 = -18;                             // takeoff right beside the boil
+  const span = 225;
+  const rideT = span / Math.max(vx, 0.5);
+  const ph = t - rideT * Math.floor(t / rideT);   // GLSL mod()
+  const xApprox = x0 + vx * ph;
+
+  // snap to the nearest real zipper so the surfer sits on an actual crest
+  const n  = Math.floor((w * t - k * m * xApprox) / (2 * PI) + 0.5);
+  const xs = (w * t - 2 * PI * n) / (k * m);
+
+  const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
+  const faceOff = 11 + 5 * pump;              // metres seaward of the break line
+  const zs      = m * xs - xs * xs / 5000 - faceOff;
+  const vz      = m * vx - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
+  return { x: xs, z: zs, vx, vz, pump };
+}

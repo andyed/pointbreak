@@ -28,7 +28,13 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 - [x] M2 horizontal choppy displacement -> pitching lip when xi plunges
       (choppy toward-crest offset + shoreward lip throw at the pocket;
       normals FD'd on displaced positions)
-- [ ] M3 glTF surfer on the ride line
+- [x] M3 surfer on the ride line — procedural low-poly rider + board
+      (makeSurferMesh() in web-three/js/surfer.js), posed by the JS twin of
+      the model (web-three/js/model-js.js: surferState + height + choppy
+      offset + FD normal), Follow camera preset (V cycle, zoom ∝ 1/distance)
+- [ ] M3+ swap the primitive rider for a CC0/Blender low-poly glTF — the
+      makeSurferMesh() factory is the single swap point (keep the 'rider'
+      child name; lean is applied there)
 - [ ] M3+ surfer visibility: occlusion by foreground crests, silhouette
       legibility at distance, spray at the board
 - [ ] M3+ ride grammar: takeoff (paddle -> pop), bottom/top turn linked to face

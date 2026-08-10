@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS } from '../../web/js/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG } from './shaders.js';
+import { makeSurferMesh, updateSurfer } from './surfer.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -108,6 +109,23 @@ const skyMesh = new THREE.Mesh(new THREE.SphereGeometry(4200, 48, 24), skyMat);
 skyMesh.frustumCulled = false;   // it surrounds the camera by construction
 scene.add(skyMesh);
 
+// ---------- the surfer (M3) ----------
+// Procedural low-poly rider behind the S toggle (default off). Pose comes
+// from model-js.js — the JS twin of the shader model — so the board tracks
+// the same displaced surface the vertex shader draws. The wake foam is the
+// model's own u_surfer path; it lines up because both read surferState.
+const surferGroup = makeSurferMesh();
+scene.add(surferGroup);
+
+// snapshot of the model uniforms for the JS twin (alpha already in radians)
+function modelP() {
+  return {
+    T: state.T, H0: state.H0, alphaRad: state.alpha * Math.PI / 180,
+    xi: state.xi, sections: state.sections, dF: state.dF,
+    chop: state.chop, aframe: state.aframe,
+  };
+}
+
 // ---------- cameras ----------
 // JS-side break line for camera placement only (sections omitted — cameras
 // shouldn't jitter when the sections slider moves). Mirrors breakLine().
@@ -125,29 +143,54 @@ controls.maxDistance = 2000;
 // Drone = high near-top-down matching web/'s ortho drone window (~±170 m in
 // z at fov 50 -> height ≈ 170/tan(25°) ≈ 365 m; slight z offset keeps the
 // look-at well-conditioned and puts seaward at the top of frame like web/).
+// Follow = web/'s surfer-follow cliff shot: telephoto from the point, target
+// tracking surferState, zoom ∝ 1/distance (updated per-frame in the loop —
+// the pos/target here only seed the switch-in frame).
 const CAM_PRESETS = [
-  { name: 'Free',  pos: () => [-140, 55, -230],                              target: () => [40, 0, 40] },
-  { name: 'Cliff', pos: () => [210, 16, breakLineJS(210) - 45],              target: () => [-120, 3, breakLineJS(-120) - 10] },
-  { name: 'Drone', pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
+  { name: 'Free',   pos: () => [-140, 55, -230],                              target: () => [40, 0, 40] },
+  { name: 'Cliff',  pos: () => [210, 16, breakLineJS(210) - 45],              target: () => [-120, 3, breakLineJS(-120) - 10] },
+  { name: 'Drone',  pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
+  { name: 'Follow', pos: () => [210, 16, breakLineJS(210) - 45],              target: () => [0, 2, breakLineJS(0) - 11] },
 ];
 let camIdx = 0;
+const BASE_FOV = 50;
 
 function applyCam(i) {
   camIdx = i;
   const p = CAM_PRESETS[i];
   camera.position.set(...p.pos());
   controls.target.set(...p.target());
+  // Follow owns the camera every frame; OrbitControls would fight the track.
+  // Leaving Follow restores free orbiting and the wide field of view.
+  controls.enabled = p.name !== 'Follow';
+  if (p.name !== 'Follow') { camera.fov = BASE_FOV; camera.updateProjectionMatrix(); }
   controls.update();
   refreshHUD();
+}
+
+// per-frame Follow update: telephoto tracking, zoom ∝ 1/distance (web/ parity:
+// zoom factor clamp(1500/dist, 2, 6.5); fov = 2*atan(1/zoom) is the same
+// mapping web/'s ray basis rd = fw*zoom + ... encodes)
+function updateFollowCam(sWorld) {
+  const cx = 210, cz = breakLineJS(210) - 45;
+  camera.position.set(cx, 16, cz);
+  const dist = Math.hypot(sWorld.x - cx, sWorld.z - cz);
+  const zoom = Math.min(Math.max(1500 / Math.max(dist, 40), 2.0), 6.5);
+  camera.fov = 2 * Math.atan(1 / zoom) * 180 / Math.PI;
+  camera.updateProjectionMatrix();
+  controls.target.set(sWorld.x, 2.0, sWorld.z);   // web/ aims at (x, 2, z)
+  camera.lookAt(controls.target);
 }
 
 // ---------- HUD ----------
 const hudPreset = document.getElementById('hudPreset');
 const hudCam = document.getElementById('hudCam');
+const hudSurfer = document.getElementById('hudSurfer');
 function refreshHUD() {
   const p = state.preset ? PRESETS[state.preset].label : 'custom';
   hudPreset.textContent = state.paused ? p + ' (paused)' : p;
   hudCam.textContent = CAM_PRESETS[camIdx].name;
+  hudSurfer.textContent = state.surfer ? 'on' : 'off';
 }
 
 // ---------- keyboard (parity with web/) ----------
@@ -157,7 +200,7 @@ window.addEventListener('keydown', (e) => {
   const n = parseInt(e.key, 10);
   if (n >= 1 && n <= presetKeys.length) { applyPreset(state, presetKeys[n - 1]); refreshHUD(); return; }
   if (e.key === 'v' || e.key === 'V') applyCam((camIdx + 1) % CAM_PRESETS.length);
-  if (e.key === 's' || e.key === 'S') state.surfer = 1 - state.surfer;
+  if (e.key === 's' || e.key === 'S') { state.surfer = 1 - state.surfer; refreshHUD(); }
   if (e.key === ' ') { state.paused = !state.paused; refreshHUD(); e.preventDefault(); }
   if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('hidepanel');
 });
@@ -195,7 +238,19 @@ function frame(now) {
   uniforms.u_aframe.value = state.aframe;
   uniforms.u_surfer.value = state.surfer;
 
-  controls.update();
+  // surfer pose + Follow camera share one surferState/surfaceAt evaluation.
+  // The follow shot tracks the ride line even with the rider hidden (S off)
+  // so V-cycling never lands on a dead camera.
+  const following = CAM_PRESETS[camIdx].name === 'Follow';
+  surferGroup.visible = state.surfer === 1;
+  if (surferGroup.visible || following) {
+    const sWorld = updateSurfer(surferGroup, simTime, modelP());
+    if (following) updateFollowCam(sWorld);
+  }
+
+  // OrbitControls.update() re-derives position from its spherical state and
+  // would undo the follow track (enabled=false only blocks input, not update)
+  if (!following) controls.update();
   skyMesh.position.copy(camera.position);   // keep the dome centered on the eye
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -205,3 +260,12 @@ applyCam(0);
 refreshHUD();
 resize();
 requestAnimationFrame(frame);
+
+// headless-capture/debug hook: Playwright verification drives the free camera,
+// reads rider state, and can jump the sim clock (e.g. straight to mid-ride)
+// through this. Not a public API — the UI stays keyboard-led.
+window.__pointbreak = {
+  camera, controls, state, surferGroup, uniforms,
+  sim: () => simTime,
+  setSim: (t) => { if (Number.isFinite(t)) simTime = t; },
+};
