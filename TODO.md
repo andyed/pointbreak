@@ -10,18 +10,10 @@
 ## MISSION (reprioritized 2026-08-09): simulate the SURFER
 The wave is the stage; the ride is the show. v0 surfer shipped in web/ —
 closed-form rider on the zipper (no state): face position + 6s pump cycle +
-follow-cam. Next:
-- [ ] Surfer visibility: occlusion by foreground crests (partially fixed via
-      16 m cliff camera), silhouette legibility at distance, spray at the board
-- [ ] Ride grammar: takeoff (paddle -> pop), bottom/top turn linked to face
-      shape, ξ-aware style (carves on mush, tube stance when plunging),
-      kickout at closeout sections
-- [ ] Wipeouts: section outruns surfer -> fall + tumble in whitewater
-- [ ] Camera language: cut between rides, drone follow mode
-- [ ] Surfer as the musical protagonist in the eventual Psychodeli port
-      (rider = melody line over the wave's phrase)
+follow-cam. All further surfer work is web-three work (M3/M3+ below) — do not
+build it in the raymarcher (per WEB_THREE_SPEC.md).
 
-## Phase 1 — proof of read (web first, then TD via tdmcp)
+## Phase 1 — proof of read (web/ raymarcher — reference, maintenance-only)
 - [x] v0 web build (web/): raymarched cliff view + ortho drone view, zipper +
       sets + sections + A-frame + presets + live SC116 fetch. IT READS.
 - [ ] Sets + lulls (two-component beat)
@@ -35,6 +27,15 @@ follow-cam. Next:
       — acceptance: 10 s capture evokes ocean (grade vs Surfline PP cam, not stills)
 - [ ] M2 horizontal choppy displacement -> pitching lip when xi plunges
 - [ ] M3 glTF surfer on the ride line
+- [ ] M3+ surfer visibility: occlusion by foreground crests, silhouette
+      legibility at distance, spray at the board
+- [ ] M3+ ride grammar: takeoff (paddle -> pop), bottom/top turn linked to face
+      shape, ξ-aware style (carves on mush, tube stance when plunging),
+      kickout at closeout sections
+- [ ] M3+ wipeouts: section outruns surfer -> fall + tumble in whitewater
+- [ ] M3+ camera language: cut between rides, drone follow mode
+- [ ] M3+ Psychodeli port: surfer as musical protagonist (rider = melody line
+      over the wave's phrase)
 - Surfline PP cam (ground truth): https://www.surfline.com/surf-report/pleasure-point/5842041f4e65fad6a7708807
 
 ## Phase 2b — substrate (raymarcher, now maintenance-only)
