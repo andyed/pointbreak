@@ -27,6 +27,28 @@ recognize the spot.
 - `docs/research/` — CDIP live data, surf-science citations, TD implementation recon
 - `glsl/zipper.md` — shader-ready form of the break layer
 - `td/` — TouchDesigner build (via tdmcp), composites the zipper over an FFT ocean substrate
+- `web/` — raymarched reference build (cliff + drone views, slider panel, live CDIP fetch)
+- `web-three/` — three.js displaced-grid build (the surfer lives here; see below)
+
+## web-three
+
+The second web vehicle: the same model rendered as a displaced triangle grid
+(three.js) instead of a raymarched heightfield. The model GLSL is shared —
+`web/js/model-glsl.js` is spliced into both renderers, so the two builds
+cannot drift apart. On top of the shared model, web-three adds choppy
+horizontal displacement (the lip visibly pitches when ξ says plunging) and a
+procedural surfer riding the zipper line with a follow camera.
+
+Run it (no build step, plain ES modules):
+
+```
+cd pointbreak
+python3 -m http.server 8000
+# open http://localhost:8000/web-three/   (or /web/ for the raymarcher)
+```
+
+Keys: `1`–`7` spot presets, `V` camera (Free / Cliff / Drone / Follow),
+`S` surfer, `space` pause, `H` hide panel. Spec: `docs/WEB_THREE_SPEC.md`.
 
 ## Vehicles
 
@@ -37,4 +59,8 @@ recognize the spot.
 
 ## Status
 
-Model doc and research phase. Nothing renders yet.
+Both web builds render. `web/` is the reference raymarcher (maintenance-only);
+`web-three/` is through M3 of `docs/WEB_THREE_SPEC.md` — shaded grid, shared
+model GLSL, pitching lip, surfer + follow cam. Next: ride grammar (takeoff,
+turns, wipeouts) and a glTF rider — see `TODO.md`. TouchDesigner vehicle not
+started.

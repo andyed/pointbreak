@@ -16,10 +16,15 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 ## Phase 1 — proof of read (web/ raymarcher — reference, maintenance-only)
 - [x] v0 web build (web/): raymarched cliff view + ortho drone view, zipper +
       sets + sections + A-frame + presets + live SC116 fetch. IT READS.
-- [ ] Sets + lulls (two-component beat)
-- [ ] Sections (crest noise, secondary zippers)
-- [ ] A-frame mode (Middle Peak)
-- [ ] Preset bank: Cowell's / Jack's / Second Peak / First Peak / The Slot / Middle Peak
+- [x] Sets + lulls (two-component beat) — in the shared model (setEnv/u_dF);
+      verified in web-three (set-phase bands in the drone view)
+- [x] Sections (crest noise, secondary zippers) — u_sections pulls the break
+      line seaward in patches; verified in web-three (The Slot, σ=0.5)
+- [x] A-frame mode (Middle Peak) — abs(x) fold via u_aframe; verified in
+      web-three (mirrored double zipper in the Middle Peak drone capture)
+- [x] Preset bank: Cowell's / Jack's / Second Peak / First Peak / The Hook /
+      The Slot / Middle Peak — keys 1–7, imported by web-three from
+      web/js/params.js; all seven verified rendering from the Cliff camera
 
 ## Phase 2 — web-three (SPEC'D: docs/WEB_THREE_SPEC.md)
 - [x] M0 grid + vertical displacement + shared model GLSL (extract model-glsl.js)
