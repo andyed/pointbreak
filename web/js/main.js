@@ -50,7 +50,8 @@ for (const name of ['u_res', 'u_time', 'u_T', 'u_H0', 'u_alpha', 'u_xi',
   // synthetic stand-ins. The sampler is still bound to a 1x1 texture because
   // an unbound sampler is undefined behaviour, not a no-op.
   'u_bed', 'u_depthMix', 'u_bedRect', 'u_bedSize', 'u_bedElev', 'u_waterLevel',
-  'u_bedShape', 'u_bedPlane', 'u_rideOffset']) {
+  'u_bedShape', 'u_bedPlane', 'u_rideOffset',
+  'u_breakTex', 'u_breakMix', 'u_breakX', 'u_breakZ', 'u_surferPos']) {
   U[name] = gl.getUniformLocation(prog, name);
 }
 
@@ -114,6 +115,11 @@ function frame(now) {
   gl.uniform1f(U.u_bedShape, 0.0);
   gl.uniform3f(U.u_bedPlane, 0.0, 0.0, 0.0);
   gl.uniform1f(U.u_rideOffset, 0.0);   // depth-free reference: authored line stands
+  gl.uniform1i(U.u_breakTex, 0);       // same 1x1 placeholder; never sampled
+  gl.uniform1f(U.u_breakMix, 0.0);     // M4 is web-three only; this stays authored
+  gl.uniform2f(U.u_breakX, -300.0, 300.0);
+  gl.uniform2f(U.u_breakZ, -400.0, 400.0);
+  gl.uniform4f(U.u_surferPos, 0.0, 0.0, 0.0, 0.0);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   requestAnimationFrame(frame);
 }

@@ -29,6 +29,12 @@ OUT = ROOT / 'data/model/pp_depth_patches.js'
 # NOAA CO-OPS 9413450 (Monterey), metric datums, pulled 2026-08-10:
 # MSL 1.893 m, NAVD88 0.988 m on the station's own staff.
 MSL_ABOVE_NAVD88 = 0.905
+# Same station, same pull: the tide does not roam freely. Relative to NAVD88,
+# MLLW is +0.043 m and MHHW +1.669 m, so around MSL the real excursion is
+# -0.862 .. +0.764 m. A slider that allowed +2 m was letting the water sit
+# 1.2 m above any tide that has ever occurred here.
+TIDE_MIN_M, TIDE_MAX_M = -0.862, 0.764
+MLLW_ABOVE_NAVD88, MHHW_ABOVE_NAVD88 = 0.043, 1.669
 
 # Stage patch: a bit wider than the 600x500 m playfield so the shader's
 # bilinear taps and the far skirt never sample outside the patch.
@@ -157,6 +163,9 @@ def build():
             'datum': 'NAVD88',
         },
         'mslAboveNavd88M': MSL_ABOVE_NAVD88,
+        'tideRangeM': [TIDE_MIN_M, TIDE_MAX_M],
+        'mllwAboveNavd88M': MLLW_ABOVE_NAVD88,
+        'mhhwAboveNavd88M': MHHW_ABOVE_NAVD88,
         'mslSource': 'NOAA CO-OPS station 9413450 (Monterey), metric datums; '
                      'nearest station publishing a NAVD88 relationship',
         'grid': {'x0': X0, 'x1': X1, 'z0': Z0, 'z1': Z1, 'nx': NX, 'nz': NZ,

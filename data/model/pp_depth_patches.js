@@ -11,6 +11,12 @@ export const PP_DEPTH_DATA = Object.freeze({
     "datum": "NAVD88"
   },
   "mslAboveNavd88M": 0.905,
+  "tideRangeM": [
+    -0.862,
+    0.764
+  ],
+  "mllwAboveNavd88M": 0.043,
+  "mhhwAboveNavd88M": 1.669,
   "mslSource": "NOAA CO-OPS station 9413450 (Monterey), metric datums; nearest station publishing a NAVD88 relationship",
   "grid": {
     "x0": -340.0,

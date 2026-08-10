@@ -111,6 +111,14 @@ export function cliffTop(spotName, x, waterLevel = MSL_ABOVE_NAVD88) {
 export const EMPTY_BED = makeEmpty();
 export const MSL_ABOVE_NAVD88 = PP_DEPTH_DATA.mslAboveNavd88M;
 export const BED_GRID = PP_DEPTH_DATA.grid;
+// The tide is not a free slider. Published excursion around MSL at the station
+// the datum came from: MLLW -0.862 m, MHHW +0.764 m relative to MSL.
+export const TIDE_RANGE = PP_DEPTH_DATA.tideRangeM || [-0.862, 0.764];
+export function tideLabel(t) {
+  if (t <= TIDE_RANGE[0] + 0.05) return 'MLLW';
+  if (t >= TIDE_RANGE[1] - 0.05) return 'MHHW';
+  return Math.abs(t) < 0.05 ? 'MSL' : (t > 0 ? 'above MSL' : 'below MSL');
+}
 
 // Bind the patch for `spotName` (an OSM canon name) into the uniform block.
 // Returns true when real bathymetry is driving the model.
@@ -169,4 +177,70 @@ export function depthBreakOffset(spotName, x, breakLineZ, { H0, T, tide = 0, bed
     }
   }
   return 0;   // never satisfies the criterion here: leave the rider alone
+}
+
+// ---- M4: the emergent break line ----
+// zBreak(x) = the seaward-most z where the shoaled height first exceeds what
+// the depth can carry. Baked to a 128x1 texture because the crossing has no
+// closed form: solving it per fragment costs ~140 texture fetches, while the
+// answer is one-dimensional and only changes when the site, swell or tide does.
+const BREAK_N = 128;
+export const BREAK_Z_MIN = -400, BREAK_Z_MAX = 400;
+let breakTex = null, breakKey = '', breakArr = new Float32Array(BREAK_N);
+
+function markBreak(spotName, x, opts) {
+  const { H0, T, tide, bedShape } = opts;
+  const cg0 = G * T / (4 * Math.PI);
+  const wl = MSL_ABOVE_NAVD88 + tide;
+  const { z0, z1 } = PP_DEPTH_DATA.grid;
+  let last = null;
+  for (let z = z0; z <= z1; z += 2) {
+    const depth = wl - bedElevBlended(spotName, x, z, bedShape);
+    if (depth <= 0.35) break;                       // hit the beach; stop
+    const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * depth)), 0.7), 2.6);
+    if (H0 * Ks >= GAMMA * depth) return z;         // seaward-most crossing
+    last = z;
+  }
+  return last === null ? z0 : last;
+}
+
+// Returns { texture, x0, x1 } or null when the site has no bathymetry.
+export function bakeBreakLine(spotName, xRange, opts) {
+  if (!spotName) return null;
+  const [x0, x1] = xRange;
+  const key = [spotName, x0, x1, opts.H0, opts.T, opts.tide, opts.bedShape].join('|');
+  if (breakTex && key === breakKey) return { texture: breakTex, x0, x1 };
+
+  const rgba = new Uint8Array(BREAK_N * 4);
+  for (let i = 0; i < BREAK_N; i++) {
+    const x = x0 + (x1 - x0) * (i / (BREAK_N - 1));
+    const z = markBreak(spotName, x, opts);
+    breakArr[i] = z;
+    const u = Math.min(Math.max((z - BREAK_Z_MIN) / (BREAK_Z_MAX - BREAK_Z_MIN), 0), 1);
+    const q = Math.round(u * 65535);
+    rgba[i * 4] = (q >> 8) & 255; rgba[i * 4 + 1] = q & 255; rgba[i * 4 + 3] = 255;
+  }
+  if (breakTex) breakTex.dispose();
+  breakTex = new THREE.DataTexture(rgba, BREAK_N, 1, THREE.RGBAFormat);
+  breakTex.magFilter = THREE.NearestFilter;   // lerp happens in the shader
+  breakTex.minFilter = THREE.NearestFilter;
+  breakTex.generateMipmaps = false;
+  breakTex.needsUpdate = true;
+  breakKey = key;
+  return { texture: breakTex, x0, x1 };
+}
+
+// CPU twin of the shader's lookup, for the rider and the HUD.
+export function breakZAt(x, x0, x1) {
+  const f = Math.min(Math.max((x - x0) / (x1 - x0), 0), 1) * (BREAK_N - 1);
+  const i = Math.min(Math.floor(f), BREAK_N - 2);
+  return breakArr[i] + (breakArr[i + 1] - breakArr[i]) * (f - i);
+}
+
+// Peel angle as a READOUT: the slope of the emergent line, atan(dz/dx). This is
+// what M4 buys — alpha stops being typed and starts being measured.
+export function derivedAlphaDeg(x, x0, x1) {
+  const e = (x1 - x0) / BREAK_N;
+  const dz = breakZAt(x + e, x0, x1) - breakZAt(x - e, x0, x1);
+  return Math.abs(Math.atan2(dz, 2 * e) * 180 / Math.PI);
 }

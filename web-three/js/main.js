@@ -14,7 +14,8 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG } from './
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
-import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, depthBreakOffset } from './bed.js';
+import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
+         bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX } from './bed.js';
 import { makeSection } from './section.js';
 
 // ---------- stage ----------
@@ -104,6 +105,11 @@ const uniforms = {
   u_bedPlane:   { value: new THREE.Vector3() },
   u_camUnder:   { value: 0 },
   u_rideOffset: { value: 0 },
+  u_breakTex:   { value: EMPTY_BED },
+  u_breakMix:   { value: 0 },
+  u_breakX:     { value: new THREE.Vector2(-300, 300) },
+  u_breakZ:     { value: new THREE.Vector2(BREAK_Z_MIN, BREAK_Z_MAX) },
+  u_surferPos:  { value: new THREE.Vector4() },
 };
 applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
@@ -247,12 +253,18 @@ const hudCam = document.getElementById('hudCam');
 const hudSurfer = document.getElementById('hudSurfer');
 const hudGeo = document.getElementById('hudGeo');
 const hudAudio = document.getElementById('hudAudio');
+const hudAlpha = document.getElementById('hudAlpha');
 function refreshHUD() {
   const p = state.preset ? PRESETS[state.preset].label : 'custom';
   hudPreset.textContent = state.paused ? p + ' (paused)' : p;
   hudCam.textContent = CAM_PRESETS[camIdx].name;
   hudSurfer.textContent = state.surfer ? 'on' : 'off';
   if (hudAudio) hudAudio.textContent = isAudioEnabled() ? 'on' : 'off (M)';
+  if (hudAlpha) {
+    hudAlpha.textContent = uniforms.u_breakMix.value > 0.5
+      ? `${derivedAlphaDeg(0, uniforms.u_breakX.value.x, uniforms.u_breakX.value.y).toFixed(0)}° derived`
+      : `${state.alpha}° authored`;
+  }
   hudGeo.textContent = describeGeoState(state);
 }
 
@@ -273,8 +285,8 @@ window.addEventListener('keydown', (e) => {
   // the tide, which is the cheapest lever that proves it — the breaking point
   // slides along the profile and the whitewater band moves with it.
   if (e.key === 'c' || e.key === 'C') { showSection = !showSection; section.el.style.display = showSection ? '' : 'none'; }
-  if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.25, -1.0); refreshHUD(); }
-  if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.25, 2.0); refreshHUD(); }
+  if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.15, TIDE_RANGE[0]); refreshHUD(); }
+  if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.15, TIDE_RANGE[1]); refreshHUD(); }
   // B swaps the measured seabed for its own least-squares plane: same depth
   // scale and mean slope, structure removed. The A/B that isolates reef SHAPE.
   if (e.key === 'b' || e.key === 'B') { state.bedShape = state.bedShape ? 0 : 1; refreshHUD(); }
@@ -291,6 +303,7 @@ const section = makeSection(document.body, {
 });
 let showSection = false;
 let sectionX = 0;
+let m4Enabled = false;   // ?m4=1 — see WEB_THREE_SPEC.md "M4"
 section.el.style.display = 'none';
 
 // ---------- resize ----------
@@ -329,6 +342,43 @@ function frame(now) {
   uniforms.u_contourFit.value.set(state.contourX2, state.contourX3);
   uniforms.u_stageBounds.value.set(state.stageStart, state.stageEnd);
   applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
+
+  // ---- M4: bake the emergent break line ----
+  // Cached on (site, swell, tide, bed) — recomputed only when one of those
+  // changes, never per frame. The A-frame keeps the authored fold: it mirrors
+  // about x=0 and has no measured line to derive from.
+  // M4 is INCOMPLETE and off unless ?m4=1. The bake below is correct — the
+  // baked line curves through the measured seabed as it should — but two
+  // pieces are missing: the rider solve picks an arbitrary x among the many
+  // stations where a crest meets the line (measured: it parked at the stage
+  // edge, x=262, in 0.56 m of water with a 6.59 m crest available at that same
+  // x), and the amplitude envelope still does not follow the emergent line.
+  // Shipping it on by default would be a visible regression.
+  const baked = (!m4Enabled || state.aframe) ? null
+    : bakeBreakLine(state.geoSpot, [-STAGE_W / 2, STAGE_W / 2],
+        { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0 });
+  uniforms.u_breakMix.value = baked ? 1 : 0;
+  if (baked) {
+    uniforms.u_breakTex.value = baked.texture;
+    uniforms.u_breakX.value.set(baked.x0, baked.x1);
+    // Solve the rider against the same baked line: march x for the station
+    // where a crest currently sits on the break line, then drop onto its face.
+    const w = 2 * Math.PI / state.T, k = 2 * Math.PI / 90;
+    const P = modelP();
+    let bestX = 0, bestErr = 1e9;
+    for (let x = baked.x0 + 10; x <= baked.x1 - 10; x += 4) {
+      const zb = breakZAt(x, baked.x0, baked.x1);
+      const ph = (w * simTime - k * (zb + coastCurve(x, P))) / (2 * Math.PI);
+      const err = Math.abs(ph - Math.round(ph));
+      if (err < bestErr) { bestErr = err; bestX = x; }
+    }
+    const zb = breakZAt(bestX, baked.x0, baked.x1);
+    const pump = Math.sin(simTime * 2 * Math.PI / 6);
+    const faceOff = 11 + 5 * pump;
+    const m = Math.tan(Math.min(Math.max(state.alpha * Math.PI / 180, 0.06), 1.45));
+    const vx = (90 / state.T) / m;
+    uniforms.u_surferPos.value.set(bestX, zb - faceOff, vx, 0);
+  }
   // Underwater is a camera state, not a fragment test: sample the JS twin's
   // surface height under the eye. gl_FrontFacing would conflate "below the
   // water" with "under M2's folded lip", which is a different thing entirely.
@@ -382,12 +432,13 @@ function applyHashParams() {
   if (!h.toString()) return 0;
   const p = h.get('preset');
   if (p && PRESETS[p]) applyPreset(state, p);
-  if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, -1), 2);
+  if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, TIDE_RANGE[0]), TIDE_RANGE[1]);
   if (h.get('bed') === 'plane') state.bedShape = 1;
   if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
   if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
   if (h.get('hud') === '0') document.body.classList.add('hidepanel');
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
+  if (h.get('m4') === '1') m4Enabled = true;          // work-in-progress emergent break line
   if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
   const camName = (h.get('cam') || '').toLowerCase();
   const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);

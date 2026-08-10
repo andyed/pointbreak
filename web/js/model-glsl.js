@@ -44,6 +44,21 @@ uniform vec3 u_bedPlane;  // a + b*x + c*z, the counterfactual "no reef" bed
 // expensive per fragment, and the rider is a single point.
 uniform float u_rideOffset;
 
+// ---------- M4: emergent break line ----------
+// zBreak(x) baked to a 128x1 texture CPU-side (bed.js bakeBreakLine): the
+// H0*Ks = gamma*h crossing has no closed form, and marching it per fragment
+// would cost ~140 texture fetches. One-dimensional, and only changes when the
+// site, swell or tide does — so it is a lookup, cheaper than the arithmetic
+// it replaces.
+uniform sampler2D u_breakTex;
+uniform float u_breakMix;   // 1 = emergent line, 0 = authored tan(alpha) line
+uniform vec2 u_breakX;      // x range the texture spans
+uniform vec2 u_breakZ;      // decode window for z
+// Rider solved CPU-side against the same baked line and passed in: with an
+// emergent line the zipper position has no closed form either, and the rider
+// is a single point. (x, z, vx, vz)
+uniform vec4 u_surferPos;
+
 // ---------- constants ----------
 const float PI  = 3.14159265;
 const float G   = 9.81;
@@ -90,12 +105,28 @@ float coastCurveSlope(float x){
   return mix(synthetic, measured, geoWeight());
 }
 
+float breakTexZ(float x){
+  float f = clamp((x - u_breakX.x)/max(u_breakX.y - u_breakX.x, 1e-3), 0.0, 1.0)*127.0;
+  int i = int(floor(f));
+  float tf = f - float(i);
+  vec4 a = texelFetch(u_breakTex, ivec2(min(i,127), 0), 0);
+  vec4 b = texelFetch(u_breakTex, ivec2(min(i+1,127), 0), 0);
+  float za = mix(u_breakZ.x, u_breakZ.y, (a.r*255.0*256.0 + a.g*255.0)/65535.0);
+  float zb = mix(u_breakZ.x, u_breakZ.y, (b.r*255.0*256.0 + b.g*255.0)/65535.0);
+  return mix(za, zb, tf);
+}
+
 float breakLine(float x){
   float xx = mix(x, abs(x), u_aframe);
   float m  = tan(clamp(u_alpha, 0.06, 1.45));  // alpha->0 guarded: closeout, not NaN
   // sections: shallow patches meet the break criterion early (z_b pulled seaward)
   float sec = u_sections * 55.0 * (vnoise1(xx*0.02+7.3) - 0.5) * 2.0;
-  return m*xx - coastCurve(x) + min(sec, 0.0)*step(0.05, u_sections);
+  float authored = m*xx - coastCurve(x);
+  // M4: depth decides where the wave breaks. The authored line stays as the
+  // fallback for the unmapped site and the A-frame fold, which have no
+  // bathymetry to derive from.
+  float base = mix(authored, breakTexZ(x), u_breakMix);
+  return base + min(sec, 0.0)*step(0.05, u_sections);
 }
 
 // Authored finite-reef envelope. OSM spot partitions do not claim to measure
@@ -151,6 +182,10 @@ float modelDepthM(vec2 xz){
 // needs no state: ride the face just seaward of the break line, pumping between
 // bottom turn (far from the line) and top turn (near it). Returns (x, z, vx, vz).
 vec4 surferState(float t){
+  // With an emergent break line the zipper position has no closed form; main.js
+  // solves it against the same baked array and passes it in.
+  if (u_breakMix > 0.5) return u_surferPos;
+
   float k = 2.0*PI/LAM;
   float w = 2.0*PI/u_T;
   float m = tan(clamp(u_alpha, 0.06, 1.45));

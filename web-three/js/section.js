@@ -15,7 +15,7 @@
 // Deliberately a 2D canvas overlay rather than 3D geometry: a profile read
 // against a depth axis is a chart, and charts belong in chart space.
 
-import { bedElevBlended, MSL_ABOVE_NAVD88, planeResidualRms } from './bed.js';
+import { bedElevBlended, MSL_ABOVE_NAVD88, planeResidualRms, TIDE_RANGE, tideLabel } from './bed.js';
 
 const GAMMA = 0.78;        // must match model-glsl.js
 const G = 9.81;
@@ -64,7 +64,7 @@ export function makeSection(container, opts = {}) {
     if (drag) {
       // metres per pixel frozen at grab time: the axis rescales as the tide
       // moves, so live values would make the drag chase itself
-      const t = Math.min(Math.max(drag.tide0 - (e.clientY - drag.y0) * drag.mPerPx, -1), 2);
+      const t = Math.min(Math.max(drag.tide0 - (e.clientY - drag.y0) * drag.mPerPx, TIDE_RANGE[0]), TIDE_RANGE[1]);
       onTide(Math.round(t * 100) / 100);
       return;
     }
@@ -240,7 +240,7 @@ export function makeSection(container, opts = {}) {
     const bedLabel = bedShape
       ? `PLANE (reef removed, ${planeResidualRms(spot).toFixed(1)} m rms)`
       : 'measured bed';
-    ctx.fillText(`${bedLabel} · x=${xStation} m · tide ${tide >= 0 ? '+' : ''}${tide.toFixed(1)} m · seaward ←`,
+    ctx.fillText(`${bedLabel} · x=${xStation} m · tide ${tide >= 0 ? '+' : ''}${tide.toFixed(2)} m ${tideLabel(tide)} · seaward ←`,
                  W - pad.r, 11);
     ctx.textAlign = 'left';
   }

@@ -100,8 +100,26 @@ then retires.
 
 ## M4 — emergent break line
 
-**Status: specified, not built. This is the largest remaining gap between the
-model and the physics it claims.**
+**Status: PART-BUILT, behind `?m4=1`. Off by default — turning it on today is a
+visible regression. This is the largest remaining gap between the model and the
+physics it claims.**
+
+Built: the bake (`bed.js bakeBreakLine`), the 128x1 texture, the shader lookup
+(`breakTexZ`/`breakLine`), the CPU twin (`breakZAt`), derived-alpha readout, and
+the `u_surferPos` seam that lets the rider be solved CPU-side. The baked line
+curves through the measured seabed as it should.
+
+Not built, and why it is still gated:
+1. **The rider solve picks an arbitrary station.** Many x satisfy "a crest is on
+   the break line" — one per crest. Taking the smallest phase residual parked
+   the rider at the stage edge (x = 262) in 0.56 m of water with a 6.59 m crest
+   available at that same x. It needs to track the peel continuously along the
+   line, not re-solve from scratch each frame.
+2. **The amplitude envelope still does not follow the emergent line.** `grow`
+   boosts only seaward of `zb` (`max(d,0)`), and `decay` keys off `brk`, so
+   moving `zb` does not move where the model makes its tallest water. Until
+   this is fixed, relocating the rider cannot help — measured ratio of face
+   height under the rider to best crest at his x is 0.20 either way.
 
 ### The problem, measured
 
