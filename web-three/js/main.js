@@ -343,7 +343,30 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// ---------- URL params ----------
+// So an essay can embed the same build framed several ways without shipping
+// several builds. Hash rather than query: no server round-trip, and it keeps
+// the deployed sim a pure static file.
+//   #preset=secondpeak&cam=cliff&section=1&bed=plane&tide=-0.5&surfer=1&sim=42&hud=0
+function applyHashParams() {
+  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  if (!h.toString()) return 0;
+  const p = h.get('preset');
+  if (p && PRESETS[p]) applyPreset(state, p);
+  if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, -1), 2);
+  if (h.get('bed') === 'plane') state.bedShape = 1;
+  if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
+  if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
+  if (h.get('hud') === '0') document.body.classList.add('hidepanel');
+  if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
+  const camName = (h.get('cam') || '').toLowerCase();
+  const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);
+  applyCam(ci >= 0 ? ci : 0);
+  return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
+}
+
 applyCam(0);
+simTime = applyHashParams();
 refreshHUD();
 resize();
 requestAnimationFrame(frame);

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate fig-ladder.svg — "BECOMING A REGULAR: the ladder runs down-point"
+Generate fig-ladder.svg — "THE DOWN-POINT GRADIENT: reef, exposure, spots"
 
 Data sources (no invented numbers):
   - data/osm/pp_geometry.json  -> spots[].u, spots[].coast_tangent_deg
@@ -213,7 +213,7 @@ contrast_comment_lines.append(
 svg_parts.append("<!--\n" + "\n".join(contrast_comment_lines) + "\n-->")
 
 svg_parts.append(f'''
-<title>Becoming a regular — the ladder runs down-point</title>
+<title>The down-point gradient at Pleasure Point</title>
 <desc>Three aligned strips along Pleasure Point's down-point coordinate u (meters from the
 apex): reef elevation (NAVD88), coastal exposure (coast tangent, degrees), and the seven-spot
 skill ladder from Private's to Sewers, with shared vertical gridlines tying spot position to
@@ -247,7 +247,7 @@ depth and exposure.</desc>
 # Title
 # ---------------------------------------------------------------------------
 svg_parts.append(f'''
-<text class="fg-text title" font-family="Georgia, 'Times New Roman', serif" x="40" y="{TITLE_Y:.1f}">BECOMING A REGULAR — the ladder runs down-point</text>
+<text class="fg-text title" font-family="Georgia, 'Times New Roman', serif" x="40" y="{TITLE_Y:.1f}">THE DOWN-POINT GRADIENT — one point, seven breaks</text>
 <text class="fg-text subtitle" x="40" y="{SUBTITLE_Y:.1f}">Pleasure Point, u = down-point arclength from the apex (m). Same u-axis, three strips: what&#8217;s under you, how exposed you are, who you become.</text>
 ''')
 
@@ -357,15 +357,15 @@ svg_parts.append('''
 svg_parts.append(f'<path d="{arc_d}" fill="none" class="sand-line" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>')
 for x in arc_xs:
     svg_parts.append(f'<circle cx="{x:.1f}" cy="{ARC_Y:.1f}" r="3" fill="{SAND}"/>')
-svg_parts.append(f'<text class="sand-text annot" x="{(arc_xs[0]+arc_xs[-1])/2:.1f}" y="{ARC_Y-12:.1f}" text-anchor="middle">years of paddling out — sheltered water first, the apex last</text>')
+svg_parts.append(f'<text class="sand-text annot" x="{(arc_xs[0]+arc_xs[-1])/2:.1f}" y="{ARC_Y-12:.1f}" text-anchor="middle">wave power and breaking intensity increase up-point toward the apex</text>')
 
 # stage labels along the arc
 STAGES = [
-    ("first winter", ["Private's", "Shark's Cove"]),
-    ("finding your feet", ["The Hook"]),
-    ("the longboard year", ["38th", "Second Peak"]),
-    ("earning it", ["First Peak"]),
-    ("a regular", ["Sewer Peak"]),
+    ("most sheltered", ["Private's", "Shark's Cove"]),
+    ("mixed exposure", ["The Hook"]),
+    ("low-gradient shelf", ["38th", "Second Peak"]),
+    ("steepening walls", ["First Peak"]),
+    ("apex, most exposed", ["Sewer Peak"]),
 ]
 stage_centers = []
 for label, members in STAGES:

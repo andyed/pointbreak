@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Becoming a Regular — Pleasure Point, measured and simulated</title>
-<meta name="description" content="An editorial essay on Pleasure Point, Santa Cruz, pairing OSM/NOAA ground truth with the pointbreak wave model's own renders.">
+<title>Pleasure Point — a measured field guide to a Santa Cruz point break</title>
+<meta name="description" content="The geography and hydrodynamics of Pleasure Point, Santa Cruz: OpenStreetMap coastline, NOAA NCEI bathymetry, and how the shape of the seabed sets where and how the wave breaks. With a work-in-progress WebGL simulation.">
 <meta name="color-scheme" content="dark">
 
 <!--
@@ -290,6 +290,34 @@
     blockquote { padding-left: 0.9rem; }
     .callout { padding: 0.9rem 1rem; }
   }
+
+  /* ---- simulation embeds (work-in-progress section) ---- */
+  /* Iframes are loaded and UNLOADED by an IntersectionObserver: each one is a
+     live WebGL context, and browsers cap how many may exist at once. */
+  .wip-badge {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.42em; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; vertical-align: middle;
+    color: #0f1216; background: #c9a86a;
+    padding: 0.28em 0.6em; border-radius: 3px; margin-left: 0.6em;
+  }
+  .sim-figure { margin: 2rem 0; }
+  .sim-frame {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    background: #0b0e11; border: 1px solid #2a3138; border-radius: 5px;
+    overflow: hidden;
+  }
+  .sim-frame-tall { aspect-ratio: 4 / 3; }
+  .sim-embed { width: 100%; height: 100%; border: 0; display: block;
+               pointer-events: none; }  /* embeds don't trap scroll or keys */
+  .sim-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 2rem 0; }
+  .sim-pair .sim-figure { margin: 0; }
+  @media (max-width: 720px) { .sim-pair { grid-template-columns: 1fr; } }
+  .limits { max-width: 70ch; margin: 1.2rem 0 1.6rem 0; padding-left: 1.2rem;
+            color: #cccbbb; font-size: 1rem; line-height: 1.65; }
+  .limits li { margin-bottom: 0.55rem; }
+  .limits strong { color: #e6e4d2; }
+  h3.sub { font-size: 1.15rem; margin: 2rem 0 0.4rem 0; color: #e6e4d2; }
 </style>
 </head>
 <body>
@@ -297,32 +325,44 @@
 <div class="page">
 
   <header class="essay-header">
-  <p class="kicker">Pleasure Point, Santa Cruz &mdash; field notes</p>
-  <h1>Becoming a Regular &mdash; Pleasure Point, measured and simulated</h1>
-  <p class="deck">Three figures, one point: how the coastline turns, how one swell becomes seven local waves, and where the model still departs from the water.</p>
+  <p class="kicker">Coastal geography &middot; Santa Cruz, California</p>
+  <h1>Pleasure Point &mdash; a measured field guide</h1>
+  <p class="deck">What the coastline actually does, what the seabed under it looks like, and how those two facts decide where a swell breaks. Public survey data throughout, plus a work-in-progress simulation built on it.</p>
   </header>
 
   <main>
 
   <section class="essay-part">
-    <h2><span class="num">01</span> The name came first</h2>
+    <h2><span class="num">01</span> The setting</h2>
     <p class="prose">
-      Pleasure Point was named in the 1920s, for a Prohibition-era speakeasy that
-      stood above the break &mdash; the surf gave the name its second meaning
-      later. It settled in as the laid-back counterpart to the harder-breaking
-      Steamer Lane a few miles up the coast: fewer closeouts, more shoulder,
-      the kind of wave you can learn on without it trying to kill you. Jack
-      O'Neill's house looked down on it from above 38th — the green house, part of
-      the same stretch of cliff the point breaks under today.
-      That reputation &mdash; forgiving down-point, faster toward the apex &mdash;
-      is where the story becomes measurable.
+      Pleasure Point is a rocky point on the east side of Santa Cruz,
+      California, at roughly 36.954&deg;N, 121.976&deg;W, where the coastline
+      turns a corner and runs east toward Capitola. The shore is a low marine
+      terrace &mdash; a cliff of about 10&ndash;12 m fronted by a shallow
+      wave-cut rock platform &mdash; and the surf breaks over that platform
+      rather than over sand. Access is by stairs at 38th and 41st Avenues.
+    </p>
+    <p class="prose">
+      Two things make the site unusual. Monterey Bay gives it a wide swell
+      window, so it works year round: winter west swells arrive refracted and
+      attenuated around the bay, while summer south swells aim more directly
+      at the point. And because the coast rotates through the corner, a single
+      incoming swell meets the shore at a steadily changing angle, producing
+      a series of distinct named breaks along roughly 1.6 km of shoreline.
+    </p>
+    <p class="prose">
+      The place was named in the 1920s for a Prohibition-era speakeasy above
+      the break; the surfing association came later. This guide is concerned
+      with the first meaning of the name only in passing &mdash; the rest is
+      geometry.
     </p>
   </section>
 
   <section class="essay-part">
-    <h2><span class="num">02</span> The golden rule</h2>
+    <h2><span class="num">02</span> The corner the coast turns</h2>
     <p class="prose">
-      Every local guide to the point says some version of the same thing:
+      Local surf guides all state the same qualitative rule, which turns out
+      to be a usable description of the physics:
     </p>
     <blockquote>
       &ldquo;the waves get larger, faster, and more powerful as you move up the
@@ -478,7 +518,7 @@
   </section>
 
   <section class="essay-part">
-    <h2><span class="num">03</span> The ladder</h2>
+    <h2><span class="num">03</span> The down-point gradient</h2>
     <p class="prose">
       A storm raises the whole point, but not by the same multiplier. Every
       spot receives the same offshore conditions; exposure, reef depth, and
@@ -488,16 +528,18 @@
       heaviest expressions of the same ocean.
     </p>
     <p class="prose">
-      You learn that system in reverse. Private's and Sharks offer the first
-      sheltered entries; the Hook and 38th ask for more; Second Peak is the
-      longboard year, a roughly 90 m peel for learning the pocket. First Peak
-      brings steeper, tapered shortboard walls. Sewers, at the apex, is the
-      fastest and least forgiving of the seven. Becoming a regular means
-      working against the spatial order, from the quiet end back to the corner.
+      The result is a spatial sequence of breaking regimes rather than a
+      single wave. Private's and Sharks sit in the most sheltered water and
+      require both swell and a low tide to activate at all; the Hook and 38th
+      occupy intermediate exposure; Second Peak sits on a low-gradient shelf
+      and produces the long, roughly 90 m peel the site is best known for;
+      First Peak's steeper profile yields tapered, faster walls; and Sewers,
+      at the apex, is the most exposed and shortest-period-tolerant of the
+      seven. One swell, seven outcomes, set by position along the corner.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame">
-        <svg viewBox="0 0 1200 882" xmlns="http://www.w3.org/2000/svg" style="width:1200px;height:auto;max-width:none;display:block;">
+        <svg viewBox="0 0 1200 882" xmlns="http://www.w3.org/2000/svg">
 <!--
 WCAG contrast ratios computed for this figure (see gen_ladder.py):
   cream(#e6e4d2) on bg(#0f1216): 14.66:1  [PASS >=8:1]
@@ -513,7 +555,7 @@ Graphic-only colors (never used for text), for reference:
 Rule applied: all readable text uses cream/foam on bg or kelp only (>=11:1); sand is used for text only directly on bg (8.31:1), never on kelp (6.51:1, would fail); teal/slate are graphic-only (lines, dots, fills, gridlines) and never carry text.
 -->
 
-<title>Becoming a regular — the ladder runs down-point</title>
+<title>The down-point gradient at Pleasure Point</title>
 <desc>Three aligned strips along Pleasure Point's down-point coordinate u (meters from the
 apex): reef elevation (NAVD88), coastal exposure (coast tangent, degrees), and the seven-spot
 skill ladder from Private's to Sewers, with shared vertical gridlines tying spot position to
@@ -543,7 +585,7 @@ depth and exposure.</desc>
 <rect class="ladder-bg" x="0" y="0" width="1200" height="882"/>
 
 
-<text class="ladder-fg-text ladder-title" font-family="Georgia, 'Times New Roman', serif" x="40" y="34.0">BECOMING A REGULAR — the ladder runs down-point</text>
+<text class="ladder-fg-text ladder-title" font-family="Georgia, 'Times New Roman', serif" x="40" y="34.0">THE DOWN-POINT GRADIENT — one point, seven breaks</text>
 <text class="ladder-fg-text ladder-subtitle" x="40" y="56.0">Pleasure Point, u = down-point arclength from the apex (m). Same u-axis, three strips: what&#8217;s under you, how exposed you are, who you become.</text>
 
 <line class="ladder-grid-line" x1="365.3" y1="78.0" x2="365.3" y2="862.0"/>
@@ -605,24 +647,24 @@ depth and exposure.</desc>
 <line x1="130.0" y1="678.0" x2="1160.0" y2="678.0" class="ladder-teal-line" stroke-width="3"/>
 
 <defs>
-  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+  <marker id="ladder-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
     <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--mg-sand, #c9a86a)"/>
   </marker>
 </defs>
 
-<path d="M 1102.6 742.0 L 925.0 742.0 L 799.9 742.0 L 636.2 742.0 L 436.1 742.0 L 365.3 742.0" fill="none" class="ladder-sand-line" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 1102.6 742.0 L 925.0 742.0 L 799.9 742.0 L 636.2 742.0 L 436.1 742.0 L 365.3 742.0" fill="none" class="ladder-sand-line" stroke-width="2" stroke-linejoin="round" marker-end="url(#ladder-arrow)"/>
 <circle cx="1102.6" cy="742.0" r="3" fill="#c9a86a"/>
 <circle cx="925.0" cy="742.0" r="3" fill="#c9a86a"/>
 <circle cx="799.9" cy="742.0" r="3" fill="#c9a86a"/>
 <circle cx="636.2" cy="742.0" r="3" fill="#c9a86a"/>
 <circle cx="436.1" cy="742.0" r="3" fill="#c9a86a"/>
 <circle cx="365.3" cy="742.0" r="3" fill="#c9a86a"/>
-<text class="ladder-sand-text ladder-annot" x="733.9" y="730.0" text-anchor="middle">years of paddling out — sheltered water first, the apex last</text>
-<text class="ladder-fg-text ladder-stage-label" x="1013.8" y="770.0" text-anchor="middle">first winter</text>
-<text class="ladder-fg-text ladder-stage-label" x="799.9" y="770.0" text-anchor="middle">finding your feet</text>
-<text class="ladder-fg-text ladder-stage-label" x="572.7" y="770.0" text-anchor="middle">the longboard year</text>
-<text class="ladder-fg-text ladder-stage-label" x="447.4" y="770.0" text-anchor="middle">earning it</text>
-<text class="ladder-fg-text ladder-stage-label" x="344.2" y="770.0" text-anchor="middle">a regular</text>
+<text class="ladder-sand-text ladder-annot" x="733.9" y="730.0" text-anchor="middle">wave power and breaking intensity increase up-point toward the apex</text>
+<text class="ladder-fg-text ladder-stage-label" x="1013.8" y="770.0" text-anchor="middle">most sheltered</text>
+<text class="ladder-fg-text ladder-stage-label" x="799.9" y="770.0" text-anchor="middle">mixed exposure</text>
+<text class="ladder-fg-text ladder-stage-label" x="587.1" y="770.0" text-anchor="middle">low-gradient shelf</text>
+<text class="ladder-fg-text ladder-stage-label" x="476.2" y="770.0" text-anchor="middle">steepening walls</text>
+<text class="ladder-fg-text ladder-stage-label" x="301.0" y="770.0" text-anchor="middle">apex, most exposed</text>
 <circle cx="365.3" cy="678.0" r="6.5" class="ladder-teal-fill" stroke="#eef2f3" stroke-width="2"/>
 <line x1="365.3" y1="669.0" x2="365.3" y2="624.0" class="ladder-slate-line" stroke-width="1" opacity="0.6"/>
 <text class="ladder-fg-text ladder-spot-name" x="365.3" y="640.0" text-anchor="middle">Sewers</text>
@@ -673,7 +715,7 @@ depth and exposure.</desc>
   </section>
 
   <section class="essay-part">
-    <h2><span class="num">04</span> Seven waves</h2>
+    <h2><span class="num">04</span> Breaking character along the point</h2>
     <p class="prose">
       The first two figures describe one measured coastline. The third changes
       evidence: these are simulations. The renderer spans peel angles from
@@ -902,22 +944,116 @@ depth and exposure.</desc>
   </section>
 
   <section class="essay-part">
-    <h2><span class="num">05</span> What the model owes next</h2>
+    <h2><span class="num">05</span> The simulation <span class="wip-badge">work in progress</span></h2>
     <p class="prose">
-      One debt is already paid: mapped presets now use generated OSM/NCEI
-      stage profiles, and the measured contour shapes the shared GPU and CPU
-      break line. The next step is dynamic conditions. Swell height,
-      period, direction, and tide should describe one ocean; each position
-      <em>u</em> should transform that forcing through exposure and bathymetry.
-      Today, height and period still live inside the legacy presets.
+      Everything above is measurement. This section is not: it is a real-time
+      WebGL model built on that measurement, and it is unfinished. It is
+      included because it makes the central claim of this guide testable
+      &mdash; if the shape of the seabed sets where a wave breaks, then
+      replacing the seabed should visibly change the wave.
     </p>
     <p class="prose">
-      Completing the seven local doors also requires retargeting the character
-      bank, resolving the NAVD88-to-local-tide datum, and giving Private's a
-      contour representation more flexible than the current failed cubic fit.
-      Middle Peak's A-frame can remain as a useful mechanism without
-      masquerading as a Pleasure Point location. The names are known. What
-      remains is making the model earn them.
+      The model is kinematic, not a fluid solver. A phase travels along a
+      break line; the seabed supplies water depth, and depth supplies the
+      rest: shoaling by Green's law
+      (<span class="mono">K<sub>s</sub> = &radic;(c<sub>g0</sub>/c<sub>g</sub>)</span>),
+      depth-limited breaking at
+      <span class="mono">H = min(H<sub>0</sub>K<sub>s</sub>, &gamma;h)</span>
+      with &gamma; &asymp; 0.78, and a shoreline wherever depth crosses zero.
+      It reproduces plausible behaviour; it is not validated against
+      measurements of this break, and nothing here should be read as a
+      forecast.
+    </p>
+
+    <figure class="sim-figure">
+      <div class="sim-frame">
+        <iframe class="sim-embed" loading="lazy"
+          data-src="sim/web-three/#preset=firstpeak&amp;cam=cliff&amp;hud=0&amp;sim=42"
+          title="Simulated view from the cliff at First Peak"></iframe>
+      </div>
+      <figcaption>
+        The cliff view at First Peak. The camera height is not chosen &mdash;
+        it is read from the NCEI terrain at that station, about 14 m above the
+        water. <a href="sim/web-three/#preset=firstpeak&amp;cam=cliff" target="_blank" rel="noopener">Open this view full-size &#8599;</a>
+      </figcaption>
+    </figure>
+
+    <p class="prose">
+      The clearest test is a counterfactual. Below, the same swell runs over
+      the same site twice: once over the surveyed seabed, and once over that
+      seabed's own least-squares plane &mdash; identical mean depth, slope and
+      orientation, with only the structure removed (2.6 m RMS at Second Peak).
+      The reef is the only variable that changes.
+    </p>
+
+    <div class="sim-pair">
+      <figure class="sim-figure">
+        <div class="sim-frame">
+          <iframe class="sim-embed" loading="lazy"
+            data-src="sim/web-three/#preset=secondpeak&amp;cam=drone&amp;hud=0&amp;sim=42"
+            title="Simulation over the surveyed seabed"></iframe>
+        </div>
+        <figcaption>Surveyed seabed: the shoreline curves and the break peels along the point.</figcaption>
+      </figure>
+      <figure class="sim-figure">
+        <div class="sim-frame">
+          <iframe class="sim-embed" loading="lazy"
+            data-src="sim/web-three/#preset=secondpeak&amp;cam=drone&amp;bed=plane&amp;hud=0&amp;sim=42"
+            title="Simulation over a featureless plane of the same mean slope"></iframe>
+        </div>
+        <figcaption>Same depth and slope, reef removed: the shoreline straightens and the peel collapses.</figcaption>
+      </figure>
+    </div>
+
+    <p class="prose">
+      The model exposes the mechanism directly as a cross-section: seabed,
+      still-water level, the shoaling height
+      <span class="mono">H<sub>0</sub>K<sub>s</sub></span>, and the depth
+      ceiling <span class="mono">&gamma;h</span>. Breaking is where the last
+      two cross. Moving the tide slides that crossing point along the profile
+      while the breaking <em>depth</em> stays fixed &mdash; &gamma; sets the
+      depth, the bed decides where that depth occurs.
+    </p>
+
+    <figure class="sim-figure">
+      <div class="sim-frame sim-frame-tall">
+        <iframe class="sim-embed" loading="lazy"
+          data-src="sim/web-three/#preset=secondpeak&amp;cam=cliff&amp;section=1&amp;sim=42"
+          title="Simulation with the cross-section analysis panel visible"></iframe>
+      </div>
+      <figcaption>
+        Cross-section overlay, Second Peak.
+        <a href="sim/web-three/#preset=secondpeak&amp;cam=cliff&amp;section=1" target="_blank" rel="noopener">Open full-size &#8599;</a>
+        &mdash; in the full app, <span class="mono">[</span> and <span class="mono">]</span>
+        move the tide, <span class="mono">B</span> swaps the seabed for its plane,
+        and <span class="mono">1</span>&ndash;<span class="mono">7</span> change sites.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub">Known limitations</h3>
+    <ul class="limits">
+      <li><strong>Not validated.</strong> No comparison against measured wave
+        heights, breaking positions, or imagery of this break has been made.</li>
+      <li><strong>Four of seven sites are mapped.</strong> Second Peak, First
+        Peak, The Hook and 38th (Jack's) use surveyed profiles. Three entries
+        in the character bank still carry names from Santa Cruz's west side
+        and run on a synthetic seabed; they are labelled as such in the app.</li>
+      <li><strong>The break line is authored, not derived.</strong> Peel angle
+        is still an input. A break line that emerges from the angle between
+        the swell and the measured contour is the next substantive step.</li>
+      <li><strong>Tidal datum is approximate.</strong> Depths are NAVD88; the
+        conversion to local sea level (0.905 m) comes from NOAA station 9413450
+        at Monterey, about 40 km away, because the Santa Cruz gauge publishes
+        no NAVD88 relationship.</li>
+      <li><strong>Underwater visibility is exaggerated</strong> for legibility.
+        Real visibility here is a few metres.</li>
+      <li><strong>Wave height is exaggerated</strong> relative to the terrain,
+        deliberately: true heights are close to invisible at landscape scale.</li>
+    </ul>
+    <p class="prose">
+      Source, data-processing scripts and the model description are in the
+      <span class="mono">pointbreak</span> repository. The figures above are
+      generated from the same committed data files the simulation reads.
     </p>
   </section>
 
@@ -932,5 +1068,31 @@ depth and exposure.</desc>
 
 </div>
 
+
+<script>
+// Lazy-load / unload the WebGL embeds. Each iframe is a live GL context, so
+// they are attached only near the viewport and detached again once well clear
+// of it — the pattern used in the Psychodeli "Inside the Math" essay.
+(function () {
+  var UNLOAD_DELAY = 4000, timers = new Map();
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      var f = e.target;
+      if (e.isIntersecting) {
+        var t = timers.get(f); if (t) { clearTimeout(t); timers.delete(f); }
+        if (!f.getAttribute('src')) f.setAttribute('src', f.dataset.src);
+      } else if (f.getAttribute('src')) {
+        timers.set(f, setTimeout(function () {
+          var r = f.getBoundingClientRect();
+          var near = r.bottom > -innerHeight && r.top < innerHeight * 2;
+          if (!near) f.removeAttribute('src');
+          timers.delete(f);
+        }, UNLOAD_DELAY));
+      }
+    });
+  }, { rootMargin: '100% 0px 100% 0px' });
+  document.querySelectorAll('.sim-embed').forEach(function (f) { io.observe(f); });
+})();
+</script>
 </body>
 </html>

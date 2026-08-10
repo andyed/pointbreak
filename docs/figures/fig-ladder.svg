@@ -14,7 +14,7 @@ Graphic-only colors (never used for text), for reference:
 Rule applied: all readable text uses cream/foam on bg or kelp only (>=11:1); sand is used for text only directly on bg (8.31:1), never on kelp (6.51:1, would fail); teal/slate are graphic-only (lines, dots, fills, gridlines) and never carry text.
 -->
 
-<title>Becoming a regular — the ladder runs down-point</title>
+<title>The down-point gradient at Pleasure Point</title>
 <desc>Three aligned strips along Pleasure Point's down-point coordinate u (meters from the
 apex): reef elevation (NAVD88), coastal exposure (coast tangent, degrees), and the seven-spot
 skill ladder from Private's to Sewers, with shared vertical gridlines tying spot position to
@@ -44,7 +44,7 @@ depth and exposure.</desc>
 <rect class="bg" x="0" y="0" width="1200" height="882"/>
 
 
-<text class="fg-text title" font-family="Georgia, 'Times New Roman', serif" x="40" y="34.0">BECOMING A REGULAR — the ladder runs down-point</text>
+<text class="fg-text title" font-family="Georgia, 'Times New Roman', serif" x="40" y="34.0">THE DOWN-POINT GRADIENT — one point, seven breaks</text>
 <text class="fg-text subtitle" x="40" y="56.0">Pleasure Point, u = down-point arclength from the apex (m). Same u-axis, three strips: what&#8217;s under you, how exposed you are, who you become.</text>
 
 <line class="grid-line" x1="365.3" y1="78.0" x2="365.3" y2="862.0"/>
@@ -118,12 +118,12 @@ depth and exposure.</desc>
 <circle cx="636.2" cy="742.0" r="3" fill="#c9a86a"/>
 <circle cx="436.1" cy="742.0" r="3" fill="#c9a86a"/>
 <circle cx="365.3" cy="742.0" r="3" fill="#c9a86a"/>
-<text class="sand-text annot" x="733.9" y="730.0" text-anchor="middle">years of paddling out — sheltered water first, the apex last</text>
-<text class="fg-text stage-label" x="1013.8" y="770.0" text-anchor="middle">first winter</text>
-<text class="fg-text stage-label" x="799.9" y="770.0" text-anchor="middle">finding your feet</text>
-<text class="fg-text stage-label" x="572.7" y="770.0" text-anchor="middle">the longboard year</text>
-<text class="fg-text stage-label" x="447.4" y="770.0" text-anchor="middle">earning it</text>
-<text class="fg-text stage-label" x="344.2" y="770.0" text-anchor="middle">a regular</text>
+<text class="sand-text annot" x="733.9" y="730.0" text-anchor="middle">wave power and breaking intensity increase up-point toward the apex</text>
+<text class="fg-text stage-label" x="1013.8" y="770.0" text-anchor="middle">most sheltered</text>
+<text class="fg-text stage-label" x="799.9" y="770.0" text-anchor="middle">mixed exposure</text>
+<text class="fg-text stage-label" x="587.1" y="770.0" text-anchor="middle">low-gradient shelf</text>
+<text class="fg-text stage-label" x="476.2" y="770.0" text-anchor="middle">steepening walls</text>
+<text class="fg-text stage-label" x="301.0" y="770.0" text-anchor="middle">apex, most exposed</text>
 <circle cx="365.3" cy="678.0" r="6.5" class="teal-fill" stroke="#eef2f3" stroke-width="2"/>
 <line x1="365.3" y1="669.0" x2="365.3" y2="624.0" class="slate-line" stroke-width="1" opacity="0.6"/>
 <text class="fg-text spot-name" x="365.3" y="640.0" text-anchor="middle">Sewers</text>
