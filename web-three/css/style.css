@@ -1,0 +1,42 @@
+/* pointbreak web-three — HUD styling. Same type ramp as web/css/style.css.
+   Contrast (WCAG relative luminance): text sits on a rgba(15,18,22,0.93)
+   pill. Worst case behind the pill is a pure-white canvas; blended bg is
+   then #202227 (L≈0.0163). Ratios against that worst case:
+     primary text  #eef2f5  (L≈0.883)  ->  (0.933)/(0.066)  ≈ 14.1:1  ✓
+     secondary     #c3cad1  (L≈0.584)  ->  ≈ 9.6:1  ✓
+     accent values #7fd4ff  (L≈0.588)  ->  ≈ 9.6:1  ✓
+   All readable text clears the 8:1 floor even over a white frame. */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; overflow: hidden; background: #06090c; }
+
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+#nogl {
+  display: none; position: fixed; inset: 40%;
+  color: #eef2f5; font: 16px/1.5 system-ui, sans-serif; text-align: center;
+}
+
+#titlebar {
+  position: fixed; top: 14px; left: 16px; color: #eef2f5;
+  font: 600 15px/1.3 system-ui, sans-serif;
+  background: rgba(15, 18, 22, 0.93);
+  border: 1px solid #2a3138; border-radius: 8px; padding: 8px 12px;
+}
+#titlebar .tag { color: #7fd4ff; font-weight: 400; font-size: 12px; }
+#titlebar small {
+  display: block; font-weight: 400; font-size: 11.5px; color: #c3cad1;
+}
+
+#hud {
+  position: fixed; top: 14px; right: 14px; color: #eef2f5;
+  font: 12px/1.5 system-ui, sans-serif;
+  background: rgba(15, 18, 22, 0.93);
+  border: 1px solid #2a3138; border-radius: 8px; padding: 8px 12px;
+  display: grid; grid-template-columns: auto auto; gap: 2px 8px;
+}
+#hud .k { color: #c3cad1; }
+#hud .v { color: #7fd4ff; font-variant-numeric: tabular-nums; }
+
+body.hidepanel #titlebar, body.hidepanel #hud { display: none; }
