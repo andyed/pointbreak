@@ -22,8 +22,8 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 - [ ] Preset bank: Cowell's / Jack's / Second Peak / First Peak / The Slot / Middle Peak
 
 ## Phase 2 — web-three (SPEC'D: docs/WEB_THREE_SPEC.md)
-- [ ] M0 grid + vertical displacement + shared model GLSL (extract model-glsl.js)
-- [ ] M1 shading pass: fbm detail normals, fresnel+glitter, subsurface, foam-in-surface
+- [x] M0 grid + vertical displacement + shared model GLSL (extract model-glsl.js)
+- [x] M1 shading pass: fbm detail normals, fresnel+glitter, subsurface, foam-in-surface
       — acceptance: 10 s capture evokes ocean (grade vs Surfline PP cam, not stills)
 - [ ] M2 horizontal choppy displacement -> pitching lip when xi plunges
 - [ ] M3 glTF surfer on the ride line

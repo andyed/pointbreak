@@ -1,6 +1,7 @@
-// pointbreak web-three — M0: displaced PlaneGeometry over the shared model
-// GLSL. Rate-independent like web/: simulation time advances by wall dt *
-// state.speed and is the only clock the shaders see.
+// pointbreak web-three — M1: displaced PlaneGeometry over the shared model
+// GLSL with the full shading pass (detail normals, fresnel+glitter, sss,
+// foam-in-surface, aerial perspective). Rate-independent like web/: simulation
+// time advances by wall dt * state.speed and is the only clock the shaders see.
 //
 // Params + presets are imported straight from web/ (single source of truth);
 // keys 1-7 / space / S / V match web/'s bindings, with V cycling camera
@@ -9,7 +10,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS } from '../../web/js/params.js';
-import { GRID_VERT, GRID_FRAG } from './shaders.js';
+import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG } from './shaders.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -31,7 +32,7 @@ try {
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8ea2b0);   // marine-layer grey until M1 brings a sky
+scene.background = new THREE.Color(0xdfe3e5);   // horizon grey fallback behind the sky dome
 
 const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 5000);
 
@@ -45,9 +46,33 @@ const geo = new THREE.PlaneGeometry(STAGE_W, STAGE_D, SEG_X, SEG_Z);
 geo.rotateX(-Math.PI / 2);
 geo.translate(0, 0, STAGE_Z0);
 
+// Far skirt (spec Shading 5: "plane extends past fog distance"): the outer
+// 20% of grid parameter space is stretched from the stage edge out to
+// FAR_EXTENT, C1-continuous at the core boundary (linear slope flows into a
+// quadratic tail) so cell density has no visible kink. The vertex shader
+// fades displacement out there — big cells can't sample the carrier — and
+// fog finishes the job before the geometry ends.
+const CORE = 0.8, FAR_EXTENT = 4000;
+function stretchAxis(v, half) {
+  const n = v / half, a = Math.abs(n), s = Math.sign(n);
+  if (a <= CORE) return s * a * (half / CORE);          // core keeps the stage
+  const m = a - CORE, slope = half / CORE;
+  const A = (FAR_EXTENT - half - slope * (1 - CORE)) / ((1 - CORE) * (1 - CORE));
+  return s * (half + slope * m + A * m * m);
+}
+{
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setX(i, stretchAxis(pos.getX(i), STAGE_W / 2));
+    pos.setZ(i, STAGE_Z0 + stretchAxis(pos.getZ(i) - STAGE_Z0, STAGE_D / 2));
+  }
+  geo.computeBoundingSphere();
+}
+
 const uniforms = {
   u_time:     { value: 0 },
-  u_cell:     { value: new THREE.Vector2(STAGE_W / SEG_X, STAGE_D / SEG_Z) },
+  // FD normal step = one CORE cell (the stretch leaves 80% of segments on the stage)
+  u_cell:     { value: new THREE.Vector2(STAGE_W / (SEG_X * CORE), STAGE_D / (SEG_Z * CORE)) },
   u_T:        { value: state.T },
   u_H0:       { value: state.H0 },
   u_alpha:    { value: state.alpha * Math.PI / 180 },
@@ -67,6 +92,21 @@ const mat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
 scene.add(new THREE.Mesh(geo, mat));
+
+// ---------- sky dome ----------
+// Same procedural marine-layer sky the water reflects and fogs toward, drawn
+// inside-out. depthWrite off so the water always paints over it; re-centered
+// on the camera each frame so vertex position doubles as view direction.
+const skyMat = new THREE.ShaderMaterial({
+  vertexShader: SKY_VERT,
+  fragmentShader: SKY_FRAG,
+  uniforms: { u_time: uniforms.u_time },   // shared clock object — one sim time
+  side: THREE.BackSide,
+  depthWrite: false,
+});
+const skyMesh = new THREE.Mesh(new THREE.SphereGeometry(4200, 48, 24), skyMat);
+skyMesh.frustumCulled = false;   // it surrounds the camera by construction
+scene.add(skyMesh);
 
 // ---------- cameras ----------
 // JS-side break line for camera placement only (sections omitted — cameras
@@ -156,6 +196,7 @@ function frame(now) {
   uniforms.u_surfer.value = state.surfer;
 
   controls.update();
+  skyMesh.position.copy(camera.position);   // keep the dome centered on the eye
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
