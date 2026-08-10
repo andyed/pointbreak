@@ -88,38 +88,32 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
       redundant) and dominant once the line was correctly placed. Now
       `inside * max(reef, gate)` — shore break outside the reef survives,
       nothing breaks before the crest arrives. Edge tracks z_b + 4..5 m.
-- [~] **Refraction — SCAFFOLDED, OFF BY DEFAULT, NOT FINISHED (2026-08-10).**
-      Crests were rotated by a CONSTANT incidence, so they stayed 58 deg oblique
-      into the shallows and read as "sideways". Real crests turn to follow the
-      contours as they shoal (Cutler & Sethi 1995 grow k as depth falls;
-      graphics.stanford.edu/courses/cs348c-95-fall/projects/cutler_sethi).
-      DONE: `bed.js bakeRefraction` — Snell with the alongshore wavenumber
-      conserved, Psi(contourZ) integrated over the MEASURED depth and baked to a
-      256-sample table; Guo (2002) explicit dispersion; `incidenceAt` readout;
-      `psiAt`/`zcAtPsi` CPU twins. `rayPhase` in the shared GLSL mixes the flat
-      and refracted forms on `u_refrMix`. Uniforms wired in both vehicles.
-      VERIFIED: incidence falls 17.1 deg (deep) -> 9.4 deg (at the break) ->
-      7.9 deg (inside) at Second Peak; baked Psi gives a 90 m mean wavelength,
-      matching LAM, so the phase is on scale.
-      NOT DONE, and why it is off:
-        1. `?refract=1` does not reach the bake — `u_refrMix` stays 0 even
-           though the same hash pass sets `swell`. Not yet diagnosed.
-        2. `surferState`, `sound.js` and the model-js twin still assume the
-           constant-incidence phase. The rider x stays closed form under
-           refraction (contourZ is constant along the break line, so
-           x = (wt - 2pi n - Psi(0))/kappa, V_p = omega/kappa) but z needs the
-           Psi inversion, which is CPU-only — so web-three would have to drive
-           the rider through `u_surferPos` the way M4 does.
-        3. Not looked at on the other six presets.
-      EXPECT IT TO LOOK FASTER: refraction forgets the deep-water angle
-      (c drops 21.9 -> 5.0 m/s at breaking depth, so sin(phi) shrinks x0.23),
-      which lands the peel angle near 15-25 deg against the authored 58. That
-      is the DEM smoothing the reef, not a bug in the refraction.
+- [x] **Refraction — LANDED 2026-08-10 (MODEL.md 2.4), simple form.** alpha is
+      the DEEP-WATER swell direction; swellPhi() refracts it once to breaking
+      depth (sin(phi_b) = sin(alpha) * c_b/c0, h_b = H0/gamma). Crest bearing
+      58 deg -> 8.6-9.6 deg on every preset; the crest field stays a plane wave
+      so the zipper keeps its closed form; JS twin bit-identical. The full
+      eikonal version (Psi table, depth-varying phi) was built and REVERTED —
+      rider/audio/twin all assume constant phi. Kept for M6-someday in bed.js:
+      bakeRefraction/psiAt/zcAtPsi/incidenceAt (verified 17.1 -> 9.4 -> 7.9 deg
+      at Second Peak). Known cost, and M5's whole motivation: taxonomy dead
+      (~9 deg everywhere), V_p 38-50 m/s, audio quiet (zipper stations ~534 m
+      apart).
 - [ ] Rider sits low on the FAST presets (Sewers p50 0.18 vs Second Peak 0.41).
       Not sections (tested: sections=0 moves it 0.01) and not the frame.
       `faceOff` is a fixed 11+/-5 m, and the phase step that implies scales with
       cos(phi), so low-alpha presets sit lower on the face. Decide whether that
       is correct (you do ride lower on a steep wave) or wants phi-aware tuning.
+- [ ] **M5 synthetic reef — SPEC'D 2026-08-10, see WEB_THREE_SPEC.md "M5".**
+      The answer to the 2.4 cost: refracted crests + measured DEM = every
+      preset ~9 deg, peel 38-50 m/s, taxonomy dead. Character returns via an
+      invented Mead&Black wedge (strike beta ~ alpha_target - 9 deg) added to
+      the decoded uint16 grid in bed.js at load — ONE augmentation surface, so
+      break line (via M4), depth gate, shoaling and shoreline stay coherent.
+      alpha becomes a fit TARGET with reported residual. Retires the sections
+      shader hack (ridges in the grid instead). B becomes a three-way A/B:
+      measured -> measured+reef -> plane. Depends on M4; order of work and
+      acceptance in the spec.
 - [ ] **M4 emergent break line — SPEC'D 2026-08-10, see WEB_THREE_SPEC.md.**
       breakLine(x) becomes the locus where H0*Ks >= gamma*h; alpha becomes a
       readout, not an input. Bake zBreak(x) as a 128-sample 1-D texture,

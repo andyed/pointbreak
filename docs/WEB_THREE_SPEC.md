@@ -101,8 +101,15 @@ then retires.
 ## M4 — emergent break line
 
 **Status: PART-BUILT, behind `?m4=1`. Off by default — turning it on today is a
-visible regression. This is the largest remaining gap between the model and the
-physics it claims.**
+visible regression.**
+
+**2026-08-10 note:** the measurements in this section pre-date MODEL.md §2.3
+(break line onto the contour) and §2.4 (refracted crests). The 75–133 m locus
+gap and the 0.20 rider ratio were mostly the frame error and are resolved;
+gap #2 below may already be closed because the envelope now keys off the same
+contour the depth was fitted to. Re-measure before building. What M4 still
+uniquely buys is α varying with H₀ and tide — and it is the **substrate M5
+requires**, which is now its main justification.
 
 Built: the bake (`bed.js bakeBreakLine`), the 128x1 texture, the shader lookup
 (`breakTexZ`/`breakLine`), the CPU twin (`breakZAt`), derived-alpha readout, and
@@ -223,6 +230,132 @@ is real but narrow. With an emergent break line the peel *position, angle and
 character* all derive from measured bathymetry, and the down-point gradient
 locals describe becomes a prediction the model can be wrong about — which is
 the precondition for the validation pass in TODO Phase 3.
+
+
+## M5 — synthetic reef (spot character from contour obliquity)
+
+**Status: SPEC. Depends on M4. This is the answer to the honest cost recorded
+in MODEL.md §2.4: with refracted crests over the measured DEM, all seven
+presets arrive within a degree of each other (8.6–9.6° off shore-parallel) and
+the peel runs 38–50 m/s. The taxonomy no longer differentiates — Sewers and
+Sharks are the same wave.**
+
+### Why obliquity, and only obliquity
+
+Peel angle is the angle between the crest and the break line. Refraction pins
+the crest bearing near 9° regardless of deep-water direction — that side is
+now physics and should not be touched. So character can only come from the
+OTHER line: the break line must cross the shore obliquely, which means the
+γh-crossing must sweep seaward as x advances — a reef whose strike is rotated
+against the shore. The measured DEM cannot supply this: at ~7 m posts the
+Purisima mudstone bedding that makes the real spots is smoothed into a
+featureless ramp (bed A/B in MODEL.md §2.2 already showed the residual
+structure, 2.5–3.8 m RMS, is what carries the peel). The reef must be
+invented. Per the 2026-08-10 decision: **make up plausible values, label them
+synthetic, keep them toggleable.**
+
+The target geometry, per preset (φ_break ≈ 9°):
+
+    strike β ≈ α_target − φ_break
+
+| preset | α target | ridge strike β | V_p at c_b ≈ 4.8 m/s |
+|---|---|---|---|
+| Sewers | 38° | ~29° | 7.8 m/s |
+| First Peak | 50° | ~41° | 6.3 |
+| Second Peak | 58° | ~49° | 5.7 |
+| Jack's | 62° | ~53° | 5.4 |
+| The Hook | 48° | ~39° | 6.5 |
+| Sharks | 66° | ~57° | 5.2 |
+
+V_p returns to Walker-makeable (V_s ≥ c/sin α, attainable ~10 m/s) on every
+row. Privates and the A-frame stay on the synthetic-quadratic path, no reef.
+
+### Architecture: augment the grid once, at decode time
+
+The trap, hit and documented on 2026-08-10: `coastCurve` is a baked fit while
+depth is a runtime texture. Invented relief added to only one of them moves
+the depth gate without moving the break line (or vice versa) and re-splits the
+loci §2.3 merged. And a procedural GLSL term would need a CPU twin in bed.js,
+a fourth MODEL-TWIN surface to keep in sync.
+
+So: **one augmentation function, applied to the decoded uint16 grid in
+`bed.js` before anything reads it.** The GPU texture upload, `bedElevAt`,
+`shorelineZ`, `cliffTop`, `bakeBreakLine`, and the section chart all consume
+the same augmented grid with zero twin drift. Under M4 the break line derives
+from that grid, so break line, depth gate, shoaling, and shoreline are
+coherent by construction — the reef exists in exactly one place.
+
+    elev'(x,z) = elev(x,z) + reef(x,z)
+
+`reef(x,z)`, the Mead & Black wedge + ridge composition:
+
+- **wedge** — a planar uplift whose strike runs at β off shore-parallel,
+  amplitude A ≈ 1.5–3 m, cresting ~2–3 m below MSL (deep enough that waves
+  reach it; the γh crossing happens ON it), feathered to zero over ~40 m at
+  the reefWindow ends and the patch edges (smoothstep, C1).
+- **ridges** — 1-D noise along the wedge strike (their §"sections" components):
+  amplitude σ_h, wavelength ~30–60 m. This RETIRES the separate sections hack:
+  u_sections stops pulling the authored line seaward in the shader and becomes
+  the ridge amplitude knob feeding the same grid. One mechanism, not two.
+- **clamps** — never raise the bed above −0.5 m NAVD88 (the invented reef must
+  not move the measured shoreline or the cliff camera), never deepen (additive,
+  ≥ 0). The DEM stays the floor of truth; the reef is relief on top of it.
+
+Deterministic per preset (seeded by spot name) — rebake, not per-frame.
+
+### Fitting: α returns as a target, honestly
+
+α's meaning changes a third time, and this one should be final: **a character
+target the synthetic reef is fitted to.** The fit loop, build/bake-time:
+
+1. compose reef(β, A, σ_h) with β seeded from the table above
+2. bake the M4 break line over the augmented grid
+3. read `derivedAlphaDeg` mid-window; adjust β by the residual; iterate (≤5
+   rounds — the response is nearly linear in β)
+4. record the fit residual; HUD reports `α 58° target · 56° derived ·
+   reef synthetic`
+
+No silent success: if the fit cannot land within tolerance (e.g. the wedge
+would breach the −0.5 m clamp before reaching β), the HUD says so and the
+residual is committed with the profile.
+
+### The A/B keeps its teeth
+
+`B` currently toggles measured ↔ plane. It becomes a three-way cycle:
+**measured → measured+reef → plane.** The causal demo gets stronger — one key
+now shows: no reef = closeout (the §2.4 finding), synthetic reef = the spot,
+plane = no peel at all. `u_bedShape` generalizes from a float mix to a mode.
+
+### Order of work
+
+1. **M4 first, re-measured.** Rider tracking along the emergent line (the
+   continuity solve M4 gap #1 — solve per crest and follow it, don't re-scan),
+   and re-measure gap #2, which §2.3 may have closed already.
+2. **Wedge + fit loop** on Second Peak only; acceptance below on one spot.
+3. **Sweep the bank**, retire the sections shader hack, three-way A/B, HUD.
+4. **Docs**: MODEL.md §2.5 records what happened, with the fit residuals.
+
+### Acceptance
+
+- derived α within ±5° of target on all six mapped presets, and the taxonomy
+  differentiates again: derived α spans ≥ 20° across the bank
+- V_p in 5–8 m/s on the mapped bank (Walker-makeable), crest bearing still
+  ≤ 12° (refraction untouched — the §2.4 win is not given back)
+- rider p90 height ≥ 0.9 of best available crest (parity with §2.3's number)
+- shoreline and cliff cameras unmoved by the reef (clamp holds; assert in
+  tests: augmented grid ≡ measured grid wherever measured ≥ −0.5 m NAVD88)
+- zipper stations return to O(100 m) spacing, so the four audio voices are
+  audible again (the §2.4 quieting reverses for free)
+- `npm test` gains: fit residuals within tolerance, clamp invariant, and
+  determinism (same seed → same grid)
+
+### Out of scope for M5
+
+Emergent A-frames (a focus component making its own peak), swell-direction
+dependence of the fit (β is fitted at the canonical model card; a different
+swell re-derives α through M4 naturally), and any claim that the invented
+reef is Pleasure Point's actual geology — it is a plausible wedge fitted to a
+surf-description target, and every surface that shows it says "synthetic".
 
 ## Out of scope (unchanged from MODEL.md §5)
 
