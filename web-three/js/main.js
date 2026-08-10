@@ -9,9 +9,10 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
-import { makeState, applyPreset, PRESETS } from '../../web/js/params.js';
+import { makeState, applyPreset, PRESETS, describeGeoState } from '../../web/js/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
+import { coastCurve } from './model-js.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -84,6 +85,9 @@ const uniforms = {
   u_chop:     { value: state.chop },
   u_aframe:   { value: state.aframe },
   u_surfer:   { value: state.surfer },
+  u_geoMix:   { value: state.geoMix },
+  u_contourFit: { value: new THREE.Vector2(state.contourX2, state.contourX3) },
+  u_stageBounds: { value: new THREE.Vector2(state.stageStart, state.stageEnd) },
 };
 
 const mat = new THREE.ShaderMaterial({
@@ -123,6 +127,8 @@ function modelP() {
     T: state.T, H0: state.H0, alphaRad: state.alpha * Math.PI / 180,
     xi: state.xi, sections: state.sections, dF: state.dF,
     chop: state.chop, aframe: state.aframe,
+    geoMix: state.geoMix, contourX2: state.contourX2, contourX3: state.contourX3,
+    stageStart: state.stageStart, stageEnd: state.stageEnd,
   };
 }
 
@@ -132,7 +138,7 @@ function modelP() {
 function breakLineJS(x) {
   const a = Math.min(Math.max(state.alpha * Math.PI / 180, 0.06), 1.45);
   const xx = state.aframe ? Math.abs(x) : x;
-  return Math.tan(a) * xx - xx * xx / 5000;
+  return Math.tan(a) * xx - coastCurve(x, modelP());
 }
 
 const controls = new OrbitControls(camera, canvas);
@@ -186,11 +192,13 @@ function updateFollowCam(sWorld) {
 const hudPreset = document.getElementById('hudPreset');
 const hudCam = document.getElementById('hudCam');
 const hudSurfer = document.getElementById('hudSurfer');
+const hudGeo = document.getElementById('hudGeo');
 function refreshHUD() {
   const p = state.preset ? PRESETS[state.preset].label : 'custom';
   hudPreset.textContent = state.paused ? p + ' (paused)' : p;
   hudCam.textContent = CAM_PRESETS[camIdx].name;
   hudSurfer.textContent = state.surfer ? 'on' : 'off';
+  hudGeo.textContent = describeGeoState(state);
 }
 
 // ---------- keyboard (parity with web/) ----------
@@ -237,6 +245,9 @@ function frame(now) {
   uniforms.u_chop.value = state.chop;
   uniforms.u_aframe.value = state.aframe;
   uniforms.u_surfer.value = state.surfer;
+  uniforms.u_geoMix.value = state.geoMix;
+  uniforms.u_contourFit.value.set(state.contourX2, state.contourX3);
+  uniforms.u_stageBounds.value.set(state.stageStart, state.stageEnd);
 
   // surfer pose + Follow camera share one surferState/surfaceAt evaluation.
   // The follow shot tracks the ride line even with the rider hidden (S off)

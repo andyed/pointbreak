@@ -43,7 +43,8 @@ gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
 const U = {};
 for (const name of ['u_res', 'u_time', 'u_T', 'u_H0', 'u_alpha', 'u_xi',
-  'u_sections', 'u_dF', 'u_tau', 'u_chop', 'u_aframe', 'u_view', 'u_surfer']) {
+  'u_sections', 'u_dF', 'u_tau', 'u_chop', 'u_aframe', 'u_view', 'u_surfer',
+  'u_geoMix', 'u_contourFit', 'u_stageBounds']) {
   U[name] = gl.getUniformLocation(prog, name);
 }
 
@@ -84,7 +85,14 @@ function frame(now) {
   gl.uniform1f(U.u_aframe, state.aframe);
   gl.uniform1f(U.u_view, state.view);
   gl.uniform1f(U.u_surfer, state.surfer);
+  gl.uniform1f(U.u_geoMix, state.geoMix);
+  gl.uniform2f(U.u_contourFit, state.contourX2, state.contourX3);
+  gl.uniform2f(U.u_stageBounds, state.stageStart, state.stageEnd);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// Read-only capture/debug seam. The canonical values still live in state and
+// params.js; this only makes headless verification observable.
+window.__pointbreak = { state, uniforms: U };

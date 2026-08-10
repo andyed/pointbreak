@@ -1,6 +1,8 @@
 // Model parameters + spot presets. Single source of truth for the UI and shader
 // uniforms. Values trace to docs/MODEL.md (model card + preset taxonomy).
 
+import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
+
 export const PARAM_DEFS = [
   // key,        label,               min,   max,   step,  unit
   { key: 'alpha',    label: 'Peel angle α',   min: 20,    max: 80,   step: 1,     unit: '°'  },
@@ -15,25 +17,55 @@ export const PARAM_DEFS = [
 ];
 
 // alpha in degrees here; shader gets radians. aframe: 0 = point break, 1 = Middle Peak.
+// geoSpot is deliberately null for West Side presets. Do not silently assign
+// Pleasure Point geography to a borrowed preset name: those remain synthetic
+// until the pending canon-retarget decision is made.
 export const PRESETS = {
-  cowells:    { label: "Cowell's",     alpha: 70, xi: 0.35, sections: 0.05, T: 12, H0: 0.7, dF: 0.006, tau: 4,   chop: 0.15, aframe: 0 },
-  jacks:      { label: "Jack's",       alpha: 62, xi: 0.5,  sections: 0.1,  T: 13, H0: 1.1, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
-  secondpeak: { label: 'Second Peak',  alpha: 58, xi: 0.65, sections: 0.15, T: 14, H0: 1.5, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
-  firstpeak:  { label: 'First Peak',   alpha: 50, xi: 0.85, sections: 0.25, T: 14, H0: 1.8, dF: 0.007, tau: 5.5, chop: 0.1,  aframe: 0 },
-  thehook:    { label: 'The Hook',     alpha: 48, xi: 0.8,  sections: 0.2,  T: 13, H0: 1.5, dF: 0.007, tau: 5,   chop: 0.15, aframe: 0 },
-  theslot:    { label: 'The Slot',     alpha: 35, xi: 1.3,  sections: 0.5,  T: 15, H0: 2.4, dF: 0.008, tau: 6,   chop: 0.2,  aframe: 0 },
-  middlepeak: { label: 'Middle Peak',  alpha: 45, xi: 1.1,  sections: 0.3,  T: 15, H0: 2.2, dF: 0.008, tau: 6,   chop: 0.2,  aframe: 1 },
+  cowells:    { label: "Cowell's",     geoSpot: null,          alpha: 70, xi: 0.35, sections: 0.05, T: 12, H0: 0.7, dF: 0.006, tau: 4,   chop: 0.15, aframe: 0 },
+  jacks:      { label: "Jack's",       geoSpot: '38th',        alpha: 62, xi: 0.5,  sections: 0.1,  T: 13, H0: 1.1, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
+  secondpeak: { label: 'Second Peak',  geoSpot: 'Second Peak', alpha: 58, xi: 0.65, sections: 0.15, T: 14, H0: 1.5, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
+  firstpeak:  { label: 'First Peak',   geoSpot: 'First Peak',  alpha: 50, xi: 0.85, sections: 0.25, T: 14, H0: 1.8, dF: 0.007, tau: 5.5, chop: 0.1,  aframe: 0 },
+  thehook:    { label: 'The Hook',     geoSpot: 'The Hook',    alpha: 48, xi: 0.8,  sections: 0.2,  T: 13, H0: 1.5, dF: 0.007, tau: 5,   chop: 0.15, aframe: 0 },
+  theslot:    { label: 'The Slot',     geoSpot: null,          alpha: 35, xi: 1.3,  sections: 0.5,  T: 15, H0: 2.4, dF: 0.008, tau: 6,   chop: 0.2,  aframe: 0 },
+  middlepeak: { label: 'Middle Peak',  geoSpot: null,          alpha: 45, xi: 1.1,  sections: 0.3,  T: 15, H0: 2.2, dF: 0.008, tau: 6,   chop: 0.2,  aframe: 1 },
 };
 
 export const DEFAULT_PRESET = 'secondpeak';
 
 export function makeState() {
-  return { ...PRESETS[DEFAULT_PRESET], speed: 1, view: 1, surfer: 0, paused: false, preset: DEFAULT_PRESET };
+  const state = { speed: 1, view: 1, surfer: 0, paused: false, preset: null };
+  applyPreset(state, DEFAULT_PRESET);
+  return state;
 }
 
 export function applyPreset(state, key) {
   const p = PRESETS[key];
   if (!p) return;
-  for (const k of Object.keys(p)) if (k !== 'label') state[k] = p[k];
+  for (const k of Object.keys(p)) if (k !== 'label' && k !== 'geoSpot') state[k] = p[k];
+  applyGeoProfile(state, p.geoSpot);
   state.preset = key;
+}
+
+export function applyGeoProfile(state, spotName) {
+  const profile = spotName ? PP_GEO_DATA.profiles[spotName] : null;
+  const usable = Boolean(profile?.contourFit?.usable);
+  state.geoRequestedSpot = spotName;
+  state.geoSpot = usable ? spotName : null;
+  state.geoMix = usable ? 1 : 0;
+  state.contourX2 = usable ? profile.contourFit.x2 : 1 / 5000;
+  state.contourX3 = usable ? profile.contourFit.x3 : 0;
+  state.stageStart = usable ? profile.stageBoundsM[0] : -110;
+  state.stageEnd = usable ? profile.stageBoundsM[1] : 290;
+  state.geoU = profile?.uM ?? 0;
+  state.geoReefElev = profile?.reefElevationNavd88M ?? 0;
+  state.geoShoreSlope = profile?.shoreSlope ?? 0;
+  state.geoFitRmse = profile?.contourFit?.rmseM ?? 0;
+}
+
+export function describeGeoState(state) {
+  if (state.geoMix > 0.5) {
+    return `OSM/NCEI ${state.geoSpot} · u ${Math.round(state.geoU)} m · reef ${state.geoReefElev.toFixed(2)} m NAVD88`;
+  }
+  if (state.geoRequestedSpot) return `${state.geoRequestedSpot}: geo fit unavailable · synthetic contour`;
+  return 'synthetic contour · no Pleasure Point mapping';
 }

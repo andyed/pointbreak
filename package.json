@@ -1,0 +1,10 @@
+{
+  "name": "pointbreak",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:geo": "python3 data/model/build_geo_profiles.py",
+    "check:geo": "python3 data/model/build_geo_profiles.py --check",
+    "test": "node --test tests/*.test.js"
+  }
+}

@@ -117,6 +117,30 @@ a two-component swell. Δf ≈ 0.004–0.01 Hz yields set cycles of ~100–250 s
 ~4–8 waves per set, matching observed rhythm. (Group velocity = ½ phase velocity in
 deep water — sets crawl relative to the waves in them, a real and visible effect.)
 
+### 2.1 The real-data stage profile
+
+The zipper remains kinematic, but its stage no longer has to be generic. For a
+mapped Pleasure Point preset, `data/model/build_geo_profiles.py` reduces the
+committed OSM and NCEI files into one local profile consumed by both WebGL
+vehicles:
+
+- OSM supplies the surf-node identity, down-point coordinate `u`, positive
+  down-point orientation, and the finite window halfway to the neighboring
+  canon spots.
+- The NCEI equal-elevation contour through that surf node supplies the local
+  curve `C_geo(x) = c₂x² + c₃x³`.
+- Runtime `coastCurve(x)` uses `C_geo`, so `breakLine(x) = tan(α)x - C_geo(x)`
+  retains the authored peel angle while following the measured local contour.
+- The surfer's ride span uses the OSM validity window, so the CPU twin, GPU
+  water, foam wake, and cameras remain on one model path.
+- The OSM spot partitions are not measured reef edges. They do not replace the
+  authored finite-reef envelope in `reefWindow(x)`.
+
+Absolute NCEI reef elevation is carried as NAVD88 provenance, not treated as
+water depth: the local NAVD88-to-MSL/tidal-datum conversion remains unresolved.
+West Side presets and the Middle Peak A-frame keep the original synthetic
+quadratic rather than borrowing unrelated Pleasure Point geography.
+
 This is a 1-D phase traveling along a 2-D curve with a before/after material change.
 A few uniforms; no fluid solver; no FFT required for the break layer itself. The
 zipper motion — not water shading — is the recognizable signature of "a wave peeling."

@@ -1,7 +1,7 @@
 // Control panel. Plain DOM, no framework. All readable text >= 8:1 contrast
 // against the panel background (verified in css/style.css comments).
 
-import { PARAM_DEFS, PRESETS, applyPreset } from './params.js';
+import { PARAM_DEFS, PRESETS, applyPreset, describeGeoState } from './params.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from './cdip.js';
 
 export function buildUI(state, onChange) {
@@ -15,12 +15,17 @@ export function buildUI(state, onChange) {
   Object.entries(PRESETS).forEach(([key, p], i) => {
     const b = document.createElement('button');
     b.textContent = `${i + 1} ${p.label}`;
-    b.title = `Preset: ${p.label}`;
+    b.title = p.geoSpot
+      ? `Preset: ${p.label} · OSM/NCEI stage: ${p.geoSpot}`
+      : `Preset: ${p.label} · synthetic stage (no Pleasure Point geo mapping)`;
     b.addEventListener('click', () => selectPreset(key));
     presetBtns[key] = b;
     presetRow.appendChild(b);
   });
   panel.appendChild(presetRow);
+  const geoStatus = document.createElement('div');
+  geoStatus.className = 'geostatus';
+  panel.appendChild(geoStatus);
 
   function selectPreset(key) {
     applyPreset(state, key);
@@ -115,6 +120,7 @@ export function buildUI(state, onChange) {
       input.value = state[def.key];
       val.textContent = fmt(state[def.key], def);
     }
+    geoStatus.textContent = describeGeoState(state);
     markPreset();
   }
   refresh();

@@ -25,6 +25,7 @@ recognize the spot.
 
 - `docs/MODEL.md` — the vehicle-independent parametrization (start here)
 - `docs/research/` — CDIP live data, surf-science citations, TD implementation recon
+- `data/model/` — generated OSM/NCEI stage profiles shared by both web renderers
 - `glsl/zipper.md` — shader-ready form of the break layer
 - `td/` — TouchDesigner build (via tdmcp), composites the zipper over an FFT ocean substrate
 - `web/` — raymarched reference build (cliff + drone views, slider panel, live CDIP fetch)
@@ -63,4 +64,6 @@ Both web builds render. `web/` is the reference raymarcher (maintenance-only);
 `web-three/` is through M3 of `docs/WEB_THREE_SPEC.md` — shaded grid, shared
 model GLSL, pitching lip, surfer + follow cam. Next: ride grammar (takeoff,
 turns, wipeouts) and a glTF rider — see `TODO.md`. TouchDesigner vehicle not
-started.
+started. Jack's/38th, Second Peak, First Peak, and The Hook now use generated
+OSM/NCEI stage profiles; the borrowed West Side presets remain visibly marked
+as synthetic.

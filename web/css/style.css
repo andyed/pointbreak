@@ -36,7 +36,7 @@ body.hidepanel #panel, body.hidepanel #titlebar { display: none; }
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
 }
 
-.presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
 .presets button, .viewrow button, .live button {
   background: #1a2027; color: #eef2f5;
   border: 1px solid #333c45; border-radius: 6px;
@@ -45,6 +45,11 @@ body.hidepanel #panel, body.hidepanel #titlebar { display: none; }
 .presets button:hover, .viewrow button:hover, .live button:hover { background: #242c35; }
 .presets button.on, .viewrow button.on {
   background: #10394d; border-color: #7fd4ff; color: #ffffff;
+}
+
+.geostatus {
+  color: #c3cad1; font-size: 11.5px; line-height: 1.4;
+  margin-bottom: 10px;
 }
 
 .viewrow { display: flex; gap: 5px; margin-bottom: 12px; }

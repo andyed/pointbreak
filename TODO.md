@@ -25,6 +25,10 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 - [x] Preset bank: Cowell's / Jack's / Second Peak / First Peak / The Hook /
       The Slot / Middle Peak — keys 1–7, imported by web-three from
       web/js/params.js; all seven verified rendering from the Cliff camera
+- [x] Real-data stage profiles: OSM `u`/canon windows + NCEI equal-elevation
+      contour fits drive the shared GLSL, JS surfer twin, and both renderers
+      for Jack's/38th, Second Peak, First Peak, and The Hook; borrowed West
+      Side presets fail truthfully to the synthetic stage
 
 ## Phase 2 — web-three (SPEC'D: docs/WEB_THREE_SPEC.md)
 - [x] M0 grid + vertical displacement + shared model GLSL (extract model-glsl.js)

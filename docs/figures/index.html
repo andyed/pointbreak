@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Becoming a Regular — Pleasure Point, measured and simulated</title>
 <meta name="description" content="An editorial essay on Pleasure Point, Santa Cruz, pairing OSM/NOAA ground truth with the pointbreak wave model's own renders.">
 <meta name="color-scheme" content="dark">
@@ -10,6 +15,7 @@
     sand  #c9a86a on bg #0f1216   ->  8.31:1   links + pull-annotations, ON BG ONLY
     cream #e6e4d2 on kelp #1d2b28 -> 11.48:1   text inside kelp-dark callout cards
     foam  #eef2f3 on kelp #1d2b28 -> 13.04:1   headings inside kelp-dark cards
+    dim   #cccbbb on bg #0f1216    -> 11.47:1   captions, citations, footer
     sand  #c9a86a on kelp #1d2b28 ->  6.51:1   FAILS 8:1 -> sand text never placed
                                                 on the kelp-dark background anywhere
                                                 on this page (rule enforced by only
@@ -18,7 +24,7 @@
     teal  #4a8f85 on bg #0f1216   ->  4.97:1   decorative rule/underline only, no text
     slate #6b7f8c on bg #0f1216   ->  4.51:1   decorative rule only, no text
   All body/caption text on this page sets 16px as its floor (1rem @ 16px base);
-  the deck line and footer run at 1rem, headings scale up from there. No text
+  the deck runs at 1.15rem and the footer at 1rem; headings scale up from there. No text
   anywhere on the page uses teal or slate as a fill color.
 -->
 
@@ -45,6 +51,11 @@
 
   a { color: var(--mg-sand); text-decoration-color: rgba(201,168,106,0.55); text-underline-offset: 3px; }
   a:hover, a:focus { text-decoration-color: var(--mg-sand); }
+  a:focus-visible {
+    outline: 2px solid var(--mg-sand);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
 
   .page {
     max-width: 760px;
@@ -75,7 +86,6 @@
     font-size: 1.15rem;
     line-height: 1.6;
     color: var(--mg-fg);
-    opacity: 0.92;
     font-style: italic;
     max-width: 62ch;
     margin: 0 0 2.6rem;
@@ -110,6 +120,7 @@
     max-width: 68ch;
     margin: 0 0 1.15rem;
     font-size: 1rem;
+    font-weight: 500;
   }
 
   .prose { max-width: 68ch; }
@@ -124,15 +135,15 @@
     line-height: 1.55;
     color: var(--mg-foam);
     max-width: 58ch;
+    font-weight: 500;
   }
   blockquote cite {
     display: block;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     font-style: normal;
-    font-size: 0.85rem;
+    font-size: 1rem;
     letter-spacing: 0.04em;
-    color: var(--mg-fg);
-    opacity: 0.75;
+    color: var(--mg-figcaption-dim, #cccbbb);
     margin-top: 0.5rem;
   }
 
@@ -246,6 +257,7 @@
     color: var(--mg-figcaption-dim, #cccbbb);
     max-width: 68ch;
     margin: 0.8rem 0 0;
+    font-weight: 500;
   }
   figcaption .cap-label {
     color: var(--mg-sand);
@@ -264,10 +276,10 @@
     margin-top: 3.6rem;
     padding-top: 1.6rem;
     border-top: 1px solid rgba(230,228,210,0.15);
-    font-size: 0.88rem;
-    color: var(--mg-fg);
-    opacity: 0.82;
+    font-size: 1rem;
+    color: var(--mg-figcaption-dim, #cccbbb);
     line-height: 1.7;
+    font-weight: 500;
   }
   footer .credit-row { margin-bottom: 0.35rem; }
   footer .credit-label { color: var(--mg-foam); opacity: 1; font-weight: 600; }
@@ -279,12 +291,18 @@
     .callout { padding: 0.9rem 1rem; }
   }
 </style>
+</head>
+<body>
 
 <div class="page">
 
+  <header class="essay-header">
   <p class="kicker">Pleasure Point, Santa Cruz &mdash; field notes</p>
   <h1>Becoming a Regular &mdash; Pleasure Point, measured and simulated</h1>
-  <p class="deck">Three figures, one point: what the coastline actually does, why the wave gets bigger as you paddle up it, and what the model still gets wrong.</p>
+  <p class="deck">Three figures, one point: how the coastline turns, how one swell becomes seven local waves, and where the model still departs from the water.</p>
+  </header>
+
+  <main>
 
   <section class="essay-part">
     <h2><span class="num">01</span> The name came first</h2>
@@ -296,6 +314,8 @@
       the kind of wave you can learn on without it trying to kill you. Jack
       O'Neill's house looked down on it from above 38th — the green house, part of
       the same stretch of cliff the point breaks under today.
+      That reputation &mdash; forgiving down-point, faster toward the apex &mdash;
+      is where the story becomes measurable.
     </p>
   </section>
 
@@ -320,14 +340,10 @@
     <p class="prose">
       Past First Peak the tangent barely moves &mdash; it wobbles around a
       mean of roughly 45&ndash;47&deg; all the way to Private's, cusped by the
-      little coves at the Hook. So the golden rule's down-point softening
-      isn't the angle doing the work anymore. It's two other fields: sheltering
-      (swell energy decaying as it wraps the apex) and the reef itself, which
-      gets <em>shallower</em> down-point &mdash; &minus;1.66 m at First Peak
-      to &minus;0.53 m NAVD88 at Private's, the opposite of what you'd guess.
-      A soft, forgiving wave down-point isn't a deep, generous one; it's a
-      shallow shelf that only wakes up when the tide drops onto it, which is
-      exactly why Private's is known for needing a lower tide to break at all.
+      little coves at the Hook. So angle alone cannot explain the golden
+      rule's down-point softening. The map establishes the turn; the next
+      figure adds the two fields that transform one incoming swell along it:
+      shelter and reef elevation.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame">
@@ -464,24 +480,20 @@
   <section class="essay-part">
     <h2><span class="num">03</span> The ladder</h2>
     <p class="prose">
-      You don't learn Pleasure Point all at once. You learn it in the order
-      the coastline hands it to you &mdash; down-point first, up-point last
-      &mdash; because that's also the order of shelter. Private's, Sharks, the
-      Hook: mellow lines, forgiving takeoffs, a shallow shelf that needs a
-      swell to even switch on. Second Peak is the long-board year, a ~90 m
-      peel that lets you actually hold the pocket rather than just catch it.
-      38th needs a bit more swell to activate at all. First Peak is steeper,
-      tapered, shortboard water. Sewers, at the top, is the fastest and least
-      forgiving of the seven &mdash; the corner itself.
+      A storm raises the whole point, but not by the same multiplier. Every
+      spot receives the same offshore conditions; exposure, reef depth, and
+      tide decide the local result. On a small day the active point contracts
+      toward the exposed upper breaks. As swell builds, more of the sheltered
+      coast switches on, while First Peak and Sewers become the fastest,
+      heaviest expressions of the same ocean.
     </p>
     <p class="prose">
-      This is also why small days don't just make the wave smaller &mdash;
-      they make the <em>point</em> smaller. Activation threshold rises as you
-      move up-point: a small swell only lights the sheltered, shallow spots
-      down-point; it takes real size to wake the top of the point up. Big
-      swell reverses the reading &mdash; everything breaks, and the up-point
-      spots are suddenly the biggest, fastest waves on the coast, which is the
-      other half of the golden rule.
+      You learn that system in reverse. Private's and Sharks offer the first
+      sheltered entries; the Hook and 38th ask for more; Second Peak is the
+      longboard year, a roughly 90 m peel for learning the pocket. First Peak
+      brings steeper, tapered shortboard walls. Sewers, at the apex, is the
+      fastest and least forgiving of the seven. Becoming a regular means
+      working against the spatial order, from the quiet end back to the corner.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame">
@@ -663,15 +675,19 @@ depth and exposure.</desc>
   <section class="essay-part">
     <h2><span class="num">04</span> Seven waves</h2>
     <p class="prose">
-      The pointbreak renderer's preset bank runs the same character range the
-      point itself does, from a peel angle &alpha; of 70&deg; down to 35&deg;
-      &mdash; mellow, feathering, barely-spilling water at one end; a hollow,
-      heavily sectioned, closeout-prone lip at the other. The presets don't
-      yet carry Pleasure Point's own spot names &mdash; three of the seven
-      (Cowell's, Middle Peak, the Slot) are borrowed from Steamer Lane on the
-      West Side, a naming correction still pending &mdash; but the wave
-      <em>character</em> each one produces, ordered mellowest to meanest, is
-      the honest range the model can currently claim.
+      The first two figures describe one measured coastline. The third changes
+      evidence: these are simulations. The renderer spans peel angles from
+      &alpha; = 70&deg; to 35&deg; &mdash; from a feathering, barely spilling
+      shoulder to a hollow, heavily sectioned, closeout-prone lip.
+    </p>
+    <p class="prose">
+      The Pleasure Point canon is settled: Sewers, First Peak, Second Peak,
+      38th/Jack's, the Hook, Sharks, and Private's. The renderer still uses a
+      legacy character bank in which Cowell's, Middle Peak, and the Slot are
+      West Side archetypes. Retargeting that bank &mdash; so location comes
+      from <em>u</em> and the geo profile, while storm conditions remain global
+      &mdash; is model work, not a naming decision. Until then, these frames
+      claim wave character, not geography.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame fig-wide">
@@ -886,19 +902,26 @@ depth and exposure.</desc>
   </section>
 
   <section class="essay-part">
-    <h2><span class="num">05</span> What the model still owes the point</h2>
+    <h2><span class="num">05</span> What the model owes next</h2>
     <p class="prose">
-      Three honest debts. The stage's coastCurve is still hand-tuned constants
-      where it could be fit directly to the OSM polyline &mdash; the planform
-      has ground truth now, the model math doesn't fully use it yet. Tide
-      isn't modeled at all, and the bathymetry says it should be: Private's
-      shallow shelf means tide is doing real work in whether that spot breaks,
-      not just where the water line sits. And the preset bank itself still
-      needs the rename from West Side borrow-names to the actual Pleasure
-      Point canon &mdash; flagged, not yet decided. None of these are secret;
-      they're just not done.
+      One debt is already paid: mapped presets now use generated OSM/NCEI
+      stage profiles, and the measured contour shapes the shared GPU and CPU
+      break line. The next step is dynamic conditions. Swell height,
+      period, direction, and tide should describe one ocean; each position
+      <em>u</em> should transform that forcing through exposure and bathymetry.
+      Today, height and period still live inside the legacy presets.
+    </p>
+    <p class="prose">
+      Completing the seven local doors also requires retargeting the character
+      bank, resolving the NAVD88-to-local-tide datum, and giving Private's a
+      contour representation more flexible than the current failed cubic fit.
+      Middle Peak's A-frame can remain as a useful mechanism without
+      masquerading as a Pleasure Point location. The names are known. What
+      remains is making the model earn them.
     </p>
   </section>
+
+  </main>
 
   <footer>
     <div class="credit-row"><span class="credit-label">Coastline &amp; spot data:</span> <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, ODbL.</div>
@@ -908,3 +931,6 @@ depth and exposure.</desc>
   </footer>
 
 </div>
+
+</body>
+</html>

@@ -9,7 +9,8 @@
 //
 // All functions take (…, t, P) where t is SIMULATION seconds (the one shared
 // clock; rate independence lives in main.js) and P is a plain-object snapshot
-// of the model uniforms: { T, H0, alphaRad, xi, sections, dF, chop, aframe }.
+// of the model uniforms: { T, H0, alphaRad, xi, sections, dF, chop, aframe,
+// geoMix, contourX2, contourX3, stageStart, stageEnd }.
 
 const PI  = Math.PI;
 const LAM = 90.0;   // MODEL-TWIN: display wavelength, m
@@ -47,9 +48,29 @@ function vnoise2(x, y) {
 }
 
 // ---------- bathymetry (MODEL-TWIN of coastCurve / breakLine / reefWindow) ----------
+function geoWeight(P) {
+  return clamp(P.geoMix ?? 0, 0, 1) * ((P.aframe ?? 0) >= 0.5 ? 0 : 1);
+}
+
 export function coastCurve(x, P) {
   const xx = mix(x, Math.abs(x), P.aframe);
-  return xx * xx / 5000;
+  const synthetic = xx * xx / 5000;
+  const stageStart = P.stageStart ?? -110, stageEnd = P.stageEnd ?? 290;
+  const gx = clamp(x, stageStart, stageEnd);
+  const measured = (P.contourX2 ?? 1 / 5000) * gx * gx
+                 + (P.contourX3 ?? 0) * gx * gx * gx;
+  return mix(synthetic, measured, geoWeight(P));
+}
+
+export function coastCurveSlope(x, P) {
+  const aframe = P.aframe ?? 0;
+  const xx = mix(x, Math.abs(x), aframe);
+  const synthetic = 2 * xx / 5000 * (aframe >= 0.5 ? Math.sign(x) : 1);
+  const stageStart = P.stageStart ?? -110, stageEnd = P.stageEnd ?? 290;
+  const measured = x >= stageStart && x <= stageEnd
+    ? 2 * (P.contourX2 ?? 1 / 5000) * x + 3 * (P.contourX3 ?? 0) * x * x
+    : 0;
+  return mix(synthetic, measured, geoWeight(P));
 }
 
 export function breakLine(x, P) {
@@ -59,7 +80,7 @@ export function breakLine(x, P) {
   return m * xx - coastCurve(x, P) + Math.min(sec, 0) * (P.sections >= 0.05 ? 1 : 0);
 }
 
-function reefWindow(x, P) {
+export function reefWindow(x, P) {
   const xx = mix(x, Math.abs(x), P.aframe);
   return smoothstep(-110, -35, xx) * (1 - smoothstep(215, 290, xx));
 }
@@ -93,7 +114,8 @@ export function oceanH(x, z, t, P) {
 
   // the boil beside the takeoff (glassy dome, kinks the surface slightly)
   const m_ = Math.tan(clamp(P.alphaRad, 0.06, 1.45));
-  const bx = -22, bz = m_ * 22 * P.aframe + m_ * (-22) * (1 - P.aframe) - 8;
+  const bx = -22;
+  const bz = m_ * mix(bx, Math.abs(bx), P.aframe) - coastCurve(bx, P) - 8;
   const boil = Math.exp(-((x - bx) * (x - bx) + (z - bz) * (z - bz)) / (2 * 5.5 * 5.5));
   h += 0.10 * P.H0 * boil * (0.8 + 0.2 * Math.sin(t * 0.7));
 
@@ -166,8 +188,10 @@ export function surferState(t, P) {
   const m = Math.tan(clamp(P.alphaRad, 0.06, 1.45));
   const vx = (LAM / P.T) / m;                 // zipper ground speed along x
 
-  const x0 = -18;                             // takeoff right beside the boil
-  const span = 225;
+  const gw = geoWeight(P);
+  const x0 = mix(-18, Math.max(-18, (P.stageStart ?? -110) + 20), gw);
+  const x1 = mix(x0 + 225, Math.max(x0 + 40, (P.stageEnd ?? 290) - 20), gw);
+  const span = x1 - x0;
   const rideT = span / Math.max(vx, 0.5);
   const ph = t - rideT * Math.floor(t / rideT);   // GLSL mod()
   const xApprox = x0 + vx * ph;
@@ -178,7 +202,9 @@ export function surferState(t, P) {
 
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
   const faceOff = 11 + 5 * pump;              // metres seaward of the break line
-  const zs      = m * xs - xs * xs / 5000 - faceOff;
-  const vz      = m * vx - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
+  const xfold   = mix(xs, Math.abs(xs), P.aframe);
+  const zs      = m * xfold - coastCurve(xs, P) - faceOff;
+  const vz      = (m - coastCurveSlope(xs, P)) * vx
+                - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
   return { x: xs, z: zs, vx, vz, pump };
 }

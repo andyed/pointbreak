@@ -38,5 +38,6 @@ html, body { height: 100%; overflow: hidden; background: #06090c; }
 }
 #hud .k { color: #c3cad1; }
 #hud .v { color: #7fd4ff; font-variant-numeric: tabular-nums; }
+#hud .geo { max-width: 310px; }
 
 body.hidepanel #titlebar, body.hidepanel #hud { display: none; }

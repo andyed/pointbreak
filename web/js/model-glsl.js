@@ -18,6 +18,9 @@ uniform float u_tau;      // foam e-folding, s
 uniform float u_chop;     // local wind-sea texture 0..1
 uniform float u_aframe;   // 0 point break, 1 Middle Peak (abs fold)
 uniform float u_surfer;   // 0 off, 1 riding
+uniform float u_geoMix;   // 1 = OSM/NCEI stage profile, 0 = synthetic fallback
+uniform vec2 u_contourFit;// NCEI equal-elevation contour: x2*x^2 + x3*x^3
+uniform vec2 u_stageBounds;// OSM canon-neighbor midpoints in local stage metres
 
 // ---------- constants ----------
 const float PI  = 3.14159265;
@@ -38,11 +41,28 @@ float vnoise2(vec2 p){
 // ---------- bathymetry: the break line (peel line) ----------
 // z increases shoreward. Break starts at low x (right-hander peeling +x).
 // A-frame: fold x about 0 -> two mirrored zippers.
-// crests bow gently seaward at the edges — long lines following the coast
-// contour around the point (ref: "long, sloping lines follow the contour")
+// For mapped Pleasure Point spots, curve comes from the NCEI equal-elevation
+// contour through the OSM surf node. The synthetic quadratic remains the
+// explicit fallback for West Side presets and the A-frame mechanism.
+float geoWeight(){
+  return clamp(u_geoMix, 0.0, 1.0) * (1.0 - step(0.5, u_aframe));
+}
+
 float coastCurve(float x){
   float xx = mix(x, abs(x), u_aframe);
-  return xx*xx/5000.0;
+  float synthetic = xx*xx/5000.0;
+  float gx = clamp(x, u_stageBounds.x, u_stageBounds.y);
+  float measured = u_contourFit.x*gx*gx + u_contourFit.y*gx*gx*gx;
+  return mix(synthetic, measured, geoWeight());
+}
+
+float coastCurveSlope(float x){
+  float xx = mix(x, abs(x), u_aframe);
+  float foldSign = mix(1.0, sign(x), u_aframe);
+  float synthetic = 2.0*xx/5000.0 * foldSign;
+  float inside = step(u_stageBounds.x, x) * step(x, u_stageBounds.y);
+  float measured = inside * (2.0*u_contourFit.x*x + 3.0*u_contourFit.y*x*x);
+  return mix(synthetic, measured, geoWeight());
 }
 
 float breakLine(float x){
@@ -53,8 +73,8 @@ float breakLine(float x){
   return m*xx - coastCurve(x) + min(sec, 0.0)*step(0.05, u_sections);
 }
 
-// the reef is finite: breaking ramps in at the takeoff and the lines
-// "lose steam in deeper water" past the end of the shelf
+// Authored finite-reef envelope. OSM spot partitions do not claim to measure
+// physical reef edges, so geo profiles shape the break but do not replace it.
 float reefWindow(float x){
   float xx = mix(x, abs(x), u_aframe);
   return smoothstep(-110.0, -35.0, xx) * (1.0 - smoothstep(215.0, 290.0, xx));
@@ -72,8 +92,10 @@ vec4 surferState(float t){
 
   // ride window runs TOWARD the cliff camera (distant takeoff -> hero frame),
   // and in A-frame mode starts at the apex either way
-  float x0 = -18.0;   // takeoff right beside the boil
-  float span = 225.0;
+  float gw = geoWeight();
+  float x0 = mix(-18.0, max(-18.0, u_stageBounds.x + 20.0), gw);
+  float x1 = mix(x0 + 225.0, max(x0 + 40.0, u_stageBounds.y - 20.0), gw);
+  float span = x1 - x0;
   float rideT = span/max(vx, 0.5);
   float ph = mod(t, rideT);
   float xApprox = x0 + vx*ph;
@@ -85,8 +107,10 @@ vec4 surferState(float t){
   // pumping: carve down (bottom turn) and back up the face, ~6 s cycle
   float pump    = sin(t*2.0*PI/6.0);
   float faceOff = 11.0 + 5.0*pump;         // metres seaward of the break line
-  float zs      = m*xs - xs*xs/5000.0 - faceOff;   // track the bowed break line
-  float vz      = m*vx - 5.0*(2.0*PI/6.0)*cos(t*2.0*PI/6.0);
+  float xfold   = mix(xs, abs(xs), u_aframe);
+  float zs      = m*xfold - coastCurve(xs) - faceOff;
+  float vz      = (m - coastCurveSlope(xs))*vx
+                - 5.0*(2.0*PI/6.0)*cos(t*2.0*PI/6.0);
   return vec4(xs, zs, vx, vz);
 }
 
@@ -130,7 +154,9 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // the boil: fixed upwelling over a shallow rock beside the takeoff —
   // glassy dome, chop suppressed, waves kink slightly over it
   float m_ = tan(clamp(u_alpha, 0.06, 1.45));
-  vec2 boilPos = vec2(-22.0, m_*22.0*u_aframe + m_*(-22.0)*(1.0-u_aframe) - 8.0);
+  float boilX = -22.0;
+  float boilZ = m_*mix(boilX, abs(boilX), u_aframe) - coastCurve(boilX) - 8.0;
+  vec2 boilPos = vec2(boilX, boilZ);
   float boil = exp(-dot(xz - boilPos, xz - boilPos)/(2.0*5.5*5.5));
   h += 0.10*u_H0*boil*(0.8 + 0.2*sin(t*0.7));
 
@@ -182,7 +208,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
     vec4 s = surferState(t);
     float behind = smoothstep(s.x + 2.0, s.x - 6.0, x) * smoothstep(s.x - 80.0, s.x - 30.0, x);
     float m2 = tan(clamp(u_alpha, 0.06, 1.45));
-    float pathZ = m2*mix(x, abs(x), u_aframe) - 11.0;
+    float pathZ = m2*mix(x, abs(x), u_aframe) - coastCurve(x) - 11.0;
     float wake = behind * exp(-pow(z - pathZ, 2.0)/(2.0*3.0*3.0));
     foam = clamp(foam + wake*0.75, 0.0, 1.0);
   }
