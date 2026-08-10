@@ -341,9 +341,10 @@
     .callout { padding: 0.9rem 1rem; }
   }
 
-  /* ---- simulation embeds (work-in-progress section) ---- */
-  /* Iframes are loaded and UNLOADED by an IntersectionObserver: each one is a
-     live WebGL context, and browsers cap how many may exist at once. */
+  /* ---- simulation embeds ---- */
+  /* The opening simulation loads eagerly; the later analytical embeds are
+     loaded and UNLOADED by an IntersectionObserver. Each one is a live WebGL
+     context, and browsers cap how many may exist at once. */
   .wip-badge {
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 0.42em; font-weight: 700; letter-spacing: 0.08em;
@@ -360,9 +361,27 @@
   .sim-frame-tall { aspect-ratio: 4 / 3; }
   .sim-embed { width: 100%; height: 100%; border: 0; display: block;
                pointer-events: none; }  /* embeds don't trap scroll or keys */
+  .hero-sim {
+    margin: 1.6rem calc(50% - 50vw) 2.5rem;
+    padding: 0 1.5rem;
+    max-width: 100vw;
+  }
+  .hero-sim .sim-frame {
+    width: min(100%, 1440px, calc((100vh - 18rem) * 16 / 9));
+    min-width: min(100%, 720px);
+    margin: 0 auto;
+  }
+  .hero-sim figcaption {
+    width: min(100%, 1440px);
+    margin: 0.65rem auto 0;
+  }
   .sim-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 2rem 0; }
   .sim-pair .sim-figure { margin: 0; }
-  @media (max-width: 720px) { .sim-pair { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) {
+    .sim-pair { grid-template-columns: 1fr; }
+    .hero-sim { padding: 0 1.1rem; margin-top: 2rem; margin-bottom: 2.8rem; }
+    .hero-sim .sim-frame { width: 100%; min-width: 0; aspect-ratio: 4 / 3; }
+  }
   .limits { max-width: 70ch; margin: 1.2rem 0 1.6rem 0; padding-left: 1.2rem;
             color: #cccbbb; font-size: 1rem; line-height: 1.65; }
   .limits li { margin-bottom: 0.55rem; }
@@ -387,6 +406,20 @@
   <header class="essay-header">
   <p class="kicker">Work in progress &middot; Santa Cruz, California</p>
   <h1>Modelling the waves at Pleasure Point</h1>
+  <figure class="sim-figure hero-sim">
+    <div class="sim-frame">
+      <iframe class="sim-embed" loading="eager"
+        src="sim/web-three/#preset=firstpeak&amp;cam=cliff&amp;hud=0&amp;sim=42"
+        data-src="sim/web-three/#preset=firstpeak&amp;cam=cliff&amp;hud=0&amp;sim=42"
+        title="Live simulated view from the measured cliff at First Peak"></iframe>
+    </div>
+    <figcaption>
+      <strong>Live model, work in progress.</strong> First Peak from a camera
+      placed on the measured cliff, about 14 m above the water. This is a
+      kinematic model, not footage or a validated forecast.
+      <a href="sim/web-three/#preset=firstpeak&amp;cam=cliff" target="_blank" rel="noopener">Open the full simulator &#8599;</a>
+    </figcaption>
+  </figure>
   <p class="deck">A first pass, about a day old. Public coastline and seafloor survey data for a long point break on the east side of Santa Cruz, and a WebGL model that tries to turn that data into breaking waves. The measurements are solid. The model is a start.</p>
   <p class="source-line">
     Source, data and build scripts:
@@ -902,19 +935,6 @@ depth and exposure.</desc>
       None of it has been checked against a measurement of this break.
     </p>
 
-    <figure class="sim-figure">
-      <div class="sim-frame">
-        <iframe class="sim-embed" loading="lazy"
-          data-src="sim/web-three/#preset=firstpeak&amp;cam=cliff&amp;hud=0&amp;sim=42"
-          title="Simulated view from the cliff at First Peak"></iframe>
-      </div>
-      <figcaption>
-        The cliff view at First Peak. The camera height is not chosen: it is
-        read from the NCEI terrain at that station, about 14 m above the
-        water. <a href="sim/web-three/#preset=firstpeak&amp;cam=cliff" target="_blank" rel="noopener">Open this view full-size &#8599;</a>
-      </figcaption>
-    </figure>
-
     <p class="prose">
       The test is a counterfactual. Below, the same swell runs over the same
       site twice: once over the surveyed seabed, and once over that
@@ -1006,9 +1026,9 @@ depth and exposure.</desc>
 
 
 <script>
-// Lazy-load / unload the WebGL embeds. Each iframe is a live GL context, so
-// they are attached only near the viewport and detached again once well clear
-// of it — the pattern used in the Psychodeli "Inside the Math" essay.
+// Keep the opening simulation eager, then lazy-load / unload every WebGL embed
+// as it moves through the page. Detaching distant frames keeps the number of
+// live GL contexts bounded — the Psychodeli "Inside the Math" essay pattern.
 (function () {
   var UNLOAD_DELAY = 4000, timers = new Map();
   var io = new IntersectionObserver(function (entries) {
