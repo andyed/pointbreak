@@ -41,3 +41,17 @@ html, body { height: 100%; overflow: hidden; background: #06090c; }
 #hud .geo { max-width: 310px; }
 
 body.hidepanel #titlebar, body.hidepanel #hud { display: none; }
+
+/* Cross-section analysis panel (C toggles). Sits bottom-left, clear of the
+   titlebar and HUD, sized so the profile reads without competing with the 3D
+   view for the eye. Text colours reuse the HUD's, which are measured above
+   the 8:1 floor against this same panel background. */
+.section-panel {
+  position: fixed; left: 14px; bottom: 14px;
+  width: min(560px, calc(100vw - 28px)); height: 210px;
+  background: rgba(15, 18, 22, 0.93);
+  border: 1px solid #2a3138; border-radius: 8px;
+  padding: 4px 6px 2px;
+}
+.section-panel canvas { display: block; width: 100%; height: 100%; }
+body.hidepanel .section-panel { display: none; }

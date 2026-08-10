@@ -14,6 +14,7 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { coastCurve } from './model-js.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop } from './bed.js';
+import { makeSection } from './section.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -231,7 +232,18 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 's' || e.key === 'S') { state.surfer = 1 - state.surfer; refreshHUD(); }
   if (e.key === ' ') { state.paused = !state.paused; refreshHUD(); e.preventDefault(); }
   if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('hidepanel');
+  // C shows the cross-section (the bed-shape -> wave argument); [ and ] move
+  // the tide, which is the cheapest lever that proves it — the breaking point
+  // slides along the profile and the whitewater band moves with it.
+  if (e.key === 'c' || e.key === 'C') { showSection = !showSection; section.el.style.display = showSection ? '' : 'none'; }
+  if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.25, -1.0); applyBed(uniforms, state.geoSpot, state.tide); refreshHUD(); }
+  if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.25, 2.0); applyBed(uniforms, state.geoSpot, state.tide); refreshHUD(); }
 });
+
+// ---------- cross-section overlay ----------
+const section = makeSection(document.body);
+let showSection = false;
+section.el.style.display = 'none';
 
 // ---------- resize ----------
 function resize() {
@@ -269,6 +281,9 @@ function frame(now) {
   uniforms.u_contourFit.value.set(state.contourX2, state.contourX3);
   uniforms.u_stageBounds.value.set(state.stageStart, state.stageEnd);
   applyBed(uniforms, state.geoSpot, state.tide || 0);
+  // The section is a chart, not an animation: it only depends on bed, swell
+  // and tide, so redraw on change rather than every frame.
+  if (showSection) section.draw(state, 0, state.tide || 0);
 
   // surfer pose + Follow camera share one surferState/surfaceAt evaluation.
   // The follow shot tracks the ride line even with the rider hidden (S off)

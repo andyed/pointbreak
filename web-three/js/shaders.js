@@ -354,6 +354,25 @@ void main() {
   vec3 inner = vec3(0.19, 0.27, 0.26);
   vec3 base  = mix(deep, mix(shelf, inner, smoothstep(0.5, 1.0, shoreT)), shoreT);
   base += vec3(0.03, 0.10, 0.10) * clamp(vWorldPos.y*0.35, 0.0, 1.2);
+
+  // ---- bottom showing through ----
+  // Beer-Lambert up-and-back through vDepth metres of water, over the same
+  // sand albedo the beach uses. Not refraction — no ray is bent — but it is
+  // the real extinction law, so the shallows brighten and warm exactly where
+  // the reef is shallow. This is the cheapest honest way to see the bed
+  // driving the break: the wave stands up over the sand you can see.
+  // Red dies first, blue last, which is why shallow water over sand reads teal
+  // rather than simply paler. Coefficients are COASTAL, not open-ocean: clear
+  // blue-water Kd (~0.06/m at 490 nm) leaves the bottom faintly visible at
+  // 10 m, and Monterey Bay is kelp-and-plankton turbid. Tripling it puts the
+  // bottom out of sight by ~6 m, which is what makes the shallow reef read as
+  // a bright shape against dark water instead of an even wash.
+  vec3 kExt = vec3(0.45, 0.20, 0.16);
+  float pathM = max(vDepth, 0.0) * 2.0;             // down and back up
+  vec3 bottomLit = vec3(0.60, 0.53, 0.41) * (0.35 + 0.45*clamp(dot(Ng, sunDir), 0.0, 1.0));
+  vec3 through = bottomLit * exp(-kExt * pathM);
+  base = mix(base, base + through, u_depthMix * (1.0 - 0.85*foamM));
+
   float lam = clamp(dot(N, sunDir), 0.0, 1.0);
   base *= 0.62 + 0.50*lam;   // gentle slope shading so faces still read
 
