@@ -164,7 +164,8 @@ and both vehicles bind it as `u_bed`.
   by the water it is in. Breaking is flagged where `H₀·Ks` exceeds `γh`.
 - **The zipper still owns the peel.** Depth owns *permission*, not direction:
   the breaking gate multiplies the zipper mask rather than replacing it, so
-  α remains the authored character knob. A fully emergent break line — α as a
+  α remains the authored character knob. (This sentence described the intent;
+  the code took a `max` until §2.3 corrected it.) A fully emergent break line — α as a
   consequence of contour-vs-swell geometry — is the obvious next step and is
   deliberately not taken here.
 - **Forward pitch.** Phase is skewed by `sin θ` in proportion to how far past
@@ -181,6 +182,202 @@ and both vehicles bind it as `u_bed`.
 This supersedes §5's "swash/backwash … texture, not structure" only for the
 static shoreline; currents and backwash remain out of scope. §5's rejection of
 a *shallow-water solver* stands — nothing here integrates a fluid.
+
+### 2.3 The swell gets a direction (2026-08-10)
+
+§1.2 says crests refract and "the crest sweeps around the point." The runtime
+never did that. θ_s sat in §3's model card and appeared in no uniform: the phase
+was `θ = ωt − k(z + coastCurve(x))`, so crests arrived **shore-parallel** with a
+3° bow, and the peel angle was expressed by tilting the *break line* off the
+shore at `tan(α)` instead.
+
+The angle **between** crest and break line was right, so V_p was right, and the
+error was invisible in any equation. It was visible on screen, because the stage,
+the shoreline, the bathymetry and the cameras all live in the shore frame:
+
+- At Second Peak (α = 58°, slope 1.60) the break line crossed the *measured*
+  waterline at **x ≈ 70 m** and ran up to **322 m inland** by the end of the
+  reef window.
+- Of ~265 m of reef window, the zipper had ~120 m of water. Past that the only
+  thing left was the depth-limited bore band, which is shore-parallel — so the
+  drone view showed a white bar spanning the frame, and read as a closeout.
+- `surferState`'s ride window ran to x = 137, ~120 m inland of the waterline.
+- A controlled A/B at frozen `t` (`u_depthMix` 0 vs 1) barely moved the foam:
+  the flat bar was the zipper mask itself, not the depth gate. Worth recording,
+  because the depth gate is the plausible-looking culprit and is not the one.
+
+**The fix is a change of frame, not of physics.** The swell now carries the
+angle and the break line follows the measured contour:
+
+    contourZ(x, z) = z + coastCurve(x)        // 0 on the break contour, <0 seaward
+    breakLine(x)   = −coastCurve(x)           // contourZ = 0. No α in it.
+    rayS(x, z)     = x·sin(φ) + contourZ·cos(φ)
+    θ              = ωt − k·rayS              // crests = lines of constant rayS
+
+φ is the swell's incidence from shore-normal; positive = arriving from up-coast,
+so the zipper runs +x and the wave is a right. Everything geometric is now a
+function of `contourZ`, so crest, break line and amplitude envelope share one
+frame instead of three.
+
+**α is reused as φ rather than adding a second angle.** §2.4 then reinterprets
+what α *is*: the deep-water swell direction, not the angle at the break. Away from the
+origin the contour swings and the *realized* peel angle becomes emergent:
+
+    α(x) = atan(−c′) − atan(−tan φ − c′),   c′ = coastCurveSlope(x)
+
+(a difference of bearings, not φ plus a correction: the contour shear does not
+preserve angles). Second Peak now reads **58° at the peak → 64° down-point** in
+the HUD, and the point mellowing toward 38th is a consequence of the measured
+contour rather than an authored gradient.
+
+Measured at Second Peak, break line over x ∈ [−60, 220]:
+
+| | before | after |
+|---|---|---|
+| break line vs. measured waterline | inland from x ≈ 70 m | 97 m clear at its tightest |
+| break line excursion across 280 m of x | 465 m | 17 m |
+| peel rate along the break line | c/tan α = 4.0 m/s | c/sin α = 7.6 m/s |
+
+The peel-rate row is a frame change, not a speed fix: V_p = c/sin α along the
+break line was always correct, and `c/tan α` was its x-component when x ran
+*across* the tilted line. Now x runs *along* it.
+
+Across the whole preset bank, minimum clearance between break line and measured
+waterline over each spot's full stage: **56–119 m**, all seaward. Realized peel
+angle at the down-point end: 28°/52°/64°/61°/49°/69° against authored
+38/50/58/62/48/66 — the contour, not a gradient, does that.
+
+Rider placement, like-for-like A/B (same presets, same clock window
+t = 40–160 s, old model-js from `git show HEAD` run side by side with the new
+one) — p90 of rider height ÷ best crest available at the rider's own station:
+
+| preset | α | before | after |
+|---|---|---|---|
+| Sewers | 38 | 0.80 | 0.91 |
+| First Peak | 50 | 0.78 | 0.95 |
+| Second Peak | 58 | 0.80 | 0.96 |
+| Jack's | 62 | 0.84 | 0.96 |
+| The Hook | 48 | 0.80 | 0.95 |
+| Sharks | 66 | 0.88 | 0.99 |
+| Privates | 70 | **1.18** | 0.99 |
+
+Privates' 1.18 was the rider floating *above* the best crest at its own station;
+that is gone. This is the check on the amplitude-envelope inconsistency logged
+against §2.2: the envelope keys off `d = z_b − z`, now exactly `−contourZ`, and
+the depth-driven `growGeo` keys off the bathymetry the contour was fitted to, so
+the two loci coincide by construction rather than by tuning. Note the *before*
+column here is not the 0.20 figure recorded earlier against §2.2 — that was a
+different statistic over a different window, and the two must not be quoted as
+one series.
+
+Residue, not fixed here: rider height is still lowest on the fastest presets
+(Sewers p50 0.18 against Second Peak's 0.41). It is not the sections noise —
+setting `sections = 0` moves Sewers by 0.01, tested. `faceOff` is a fixed
+11 ± 5 m offset, and the phase step that implies scales with cos(φ), so a low-α
+preset sits proportionally lower on the face. Whether that is right (you *do*
+ride lower and faster on a steep wave) or wants φ-aware tuning is a rider
+question, not a frame question, and is left open.
+
+**The depth gate was a union, not a product** — and correcting the frame is what
+exposed it. §2.2 states that "the breaking gate multiplies the zipper mask
+rather than replacing it, so α remains the authored character knob." The code
+said `max(brkZip, gate)`. A max means depth *permission alone* breaks the wave,
+with no reference to whether the crest has arrived.
+
+Under the old tilted break line this was invisible and testably so: a controlled
+A/B toggling `u_depthMix` at frozen `t` barely moved the foam, because the
+zipper mask already covered nearly the whole stage and the gate was redundant.
+Placing the break line correctly made the gate dominant instead. Measured at
+Second Peak, the most-seaward station with `brk > 0.5`:
+
+| x | −120 | −40 | 0 | 80 | 160 | 200 |
+|---|---|---|---|---|---|---|
+| z, as `max` | −25 | −24 | −24 | −27 | −35 | −40 |
+| z, as product | +5 | +4 | +5 | +7 | +10 | +13 |
+| break line z_b | +1 | 0 | 0 | +2 | +6 | +9 |
+
+As a max the wave broke 25–40 m *seaward* of its own break line, across the full
+stage width — including x = −120, where `reef = 0` and the zipper contributes
+nothing. The peel was being drawn on top of an already-broken field.
+
+The corrected form factors the arrival test out of the reef weighting:
+
+    inside = smoothstep(−6, 14, z − z_b)      // has the crest reached the line
+    brk    = inside · max(reef, gate)
+
+Depth still owns permission — the shore break outside the reef window survives,
+`reef = 0` with `gate = 1` (verified: `brk = 1` at the waterline for every x) —
+but nothing breaks before the wave arrives. The edge now tracks z_b + 4…5 m at
+every station.
+
+Residual, deliberately not shimmed: the break line is the contour through the
+*surf node*, whose own depth is ~2.2 m at Second Peak (reef −1.30 m NAVD88 plus
+0.905 m MSL). The depth where `H₀·Ks = γh` is deeper, hence seaward. That gap is
+exactly what M4 exists to close — anchor the zipper at the breaking depth rather
+than at the node's contour — and shifting the line by a fitted offset instead
+would be tuning, not modelling.
+
+**Handedness stops being structural.** The old form hardcoded a right — `m·xx`
+with m > 0, plus an `abs()` fold for the A-frame — and a left was inexpressible.
+It is now the sign of φ. No preset ships one (Santa Cruz is a right-hand town)
+and no control exposes it, so `swellPhi()` still clamps positive; making a left
+reachable is a sign-preserving clamp and a slider range, deliberately not taken
+here.
+
+### 2.4 Refraction: α becomes the deep-water direction (2026-08-10)
+
+§2.3 gave the swell an angle but held it CONSTANT, so crests stayed 58° oblique
+all the way to the beach and read as "sideways". Real crests turn to follow the
+contours as they shoal — Cutler & Sethi (1995, Stanford CS348C) do this by
+growing k as depth falls. Snell, with celerity dropping from c₀ = gT/2π offshore
+to √(g·h_b) at breaking depth:
+
+    sin(φ_break) = sin(α) · c_break / c₀
+
+At T = 14 s that ratio is ~0.23. `swellPhi()` evaluates it once from the
+depth-limited breaking depth h_b = H₀/γ, so the crest field stays a plane wave
+and the zipper keeps its closed form. **α is now the deep-water swell
+direction**; what arrives at the break is that number refracted.
+
+Measured, crest bearing off shore-parallel (was 58° for every preset):
+
+| preset | deep α | crest at break | peel rate |
+|---|---|---|---|
+| Sewers | 38° | 8.8° | 43.4 m/s |
+| First Peak | 50° | 8.8° | 38.6 |
+| Second Peak | 58° | 9.6° | 38.1 |
+| Jack's | 62° | 9.4° | 42.8 |
+| The Hook | 48° | 8.6° | 43.5 |
+| Sharks | 66° | 8.8° | 43.4 |
+| Privates | 70° | 8.6° | 50.4 |
+
+**Two consequences, both real and both costly.** Refraction *forgets* the
+deep-water angle: 38° and 70° arrive within a degree of each other, so the
+seven-spot taxonomy of §3 and §4 no longer differentiates — Sewers and Sharks
+are now the same wave. And a ~9° peel angle is a closeout, so V_p runs 38–50 m/s
+(85–110 mph) and no one is riding it.
+
+That is not a defect in the refraction. It is the honest result of straight,
+shore-parallel contours: with those, refraction guarantees a near-closeout.
+Pleasure Point's character has to come from **contour obliquity**, which the
+~10 m NCEI posts smooth away — the bed A/B in §2.2 already showed that removing
+the reef collapses the peel. Getting both straight-in crests and a real peel
+needs sub-grid reef structure, and that has to ride on an emergent break line
+(M4), because `coastCurve` is a baked fit while depth is sampled at runtime:
+invented relief would move the depth gate and not the break line, re-splitting
+the two loci §2.3 merged.
+
+Side effect worth recording: successive zipper stations are now ~534 m apart
+along the shore (one wavelength / sin φ), so `sound.js`'s four crest voices are
+usually far from the camera and the surf is much quieter. Correct behaviour for
+this geometry, not a bug.
+
+A full eikonal version — Ψ(contourZ) = ∫kz dz baked to a 256-sample table with
+the alongshore wavenumber conserved — was built and reverted: it makes φ vary
+with depth properly rather than resolving once, but the rider, audio and JS twin
+all still assume the constant-φ phase. `bed.js bakeRefraction` / `psiAt` /
+`zcAtPsi` / `incidenceAt` are kept for it; they measure 17.1° deep → 9.4° at the
+break → 7.9° inside at Second Peak.
 
 This is a 1-D phase traveling along a 2-D curve with a before/after material change.
 A few uniforms; no fluid solver; no FFT required for the break layer itself. The

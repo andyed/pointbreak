@@ -149,7 +149,9 @@ float mapH(vec3 p, float t){ return p.y - oceanH(p.xz, t); }
 vec3 cliffView(vec2 uv, float t){
   // camera on the cliff: follow the surfer when riding, else a fixed lineup shot
   float xCam = 210.0;
-  vec3 ro = vec3(xCam, 16.0, breakLine(xCam) - 45.0);  // cliff height: shoot OVER foreground crests
+  // Shoreward of the break line now that the line is a contour ("-" used to be
+  // the land side when it was tilted off the shore, and is the sea side now).
+  vec3 ro = vec3(xCam, 16.0, breakLine(xCam) + 60.0);  // cliff height: shoot OVER foreground crests
   vec3 taFixed = vec3(-120.0, 3.0, breakLine(-120.0) - 10.0);
   vec4 s = surferState(t);
   vec3 ta = mix(taFixed, vec3(s.x, 2.0, s.y), u_surfer);

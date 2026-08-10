@@ -224,8 +224,7 @@ void main() {
 
   // boil slick — mirrors ocean()'s internal boil dome (same constants); passed
   // down as a varying so both stages can damp ripple detail over the glass
-  float m_ = tan(clamp(u_alpha, 0.06, 1.45));
-  vec2 boilPos = vec2(-22.0, m_*22.0*u_aframe + m_*(-22.0)*(1.0-u_aframe) - 8.0);
+  vec2 boilPos = vec2(-22.0, -coastCurve(-22.0) - 8.0);   // matches ocean()'s boil
   float boil = exp(-dot(xz - boilPos, xz - boilPos)/(2.0*5.5*5.5));
 
   // fine displacement octaves at reduced amplitude (spec: "full detail lives
@@ -502,20 +501,25 @@ void main() {
 // evaluations. Land above the waterline is discarded here — the water mesh's
 // land branch already owns it, and drawing both would z-fight.
 // ---------------------------------------------------------------------------
-export const BED_VERT = `
-uniform float u_time;
-varying vec3  vBedPos;
-varying float vBedDepth;   // metres of water overhead (0 at the waterline)
-${MODEL_GLSL}
-
 // Past the finite NCEI patch, bedElevM clamps to the edge value, which would
 // read as an infinite flat floor out to the 4 km skirt. Ramp it down instead,
 // and keep it clearly a fade-to-deep rather than a claim about real depth.
+// Shared by BED_VERT and BED_FRAG: the fragment discard has to reproduce the
+// vertex elevation exactly, so these two must not be allowed to drift.
+const BED_OUTSIDE_GLSL = `
 float bedOutside(vec2 xz){
   vec2 lo = u_bedRect.xy, hi = u_bedRect.zw;
   vec2 d = max(max(lo - xz, xz - hi), vec2(0.0));
   return length(d);
 }
+`;
+
+export const BED_VERT = `
+uniform float u_time;
+varying vec3  vBedPos;
+varying float vBedDepth;   // metres of water overhead (0 at the waterline)
+${MODEL_GLSL}
+${BED_OUTSIDE_GLSL}
 
 void main(){
   vec2 xz = position.xz;
@@ -535,6 +539,7 @@ varying vec3  vBedPos;
 varying float vBedDepth;
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
+${BED_OUTSIDE_GLSL}
 
 vec3 sunDirB = normalize(vec3(-0.45, 0.42, -0.28));
 
@@ -554,11 +559,25 @@ float bedCaustic(vec2 p, float t) {
 }
 
 void main(){
-  // land is the water mesh's job (its vLand branch) — discarding here keeps
-  // the two surfaces from fighting over the same fragments above the waterline
-  if (vBedDepth <= 0.02) discard;
-
   vec2 xz = vBedPos.xz;
+  // land is the water mesh's job (its vLand branch) — discarding here keeps
+  // the two surfaces from fighting over the same fragments above the waterline.
+  //
+  // This tested vBedDepth, a VARYING, and that was the black fringe along the
+  // whole shoreline. The bed grid is a quarter of the water grid in each axis,
+  // so a bed cell straddling the waterline interpolates "still underwater"
+  // across ground the fine water mesh has already drawn as beach. The bed then
+  // paints a sliver there — and at shoreline sight distances the Beer-Lambert
+  // term below has run to murk (0.05, 0.12, 0.13), which against lit sand
+  // reads as black, not as water.
+  // Re-test against the same field the geometry came from. Exact per fragment
+  // and independent of the grid ratio, which the varying could never be.
+  // It must reproduce BED_VERT's elevation IN FULL, extrapolation ramp
+  // included: testing bare bedElevM punched a hole in the far seabed, because
+  // outside the NCEI patch bedElevM clamps to an above-water edge value while
+  // the vertex had already ramped that ground down to deep water.
+  float eFrag = bedElevM(xz) - u_waterLevel - 0.045 * bedOutside(xz);
+  if (eFrag >= -0.02) discard;
   // normal by finite difference on the bed field itself
   float e = 1.5;
   float hx = bedElevM(xz + vec2(e,0.0)) - bedElevM(xz - vec2(e,0.0));

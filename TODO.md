@@ -70,12 +70,70 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 - [x] Green's-law shoaling + depth-limited breaking (gamma 0.78)
 - [x] Shoreline/beach/cliff as `max(bed, water)`; cameras derive the cliff top
 - [x] Forward pitch: phase skew proportional to breaking excess
+- [x] **Swell direction — the frame fix (2026-08-10, MODEL.md 2.3).** theta_s was
+      in the model card and in no uniform, so crests arrived shore-parallel and
+      alpha was carried by tilting the BREAK LINE off the shore. Relative angle
+      right, absolute orientation wrong: at Second Peak the line crossed the
+      measured waterline at x = 70 m and ran 322 m inland by the end of the reef
+      window, so the peel had ~120 m of water out of ~265 m of reef and the rest
+      read as a shore-parallel closeout. Now the swell carries the angle
+      (`rayS`) and the break line follows the measured contour: 56-119 m of
+      clearance on every mapped preset, and rider p90 height went 0.78-0.88 ->
+      0.91-0.99 of the available crest (Privates' 1.18 overshoot gone).
+- [x] **Depth gate was a union, not a product (2026-08-10, MODEL.md 2.3).**
+      `max(brkZip, gate)` let depth permission alone break the wave: measured
+      25-40 m SEAWARD of the break line across the full stage, reef or no reef,
+      so the peel drew on top of an already-broken field. Invisible under the
+      old tilted line (the zipper mask covered everything, so the gate was
+      redundant) and dominant once the line was correctly placed. Now
+      `inside * max(reef, gate)` — shore break outside the reef survives,
+      nothing breaks before the crest arrives. Edge tracks z_b + 4..5 m.
+- [~] **Refraction — SCAFFOLDED, OFF BY DEFAULT, NOT FINISHED (2026-08-10).**
+      Crests were rotated by a CONSTANT incidence, so they stayed 58 deg oblique
+      into the shallows and read as "sideways". Real crests turn to follow the
+      contours as they shoal (Cutler & Sethi 1995 grow k as depth falls;
+      graphics.stanford.edu/courses/cs348c-95-fall/projects/cutler_sethi).
+      DONE: `bed.js bakeRefraction` — Snell with the alongshore wavenumber
+      conserved, Psi(contourZ) integrated over the MEASURED depth and baked to a
+      256-sample table; Guo (2002) explicit dispersion; `incidenceAt` readout;
+      `psiAt`/`zcAtPsi` CPU twins. `rayPhase` in the shared GLSL mixes the flat
+      and refracted forms on `u_refrMix`. Uniforms wired in both vehicles.
+      VERIFIED: incidence falls 17.1 deg (deep) -> 9.4 deg (at the break) ->
+      7.9 deg (inside) at Second Peak; baked Psi gives a 90 m mean wavelength,
+      matching LAM, so the phase is on scale.
+      NOT DONE, and why it is off:
+        1. `?refract=1` does not reach the bake — `u_refrMix` stays 0 even
+           though the same hash pass sets `swell`. Not yet diagnosed.
+        2. `surferState`, `sound.js` and the model-js twin still assume the
+           constant-incidence phase. The rider x stays closed form under
+           refraction (contourZ is constant along the break line, so
+           x = (wt - 2pi n - Psi(0))/kappa, V_p = omega/kappa) but z needs the
+           Psi inversion, which is CPU-only — so web-three would have to drive
+           the rider through `u_surferPos` the way M4 does.
+        3. Not looked at on the other six presets.
+      EXPECT IT TO LOOK FASTER: refraction forgets the deep-water angle
+      (c drops 21.9 -> 5.0 m/s at breaking depth, so sin(phi) shrinks x0.23),
+      which lands the peel angle near 15-25 deg against the authored 58. That
+      is the DEM smoothing the reef, not a bug in the refraction.
+- [ ] Rider sits low on the FAST presets (Sewers p50 0.18 vs Second Peak 0.41).
+      Not sections (tested: sections=0 moves it 0.01) and not the frame.
+      `faceOff` is a fixed 11+/-5 m, and the phase step that implies scales with
+      cos(phi), so low-alpha presets sit lower on the face. Decide whether that
+      is correct (you do ride lower on a steep wave) or wants phi-aware tuning.
 - [ ] **M4 emergent break line — SPEC'D 2026-08-10, see WEB_THREE_SPEC.md.**
       breakLine(x) becomes the locus where H0*Ks >= gamma*h; alpha becomes a
       readout, not an input. Bake zBreak(x) as a 128-sample 1-D texture,
-      recomputed on spot/H0/T/tide change only. Measured motivation: at Sewers
-      the authored and depth loci sit 75-133 m apart, and the rider averages
-      20% of the available crest height on either one.
+      recomputed on spot/H0/T/tide change only. NOTE 2026-08-10: the original
+      motivation (authored and depth loci 75-133 m apart at Sewers; rider at 20%
+      of available crest on either) was mostly the frame error above, and is
+      resolved. M4's remaining value is the part the frame fix does NOT give:
+      alpha varying with H0 and tide, not just with the contour. Re-measure the
+      locus gap before building further — the number it was justified by has
+      changed.
+- [ ] Handedness: a left is now the sign of the swell incidence rather than a
+      structural assumption, but `swellPhi()` still clamps positive and no
+      control reaches it. Sign-preserving clamp + slider range if a left is
+      ever wanted (no Santa Cruz preset needs one).
 - [x] Tide as a live control ([ and ]) -> the break point slides while the
       breaking DEPTH stays fixed; Privates-on-a-lower-tide falls out of this
 - [x] Underwater: seabed as its own mesh, surface-from-below (Snell's window +
@@ -94,11 +152,14 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 - [ ] "Right now at Pleasure Point" mode
 - [ ] Real forcing via surfpy (MIT, Python, NDBC + WaveWatch III): decompose a
       measured spectrum into swell components at build time and emit a
-      generated data file, same pattern as build_geo_profiles.py. Supplies the
-      two inputs the model does not have — swell DIRECTION (the reason
-      refraction is unmodelled) and real spectral components (the set beat is
-      currently invented). Direction is also the prerequisite for the emergent
-      break line in Phase 2c.
+      generated data file, same pattern as build_geo_profiles.py. Supplies real
+      spectral components (the set beat is currently invented) and a MEASURED
+      swell direction. Direction is no longer structurally absent — MODEL.md 2.3
+      gave the model a real incidence angle — but its value is still authored
+      (phi = alpha), so the model asserts the incidence its peel angle implies
+      rather than reading one. Feeding a measured direction in is what turns
+      alpha from an input into a consequence, and is still the prerequisite for
+      the emergent break line in Phase 2c.
 - [ ] FIRST VALIDATION PASS — the largest gap in the whole project. Drive the
       model with a specific historical swell and compare breaking position and
       height against an independent estimate (a forecast API, or the Surfline

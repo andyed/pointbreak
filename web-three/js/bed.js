@@ -244,3 +244,117 @@ export function derivedAlphaDeg(x, x0, x1) {
   const dz = breakZAt(x + e, x0, x1) - breakZAt(x - e, x0, x1);
   return Math.abs(Math.atan2(dz, 2 * e) * 180 / Math.PI);
 }
+
+// ---------- refraction: Snell over the measured depth profile ----------
+// MODEL.md 2.4. Crests were rotated by a CONSTANT incidence, so they stayed
+// oblique right into the shallows and read as "sideways". Real crests turn to
+// follow the contours as they shoal (Cutler & Sethi 1995 do this by growing k
+// as depth falls). With contours shore-parallel — which is what the contour
+// frame asserts — the alongshore wavenumber is conserved exactly:
+//
+//   kappa = k0*sin(phi0) = const           (Snell)
+//   kz(z) = sqrt(k(z)^2 - kappa^2)
+//   S(x,z) = kappa*x + Psi(z),  Psi(z) = integral of kz
+//   theta  = omega*t - S
+//
+// Psi is one-dimensional and only changes with spot/T/tide/swell direction, so
+// it bakes to a 256-sample table exactly like the break line above.
+const REFR_N = 256;
+export const REFR_ZC_MIN = -260, REFR_ZC_MAX = 170;
+let refrTex = null, refrKey = '';
+const refrPsi = new Float32Array(REFR_N);
+let refrKappa = 0, refrPsiMin = 0, refrPsiMax = 1;
+
+// Guo (2002) explicit dispersion: with y = omega^2*h/g, k*h = y/sqrt(tanh(y)).
+// Within ~1% of the exact root of omega^2 = g*k*tanh(k*h) and needs no
+// iteration, which matters because this is evaluated per sample per rebake.
+function wavenumberAt(omega, h) {
+  const y = omega * omega * Math.max(h, 0.05) / G;
+  return (y / Math.sqrt(Math.tanh(y))) / Math.max(h, 0.05);
+}
+
+// Returns { texture, kappa, psiMin, psiMax } or null with no bathymetry.
+export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg = 50, xRef = 0 } = {}) {
+  if (!spotName) return null;
+  const key = [spotName, T, tide, bedShape, swellDeg, xRef].join('|');
+  if (refrTex && key === refrKey) {
+    return { texture: refrTex, kappa: refrKappa, psiMin: refrPsiMin, psiMax: refrPsiMax };
+  }
+  const omega = 2 * Math.PI / T;
+  const k0 = omega * omega / G;                    // deep-water wavenumber
+  const kappa = k0 * Math.sin(swellDeg * Math.PI / 180);
+  const wl = MSL_ABOVE_NAVD88 + tide;
+  const dz = (REFR_ZC_MAX - REFR_ZC_MIN) / (REFR_N - 1);
+
+  // Trapezoid the shore-normal wavenumber shoreward from the seaward edge.
+  // Integration STOPS at the waterline. Past it there is no propagating wave,
+  // and the depth floor would otherwise make k explode: at 0.05 m, k is
+  // ~0.64 rad/m, so the beach alone contributed ~64 rad of pure fiction and
+  // the phase field came out as noise (the mesh detonated when this was first
+  // switched on). Freeze Psi instead — the shore fade has killed the wave
+  // there anyway.
+  const MIN_PROPAGATING_DEPTH = 0.5;
+  let psi = 0, prevKz = null, frozen = false;
+  for (let i = 0; i < REFR_N; i++) {
+    const zc = REFR_ZC_MIN + dz * i;
+    const depth = wl - bedElevBlended(spotName, xRef, zc, bedShape);
+    if (depth <= MIN_PROPAGATING_DEPTH) frozen = true;
+    if (frozen) { refrPsi[i] = psi; continue; }
+    const k = wavenumberAt(omega, depth);
+    // k < kappa means the ray has turned parallel to the contour and cannot
+    // travel further shoreward (caustic). Floor it rather than take sqrt of a
+    // negative: the phase then advances alongshore only, which is the correct
+    // degenerate behaviour and keeps Psi monotonic for the rider's inversion.
+    const kz = Math.sqrt(Math.max(k * k - kappa * kappa, 1e-6));
+    if (prevKz !== null) psi += 0.5 * (kz + prevKz) * dz;
+    prevKz = kz;
+    refrPsi[i] = psi;
+  }
+  refrPsiMin = refrPsi[0];
+  refrPsiMax = refrPsi[REFR_N - 1];
+  const span = Math.max(refrPsiMax - refrPsiMin, 1e-6);
+
+  const rgba = new Uint8Array(REFR_N * 4);
+  for (let i = 0; i < REFR_N; i++) {
+    const q = Math.round(Math.min(Math.max((refrPsi[i] - refrPsiMin) / span, 0), 1) * 65535);
+    rgba[i * 4] = (q >> 8) & 255; rgba[i * 4 + 1] = q & 255; rgba[i * 4 + 3] = 255;
+  }
+  if (refrTex) refrTex.dispose();
+  refrTex = new THREE.DataTexture(rgba, REFR_N, 1, THREE.RGBAFormat);
+  refrTex.magFilter = THREE.NearestFilter;
+  refrTex.minFilter = THREE.NearestFilter;
+  refrTex.generateMipmaps = false;
+  refrTex.needsUpdate = true;
+  refrKey = key;
+  refrKappa = kappa;
+  return { texture: refrTex, kappa, psiMin: refrPsiMin, psiMax: refrPsiMax };
+}
+
+// CPU twin of the shader lookup (rider, audio, HUD).
+export function psiAt(zc) {
+  const f = Math.min(Math.max((zc - REFR_ZC_MIN) / (REFR_ZC_MAX - REFR_ZC_MIN), 0), 1) * (REFR_N - 1);
+  const i = Math.min(Math.floor(f), REFR_N - 2);
+  return refrPsi[i] + (refrPsi[i + 1] - refrPsi[i]) * (f - i);
+}
+
+// Invert Psi (monotonic non-decreasing) — the rider needs the contour position
+// of a given crest phase. Bisection on the table, 24 steps over ~430 m is
+// sub-millimetre and this runs once per frame, not per fragment.
+export function zcAtPsi(target) {
+  let lo = REFR_ZC_MIN, hi = REFR_ZC_MAX;
+  for (let i = 0; i < 24; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (psiAt(mid) < target) lo = mid; else hi = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+
+// Local incidence from shore-normal, radians — the readout that says whether
+// the swell has actually straightened out by the time it breaks.
+export function incidenceAt(spotName, zc, { T, tide = 0, bedShape = 0, swellDeg = 50, xRef = 0 } = {}) {
+  const omega = 2 * Math.PI / T;
+  const kappa = (omega * omega / G) * Math.sin(swellDeg * Math.PI / 180);
+  const depth = Math.max(MSL_ABOVE_NAVD88 + tide - bedElevBlended(spotName, xRef, zc, bedShape), 0.05);
+  const k = wavenumberAt(omega, depth);
+  return Math.asin(Math.min(kappa / Math.max(k, 1e-6), 1));
+}

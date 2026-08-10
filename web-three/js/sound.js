@@ -18,7 +18,7 @@
 //      A limiter now sits before output.
 //   5. the underwater test was `camera.y < 1.0`. main.js already computes the
 //      real thing against the JS twin of the surface; it is passed in.
-import { breakLine, reefWindow, coastCurve } from './model-js.js';
+import { breakLine, reefWindow, coastCurve, rayS, swellPhi } from './model-js.js';
 
 const LAM = 90.0;
 const VOICE_COUNT = 4;
@@ -128,17 +128,22 @@ export function updateAudio(camera, t, P, camUnder = false) {
   const camY = Math.max(camera.position.y, 0);
   const w = 2 * Math.PI / P.T, k = 2 * Math.PI / LAM;
   const cc = coastCurve(camX, P);
-  const m = Math.tan(Math.min(Math.max(P.alphaRad, 0.06), 1.45));
+  const phi = swellPhi(P);
+  const sp = Math.max(Math.sin(phi), 0.05), cp = Math.max(Math.cos(phi), 0.05);
+  const xfoldCam = P.aframe >= 0.5 ? Math.abs(camX) : camX;
 
-  const nCam = Math.floor((w * t - k * (camZ + cc)) / (2 * Math.PI));
+  const nCam = Math.floor((w * t - k * rayS(camX, camZ, P)) / (2 * Math.PI));
 
   for (let i = 0; i < VOICE_COUNT; i++) {
     const n = nCam - 1 + i;
     const v = voices[i];
 
-    const zCrest = (w * t - 2 * Math.PI * n) / k - cc;
-    // where this crest's zipper currently is along the shore
-    const xZip = (w * t - 2 * Math.PI * n) / (k * m);
+    // this crest's world z at the CAMERA's station, solved in the contour frame
+    const sCrest = (w * t - 2 * Math.PI * n) / k;
+    const zCrest = (sCrest - xfoldCam * sp) / cp - cc;
+    // where this crest's zipper currently is along the shore (break line is
+    // contourZ = 0, so rayS reduces to x*sin(phi) there)
+    const xZip = sCrest / sp;
 
     // Breaking state is evaluated at the CREST's own station, not the
     // camera's: on a peeling wave the break position slides along x, and
@@ -147,7 +152,8 @@ export function updateAudio(camera, t, P, camUnder = false) {
     const brk = reefWindow(xZip, P) * smoothstep(-6, 14, zCrest - zb);
 
     const cg = 0.5 * LAM / P.T;
-    const env = 0.5 + 0.5 * Math.cos(2 * Math.PI * P.dF * (t - zCrest / cg));
+    // group envelope rides the RAY, same as setEnv() in the shared model
+    const env = 0.5 + 0.5 * Math.cos(2 * Math.PI * P.dF * (t - sCrest / cg));
 
     // full 3-D distance: the along-shore term was missing, which made a crest
     // hundreds of metres up the point as loud as one directly in front

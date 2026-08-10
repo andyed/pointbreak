@@ -84,6 +84,17 @@ float vnoise2(vec2 p){
 // through the OSM surf node. The synthetic quadratic remains the explicit
 // fallback for the one unmapped site (Privates) and for the A-frame mechanism,
 // which folds about x=0 and so cannot use an asymmetric measured contour.
+//
+// 2026-08-10 FRAME CHANGE (MODEL.md 2.3). The break line used to be tilted off
+// the shore by tan(alpha) while the crests ran shore-parallel. The angle
+// BETWEEN them was right, so the peel rate was right, but the absolute
+// orientation was wrong and the stage/shoreline/cameras all live in the shore
+// frame: at Second Peak the line crossed the measured waterline at x = 70 m and
+// ran up to 322 m inland by the end of the reef window. The peel had ~120 m of
+// water out of ~265 m of reef, and what was left read as a shore-parallel bore
+// band, not a peel. Now the SWELL carries the angle and the break line follows
+// the measured contour, which is what puts it in the water the whole length of
+// the point. See swellPhi() for what alpha means under this convention.
 float geoWeight(){
   return clamp(u_geoMix, 0.0, 1.0) * (1.0 - step(0.5, u_aframe));
 }
@@ -105,6 +116,61 @@ float coastCurveSlope(float x){
   return mix(synthetic, measured, geoWeight());
 }
 
+// ---------- the swell's own direction ----------
+// Incidence from shore-normal, radians. Positive = arriving from up-coast
+// (-x), so the zipper runs +x: a right. This is the parameter the model was
+// missing entirely -- theta_s sat in MODEL.md 3's table and appeared in no
+// uniform, which is why crests could only ever arrive shore-parallel.
+//
+// u_alpha is reused rather than adding a second angle, because the two are the
+// same number where the contour is flat. At the spot origin coastCurveSlope=0,
+// so the crest-to-break-line angle IS the incidence, and the authored alpha
+// keeps its documented meaning (Walker's peel angle at the peak). Away from the
+// origin the contour swings and the REALIZED peel angle rises on its own --
+// emergent, not authored, so the point mellows down-coast for free. See
+// peelAngleAt() for the exact expression; it is NOT phi plus the contour slope,
+// because the shear does not preserve angles.
+// alpha is the DEEP-WATER swell direction. What the crests actually arrive at
+// is that angle refracted, and refraction is most of the story: celerity falls
+// from c0 = gT/2pi offshore to sqrt(g*h_b) at breaking depth, and Snell shrinks
+// the incidence by exactly that ratio.
+//
+//   sin(phi_break) = sin(alpha) * c_break / c0
+//
+// At T=14 s that ratio is ~0.23, so a 58 deg deep-water swell arrives at ~11
+// deg — crests very nearly shore-parallel, which is what real waves do and what
+// the constant-angle version could not do. Evaluated once from the breaking
+// depth (h_b = H0/GAMMA) rather than per fragment, so the crest field stays a
+// plane wave and the zipper keeps its closed form.
+//
+// The consequence is deliberate and physical: the peel angle drops with it, so
+// the wave is FASTER than the authored alpha implied. Refraction forgets the
+// deep-water angle; that is the real behaviour, not a defect. See MODEL.md 2.4.
+float swellPhi(){
+  float a  = clamp(u_alpha, 0.06, 1.45);
+  float hb = max(u_H0/GAMMA, 0.4);            // depth-limited breaking depth
+  float c0 = G*u_T/(2.0*PI);                  // deep-water celerity
+  float cb = sqrt(G*hb);                      // shallow-water celerity at break
+  float s  = sin(a) * clamp(cb/max(c0, 0.1), 0.0, 1.0);
+  return clamp(asin(clamp(s, 0.0, 1.0)), 0.04, 1.45);
+}
+
+// Contour-following coordinate: 0 on the break contour, negative seaward.
+// Every geometric term below is a function of it, so the crest, the break line
+// and the amplitude envelope share one frame instead of three.
+float contourZ(vec2 xz){ return xz.y + coastCurve(xz.x); }
+
+// Realized peel angle at station x -- what a surfer would measure, in radians.
+// The contour shear maps break line and crest to different slopes in world
+// (x,z), and shear does not preserve angles, so this is the difference of the
+// two bearings rather than phi plus a correction. Diagnostic only (HUD, docs):
+// nothing in the hot path needs it, because the geometry is exact in the
+// contour frame where the angle is phi by construction.
+float peelAngleAt(float x){
+  float cc = coastCurveSlope(x);
+  return atan(-cc) - atan(-tan(swellPhi()) - cc);
+}
+
 float breakTexZ(float x){
   float f = clamp((x - u_breakX.x)/max(u_breakX.y - u_breakX.x, 1e-3), 0.0, 1.0)*127.0;
   int i = int(floor(f));
@@ -118,10 +184,13 @@ float breakTexZ(float x){
 
 float breakLine(float x){
   float xx = mix(x, abs(x), u_aframe);
-  float m  = tan(clamp(u_alpha, 0.06, 1.45));  // alpha->0 guarded: closeout, not NaN
   // sections: shallow patches meet the break criterion early (z_b pulled seaward)
   float sec = u_sections * 55.0 * (vnoise1(xx*0.02+7.3) - 0.5) * 2.0;
-  float authored = m*xx - coastCurve(x);
+  // The break line IS the contour through the surf node (contourZ = 0). It no
+  // longer carries alpha: the swell does. This is what keeps it seaward of the
+  // measured waterline for the whole reef window instead of diving onto the
+  // beach at x = 70 m.
+  float authored = -coastCurve(x);
   // M4: depth decides where the wave breaks. The authored line stays as the
   // fallback for the unmapped site and the A-frame fold, which have no
   // bathymetry to derive from.
@@ -188,8 +257,14 @@ vec4 surferState(float t){
 
   float k = 2.0*PI/LAM;
   float w = 2.0*PI/u_T;
-  float m = tan(clamp(u_alpha, 0.06, 1.45));
-  float vx = (LAM/u_T)/m;                  // zipper ground speed along x
+  // Walker's peel rate, now read straight off the geometry: the breakpoint is
+  // where the crest meets the break line, the break line is contourZ = 0, so
+  // rayS = xs*sin(phi) = (w*t - 2*pi*n)/k and the breakpoint runs along the
+  // line at c/sin(phi). Under the old frame the same speed appeared as
+  // c/tan(alpha) because x was measured across the tilted line, not along it.
+  float sp = max(sin(swellPhi()), 0.05);   // phi->0 guarded: closeout, not a divide by zero
+  float cp = max(cos(swellPhi()), 0.05);
+  float vx = (LAM/u_T)/sp;
 
   // ride window runs TOWARD the cliff camera (distant takeoff -> hero frame),
   // and in A-frame mode starts at the apex either way
@@ -202,8 +277,8 @@ vec4 surferState(float t){
   float xApprox = x0 + vx*ph;
 
   // snap to the nearest real zipper so the surfer sits on an actual crest
-  float n  = floor((w*t - k*m*xApprox)/(2.0*PI) + 0.5);
-  float xs = (w*t - 2.0*PI*n)/(k*m);
+  float n  = floor((w*t - k*sp*xApprox)/(2.0*PI) + 0.5);
+  float xs = (w*t - 2.0*PI*n)/(k*sp);
 
   // pumping: carve down (bottom turn) and back up the face, ~6 s cycle
   float pump    = sin(t*2.0*PI/6.0);
@@ -216,20 +291,35 @@ vec4 surferState(float t){
   // the nearest n and sit faceOff seaward of that crest's line.
   // With u_rideOffset = 0 the nearest crest IS the zipper crest by construction,
   // so this reduces exactly to the previous behaviour.
-  float zTarget = m*xfold - coastCurve(xs) - u_rideOffset;
-  float nz      = floor((w*t - k*(zTarget + coastCurve(xs)))/(2.0*PI) + 0.5);
-  float zCrest  = (w*t - 2.0*PI*nz)/k - coastCurve(xs);
-  float zs      = zCrest - faceOff;
-  float vz      = (m - coastCurveSlope(xs))*vx
-                - 5.0*(2.0*PI/6.0)*cos(t*2.0*PI/6.0);
+  // All of it in the CONTOUR frame now; convert to world z once, at the end.
+  float zcTarget = -u_rideOffset;          // break line is contourZ = 0
+  float nz       = floor((w*t - k*(xfold*sp + zcTarget*cp))/(2.0*PI) + 0.5);
+  float zcCrest  = ((w*t - 2.0*PI*nz)/k - xfold*sp)/cp;
+  float zs       = zcCrest - faceOff - coastCurve(xs);
+  // The rider tracks along its own crest, so contourZ is constant along the
+  // ride and the only vertical motion is the pump plus the contour's own bow.
+  float vz       = -coastCurveSlope(xs)*vx
+                 - 5.0*(2.0*PI/6.0)*cos(t*2.0*PI/6.0);
   return vec4(xs, zs, vx, vz);
 }
 
+// Distance along the wave ray -- the propagation coordinate. Crests are lines
+// of constant rayS, so this is the ONE place the swell direction enters the
+// height field. A-frame folds x here, giving two zippers running outward.
+float rayS(vec2 xz){
+  float phi = swellPhi();
+  float xx  = mix(xz.x, abs(xz.x), u_aframe);
+  return xx*sin(phi) + contourZ(xz)*cos(phi);
+}
+
 // Carrier crest with group envelope. Groups travel at cg = c/2 (deep-water).
-float setEnv(float z, float t){
+// Takes the RAY coordinate, not z: sets are bands parallel to the crests, so
+// with an oblique swell they must arrive along the ray. Passing z made the
+// group fronts shore-parallel and out of step with the crests they envelope.
+float setEnv(float s, float t){
   float c  = LAM/u_T;
   float cg = 0.5*c;
-  return 0.5 + 0.5*cos(2.0*PI*u_dF*(t - z/cg));
+  return 0.5 + 0.5*cos(2.0*PI*u_dF*(t - s/cg));
 }
 
 // Sharpened crest profile: q=1 sinusoid-ish, q>2 peaked (Gerstner cusp stand-in)
@@ -272,7 +362,11 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // depth now owns PERMISSION: a wave cannot break in deep water, and must in
   // the shallows. gamma = H/h against McCowan's ~0.78 gates the zipper mask,
   // which is what finally carries whitewater all the way to the sand.
-  float brkZip  = smoothstep(-6.0, 14.0, z - zb) * reef;
+  // "shoreward of the break line" on its own, without the reef weighting —
+  // needed twice below, and they are different claims: inside is whether the
+  // wave has ARRIVED, reef is whether this station is on the shelf at all.
+  float inside  = smoothstep(-6.0, 14.0, z - zb);
+  float brkZip  = inside * reef;
   // Break where the shoaled wave exceeds what the depth can carry. Comparing
   // Hsh against the limit (rather than H/d against gamma) is the same McCowan
   // criterion but survives the cap above, which pins H/d at gamma everywhere
@@ -281,7 +375,18 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // declaration), and letting it in here made the threshold ~3x too eager.
   float excess  = Hsh / max(Hlim, 0.05);
   float gate    = smoothstep(0.90, 1.25, excess);
-  brk           = mix(brkZip, max(brkZip, gate*step(0.02, u_depthMix)), u_depthMix);
+  // Depth owns PERMISSION, the zipper owns DIRECTION (MODEL.md 2.2) — but this
+  // was max(brkZip, gate), a union, which lets permission alone break the
+  // wave. Under the old tilted break line that was invisible: the zipper mask
+  // already covered nearly the whole stage, so the gate was redundant and
+  // toggling u_depthMix barely moved the foam. With the break line correctly on
+  // the contour the gate dominates instead, breaking water 25-40 m SEAWARD of
+  // the line and across the full stage width, reef or no reef — the peel then
+  // draws on top of an already-broken field.
+  // inside factors out, so depth still decides whether it breaks and the
+  // shore break outside the reef window survives (reef = 0, gate = 1), but
+  // nothing breaks before the wave has reached the line.
+  brk           = mix(brkZip, inside*max(reef, gate), u_depthMix);
   float decay   = 1.0 - 0.68*brk;          // broken wave has dumped its energy
 
   // ---- the wave dies in the swash ----
@@ -289,7 +394,9 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // stage edge forever, which is exactly why the beach was invisible.
   float shoreFade = mix(1.0, smoothstep(0.0, 1.6, waterDepthM(xz)), u_depthMix);
 
-  float theta  = w*t - k*(z + coastCurve(x));  // crest at theta=0 mod 2pi; bowed lines
+  // crest at theta=0 mod 2pi. Lines of constant rayS: bowed by the contour and
+  // rotated by the REFRACTED swell incidence (swellPhi).
+  float theta  = w*t - k*rayS(xz);
   // ---- forward pitch ----
   // Real shoaling waves are asymmetric: steep front face, gentle back. Skewing
   // the phase by sin(theta) steepens the shoreward face, scaled by how close
@@ -297,7 +404,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // "moving bump" instead of "wave about to break".
   float skew   = mix(0.0, clamp(excess*0.62, 0.0, 0.8), u_depthMix);
   theta       -= skew*sin(theta);
-  float env    = setEnv(z, t);
+  float env    = setEnv(rayS(xz), t);
   float env2   = env*env;                  // lulls really disappear
   float q      = 1.6 + 3.2*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
   float amp    = 0.5*u_H0 * grow * decay * env * shoreFade;
@@ -305,9 +412,8 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
 
   // the boil: fixed upwelling over a shallow rock beside the takeoff —
   // glassy dome, chop suppressed, waves kink slightly over it
-  float m_ = tan(clamp(u_alpha, 0.06, 1.45));
   float boilX = -22.0;
-  float boilZ = m_*mix(boilX, abs(boilX), u_aframe) - coastCurve(boilX) - 8.0;
+  float boilZ = -coastCurve(boilX) - 8.0;   // 8 m seaward of the break contour
   vec2 boilPos = vec2(boilX, boilZ);
   float boil = exp(-dot(xz - boilPos, xz - boilPos)/(2.0*5.5*5.5));
   h += 0.10*u_H0*boil*(0.8 + 0.2*sin(t*0.7));
@@ -359,8 +465,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   if (u_surfer > 0.5) {
     vec4 s = surferState(t);
     float behind = smoothstep(s.x + 2.0, s.x - 6.0, x) * smoothstep(s.x - 80.0, s.x - 30.0, x);
-    float m2 = tan(clamp(u_alpha, 0.06, 1.45));
-    float pathZ = m2*mix(x, abs(x), u_aframe) - coastCurve(x) - 11.0;
+    float pathZ = -coastCurve(x) - 11.0;   // the ride line: 11 m seaward of the contour
     float wake = behind * exp(-pow(z - pathZ, 2.0)/(2.0*3.0*3.0));
     foam = clamp(foam + wake*0.75, 0.0, 1.0);
   }

@@ -13,7 +13,8 @@ import { makeState, applyPreset, PRESETS, describeGeoState } from '../../web/js/
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
-import { coastCurve, oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
+import { coastCurve, rayS, swellPhi, peelAngleAt,
+         oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX } from './bed.js';
 import { makeSection } from './section.js';
@@ -183,9 +184,7 @@ function modelP() {
 // JS-side break line for camera placement only (sections omitted — cameras
 // shouldn't jitter when the sections slider moves). Mirrors breakLine().
 function breakLineJS(x) {
-  const a = Math.min(Math.max(state.alpha * Math.PI / 180, 0.06), 1.45);
-  const xx = state.aframe ? Math.abs(x) : x;
-  return Math.tan(a) * xx - coastCurve(x, modelP());
+  return -coastCurve(x, modelP());   // the break line is the contour (MODEL.md 2.3)
 }
 
 const controls = new OrbitControls(camera, canvas);
@@ -206,7 +205,9 @@ controls.maxDistance = 2000;
 // and buries the lineup behind a sand berm.
 const EYE_H = 3.6;                    // standing height above the cliff top
 function cliffStation(x) {
-  if (!state.geoSpot) return [x, 16, breakLineJS(x) - 45];
+  // Shoreward of the break line, not seaward: the line is a contour now, so
+  // "+" is the land side. The unmapped site has no measured cliff to stand on.
+  if (!state.geoSpot) return [x, 16, breakLineJS(x) + 60];
   const top = cliffTop(state.geoSpot, x, MSL_ABOVE_NAVD88);
   return [x, top.elev + EYE_H, top.z];
 }
@@ -237,8 +238,11 @@ function applyCam(i) {
 // zoom factor clamp(1500/dist, 2, 6.5); fov = 2*atan(1/zoom) is the same
 // mapping web/'s ray basis rd = fw*zoom + ... encodes)
 function updateFollowCam(sWorld) {
-  const cx = 210, cz = breakLineJS(210) - 45;
-  camera.position.set(cx, 16, cz);
+  // Stand where the Cliff preset stands — the comment above CAM_PRESETS always
+  // said Follow was on the real cliff, but this hardcoded an offset off the old
+  // tilted break line instead, which put it out to sea once the line moved.
+  const [cx, cy, cz] = cliffStation(210);
+  camera.position.set(cx, cy, cz);
   const dist = Math.hypot(sWorld.x - cx, sWorld.z - cz);
   const zoom = Math.min(Math.max(1500 / Math.max(dist, 40), 2.0), 6.5);
   camera.fov = 2 * Math.atan(1 / zoom) * 180 / Math.PI;
@@ -261,9 +265,22 @@ function refreshHUD() {
   hudSurfer.textContent = state.surfer ? 'on' : 'off';
   if (hudAudio) hudAudio.textContent = isAudioEnabled() ? 'on' : 'off (M)';
   if (hudAlpha) {
-    hudAlpha.textContent = uniforms.u_breakMix.value > 0.5
-      ? `${derivedAlphaDeg(0, uniforms.u_breakX.value.x, uniforms.u_breakX.value.y).toFixed(0)}° derived`
-      : `${state.alpha}° authored`;
+    if (uniforms.u_breakMix.value > 0.5) {
+      hudAlpha.textContent =
+        `${derivedAlphaDeg(0, uniforms.u_breakX.value.x, uniforms.u_breakX.value.y).toFixed(0)}° derived`;
+    } else {
+      // alpha is authored at the peak only. Down the point the contour swings
+      // away from the swell and the realized peel angle rises on its own, so
+      // report both rather than implying one number holds along the whole reef.
+      // alpha is the deep-water swell direction; what reaches the break is that
+      // refracted, and the peel angle follows from the refracted crest against
+      // the contour. Report both — the authored number alone is now misleading.
+      const P = modelP();
+      const phi = swellPhi(P) * 180 / Math.PI;
+      const down = peelAngleAt(P.stageEnd ?? 215, P) * 180 / Math.PI;
+      hudAlpha.textContent =
+        `${state.alpha}° deep → ${phi.toFixed(0)}° at break · peel ${down.toFixed(0)}°`;
+    }
   }
   hudGeo.textContent = describeGeoState(state);
 }
@@ -368,15 +385,14 @@ function frame(now) {
     let bestX = 0, bestErr = 1e9;
     for (let x = baked.x0 + 10; x <= baked.x1 - 10; x += 4) {
       const zb = breakZAt(x, baked.x0, baked.x1);
-      const ph = (w * simTime - k * (zb + coastCurve(x, P))) / (2 * Math.PI);
+      const ph = (w * simTime - k * rayS(x, zb, P)) / (2 * Math.PI);
       const err = Math.abs(ph - Math.round(ph));
       if (err < bestErr) { bestErr = err; bestX = x; }
     }
     const zb = breakZAt(bestX, baked.x0, baked.x1);
     const pump = Math.sin(simTime * 2 * Math.PI / 6);
     const faceOff = 11 + 5 * pump;
-    const m = Math.tan(Math.min(Math.max(state.alpha * Math.PI / 180, 0.06), 1.45));
-    const vx = (90 / state.T) / m;
+    const vx = (90 / state.T) / Math.max(Math.sin(swellPhi(P)), 0.05);
     uniforms.u_surferPos.value.set(bestX, zb - faceOff, vx, 0);
   }
   // Underwater is a camera state, not a fragment test: sample the JS twin's
@@ -439,6 +455,7 @@ function applyHashParams() {
   if (h.get('hud') === '0') document.body.classList.add('hidepanel');
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.get('m4') === '1') m4Enabled = true;          // work-in-progress emergent break line
+  if (h.has('swell')) state.swellDeg = Math.min(Math.max(parseFloat(h.get('swell')) || 50, 0), 85);
   if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
   const camName = (h.get('cam') || '').toLowerCase();
   const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);

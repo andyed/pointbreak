@@ -73,11 +73,40 @@ export function coastCurveSlope(x, P) {
   return mix(synthetic, measured, geoWeight(P));
 }
 
+// MODEL-TWIN of swellPhi/contourZ/rayS/peelAngleAt — see model-glsl.js for the
+// 2026-08-10 frame change (the swell carries the angle; the break line follows
+// the contour).
+// MODEL-TWIN of swellPhi: alpha is the DEEP-WATER direction, refracted to
+// breaking depth by Snell. Must stay bit-identical to model-glsl.js — the
+// rider is placed from this and drawn from that.
+export function swellPhi(P) {
+  const a  = clamp(P.alphaRad, 0.06, 1.45);
+  const hb = Math.max(P.H0 / 0.78, 0.4);          // GAMMA = 0.78
+  const c0 = 9.81 * P.T / (2 * PI);
+  const cb = Math.sqrt(9.81 * hb);
+  const s  = Math.sin(a) * clamp(cb / Math.max(c0, 0.1), 0, 1);
+  return clamp(Math.asin(clamp(s, 0, 1)), 0.04, 1.45);
+}
+
+export function contourZ(x, z, P) { return z + coastCurve(x, P); }
+
+export function rayS(x, z, P) {
+  const phi = swellPhi(P);
+  const xx  = mix(x, Math.abs(x), P.aframe);
+  return xx * Math.sin(phi) + contourZ(x, z, P) * Math.cos(phi);
+}
+
+// Realized peel angle at station x, radians (diagnostic — HUD and docs).
+export function peelAngleAt(x, P) {
+  const cc = coastCurveSlope(x, P);
+  return Math.atan(-cc) - Math.atan(-Math.tan(swellPhi(P)) - cc);
+}
+
 export function breakLine(x, P) {
   const xx = mix(x, Math.abs(x), P.aframe);
-  const m  = Math.tan(clamp(P.alphaRad, 0.06, 1.45));  // alpha->0 guarded: closeout, not NaN
   const sec = P.sections * 55 * (vnoise1(xx * 0.02 + 7.3) - 0.5) * 2;
-  return m * xx - coastCurve(x, P) + Math.min(sec, 0) * (P.sections >= 0.05 ? 1 : 0);
+  // the break line IS the contour through the surf node (contourZ = 0)
+  return -coastCurve(x, P) + Math.min(sec, 0) * (P.sections >= 0.05 ? 1 : 0);
 }
 
 export function reefWindow(x, P) {
@@ -85,9 +114,9 @@ export function reefWindow(x, P) {
   return smoothstep(-110, -35, xx) * (1 - smoothstep(215, 290, xx));
 }
 
-function setEnv(z, t, P) {
+function setEnv(s, t, P) {
   const cg = 0.5 * LAM / P.T;                 // deep-water group speed = c/2
-  return 0.5 + 0.5 * Math.cos(2 * PI * P.dF * (t - z / cg));
+  return 0.5 + 0.5 * Math.cos(2 * PI * P.dF * (t - s / cg));
 }
 
 function crestShape(phase, q) {
@@ -106,16 +135,16 @@ export function oceanH(x, z, t, P) {
   const brk   = smoothstep(-6, 14, z - zb) * reef;
   const decay = 1 - 0.68 * brk;
 
-  const theta = w * t - k * (z + coastCurve(x, P));
-  const env   = setEnv(z, t, P), env2 = env * env;
+  const s     = rayS(x, z, P);
+  const theta = w * t - k * s;
+  const env   = setEnv(s, t, P), env2 = env * env;
   const q     = 1.6 + 3.2 * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * P.xi);
   const amp   = 0.5 * P.H0 * grow * decay * env;
   let h = amp * crestShape(-theta, q) * 2;
 
   // the boil beside the takeoff (glassy dome, kinks the surface slightly)
-  const m_ = Math.tan(clamp(P.alphaRad, 0.06, 1.45));
   const bx = -22;
-  const bz = m_ * mix(bx, Math.abs(bx), P.aframe) - coastCurve(bx, P) - 8;
+  const bz = -coastCurve(bx, P) - 8;
   const boil = Math.exp(-((x - bx) * (x - bx) + (z - bz) * (z - bz)) / (2 * 5.5 * 5.5));
   h += 0.10 * P.H0 * boil * (0.8 + 0.2 * Math.sin(t * 0.7));
 
@@ -185,8 +214,10 @@ export const PUMP_PERIOD = 6.0;   // seconds, same cycle the wake/lean shaders u
 export function surferState(t, P) {
   const k = 2 * PI / LAM;
   const w = 2 * PI / P.T;
-  const m = Math.tan(clamp(P.alphaRad, 0.06, 1.45));
-  const vx = (LAM / P.T) / m;                 // zipper ground speed along x
+  // c/sin(phi) along the break line — see model-glsl.js surferState
+  const sp = Math.max(Math.sin(swellPhi(P)), 0.05);
+  const cp = Math.max(Math.cos(swellPhi(P)), 0.05);
+  const vx = (LAM / P.T) / sp;
 
   const gw = geoWeight(P);
   const x0 = mix(-18, Math.max(-18, (P.stageStart ?? -110) + 20), gw);
@@ -197,18 +228,19 @@ export function surferState(t, P) {
   const xApprox = x0 + vx * ph;
 
   // snap to the nearest real zipper so the surfer sits on an actual crest
-  const n  = Math.floor((w * t - k * m * xApprox) / (2 * PI) + 0.5);
-  const xs = (w * t - 2 * PI * n) / (k * m);
+  const n  = Math.floor((w * t - k * sp * xApprox) / (2 * PI) + 0.5);
+  const xs = (w * t - 2 * PI * n) / (k * sp);
 
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
   const faceOff = 11 + 5 * pump;              // metres seaward of the break line
   const xfold   = mix(xs, Math.abs(xs), P.aframe);
-  // crest snap — see model-glsl.js surferState for why a bare z shift fails
-  const zTarget = m * xfold - coastCurve(xs, P) - (P.rideOffset || 0);
-  const nz      = Math.floor((w * t - k * (zTarget + coastCurve(xs, P))) / (2 * Math.PI) + 0.5);
-  const zCrest  = (w * t - 2 * Math.PI * nz) / k - coastCurve(xs, P);
-  const zs      = zCrest - faceOff;
-  const vz      = (m - coastCurveSlope(xs, P)) * vx
-                - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
+  // crest snap in the CONTOUR frame — see model-glsl.js surferState for why a
+  // bare z shift fails
+  const zcTarget = -(P.rideOffset || 0);      // break line is contourZ = 0
+  const nz       = Math.floor((w * t - k * (xfold * sp + zcTarget * cp)) / (2 * Math.PI) + 0.5);
+  const zcCrest  = ((w * t - 2 * Math.PI * nz) / k - xfold * sp) / cp;
+  const zs       = zcCrest - faceOff - coastCurve(xs, P);
+  const vz       = -coastCurveSlope(xs, P) * vx
+                 - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
   return { x: xs, z: zs, vx, vz, pump };
 }

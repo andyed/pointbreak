@@ -51,7 +51,8 @@ for (const name of ['u_res', 'u_time', 'u_T', 'u_H0', 'u_alpha', 'u_xi',
   // an unbound sampler is undefined behaviour, not a no-op.
   'u_bed', 'u_depthMix', 'u_bedRect', 'u_bedSize', 'u_bedElev', 'u_waterLevel',
   'u_bedShape', 'u_bedPlane', 'u_rideOffset',
-  'u_breakTex', 'u_breakMix', 'u_breakX', 'u_breakZ', 'u_surferPos']) {
+  'u_breakTex', 'u_breakMix', 'u_breakX', 'u_breakZ', 'u_surferPos',
+]) {
   U[name] = gl.getUniformLocation(prog, name);
 }
 
