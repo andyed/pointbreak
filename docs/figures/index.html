@@ -3,9 +3,39 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pleasure Point — a measured field guide to a Santa Cruz point break</title>
+<title>Modelling the waves at Pleasure Point — a first pass</title>
 <meta name="description" content="The geography and hydrodynamics of Pleasure Point, Santa Cruz: OpenStreetMap coastline, NOAA NCEI bathymetry, and how the shape of the seabed sets where and how the wave breaks. With a work-in-progress WebGL simulation.">
 <meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://mindbendingpixels.com/pleasurepoint/">
+
+<!-- Social preview. og-card.png is generated, not drawn: gen_og.py redraws the
+     coastline from the same committed OSM/NCEI files the figures and the
+     simulation read, and embeds a drone frame captured from the sim itself
+     (capture_og_hero.mjs). Shipped at 2x (2400x1260) so retina feeds resolve
+     it; the declared width/height match the file. Regenerate both whenever the
+     geometry or the model changes:
+       node docs/figures/capture_og_hero.mjs
+       python3 docs/figures/gen_og.py
+       node docs/figures/render_check.mjs docs/figures/og-card.svg \
+             docs/figures/og-card.png 2
+     NOTE: og:title/og:description below track this page's <title> and
+     description. If the headline changes, change them and the card's own
+     headline in gen_og.py to match. -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Mind Bending Pixels">
+<meta property="og:url" content="https://mindbendingpixels.com/pleasurepoint/">
+<meta property="og:title" content="Modelling the waves at Pleasure Point &mdash; a first pass">
+<meta property="og:description" content="An early attempt at a computational model of the waves along Pleasure Point, a long point break in Santa Cruz. Built on OpenStreetMap coastline and NOAA NCEI seafloor survey data. The measurements are public; the model is a day old and unvalidated.">
+<meta property="og:image" content="https://mindbendingpixels.com/pleasurepoint/og-card.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="The measured Pleasure Point coastline with seven named surf breaks labelled by distance along the point, from Sewer Peak at 402 m to Private's at 1977 m, and an inset frame from the wave simulation showing a wave peeling along the point.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Modelling the waves at Pleasure Point &mdash; a first pass">
+<meta name="twitter:description" content="An early attempt at a computational model of the waves along Pleasure Point, a long point break in Santa Cruz. Built on OpenStreetMap coastline and NOAA NCEI seafloor survey data. The measurements are public; the model is a day old and unvalidated.">
+<meta name="twitter:image" content="https://mindbendingpixels.com/pleasurepoint/og-card.png">
+<meta name="twitter:image:alt" content="The measured Pleasure Point coastline with seven named surf breaks labelled by distance along the point, and an inset frame from the wave simulation.">
 
 <!--
   CONTRAST AUDIT (WCAG 2.x sRGB relative-luminance formula, computed independently
@@ -290,6 +320,18 @@
     font-weight: 500;
   }
   footer .credit-row { margin-bottom: 0.35rem; }
+  /* Studio colophon — separated from the data credits above it by a rule, so
+     the page's provenance and its publisher don't read as one list. Inherits
+     the footer's #cccbbb (11.47:1); the link is sand (8.31:1), same as every
+     other link on the page. */
+  footer .colophon {
+    margin-top: 1.15rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid rgba(230,228,210,0.10);
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+  }
+  footer .colophon a { font-weight: 700; }
   footer .credit-label { color: var(--mg-foam); opacity: 1; font-weight: 600; }
 
   @media (max-width: 480px) {
@@ -333,9 +375,9 @@
 <div class="page">
 
   <header class="essay-header">
-  <p class="kicker">Coastal geography &middot; Santa Cruz, California</p>
-  <h1>Pleasure Point &mdash; a measured field guide</h1>
-  <p class="deck">What the coastline actually does, what the seabed under it looks like, and how those two facts decide where a swell breaks. Public survey data throughout, plus a work-in-progress simulation built on it.</p>
+  <p class="kicker">Work in progress &middot; Santa Cruz, California</p>
+  <h1>Modelling the waves at Pleasure Point</h1>
+  <p class="deck">A first pass, about a day old. Public coastline and seafloor survey data for a long point break on the east side of Santa Cruz, and a WebGL model that tries to turn that data into breaking waves. The measurements are solid. The model is a start.</p>
   </header>
 
   <main>
@@ -346,31 +388,27 @@
       Pleasure Point is a rocky point on the east side of Santa Cruz,
       California, at roughly 36.954&deg;N, 121.976&deg;W, where the coastline
       turns a corner and runs east toward Capitola. The shore is a low marine
-      terrace &mdash; a cliff of about 10&ndash;12 m fronted by a shallow
-      wave-cut rock platform &mdash; and the surf breaks over that platform
-      rather than over sand. Access is by stairs at 38th and 41st Avenues.
+      terrace: a cliff of about 10&ndash;12 m fronted by a shallow wave-cut
+      rock platform. The surf breaks over that platform, not over sand. Access is by stairs at 38th and 41st Avenues.
     </p>
     <p class="prose">
-      Two things make the site unusual. Monterey Bay gives it a wide swell
-      window, so it works year round: winter west swells arrive refracted and
-      attenuated around the bay, while summer south swells aim more directly
-      at the point. And because the coast rotates through the corner, a single
-      incoming swell meets the shore at a steadily changing angle, producing
-      a series of distinct named breaks along roughly 1.6 km of shoreline.
+      Monterey Bay gives the point a wide swell window, so it works year
+      round. Winter west swells arrive refracted and attenuated around the
+      bay; summer south swells aim more directly at it. Because the coast
+      rotates through the corner, one incoming swell meets the shore at a
+      steadily changing angle, and roughly 1.6 km of shoreline carries a
+      series of separately named breaks.
     </p>
     <p class="prose">
       The place was named in the 1920s for a Prohibition-era speakeasy above
-      the break; the surfing association came later. This guide is concerned
-      with the first meaning of the name only in passing &mdash; the rest is
-      geometry.
+      the break. The surfing association came later.
     </p>
   </section>
 
   <section class="essay-part">
     <h2><span class="num">02</span> The corner the coast turns</h2>
     <p class="prose">
-      Local surf guides all state the same qualitative rule, which turns out
-      to be a usable description of the physics:
+      Local surf guides all state the same rule:
     </p>
     <blockquote>
       &ldquo;the waves get larger, faster, and more powerful as you move up the
@@ -378,20 +416,16 @@
       <cite>&mdash; Sunny California, <em>A Beginner's Guide to Surfing Pleasure Point</em></cite>
     </blockquote>
     <p class="prose">
-      That's a folk rule until you put a coastline polyline through it. Pulled
-      from OpenStreetMap and walked as arclength from the apex, Pleasure
-      Point's coast tangent swings roughly 110&deg; over about 550 m &mdash;
-      precisely, &minus;54.8&deg; at Little Wind-an-Sea to +57.3&deg; at First
-      Peak, a measured 112&deg; turn. That's the point, mechanically: the
-      corner the coast takes between Sewers and First Peak.
+      The OpenStreetMap coastline checks it. Walked as arclength
+      from the apex, the coast tangent turns 112&deg; over about 550 m, from
+      &minus;54.8&deg; at Little Wind-an-Sea to +57.3&deg; at First Peak. That
+      turn, between Sewers and First Peak, is the point.
     </p>
     <p class="prose">
-      Past First Peak the tangent barely moves &mdash; it wobbles around a
-      mean of roughly 45&ndash;47&deg; all the way to Private's, cusped by the
-      little coves at the Hook. So angle alone cannot explain the golden
-      rule's down-point softening. The map establishes the turn; the next
-      figure adds the two fields that transform one incoming swell along it:
-      shelter and reef elevation.
+      Past First Peak the tangent barely moves, wobbling around a mean of
+      roughly 45&ndash;47&deg; all the way to Private's, cusped by the
+      little coves at the Hook. So angle alone cannot explain the down-point
+      softening. Shelter and reef elevation do the rest.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame">
@@ -520,30 +554,27 @@
 <rect class="topo-halo" x="737.4" y="792.0" width="436.6" height="24.0" rx="3"/><text class="topo-lbl-dim" x="1170.0" y="808.0" font-size="16" font-weight="500" text-anchor="end">● canon   ○ minor   line=depth (m)   ◆ apex</text>
 </svg>
       </div>
-      <p class="fig-scroll-hint">&#8596; scroll for the full figure</p>
-      <figcaption><span class="cap-label">Fig. 1</span> &mdash; The measured planform: OSM coastline, NOAA NCEI depth contours, and the seven canon spots by down-point arclength <em>u</em>. Bombora sits genuinely outside this window (u&nbsp;=&nbsp;3911&nbsp;m, 309&nbsp;m offshore) and is called out rather than fudged into frame. <a href="fig-topology.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
+      <figcaption><span class="cap-label">Fig. 1</span> &mdash; The measured planform: OSM coastline, NOAA NCEI depth contours, and the seven canon spots by down-point arclength <em>u</em>. Bombora falls outside this window (u&nbsp;=&nbsp;3911&nbsp;m, 309&nbsp;m offshore) and is marked off-map. <a href="fig-topology.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
     </figure>
   </section>
 
   <section class="essay-part">
     <h2><span class="num">03</span> The down-point gradient</h2>
     <p class="prose">
-      A storm raises the whole point, but not by the same multiplier. Every
+      A storm raises the whole point, but not evenly. Every
       spot receives the same offshore conditions; exposure, reef depth, and
       tide decide the local result. On a small day the active point contracts
       toward the exposed upper breaks. As swell builds, more of the sheltered
-      coast switches on, while First Peak and Sewers become the fastest,
-      heaviest expressions of the same ocean.
+      coast switches on, and First Peak and Sewers get faster and heavier.
     </p>
     <p class="prose">
-      The result is a spatial sequence of breaking regimes rather than a
-      single wave. Private's and Sharks sit in the most sheltered water and
+      Private's and Sharks sit in the most sheltered water and
       require both swell and a low tide to activate at all; the Hook and 38th
       occupy intermediate exposure; Second Peak sits on a low-gradient shelf
       and produces the long, roughly 90 m peel the site is best known for;
       First Peak's steeper profile yields tapered, faster walls; and Sewers,
-      at the apex, is the most exposed and shortest-period-tolerant of the
-      seven. One swell, seven outcomes, set by position along the corner.
+      at the apex, is the most exposed of the seven and works on the shortest
+      periods.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame">
@@ -717,27 +748,24 @@ depth and exposure.</desc>
 <text class="ladder-fg-text ladder-u-axis" x="1160.0" y="850.0" text-anchor="end">small = minor spot (unnamed here)</text>
 </svg>
       </div>
-      <p class="fig-scroll-hint">&#8596; scroll for the full figure &mdash; the u-axis alignment across all three strips is the argument</p>
-      <figcaption><span class="cap-label">Fig. 2</span> &mdash; Three strips sharing one <em>u</em>-axis: reef elevation, coast exposure, and the skill progression, run in reverse of the spatial down-point order &mdash; you paddle out sheltered first, the apex last. <a href="fig-ladder.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
+      <figcaption><span class="cap-label">Fig. 2</span> &mdash; Three strips sharing one <em>u</em>-axis: reef elevation, coast exposure, and the seven sites at their measured positions. The shared axis is the point &mdash; reef depth and exposure are read against the same down-point coordinate. <a href="fig-ladder.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
     </figure>
   </section>
 
   <section class="essay-part">
     <h2><span class="num">04</span> Breaking character along the point</h2>
     <p class="prose">
-      The first two figures describe one measured coastline. The third changes
-      evidence: these are simulations, not photographs. Across the seven sites
-      the model spans peel angles from &alpha; = 70&deg; at the sheltered end
-      to 38&deg; at the apex &mdash; a feathering, barely spilling shoulder at
-      one extreme, a hollow and heavily sectioned lip at the other. That range
-      is not tuned per frame; it is the down-point gradient of the previous
-      figure, expressed as breaking character.
+      The first two figures come from survey data. The third is renders.
+      Across the seven sites the model runs peel angles from
+      &alpha; = 70&deg; at the sheltered end to 38&deg; at the apex: a
+      feathering shoulder at one end, a hollow and heavily sectioned lip at
+      the other. That range was not tuned frame by frame.
     </p>
     <p class="prose">
       Six of the seven run on surveyed NCEI bathymetry through their OSM surf
-      node. Private's is the exception &mdash; its stretch of coast defeats the
-      cubic contour fit (16.5 m RMS), so it runs on a synthetic stage and the
-      app says so rather than borrowing a neighbour's seabed.
+      node. Private's is the exception. Its stretch of coast defeats the cubic
+      contour fit (16.5 m RMS), so it runs on a synthetic stage and the app
+      says so rather than borrowing a neighbour's seabed.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame fig-wide">
@@ -835,31 +863,27 @@ depth and exposure.</desc>
 <line class="week-wk-rule" x1="40" y1="770" x2="1576" y2="770"/>
 <text class="week-wk-foot" x="40" y="792">α peel angle · ξ Iribarren (barrel-ness) · σ section noise · T period · H0 swell height. Six of the seven run on surveyed NCEI bathymetry; Privates runs on a synthetic stage and is labelled as such in the app.</text>
 </svg></div>
-      <p class="fig-scroll-hint">&#8596; scroll for the full figure</p>
-      <figcaption><span class="cap-label">Fig. 3</span> &mdash; <strong>Work-in-progress computer renders, not photographs.</strong> One frame per site, ordered apex to down-point. Parameters under each frame are read directly from the model's own preset bank, so the labels cannot drift from what was rendered. The model is unvalidated against this break. <a href="fig-week.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
+      <figcaption><span class="cap-label">Fig. 3</span> &mdash; <strong>Work-in-progress computer renders, not photographs.</strong> One frame per site, ordered apex to down-point. Parameters under each frame are read from the model's preset bank. <a href="fig-week.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
     </figure>
   </section>
 
   <section class="essay-part">
     <h2><span class="num">05</span> The simulation <span class="wip-badge">work in progress</span></h2>
     <p class="prose">
-      Everything above is measurement. This section is not: it is a real-time
-      WebGL model built on that measurement, and it is unfinished. It is
-      included because it makes the central claim of this guide testable
-      &mdash; if the shape of the seabed sets where a wave breaks, then
-      replacing the seabed should visibly change the wave.
+      This section is a real-time WebGL model built on the data above, and it
+      is unfinished. It is here because it makes one claim testable: if the
+      shape of the seabed sets where a wave breaks, replacing the seabed
+      should change the wave.
     </p>
     <p class="prose">
       The model is kinematic, not a fluid solver. A phase travels along a
-      break line; the seabed supplies water depth, and depth supplies the
-      rest: shoaling by Green's law
+      break line, and the seabed supplies water depth. Depth then drives
+      shoaling by Green's law
       (<span class="mono">K<sub>s</sub> = &radic;(c<sub>g0</sub>/c<sub>g</sub>)</span>),
       depth-limited breaking at
       <span class="mono">H = min(H<sub>0</sub>K<sub>s</sub>, &gamma;h)</span>
       with &gamma; &asymp; 0.78, and a shoreline wherever depth crosses zero.
-      It reproduces plausible behaviour; it is not validated against
-      measurements of this break, and nothing here should be read as a
-      forecast.
+      None of it has been checked against a measurement of this break.
     </p>
 
     <figure class="sim-figure">
@@ -869,18 +893,17 @@ depth and exposure.</desc>
           title="Simulated view from the cliff at First Peak"></iframe>
       </div>
       <figcaption>
-        The cliff view at First Peak. The camera height is not chosen &mdash;
-        it is read from the NCEI terrain at that station, about 14 m above the
+        The cliff view at First Peak. The camera height is not chosen: it is
+        read from the NCEI terrain at that station, about 14 m above the
         water. <a href="sim/web-three/#preset=firstpeak&amp;cam=cliff" target="_blank" rel="noopener">Open this view full-size &#8599;</a>
       </figcaption>
     </figure>
 
     <p class="prose">
-      The clearest test is a counterfactual. Below, the same swell runs over
-      the same site twice: once over the surveyed seabed, and once over that
-      seabed's own least-squares plane &mdash; identical mean depth, slope and
+      The test is a counterfactual. Below, the same swell runs over the same
+      site twice: once over the surveyed seabed, and once over that
+      seabed's own least-squares plane: identical mean depth, slope and
       orientation, with only the structure removed (2.6 m RMS at Second Peak).
-      The reef is the only variable that changes.
     </p>
 
     <div class="sim-pair">
@@ -903,13 +926,11 @@ depth and exposure.</desc>
     </div>
 
     <p class="prose">
-      The model exposes the mechanism directly as a cross-section: seabed,
-      still-water level, the shoaling height
-      <span class="mono">H<sub>0</sub>K<sub>s</sub></span>, and the depth
-      ceiling <span class="mono">&gamma;h</span>. Breaking is where the last
-      two cross. Moving the tide slides that crossing point along the profile
-      while the breaking <em>depth</em> stays fixed &mdash; &gamma; sets the
-      depth, the bed decides where that depth occurs.
+      A cross-section overlay draws the two competing curves:
+      <span class="mono">H<sub>0</sub>K<sub>s</sub></span> against the depth
+      ceiling <span class="mono">&gamma;h</span>. Moving the tide slides their
+      crossing point along the profile while the breaking <em>depth</em> stays
+      fixed. &gamma; sets the depth; the bed decides where that depth is.
     </p>
 
     <figure class="sim-figure">
@@ -937,7 +958,7 @@ depth and exposure.</desc>
         contour fit; it is labelled as such in the app.</li>
       <li><strong>The break line is authored, not derived.</strong> Peel angle
         is still an input. A break line that emerges from the angle between
-        the swell and the measured contour is the next substantive step.</li>
+        the swell and the measured contour is the next step.</li>
       <li><strong>Tidal datum is approximate.</strong> Depths are NAVD88; the
         conversion to local sea level (0.905 m) comes from NOAA station 9413450
         at Monterey, about 40 km away, because the Santa Cruz gauge publishes
@@ -961,6 +982,7 @@ depth and exposure.</desc>
     <div class="credit-row"><span class="credit-label">Bathymetry:</span> NOAA National Centers for Environmental Information (NCEI), 1/3 arc-second coastal DEM.</div>
     <div class="credit-row"><span class="credit-label">Ground-truth guides:</span> <a href="https://www.surfer.com/culture/a-visitors-guide-to-longboarding-pleasure-point" target="_blank" rel="noopener">Surfer.com, &ldquo;A Visitor's Guide to Longboarding Pleasure Point&rdquo;</a> &middot; <a href="https://sunnycalifornia.com/blogs/news/beginners-guide-surfing-pleasure-point" target="_blank" rel="noopener">Sunny California, &ldquo;A Beginner's Guide to Surfing Pleasure Point&rdquo;</a>.</div>
     <div class="credit-row"><span class="credit-label">Renders:</span> the pointbreak wave-model renderer, preset bank as of 2026-08-09.</div>
+    <div class="colophon"><a href="https://mindbendingpixels.com/">Mind Bending Pixels</a> &middot; an adventure in experiential science</div>
   </footer>
 
 </div>

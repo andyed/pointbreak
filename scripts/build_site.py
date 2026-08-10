@@ -8,6 +8,7 @@ flattening it — the import specifiers stay untouched and the deployed app is
 byte-identical to the local one.
 
   <out>/index.html            the field guide
+  <out>/og-card.png           social preview (gen_og.py -> render_check.mjs)
   <out>/fig-*.svg, assets/    figures (fig-week references assets/ at runtime)
   <out>/sim/web-three/        the app
   <out>/sim/web/js/           params.js + model-glsl.js (imported by web-three)
@@ -26,6 +27,7 @@ DEFAULT_OUT = ROOT.parent / 'mindbendingpixels-www' / 'pleasurepoint'
 # (source, destination-relative-to-out). Directories copied wholesale.
 ITEMS = [
     ('docs/figures/index.html',        'index.html'),
+    ('docs/figures/og-card.png',       'og-card.png'),
     ('docs/figures/fig-topology.svg',  'fig-topology.svg'),
     ('docs/figures/fig-ladder.svg',    'fig-ladder.svg'),
     ('docs/figures/fig-week.svg',      'fig-week.svg'),
