@@ -143,3 +143,30 @@ export function bedElevBlended(spotName, x, z, bedShape = 0) {
 export function planeResidualRms(spotName) {
   return PP_DEPTH_DATA.patches[spotName]?.planeResidualRmsM ?? 0;
 }
+
+// Seaward distance from the AUTHORED break line to the DEPTH-derived one.
+//
+// Depth-limited breaking happens where the shoaled height first exceeds what
+// the water can carry: H0*Ks >= gamma*h. Before the seabed was real, the
+// authored break line was that place by construction. It no longer is — at
+// Sewers the two sit ~75 m apart — so the rider needs shifting onto the locus
+// the wave actually breaks on, or he surfs flat water behind the whitewater.
+//
+// Marched CPU-side once per frame: the crossing has no closed form, and doing
+// this per fragment would cost ~100 texture fetches.
+const GAMMA = 0.78, G = 9.81;
+export function depthBreakOffset(spotName, x, breakLineZ, { H0, T, tide = 0, bedShape = 0 } = {}) {
+  if (!spotName) return 0;
+  const cg0 = G * T / (4 * Math.PI);
+  const wl = MSL_ABOVE_NAVD88 + tide;
+  const { z0, z1 } = PP_DEPTH_DATA.grid;
+  for (let z = Math.max(z0, -260); z <= Math.min(z1, 200); z += 3) {
+    const depth = Math.max(wl - bedElevBlended(spotName, x, z, bedShape), 0.35);
+    const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * depth)), 0.7), 2.6);
+    if (H0 * Ks >= GAMMA * depth) {
+      // seaward is -z, so a break further out is a POSITIVE offset to subtract
+      return Math.min(Math.max(breakLineZ - z, -60), 160);
+    }
+  }
+  return 0;   // never satisfies the criterion here: leave the rider alone
+}

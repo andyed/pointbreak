@@ -37,6 +37,12 @@ uniform vec2 u_bedElev;   // quantization window, m NAVD88: min, max
 uniform float u_waterLevel; // MSL above NAVD88 + tide offset, m
 uniform float u_bedShape; // 0 = measured seabed, 1 = its least-squares plane
 uniform vec3 u_bedPlane;  // a + b*x + c*z, the counterfactual "no reef" bed
+// Metres to shift the ride line seaward so it lands on the DEPTH-derived
+// breaking position rather than the authored break line. Zero without
+// bathymetry. Computed CPU-side once per frame (bed.js depthBreakOffset) —
+// finding the H0*Ks = gamma*h crossing needs a march along z, which is far too
+// expensive per fragment, and the rider is a single point.
+uniform float u_rideOffset;
 
 // ---------- constants ----------
 const float PI  = 3.14159265;
@@ -168,7 +174,17 @@ vec4 surferState(float t){
   float pump    = sin(t*2.0*PI/6.0);
   float faceOff = 11.0 + 5.0*pump;         // metres seaward of the break line
   float xfold   = mix(xs, abs(xs), u_aframe);
-  float zs      = m*xfold - coastCurve(xs) - faceOff;
+  // Target the depth-derived breaking locus, then SNAP TO THE NEAREST CREST.
+  // Shifting z alone is wrong: the offset is not a multiple of the wavelength,
+  // so it drops the rider between crests (measured -1.65 m — a trough — at
+  // Sewers with a 133 m offset). Crests satisfy theta = 0 mod 2pi, so solve for
+  // the nearest n and sit faceOff seaward of that crest's line.
+  // With u_rideOffset = 0 the nearest crest IS the zipper crest by construction,
+  // so this reduces exactly to the previous behaviour.
+  float zTarget = m*xfold - coastCurve(xs) - u_rideOffset;
+  float nz      = floor((w*t - k*(zTarget + coastCurve(xs)))/(2.0*PI) + 0.5);
+  float zCrest  = (w*t - 2.0*PI*nz)/k - coastCurve(xs);
+  float zs      = zCrest - faceOff;
   float vz      = (m - coastCurveSlope(xs))*vx
                 - 5.0*(2.0*PI/6.0)*cos(t*2.0*PI/6.0);
   return vec4(xs, zs, vx, vz);

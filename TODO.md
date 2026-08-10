@@ -70,8 +70,12 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
 - [x] Green's-law shoaling + depth-limited breaking (gamma 0.78)
 - [x] Shoreline/beach/cliff as `max(bed, water)`; cameras derive the cliff top
 - [x] Forward pitch: phase skew proportional to breaking excess
-- [ ] Emergent break line: alpha as a consequence of contour-vs-swell geometry
-      rather than an authored knob (the depth field makes this reachable)
+- [ ] **M4 emergent break line — SPEC'D 2026-08-10, see WEB_THREE_SPEC.md.**
+      breakLine(x) becomes the locus where H0*Ks >= gamma*h; alpha becomes a
+      readout, not an input. Bake zBreak(x) as a 128-sample 1-D texture,
+      recomputed on spot/H0/T/tide change only. Measured motivation: at Sewers
+      the authored and depth loci sit 75-133 m apart, and the rider averages
+      20% of the available crest height on either one.
 - [x] Tide as a live control ([ and ]) -> the break point slides while the
       breaking DEPTH stays fixed; Privates-on-a-lower-tide falls out of this
 - [x] Underwater: seabed as its own mesh, surface-from-below (Snell's window +

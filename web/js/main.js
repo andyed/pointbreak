@@ -49,7 +49,8 @@ for (const name of ['u_res', 'u_time', 'u_T', 'u_H0', 'u_alpha', 'u_xi',
   // u_depthMix = 0 collapses every seabed term in model-glsl.js back to the
   // synthetic stand-ins. The sampler is still bound to a 1x1 texture because
   // an unbound sampler is undefined behaviour, not a no-op.
-  'u_bed', 'u_depthMix', 'u_bedRect', 'u_bedSize', 'u_bedElev', 'u_waterLevel']) {
+  'u_bed', 'u_depthMix', 'u_bedRect', 'u_bedSize', 'u_bedElev', 'u_waterLevel',
+  'u_bedShape', 'u_bedPlane', 'u_rideOffset']) {
   U[name] = gl.getUniformLocation(prog, name);
 }
 
@@ -110,6 +111,9 @@ function frame(now) {
   gl.uniform2f(U.u_bedSize, 1.0, 1.0);
   gl.uniform2f(U.u_bedElev, -30.0, 30.0);
   gl.uniform1f(U.u_waterLevel, 0.905);
+  gl.uniform1f(U.u_bedShape, 0.0);
+  gl.uniform3f(U.u_bedPlane, 0.0, 0.0, 0.0);
+  gl.uniform1f(U.u_rideOffset, 0.0);   // depth-free reference: authored line stands
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   requestAnimationFrame(frame);
 }

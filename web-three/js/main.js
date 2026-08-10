@@ -12,9 +12,9 @@ import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS, describeGeoState } from '../../web/js/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
-import { makeSprayMesh, updateSpray } from './spray.js';
-import { coastCurve, oceanH as oceanHJS } from './model-js.js';
-import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop } from './bed.js';
+import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
+import { coastCurve, oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
+import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, depthBreakOffset } from './bed.js';
 import { makeSection } from './section.js';
 
 // ---------- stage ----------
@@ -27,7 +27,7 @@ const SEG_X = 512, SEG_Z = 384;
 const canvas = document.getElementById('gl');
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: false });
 } catch (e) {
   document.getElementById('nogl').style.display = 'block';
   throw e;
@@ -35,6 +35,9 @@ try {
 // cap DPR: ~1M ocean() evals per frame in the vertex stage, retina x2 adds
 // nothing at landscape scale (same rationale as web/)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+
+// Initialize audio on first click anywhere on the page (browser policy)
+
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xdfe3e5);   // horizon grey fallback behind the sky dome
@@ -100,6 +103,7 @@ const uniforms = {
   u_bedShape:   { value: 0 },
   u_bedPlane:   { value: new THREE.Vector3() },
   u_camUnder:   { value: 0 },
+  u_rideOffset: { value: 0 },
 };
 applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
@@ -157,10 +161,6 @@ scene.add(skyMesh);
 const surferGroup = makeSurferMesh();
 scene.add(surferGroup);
 
-// Lip Spray
-const sprayMesh = makeSprayMesh();
-scene.add(sprayMesh);
-
 // snapshot of the model uniforms for the JS twin (alpha already in radians)
 function modelP() {
   return {
@@ -169,6 +169,7 @@ function modelP() {
     chop: state.chop, aframe: state.aframe,
     geoMix: state.geoMix, contourX2: state.contourX2, contourX3: state.contourX3,
     stageStart: state.stageStart, stageEnd: state.stageEnd,
+    rideOffset: uniforms.u_rideOffset.value,
   };
 }
 
@@ -245,11 +246,13 @@ const hudPreset = document.getElementById('hudPreset');
 const hudCam = document.getElementById('hudCam');
 const hudSurfer = document.getElementById('hudSurfer');
 const hudGeo = document.getElementById('hudGeo');
+const hudAudio = document.getElementById('hudAudio');
 function refreshHUD() {
   const p = state.preset ? PRESETS[state.preset].label : 'custom';
   hudPreset.textContent = state.paused ? p + ' (paused)' : p;
   hudCam.textContent = CAM_PRESETS[camIdx].name;
   hudSurfer.textContent = state.surfer ? 'on' : 'off';
+  if (hudAudio) hudAudio.textContent = isAudioEnabled() ? 'on' : 'off (M)';
   hudGeo.textContent = describeGeoState(state);
 }
 
@@ -263,6 +266,9 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 's' || e.key === 'S') { state.surfer = 1 - state.surfer; refreshHUD(); }
   if (e.key === ' ') { state.paused = !state.paused; refreshHUD(); e.preventDefault(); }
   if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('hidepanel');
+  // M for mute/unmute. The keypress is the user gesture the AudioContext needs,
+  // so audio can only ever start deliberately.
+  if (e.key === 'm' || e.key === 'M') { toggleAudio(); refreshHUD(); }
   // C shows the cross-section (the bed-shape -> wave argument); [ and ] move
   // the tide, which is the cheapest lever that proves it — the breaking point
   // slides along the profile and the whitewater band moves with it.
@@ -326,6 +332,16 @@ function frame(now) {
   // Underwater is a camera state, not a fragment test: sample the JS twin's
   // surface height under the eye. gl_FrontFacing would conflate "below the
   // water" with "under M2's folded lip", which is a different thing entirely.
+  // u_rideOffset stays 0. Moving the rider onto the depth-derived breaking
+  // locus was tried and measurably made things worse: at Sewers the offset is
+  // ~110-133 m, and out there the model's wave is 0.5-1.8 m tall versus 7.3 m
+  // on the authored line. Depth currently drives the FOAM mask and the height
+  // cap, but the amplitude envelope (grow, reefWindow, setEnv) still peaks at
+  // the authored break line — so the two loci disagree and no rider placement
+  // satisfies both. The fix is to make the break line itself emergent
+  // (WEB_THREE_SPEC.md "M4 — emergent break line"), not to shim the rider.
+  // depthBreakOffset() is kept in bed.js: M4 needs exactly that crossing.
+
   const camH = oceanHJS(camera.position.x, camera.position.z, simTime, modelP());
   uniforms.u_camUnder.value = camera.position.y < camH ? 1 : 0;
   bedMesh.visible = uniforms.u_depthMix.value > 0.5;
@@ -343,14 +359,15 @@ function frame(now) {
     if (following) updateFollowCam(sWorld);
   }
 
-  if (!state.paused) {
-      updateSpray(sprayMesh, simTime, dt * state.speed, modelP());
-  }
-
   // OrbitControls.update() re-derives position from its spherical state and
   // would undo the follow track (enabled=false only blocks input, not update)
   if (!following) controls.update();
   skyMesh.position.copy(camera.position);   // keep the dome centered on the eye
+  
+  if (!state.paused) {
+    updateAudio(camera, simTime, modelP(), uniforms.u_camUnder.value > 0.5);
+  }
+  
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
@@ -370,6 +387,7 @@ function applyHashParams() {
   if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
   if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
   if (h.get('hud') === '0') document.body.classList.add('hidepanel');
+  if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
   const camName = (h.get('cam') || '').toLowerCase();
   const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);

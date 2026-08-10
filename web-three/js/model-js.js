@@ -203,7 +203,11 @@ export function surferState(t, P) {
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
   const faceOff = 11 + 5 * pump;              // metres seaward of the break line
   const xfold   = mix(xs, Math.abs(xs), P.aframe);
-  const zs      = m * xfold - coastCurve(xs, P) - faceOff;
+  // crest snap — see model-glsl.js surferState for why a bare z shift fails
+  const zTarget = m * xfold - coastCurve(xs, P) - (P.rideOffset || 0);
+  const nz      = Math.floor((w * t - k * (zTarget + coastCurve(xs, P))) / (2 * Math.PI) + 0.5);
+  const zCrest  = (w * t - 2 * Math.PI * nz) / k - coastCurve(xs, P);
+  const zs      = zCrest - faceOff;
   const vz      = (m - coastCurveSlope(xs, P)) * vx
                 - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
   return { x: xs, z: zs, vx, vz, pump };
