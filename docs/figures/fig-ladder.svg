@@ -1,0 +1,169 @@
+<svg viewBox="0 0 1200 882" xmlns="http://www.w3.org/2000/svg">
+<!--
+WCAG contrast ratios computed for this figure (see gen_ladder.py):
+  cream(#e6e4d2) on bg(#0f1216): 14.66:1  [PASS >=8:1]
+  foam(#eef2f3) on bg(#0f1216): 16.66:1  [PASS >=8:1]
+  cream(#e6e4d2) on kelp(#1d2b28): 11.48:1  [PASS >=8:1]
+  foam(#eef2f3) on kelp(#1d2b28): 13.04:1  [PASS >=8:1]
+  sand(#c9a86a) on bg(#0f1216): 8.31:1  [PASS >=8:1]
+  foam-dim(#d8dcdd) on bg(#0f1216) [spot-caption, solid, no opacity]: 13.59:1  [PASS >=8:1]
+Graphic-only colors (never used for text), for reference:
+  teal(#4a8f85) on bg(#0f1216) [graphic only]: 4.97:1
+  slate(#6b7f8c) on bg(#0f1216) [graphic only]: 4.51:1
+  sand(#c9a86a) on kelp(#1d2b28) [avoid, use bg instead]: 6.51:1
+Rule applied: all readable text uses cream/foam on bg or kelp only (>=11:1); sand is used for text only directly on bg (8.31:1), never on kelp (6.51:1, would fail); teal/slate are graphic-only (lines, dots, fills, gridlines) and never carry text.
+-->
+
+<title>Becoming a regular — the ladder runs down-point</title>
+<desc>Three aligned strips along Pleasure Point's down-point coordinate u (meters from the
+apex): reef elevation (NAVD88), coastal exposure (coast tangent, degrees), and the seven-spot
+skill ladder from Private's to Sewers, with shared vertical gridlines tying spot position to
+depth and exposure.</desc>
+<style>
+  .bg { fill: var(--mg-bg, #0f1216); }
+  .fg-text { fill: var(--mg-fg, #e6e4d2); font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  .foam-text { fill: var(--mg-foam, #eef2f3); font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  .foam-dim-text { fill: var(--mg-foam-dim, #d8dcdd); font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  .sand-text { fill: var(--mg-sand, #c9a86a); font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  .title { font-size: 27px; font-weight: 700; letter-spacing: 0.3px; }
+  .subtitle { font-size: 16px; }
+  .strip-label { font-size: 18px; font-weight: 700; letter-spacing: 1.5px; }
+  .axis-label { font-size: 16px; }
+  .spot-name { font-size: 18px; font-weight: 700; }
+  .spot-caption { font-size: 16px; }
+  .stage-label { font-size: 16px; font-weight: 700; }
+  .annot { font-size: 16px; }
+  .u-axis { font-size: 16px; }
+  .teal-line { stroke: var(--mg-teal, #4a8f85); }
+  .teal-fill { fill: var(--mg-teal, #4a8f85); }
+  .slate-line { stroke: var(--mg-slate, #6b7f8c); }
+  .grid-line { stroke: var(--mg-slate, #6b7f8c); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.45; }
+  .kelp-fill { fill: var(--mg-kelp, #1d2b28); }
+  .sand-line { stroke: var(--mg-sand, #c9a86a); }
+</style>
+<rect class="bg" x="0" y="0" width="1200" height="882"/>
+
+
+<text class="fg-text title" font-family="Georgia, 'Times New Roman', serif" x="40" y="34.0">BECOMING A REGULAR — the ladder runs down-point</text>
+<text class="fg-text subtitle" x="40" y="56.0">Pleasure Point, u = down-point arclength from the apex (m). Same u-axis, three strips: what&#8217;s under you, how exposed you are, who you become.</text>
+
+<line class="grid-line" x1="365.3" y1="78.0" x2="365.3" y2="862.0"/>
+<line class="grid-line" x1="436.1" y1="78.0" x2="436.1" y2="862.0"/>
+<line class="grid-line" x1="489.5" y1="78.0" x2="489.5" y2="862.0"/>
+<line class="grid-line" x1="636.2" y1="78.0" x2="636.2" y2="862.0"/>
+<line class="grid-line" x1="799.9" y1="78.0" x2="799.9" y2="862.0"/>
+<line class="grid-line" x1="925.0" y1="78.0" x2="925.0" y2="862.0"/>
+<line class="grid-line" x1="1102.6" y1="78.0" x2="1102.6" y2="862.0"/>
+<text class="fg-text strip-label" x="40" y="84.0">REEF</text>
+<line x1="130.0" y1="110.5" x2="1160.0" y2="110.5" class="slate-line" stroke-width="1" opacity="0.25"/>
+<text class="fg-text axis-label" x="120.0" y="115.5" text-anchor="end">0 m</text>
+<line x1="130.0" y1="163.3" x2="1160.0" y2="163.3" class="slate-line" stroke-width="1" opacity="0.25"/>
+<text class="fg-text axis-label" x="120.0" y="168.3" text-anchor="end">-1 m</text>
+<line x1="130.0" y1="216.0" x2="1160.0" y2="216.0" class="slate-line" stroke-width="1" opacity="0.25"/>
+<text class="fg-text axis-label" x="120.0" y="221.0" text-anchor="end">-2 m</text>
+<path d="M 173.2 160.1 L 245.5 160.1 L 245.5 146.4 L 365.3 146.4 L 365.3 191.2 L 436.1 191.2 L 436.1 198.1 L 489.5 198.1 L 489.5 179.1 L 636.2 179.1 L 636.2 158.5 L 799.9 158.5 L 799.9 149.6 L 925.0 149.6 L 925.0 146.9 L 1102.6 146.9 L 1102.6 138.5 L 1102.6 110.5 L 173.2 110.5 Z" class="teal-fill" opacity="0.30" stroke="none"/>
+<path d="M 173.2 160.1 L 245.5 160.1 L 245.5 146.4 L 365.3 146.4 L 365.3 191.2 L 436.1 191.2 L 436.1 198.1 L 489.5 198.1 L 489.5 179.1 L 636.2 179.1 L 636.2 158.5 L 799.9 158.5 L 799.9 149.6 L 925.0 149.6 L 925.0 146.9 L 1102.6 146.9 L 1102.6 138.5" fill="none" class="teal-line" stroke-width="2.5"/>
+<circle cx="173.2" cy="160.1" r="3" fill="#eef2f3" stroke="#0f1216" stroke-width="1" opacity="0.55"/>
+<circle cx="245.5" cy="146.4" r="3" fill="#eef2f3" stroke="#0f1216" stroke-width="1" opacity="0.55"/>
+<circle cx="365.3" cy="191.2" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="436.1" cy="198.1" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="489.5" cy="179.1" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="636.2" cy="158.5" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="799.9" cy="149.6" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="925.0" cy="146.9" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="1102.6" cy="138.5" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<path d="M 436.1 220.0 L 436.1 228.0 L 1102.6 228.0 L 1102.6 220.0" fill="none" class="sand-line" stroke-width="1.4"/>
+<text class="sand-text annot" x="769.3" y="246.0" text-anchor="middle">the reef gets SHALLOWER down-point</text>
+<text class="sand-text annot" x="769.3" y="268.0" text-anchor="middle">First Peak -1.66 m → Private&#8217;s -0.53 m NAVD88</text>
+<text class="fg-text strip-label" x="40" y="296.0">EXPOSURE</text>
+<line x1="130.0" y1="312.0" x2="1160.0" y2="312.0" class="slate-line" stroke-width="1" opacity="0.25"/>
+<text class="fg-text axis-label" x="120.0" y="317.0" text-anchor="end">+70&#176;</text>
+<line x1="130.0" y1="342.0" x2="1160.0" y2="342.0" class="slate-line" stroke-width="1" opacity="0.25"/>
+<text class="fg-text axis-label" x="120.0" y="347.0" text-anchor="end">+35&#176;</text>
+<line x1="130.0" y1="372.0" x2="1160.0" y2="372.0" class="slate-line" stroke-width="1" opacity="0.25"/>
+<text class="fg-text axis-label" x="120.0" y="377.0" text-anchor="end">+0&#176;</text>
+<line x1="130.0" y1="402.0" x2="1160.0" y2="402.0" class="slate-line" stroke-width="1" opacity="0.25"/>
+<text class="fg-text axis-label" x="120.0" y="407.0" text-anchor="end">-35&#176;</text>
+<line x1="130.0" y1="432.0" x2="1160.0" y2="432.0" class="slate-line" stroke-width="1" opacity="0.25"/>
+<text class="fg-text axis-label" x="120.0" y="437.0" text-anchor="end">-70&#176;</text>
+<rect x="130.0" y="312.0" width="306.1" height="120.0" class="kelp-fill" opacity="0.6"/>
+<path d="M 173.2 419.0 L 245.5 393.9 L 365.3 378.1 L 436.1 322.9 L 489.5 331.4 L 636.2 343.9 L 799.9 333.6 L 925.0 324.8 L 1102.6 323.6" fill="none" class="teal-line" stroke-width="2.5"/>
+<circle cx="173.2" cy="419.0" r="3" fill="#eef2f3" stroke="#0f1216" stroke-width="1" opacity="0.55"/>
+<circle cx="245.5" cy="393.9" r="3" fill="#eef2f3" stroke="#0f1216" stroke-width="1" opacity="0.55"/>
+<circle cx="365.3" cy="378.1" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="436.1" cy="322.9" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="489.5" cy="331.4" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="636.2" cy="343.9" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="799.9" cy="333.6" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="925.0" cy="324.8" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<circle cx="1102.6" cy="323.6" r="4.5" fill="#eef2f3" stroke="#0f1216" stroke-width="1"/>
+<text class="foam-text annot" x="283.0" y="334.0" text-anchor="middle" font-weight="700">APEX ROTATION</text>
+<text class="foam-text annot" x="283.0" y="354.0" text-anchor="middle">112&#176; swing</text>
+<text class="foam-text annot" x="283.0" y="374.0" text-anchor="middle">(-55&#176;→57&#176;)</text>
+<text class="fg-text annot" x="798.0" y="462.0" text-anchor="middle">past First Peak, tangent just wobbles (mean ≈ 47&#176;)</text>
+<text class="fg-text annot" x="798.0" y="484.0" text-anchor="middle">the down-point gradient here is SHELTERING, not angle</text>
+<text class="fg-text strip-label" x="40" y="490.0">THE LADDER</text>
+<line x1="130.0" y1="678.0" x2="1160.0" y2="678.0" class="teal-line" stroke-width="3"/>
+
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--mg-sand, #c9a86a)"/>
+  </marker>
+</defs>
+
+<path d="M 1102.6 742.0 L 925.0 742.0 L 799.9 742.0 L 636.2 742.0 L 436.1 742.0 L 365.3 742.0" fill="none" class="sand-line" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<circle cx="1102.6" cy="742.0" r="3" fill="#c9a86a"/>
+<circle cx="925.0" cy="742.0" r="3" fill="#c9a86a"/>
+<circle cx="799.9" cy="742.0" r="3" fill="#c9a86a"/>
+<circle cx="636.2" cy="742.0" r="3" fill="#c9a86a"/>
+<circle cx="436.1" cy="742.0" r="3" fill="#c9a86a"/>
+<circle cx="365.3" cy="742.0" r="3" fill="#c9a86a"/>
+<text class="sand-text annot" x="733.9" y="730.0" text-anchor="middle">years of paddling out — sheltered water first, the apex last</text>
+<text class="fg-text stage-label" x="1013.8" y="770.0" text-anchor="middle">first winter</text>
+<text class="fg-text stage-label" x="799.9" y="770.0" text-anchor="middle">finding your feet</text>
+<text class="fg-text stage-label" x="572.7" y="770.0" text-anchor="middle">the longboard year</text>
+<text class="fg-text stage-label" x="447.4" y="770.0" text-anchor="middle">earning it</text>
+<text class="fg-text stage-label" x="344.2" y="770.0" text-anchor="middle">a regular</text>
+<circle cx="365.3" cy="678.0" r="6.5" class="teal-fill" stroke="#eef2f3" stroke-width="2"/>
+<line x1="365.3" y1="669.0" x2="365.3" y2="624.0" class="slate-line" stroke-width="1" opacity="0.6"/>
+<text class="fg-text spot-name" x="365.3" y="640.0" text-anchor="middle">Sewers</text>
+<text class="foam-dim-text spot-caption" x="365.3" y="660.0" text-anchor="middle">fastest, most competitive</text>
+<circle cx="436.1" cy="678.0" r="6.5" class="teal-fill" stroke="#eef2f3" stroke-width="2"/>
+<line x1="436.1" y1="669.0" x2="436.1" y2="576.0" class="slate-line" stroke-width="1" opacity="0.6"/>
+<text class="fg-text spot-name" x="436.1" y="592.0" text-anchor="middle">First Peak</text>
+<text class="foam-dim-text spot-caption" x="436.1" y="612.0" text-anchor="middle">steeper walls, shortboard</text>
+<circle cx="489.5" cy="678.0" r="6.5" class="teal-fill" stroke="#eef2f3" stroke-width="2"/>
+<line x1="489.5" y1="669.0" x2="489.5" y2="528.0" class="slate-line" stroke-width="1" opacity="0.6"/>
+<text class="fg-text spot-name" x="489.5" y="544.0" text-anchor="middle">Second Peak</text>
+<text class="foam-dim-text spot-caption" x="489.5" y="564.0" text-anchor="middle">~90 m peel, longboard</text>
+<circle cx="636.2" cy="678.0" r="6.5" class="teal-fill" stroke="#eef2f3" stroke-width="2"/>
+<line x1="636.2" y1="669.0" x2="636.2" y2="624.0" class="slate-line" stroke-width="1" opacity="0.6"/>
+<text class="fg-text spot-name" x="636.2" y="640.0" text-anchor="middle">38th</text>
+<text class="foam-dim-text spot-caption" x="636.2" y="660.0" text-anchor="middle">needs swell to activate</text>
+<circle cx="799.9" cy="678.0" r="6.5" class="teal-fill" stroke="#eef2f3" stroke-width="2"/>
+<line x1="799.9" y1="669.0" x2="799.9" y2="576.0" class="slate-line" stroke-width="1" opacity="0.6"/>
+<text class="fg-text spot-name" x="799.9" y="592.0" text-anchor="middle">The Hook</text>
+<text class="foam-dim-text spot-caption" x="799.9" y="612.0" text-anchor="middle">handles size, mixed bag</text>
+<circle cx="925.0" cy="678.0" r="6.5" class="teal-fill" stroke="#eef2f3" stroke-width="2"/>
+<line x1="925.0" y1="669.0" x2="925.0" y2="624.0" class="slate-line" stroke-width="1" opacity="0.6"/>
+<text class="fg-text spot-name" x="925.0" y="640.0" text-anchor="middle">Sharks</text>
+<text class="foam-dim-text spot-caption" x="925.0" y="660.0" text-anchor="middle">space, mellow lines</text>
+<circle cx="1102.6" cy="678.0" r="6.5" class="teal-fill" stroke="#eef2f3" stroke-width="2"/>
+<line x1="1102.6" y1="669.0" x2="1102.6" y2="576.0" class="slate-line" stroke-width="1" opacity="0.6"/>
+<text class="fg-text spot-name" x="1102.6" y="592.0" text-anchor="middle">Private's</text>
+<text class="foam-dim-text spot-caption" x="1102.6" y="612.0" text-anchor="middle">breaks on a lower tide</text>
+<line x1="130.0" y1="810.0" x2="1160.0" y2="810.0" class="slate-line" stroke-width="1" opacity="0.5"/>
+<line x1="176.8" y1="806.0" x2="176.8" y2="814.0" class="slate-line" stroke-width="1"/>
+<text class="fg-text u-axis" x="176.8" y="832.0" text-anchor="middle">u=0 m</text>
+<line x1="410.9" y1="806.0" x2="410.9" y2="814.0" class="slate-line" stroke-width="1"/>
+<text class="fg-text u-axis" x="410.9" y="832.0" text-anchor="middle">u=500 m</text>
+<line x1="645.0" y1="806.0" x2="645.0" y2="814.0" class="slate-line" stroke-width="1"/>
+<text class="fg-text u-axis" x="645.0" y="832.0" text-anchor="middle">u=1000 m</text>
+<line x1="879.1" y1="806.0" x2="879.1" y2="814.0" class="slate-line" stroke-width="1"/>
+<text class="fg-text u-axis" x="879.1" y="832.0" text-anchor="middle">u=1500 m</text>
+<line x1="1113.2" y1="806.0" x2="1113.2" y2="814.0" class="slate-line" stroke-width="1"/>
+<text class="fg-text u-axis" x="1113.2" y="832.0" text-anchor="middle">u=2000 m</text>
+<text class="fg-text u-axis" x="176.8" y="850.0" text-anchor="middle" font-style="italic" opacity="0.85">apex</text>
+<circle cx="860.9" cy="846.0" r="3" fill="#eef2f3" stroke="#0f1216" stroke-width="1" opacity="0.55"/>
+<text class="fg-text u-axis" x="1160.0" y="850.0" text-anchor="end">small = minor spot (unnamed here)</text>
+</svg>
