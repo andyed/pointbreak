@@ -169,6 +169,10 @@ const float HAZE_H      = 70.0;
 // foam microstructure: rougher, higher-frequency than the water detail — foam
 // is IN the surface (perturbs normals, receives sun), not painted on it
 float foamBumpH(vec2 p, float t){
+  // rotate the sample domain off-axis: value-noise lattice drift along x/y
+  // reads as vertical streaking from the drone (M1 critique) — a ~37 deg
+  // rotation breaks the alignment without touching the texture statistics
+  p = mat2(0.80, -0.60, 0.60, 0.80) * p;
   return vnoise2(p*1.35 + vec2(t*0.25, -t*0.18)) * 0.65
        + vnoise2(p*3.30 - vec2(t*0.12,  t*0.09)) * 0.35;
 }
@@ -183,19 +187,38 @@ void main() {
   vec2 xz = vWorldPos.xz;
   float t = u_time;
   vec3 V = normalize(cameraPosition - vWorldPos);
-  float foamM = clamp(vFoam, 0.0, 1.0);
+  float dist = length(cameraPosition - vWorldPos);
   float boil  = clamp(vBoil, 0.0, 1.0);
+
+  // foam mask: vFoam interpolates the model's bore mask across grid cells, so
+  // its edges land on ruler-straight cell-aligned lines (M1 critique #5).
+  // Erode per-fragment with drifting noise so the front dissolves into
+  // fingers/lace instead of terminating on the grid.
+  // Two-octave erosion, low frequency dominant: a single ~1 m noise aliases
+  // into per-pixel dither from the drone (0.57 m/px up there) — the ~3 m
+  // octave carries the fingering, the fine octave only roughens edges.
+  float foamM = clamp(vFoam, 0.0, 1.0);
+  float er = vnoise2(xz*0.35 + vec2(t*0.08, -t*0.05))*0.65
+           + vnoise2(xz*0.90 + vec2(t*0.10, -t*0.07))*0.35;
+  foamM = smoothstep(0.15, 0.75, foamM + (er - 0.5) * 0.5);
 
   // ---- 1. detail spectrum: fragment-stage normal perturbation ----
   // damped where foam owns the surface and over the boil slick; wind chop
-  // raises the ripple energy on top of a glassy-day floor
+  // raises the ripple energy on top of a glassy-day floor.
+  // detailVis: one grid cell spans many detail wavelengths at distance, so the
+  // full-amplitude gradient is pure undersampling noise past ~300 m (critique
+  // #3) — fade the perturbation with distance and hand its variance to a
+  // wider specular lobe below (LEAN-style transfer).
+  float detailVis = exp(-dist * 0.003);
   float damp = (1.0 - 0.85*foamM) * (1.0 - 0.9*boil);
-  vec2 g = detailGrad(xz, t) * (0.55 + 0.55*u_chop) * damp;
-  vec3 N = normalize(vNormal);
-  N = normalize(vec3(N.x - g.x, N.y, N.z - g.y));
+  vec2 g = detailGrad(xz, t) * (0.55 + 0.55*u_chop) * damp * detailVis;
+  vec3 Ng = normalize(vNormal);                          // geometric (wave-scale) normal
+  vec3 N = normalize(vec3(Ng.x - g.x, Ng.y, Ng.z - g.y)); // + ripple detail
 
-  // foam roughness normal (used for foam's own lighting below)
-  vec2 fg = foamGrad(xz, t) * 0.5 * foamM;
+  // foam roughness normal (used for foam's own lighting below); influence kept
+  // low — foam under a marine layer is lit mostly ambiently, strong normal
+  // shading was reading as grey streaks (critique #1)
+  vec2 fg = foamGrad(xz, t) * 0.25 * foamM;
   vec3 Nf = normalize(vec3(N.x - fg.x, N.y, N.z - fg.y));
 
   // base albedo: web/'s NorCal palette (slate blue -> shelf -> murky inner)
@@ -205,33 +228,48 @@ void main() {
   vec3 inner = vec3(0.19, 0.27, 0.26);
   vec3 base  = mix(deep, mix(shelf, inner, smoothstep(0.5, 1.0, shoreT)), shoreT);
   base += vec3(0.03, 0.10, 0.10) * clamp(vWorldPos.y*0.35, 0.0, 1.2);
-  base += vec3(0.05, 0.13, 0.12) * vCrest;
   float lam = clamp(dot(N, sunDir), 0.0, 1.0);
   base *= 0.62 + 0.50*lam;   // gentle slope shading so faces still read
 
   // ---- 2. fresnel + glitter ----
   // Schlick, F0 ~ 0.02: near-black looking straight down, mirror at grazing.
+  // cosV comes from the GEOMETRIC normal: the ripple perturbation saturates
+  // the grazing term almost everywhere, silvering the whole far field
+  // (critique #4) — detail N drives glitter only. The reflected sky is
+  // attenuated slightly: wave-slope masking keeps real water a stop darker
+  // than the sky it mirrors (palette itself stays shared with web/ per spec).
   // Foam kills fresnel and glitter locally — bubbles scatter, they don't reflect.
-  float cosV = max(dot(N, V), 0.0);
+  float cosV = max(dot(Ng, V), 0.0);
   float fres = 0.02 + 0.98*pow(1.0 - cosV, 5.0);
   float specKill = 1.0 - 0.95*foamM;
-  vec3 refl = skyColor(reflect(-V, N), t);
+  vec3 refl = skyColor(reflect(-V, Ng), t) * 0.88;
   vec3 col = mix(base, refl, clamp(fres * specKill, 0.0, 1.0));
   // broad sheen = the diffuse marine-layer light; tight glitter = sun hits on
-  // the detail normals — thousands of sub-pixel sparkles in motion
+  // the detail normals — thousands of sub-pixel sparkles in motion. As detail
+  // fades with distance its slope variance transfers into a wider lobe
+  // (exponent 750 -> ~90, gain eased down), so the far field carries a
+  // coherent glitter path toward the sun instead of shot noise.
   float RdotV = max(dot(reflect(-sunDir, N), V), 0.0);
-  col += vec3(0.90, 0.88, 0.84) * pow(RdotV, 40.0)  * 0.30 * specKill;
-  col += vec3(1.00, 0.96, 0.86) * pow(RdotV, 750.0) * 2.60 * specKill;
+  float glitExp  = mix(90.0, 750.0, detailVis);
+  float glitGain = mix(0.9,  2.60,  detailVis);
+  col += vec3(0.90, 0.88, 0.84) * pow(RdotV, 40.0)    * 0.30 * specKill;
+  col += vec3(1.00, 0.96, 0.86) * pow(RdotV, glitExp) * glitGain * specKill;
 
   // ---- 3. subsurface transmission ----
   // backlit thin water glows green-teal; crest lines are thin, the pocket is
   // the thinnest (the Pleasure Point money cue). heightAboveMean because only
-  // the raised part of the wave has sky behind it to transmit.
+  // the raised part of the wave has sky behind it to transmit. Gated by
+  // geometry: only sun-shadowed faces transmit (dot(V,-sunDir) alone is
+  // per-view nearly constant, which painted every crest with the same stripe,
+  // critique #2), and crest thinness is weighted toward the pocket so the
+  // glow concentrates where the spec says it should be strongest.
   float back  = max(dot(V, -sunDir), 0.0);
-  float thin  = clamp(vCrest + 1.6*vPocket, 0.0, 1.5);
+  float trans = clamp(dot(-sunDir, Ng), 0.0, 1.0);
+  float pocketW = 0.25 + 0.75*clamp(vPocket*1.6, 0.0, 1.0);
+  float thin  = clamp(vCrest*pocketW + 1.4*vPocket, 0.0, 1.5);
   float hMean = clamp(vWorldPos.y / max(u_H0*VIS, 0.001), 0.0, 1.0);
-  float sss   = pow(back, 3.0) * thin * hMean;
-  col += vec3(0.2, 0.5, 0.45) * sss * 1.5;
+  float sss   = pow(back, 3.0) * thin * hMean * trans;
+  col += vec3(0.16, 0.42, 0.38) * sss * 1.5;
 
   // pocket tint (reduced vs M0 — fresnel+sss now carry the pocket) and
   // thrown-lip spray for plunging waves, both kept from web/
@@ -241,19 +279,20 @@ void main() {
   col = mix(col, vec3(0.97), clamp(lip*1.2*vnoise2(xz*0.6 + t), 0.0, 0.9));
 
   // ---- 4. foam IN the surface ----
-  // web/'s two-octave clump texture; lit by the sun through the roughened
-  // normal so the whitewater models with the mound instead of flattening it.
+  // web/'s two-octave clump texture, but lit mostly ambiently: under a marine
+  // layer whitewater is bright from every direction, and stacking texture x
+  // sun shading multiplicatively dropped it to wet-grey (critique #1) — the
+  // clump texture and sun term are narrow modulations on a white base now.
   // Structure (bore, streaks, lace, spray, crumb) arrives inside vFoam.
   float ftex = 0.58 + 0.42*(vnoise2(xz*0.35 + vec2(t*0.15, -t*0.1))*0.6
                           + vnoise2(xz*1.15 - vec2(t*0.08, t*0.05))*0.4);
   float lamF = clamp(dot(Nf, sunDir), 0.0, 1.0);
-  vec3 foamCol = vec3(0.93, 0.95, 0.96) * ftex * (0.55 + 0.45*lamF);
-  col = mix(col, foamCol, clamp(foamM*1.15, 0.0, 0.92));
+  vec3 foamCol = vec3(0.93, 0.95, 0.96) * (0.8 + 0.2*ftex) * (0.85 + 0.15*lamF);
+  col = mix(col, foamCol, clamp(foamM*1.15, 0.0, 0.97));
 
   // ---- 5. aerial perspective ----
   // fog toward the same procedural sky the dome draws, evaluated along the
   // view ray — the far plane converges on exactly what surrounds it
-  float dist = length(cameraPosition - vWorldPos);
   float dy = max(cameraPosition.y - vWorldPos.y, 0.0);
   float inLayer = dy > HAZE_H ? HAZE_H / dy : 1.0;   // ray fraction inside the haze
   float fog = 1.0 - exp(-dist * inLayer * FOG_DENSITY);
