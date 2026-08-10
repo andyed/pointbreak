@@ -535,6 +535,21 @@ ${DETAIL_GLSL}
 
 vec3 sunDirB = normalize(vec3(-0.45, 0.42, -0.28));
 
+float bedCaustic(vec2 p, float t) {
+    p *= 0.35;
+    mat2 rot = mat2(0.866, -0.5, 0.5, 0.866);
+    float c = 0.0;
+    float a = 1.0;
+    for (int i = 0; i < 3; i++) {
+        p = rot * p * 1.5;
+        float v = sin(p.x + t * 0.8) * cos(p.y - t * 0.8);
+        // sharp peaks where the value crosses 0
+        c += pow(1.0 - abs(v), 5.0) * a;
+        a *= 0.5;
+    }
+    return c * 0.8;
+}
+
 void main(){
   // land is the water mesh's job (its vLand branch) — discarding here keeps
   // the two surfaces from fighting over the same fragments above the waterline
@@ -572,6 +587,14 @@ void main(){
   // in shallow water is real; this keeps the depth trend while restoring the
   // contrast that makes the floor readable as a surface.
   vec3 lightAtBed = mix(vec3(0.38), exp(-kExt * vBedDepth), 0.72) * 1.8;
+  
+  // Caustics: strongest in shallow water, faded by 8m depth, requires sunlight
+  float causticFade = smoothstep(8.0, 1.0, vBedDepth) * clamp(dot(N, sunDirB), 0.0, 1.0);
+  if (causticFade > 0.01) {
+      float c = bedCaustic(xz, u_time);
+      lightAtBed += vec3(0.9, 0.95, 1.0) * c * causticFade * 1.1;
+  }
+
   float sight = length(cameraPosition - vBedPos);
   vec3 col = albedo * lam * lightAtBed;
   vec3 murk = vec3(0.05, 0.12, 0.13);
