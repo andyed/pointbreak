@@ -63,9 +63,9 @@ Priority order (STATUS 2026-08-11, after the workflow sprint 6709530):
    depth the height cap; no envelope work needed), rider continuity solve
    shipped (model-js m4RideSolve; riding ratio 0.81-0.87 vs re-scan's
    0.19-0.44), default ON for mapped spots, #m4=0 escape hatch.] M4 -> M5.
-Then: M5 synthetic reef (the taxonomy;
-one good spot ships before seven) -> M6 part 4 (explicit lip geometry) if the
-fold still doesn't read after 1-3. Deferred: wipeouts, ride grammar,
+Then: [LANDED 2026-08-11: M5 synthetic reef — taxonomy back, derived alpha
+span 29.3 deg, clamp+determinism verified] -> M6 part 4 (explicit lip
+geometry) if the fold still doesn't read after 1-3. Deferred: wipeouts, ride grammar,
 rider-sits-low. Essay/figures: DONE, frozen.
 Packaging: fullscreen page first; .saver/Electron later (Psychodeli
 precedent) — do not decide now.
@@ -175,16 +175,22 @@ precedent) — do not decide now.
       `faceOff` is a fixed 11+/-5 m, and the phase step that implies scales with
       cos(phi), so low-alpha presets sit lower on the face. Decide whether that
       is correct (you do ride lower on a steep wave) or wants phi-aware tuning.
-- [ ] **M5 synthetic reef — SPEC'D 2026-08-10, see WEB_THREE_SPEC.md "M5".**
-      The answer to the 2.4 cost: refracted crests + measured DEM = every
-      preset ~9 deg, peel 38-50 m/s, taxonomy dead. Character returns via an
-      invented Mead&Black wedge (strike beta ~ alpha_target - 9 deg) added to
-      the decoded uint16 grid in bed.js at load — ONE augmentation surface, so
-      break line (via M4), depth gate, shoaling and shoreline stay coherent.
-      alpha becomes a fit TARGET with reported residual. Retires the sections
-      shader hack (ridges in the grid instead). B becomes a three-way A/B:
-      measured -> measured+reef -> plane. Depends on M4; order of work and
-      acceptance in the spec.
+- [x] **M5 synthetic reef — LANDED 2026-08-11, measured (spec section has the
+      acceptance table).** Mead&Black wedge + ridge noise added to the decoded
+      uint16 grid ONCE in bed.js (compositeU16, floor-quantized) — one
+      augmentation surface; M4 line, depth gate, shoaling, refraction and
+      shoreline all inherit. Fit loop <=5 iters per spot: derived alpha
+      37.8-67.1 deg, residuals 0.2-1.3 deg vs targets, taxonomy span 29.3 deg
+      (was ~0-4 without reef). Clamp holds: 0 deepened / 0 above -0.5 m
+      NAVD88 / 0 dry posts touched, shoreline shift 0 m; deterministic per
+      spot name (checksums match across loads). B = three-way bed mode
+      (measured+reef / plane / measured; #bed=), HUD "alpha 58 deg target ·
+      56 deg derived · reef synthetic". Honest gaps: V_p 4.8-10.0 vs the 5-8
+      band (depth-limited c_b, not fit error — Sewers breaks in 3.8 m at H0
+      2.2), rider p90 >= 0.9 only at Sewers (fixed faceOff vs oblique line —
+      the phi-aware stance item above), sections shader hack NOT retired
+      (model-glsl.js follow-up), fit/clamp npm tests deferred (bed.js needs a
+      browser; reefAudit exports the invariants).
 - [x] **M4 emergent break line — LANDED 2026-08-11, default ON for mapped
       spots (#m4=0 reverts).** breakLine(x) = the H0*Ks >= gamma*h locus,
       baked 128x1, rebaked on spot/H0/T/tide change only. Re-measure findings

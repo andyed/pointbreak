@@ -18,7 +18,8 @@ import { coastCurve, swellPhi, peelAngleAt, m4RideSolve,
          oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
-         bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX } from './bed.js';
+         bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
+         reefFitFor } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -359,8 +360,15 @@ function refreshHUD() {
   if (hudAudio) hudAudio.textContent = isAudioEnabled() ? 'on' : 'off (M)';
   if (hudAlpha) {
     if (uniforms.u_breakMix.value > 0.5) {
-      hudAlpha.textContent =
-        `${derivedAlphaDeg(0, uniforms.u_breakX.value.x, uniforms.u_breakX.value.y).toFixed(0)}° derived`;
+      const derived = derivedAlphaDeg(0, uniforms.u_breakX.value.x, uniforms.u_breakX.value.y);
+      // M5: with the synthetic reef in the grid (bed mode 0), alpha returns as
+      // a character TARGET the reef was fitted to — report target, derived and
+      // the synthetic label together, never the derived number alone. If the
+      // fit missed tolerance the residual is not hidden: the numbers show it.
+      const fit = (state.bedShape || 0) === 0 ? reefFitFor(state.geoSpot) : null;
+      hudAlpha.textContent = fit
+        ? `α ${fit.targetDeg}° target · ${derived.toFixed(0)}° derived · reef synthetic`
+        : `${derived.toFixed(0)}° derived`;
     } else {
       // alpha is authored at the peak only. Down the point the contour swings
       // away from the swell and the realized peel angle rises on its own, so
@@ -386,7 +394,10 @@ function refreshHUD() {
       : `${state.xi.toFixed(2)} authored · ${xm.toFixed(2)} measured ` +
         `(${xm < 0.5 ? 'spilling' : 'plunging'})`;
   }
+  // M5 bed mode (B key three-way): 0 measured+reef / 1 plane / 2 measured
+  const bedMode = ['bed measured+reef', 'bed plane', 'bed measured'][state.bedShape || 0];
   hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`
+    + (state.geoSpot ? ` · ${bedMode}` : '')
     + (activeDayLabel ? ` · ${activeDayLabel}` : '');
 }
 
@@ -415,9 +426,11 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'c' || e.key === 'C') { showSection = !showSection; section.el.style.display = showSection ? '' : 'none'; }
   if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.15, TIDE_RANGE[0]); refreshHUD(); }
   if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.15, TIDE_RANGE[1]); refreshHUD(); }
-  // B swaps the measured seabed for its own least-squares plane: same depth
-  // scale and mean slope, structure removed. The A/B that isolates reef SHAPE.
-  if (e.key === 'b' || e.key === 'B') { state.bedShape = state.bedShape ? 0 : 1; refreshHUD(); }
+  // B cycles the bed mode three ways (M5): measured+reef (the spot) -> plane
+  // (no structure at all) -> measured (the DEM's closeout — no reef) -> back.
+  // One key shows: synthetic reef = the spot, plane = no peel, no reef =
+  // closeout. Modes 0/1/2 map to bed.js applyBed's contract.
+  if (e.key === 'b' || e.key === 'B') { state.bedShape = ((state.bedShape || 0) + 1) % 3; refreshHUD(); }
   // N isolates breaker anatomy without touching bed/refraction/model timing.
   if (e.key === 'n' || e.key === 'N') {
     structuralBreaker = structuralBreaker ? 0 : 1;
@@ -520,8 +533,14 @@ function frame(now) {
         { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0 });
   uniforms.u_breakMix.value = baked ? 1 : 0;
   if (baked) {
-    uniforms.u_breakTex.value = baked.texture;
-    uniforms.u_breakX.value.set(baked.x0, baked.x1);
+    if (uniforms.u_breakTex.value !== baked.texture) {
+      // fresh bake (spot/swell/tide/bed-mode changed): the derived-alpha HUD
+      // readout follows the REBAKE, not the last keypress, or it reports the
+      // previous mode's line until the next key event.
+      uniforms.u_breakTex.value = baked.texture;
+      uniforms.u_breakX.value.set(baked.x0, baked.x1);
+      refreshHUD();
+    }
     // Rider continuity on the same baked line: follow ONE crest's crossing
     // frame-to-frame, hand off at the stage end — never re-scan and jump.
     if (m4RideState.preset !== state.preset) {
@@ -617,7 +636,10 @@ function applyHashParams() {
   }
   if (h.get('drift') === '1') driftEnabled = true;
   if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, TIDE_RANGE[0]), TIDE_RANGE[1]);
+  // M5 bed modes: reef (default, 0), plane (1), measured/no-reef (2)
   if (h.get('bed') === 'plane') state.bedShape = 1;
+  if (h.get('bed') === 'measured') state.bedShape = 2;
+  if (h.get('bed') === 'reef') state.bedShape = 0;
   if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
   if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
   if (h.get('hud') === '0') document.body.classList.add('hidepanel');

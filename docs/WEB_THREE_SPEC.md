@@ -312,11 +312,12 @@ the precondition for the validation pass in TODO Phase 3.
 
 ## M5 — synthetic reef (spot character from contour obliquity)
 
-**Status: SPEC. Depends on M4. This is the answer to the honest cost recorded
-in MODEL.md §2.4: with refracted crests over the measured DEM, all seven
-presets arrive within a degree of each other (8.6–9.6° off shore-parallel) and
-the peel runs 38–50 m/s. The taxonomy no longer differentiates — Sewers and
-Sharks are the same wave.**
+**Status: LANDED 2026-08-11, measured (acceptance run recorded at the end of
+this section). This was the answer to the honest cost recorded in MODEL.md
+§2.4: with refracted crests over the measured DEM, all seven presets arrived
+within a degree of each other (8.6–9.6° off shore-parallel) and the taxonomy
+no longer differentiated. With the reef: derived α 37.8–67.1° across the six
+mapped presets (span 29.3°), every fit within 1.3° of its target.**
 
 ### Why obliquity, and only obliquity
 
@@ -426,6 +427,82 @@ plane = no peel at all. `u_bedShape` generalizes from a float mix to a mode.
   audible again (the §2.4 quieting reverses for free)
 - `npm test` gains: fit residuals within tolerance, clamp invariant, and
   determinism (same seed → same grid)
+
+### Landed 2026-08-11 — what was built, and the acceptance measured
+
+Built as specified, with three deliberate deviations recorded below. The one
+augmentation surface is `bed.js compositeU16()`: base64 → uint16 → reef →
+floor re-quantize (floor, not round, so the −0.5 m ceiling survives
+quantization and `floor(em + add) ≥ raw` can never deepen). GPU texture
+(`decode`), CPU bilinear (`elevGrid`/`bedElevBlended`), M4 bake, refraction
+bake and section chart all read it. Fit loop as specified (`reefFitFor`,
+≤ 5 iterations, LSQ slope over x ∈ ±16 m, residual carried on the result);
+`reefAudit()` exports the clamp/determinism invariants. B is the three-way
+`bedShape` mode (0 measured+reef / 1 plane / 2 measured; `#bed=reef|plane|
+measured`), HUD shows `α 58° target · 56° derived · reef synthetic` plus a
+`bed …` tag in the geo line.
+
+Deviations from the spec text:
+1. **The crest line sweeps SHOREWARD as x advances**, not seaward: with a
+   seaward-sweeping line dS/dx along the line goes negative and the crossing
+   runs −x — a left. The strike-β table is unchanged (β = α − φ_break,
+   positive, against the x-axis); only the prose sign was wrong.
+2. **The wedge anchors on the natural h_b contour** (depth = breaking depth at
+   the preset card), not the crest-depth contour. The march takes the
+   seaward-most crossing, so a wedge anchored shoreward of where the wave
+   already breaks never owns the line — the first fit pass diverged at Sewers
+   (H0 2.2, h_b 3.9 m) exactly there.
+3. **The sections shader hack is NOT retired.** That needs a `model-glsl.js`
+   edit (out of this change's file set, and the file carries concurrent
+   uncommitted edits). The ridge noise lives in the grid as specified; the
+   GLSL `sec` term still pulls the *drawn* line seaward on top of it
+   (visual-only double counting — the derived readout and the rider use the
+   CPU line, which has no sec term). Follow-up: drop `sec` from `breakLine()`
+   under `u_breakMix` and repoint σ at the grid ridge amplitude.
+
+Acceptance, measured (Playwright, canonical preset cards, tide 0; script
+drives `window.__pointbreak` + the page's own bed.js CPU twins):
+
+| spot | α target | derived | resid | β fit | iters | h_b m | V_p m/s | rider p90 (reef / no-reef) |
+|---|---|---|---|---|---|---|---|---|
+| Sewer Peak | 38 | 37.8 | 0.2 | 38.1 | ≤5 | 3.83 | 10.0 | 0.96 / 0.58 |
+| First Peak | 50 | 49.4 | 0.6 | 51.5 | ≤5 | 3.20 | 7.4 | 0.71 / 0.58 |
+| Second Peak | 58 | 57.2 | 0.8 | 60.9 | ≤5 | 2.73 | 6.2 | 0.54 / 0.90 |
+| 38th | 62 | 62.3 | −0.3 | 61.7 | 4 | 2.09 | 5.1 | 0.83 / 0.94 |
+| The Hook | 48 | 46.7 | 1.3 | 53.0 | 2 | 2.67 | 7.0 | 0.68 / 0.85 |
+| Shark's Cove | 66 | 67.1 | −1.1 | 68.2 | 3 | 1.96 | 4.8 | 0.84 / 0.89 |
+
+- **Derived α within ±5° of target: PASS, all six** (max |resid| 1.3°).
+  Without the reef the same readout is 0–4.1° — the closeout §2.4 predicted.
+- **Taxonomy span ≥ 20°: PASS** — 29.3° across the bank.
+- **Crest bearing ≤ 12°: PASS** — swellPhi 7.9–9.7°, untouched by the reef.
+- **V_p 5–8 m/s: PARTIAL (4/6).** V_p = √(g·h_b)/sin α with the *measured*
+  breaking depth: Sewers 10.0 (h_b 3.8 m at H0 2.2) and Sharks 4.8 sit
+  outside. The spec's table assumed c_b ≈ 4.8 m/s uniformly, which
+  depth-limited breaking contradicts once H0 varies per preset — fit error is
+  not the cause (residuals above). Recorded, not fudged.
+- **Rider p90 ≥ 0.9: PARTIAL (Sewers 0.96 only).** Face height under the
+  rider / best crest at his x, replica of the ocean() carrier over the baked
+  line, t = 30–90 s. The no-reef baseline (same metric) is 0.58–0.94, so
+  ≥ 0.9 was not generally attainable before the reef either: the rider sits a
+  fixed 11 ± 5 m seaward of the line, and the more oblique the line is to the
+  crest, the further off-crest in phase that fixed offset lands. This is the
+  φ-aware `faceOff` item already on TODO (rider stance), not a reef clamp
+  issue. No teleports/out-of-stage regressions observed (riding share 1.0).
+- **Shoreline unmoved: PASS** — waterline march reef vs measured at 21
+  stations: max shift 0 m; audit: 0 posts deepened, 0 above the −0.5 m
+  ceiling, 0 dry posts touched (per spot, all six).
+- **Deterministic: PASS** — grid checksums identical across independent
+  page loads (seed = spot name; no Math.random anywhere in the path).
+- **Zipper-station spacing / audio voices: not re-measured** in this pass.
+- **`npm test` gains deferred:** bed.js imports `three`, so it does not load
+  under `node --test` today; the fit-residual / clamp / determinism
+  invariants are exported (`reefAudit`) and verified via the Playwright run.
+  Guard + existing 16 tests stay green.
+
+Known cosmetic gap: the section chart's caption (section.js, untouched here)
+still labels from the old boolean, so bed mode 2 ("measured") captions as
+"PLANE"; the profile it draws is correct for every mode.
 
 ### Out of scope for M5
 

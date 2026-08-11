@@ -368,25 +368,56 @@ void main() {
   // zero. Beach-to-cliff by height above the water, wet-dark near the
   // waterline (the swash keeps the lower band saturated), matched to the
   // marine-layer reference in docs/research/VISUAL_GROUND_TRUTH.md.
-  if (vLand > 0.5) {
-    float above = vWorldPos.y;                       // m above still water
+  // STAIR-STEP (drone critique, 2026-08-11): this used to branch on the
+  // interpolated vLand varying, which decides land vs water at GRID
+  // resolution — the waterline stair-stepped along triangle edges and read as
+  // texel blocks at 1x zoom. Re-threshold per fragment on the bilinear bed
+  // elevation (the exact field the vertex land test displaced from) and widen
+  // the crossing into a swash band: the boundary is now a smooth
+  // fragment-space curve, and the band blends water into wet sand the way the
+  // swash actually does. vLand still gates the vertex geometry; here it only
+  // survives inside bedYf, so grid resolution no longer draws the line.
+  // Height above the CURRENT lifted mean level, not still water: the setup
+  // lift (MODEL.md 2.5) is what walks the waterline up and down the beach on
+  // the set rhythm, and thresholding on still water here would pin the
+  // visible line and erase the breathe the vertex geometry already performs.
+  float bedYf = mix(-999.0, bedElevM(xz) - u_waterLevel - VIS*setupLiftM(xz, t), u_depthMix);
+  float landF = smoothstep(-0.22, 0.18, bedYf);   // swash band, ~0.4 m of elevation
+  vec3 landCol = vec3(0.0);
+  if (landF > 0.001) {
+    float above = max(bedYf, 0.0);   // m above still water, fragment-exact
+    // static swash-band wetness, unioned with the model's set-peak drying
+    // band (call must precede the vec3 below, which hides the function)
+    float wetness = max(1.0 - smoothstep(0.05, 1.30, above), wetSand(xz, t));
     vec3 wetSand  = vec3(0.30, 0.27, 0.23);
     vec3 drySand  = vec3(0.60, 0.53, 0.41);
     vec3 cliffCol = vec3(0.52, 0.46, 0.36);
-    float wetness = 1.0 - smoothstep(0.05, 1.30, above);
     vec3 albedo = mix(mix(drySand, wetSand, wetness), cliffCol,
                       smoothstep(1.8, 6.5, above));
     // roughen with the same noise field the water uses, so the two surfaces
-    // read as one scene rather than two asset libraries
-    float grain = vnoise2(xz*1.7)*0.55 + vnoise2(xz*0.42)*0.45;
+    // read as one scene rather than two asset libraries. The third, sub-metre
+    // octave is the blocky-sand fix: the two coarse octaves alone left the
+    // 7 m DEM posts reading as evenly-shaded squares from the drone.
+    float grain = vnoise2(xz*1.7)*0.42 + vnoise2(xz*0.42)*0.33 + vnoise2(xz*6.1)*0.25;
     albedo *= 0.86 + 0.28*grain;
-    vec3 Nl = normalize(vNormal);
-    float lam = 0.42 + 0.58*clamp(dot(Nl, sunDir), 0.0, 1.0);
-    vec3 col = albedo * lam;
+    // second half of the blocky-sand fix: the mesh normal (vNormal) is a
+    // grid-cell FD over the bilinear bed, whose slope is piecewise-constant
+    // per 7 m post — Lambert shading drew every post as a facet. FD the bed
+    // field per fragment at half a post instead (BED_FRAG's trick, wider e),
+    // so shading crosses post edges smoothly.
+    float eL = 3.5;
+    float hxL = bedElevM(xz + vec2(eL, 0.0)) - bedElevM(xz - vec2(eL, 0.0));
+    float hzL = bedElevM(xz + vec2(0.0, eL)) - bedElevM(xz - vec2(0.0, eL));
+    vec3 Nl = normalize(vec3(-hxL, 2.0*eL, -hzL));
+    float lamL = 0.42 + 0.58*clamp(dot(Nl, sunDir), 0.0, 1.0);
+    landCol = albedo * lamL;
+  }
+  if (landF > 0.997) {
+    // solidly ashore: fog and return, skipping the whole water stack
     float dyL = max(cameraPosition.y - vWorldPos.y, 0.0);
     float inLayerL = dyL > HAZE_H ? HAZE_H / dyL : 1.0;
-    col = mix(col, skyColor(-V, t), 1.0 - exp(-dist * inLayerL * FOG_DENSITY));
-    gl_FragColor = vec4(col, 1.0);
+    vec3 colL = mix(landCol, skyColor(-V, t), 1.0 - exp(-dist * inLayerL * FOG_DENSITY));
+    gl_FragColor = vec4(colL, 1.0);
     return;
   }
 
@@ -415,6 +446,17 @@ void main() {
   float er = vnoise2(axz*0.35 + vec2(t*0.08, -t*0.05))*0.65
            + vnoise2(axz*0.90 + vec2(t*0.10, -t*0.07))*0.35;
   float foamM = clamp(vFoam, 0.0, 1.0);
+  // SATURATION (ice-floe critique, 2026-08-11): where fresh sources overlap
+  // (impact mound + bore + lip foam landing on the same spot) the summed mask
+  // rides its clamp ceiling across whole regions; the threshold below then
+  // saturates everywhere inside them and the erosion noise has nothing left
+  // to carve, so overlap rendered as a solid hard-edged white plate (seen at
+  // the right edge of drone frames). Soft-knee the sum instead of letting the
+  // hard clamp be the ceiling: 1-exp(-1.55) ~ 0.79 puts fully summed foam
+  // INSIDE the threshold ramp, so the stipple keeps carving at any density
+  // and overlap reads as denser lace, never a facet. Sparse foam only gets a
+  // mild lift, absorbed by the 0.15 threshold floor.
+  foamM = 1.0 - exp(-1.55*foamM);
   // fresh foam keeps the hard eroded fingering; with age the noise stops
   // carving (amplitude down) and the threshold ramp widens (soft gradient
   // instead of a binary cell edge), then the whole sheet thins toward film.
@@ -548,9 +590,20 @@ void main() {
   // thin blue-grey film that lets the darkened water body read through — the
   // bright->filmy gradient the aftermath was missing.
   vec3 foamCol = vec3(0.97, 0.98, 0.99) * (0.82 + 0.18*ftex) * (0.86 + 0.14*lamF);
+  // plate breaker (ice-floe critique, second half): exactly where the mask
+  // saturates, deepen the clump-texture modulation so a dense sheet still
+  // shows bubble structure instead of rendering as untextured paper white.
+  // Only the top of the mask range is touched, so ordinary foam is unchanged.
+  float plateT = smoothstep(0.72, 0.95, foamM);
+  foamCol *= 1.0 - 0.16*plateT*(1.0 - ftex);
   vec3 filmCol = mix(base, vec3(0.60, 0.68, 0.70), 0.6);
   foamCol = mix(foamCol, filmCol, 0.55*ageK);
   col = mix(col, foamCol, clamp(foamM*mix(1.15, 0.90, ageK), 0.0, 0.97));
+
+  // swash-band blend into the fragment-exact land colour computed above:
+  // partial landF fragments are the widened shoreline crossing. Pre-fog on
+  // both sides so the haze applies once to the mixed result.
+  col = mix(col, landCol, landF);
 
   // ---- 5. aerial perspective ----
   // fog toward the same procedural sky the dome draws, evaluated along the

@@ -359,6 +359,21 @@ float setEnv(float s, float t){
 // sin(ph), which delays the falling limb of the cosine (slow drain) more than
 // the rising limb (fast surge). Rate independent — everything is a function
 // of t and u_dF, never of frame count.
+// Peak setup elevation, metres — the envelope maximum (envS = 1) at a station
+// where the shallow fade is fully open. Factored out so wetSand() below can
+// reconstruct the set-peak waterline analytically from the very number the
+// lift itself uses; the two can never drift apart.
+// Depth-limited breaking makes H0 the breaking-height scale (H_break =
+// GAMMA*h_b with h_b = H0/GAMMA), so scaling by H0 is scaling by H_break:
+// bigger days pile more water up the beach — another emergent size cue.
+// 0.3 is the TOP of the observed 0.15-0.3*H_break shoreline-setup band;
+// raised from 0.2 on 2026-08-11 because the resulting ~8 m waterline breathe
+// read as too subtle at drone distance (MODEL.md 2.5 still quotes 0.2 — a
+// doc follow-up, not a disagreement about mechanism). Gated by u_depthMix
+// like every bathymetry-derived term (synthetic presets have no measured
+// shoreline to move).
+float setupPeakM(){ return 0.3*u_H0*u_depthMix; }
+
 float setupLiftM(vec2 xz, float t){
   float cg = 0.5*LAM/u_T;                          // group speed, as in setEnv
   float ph = 2.0*PI*u_dF*(t - rayS(xz)/cg);        // set-envelope phase at this station
@@ -368,16 +383,42 @@ float setupLiftM(vec2 xz, float t){
   // set arrives. Always positive (0.1..1.7 rad), so the response never leads.
   float lagPh = 0.9 + 0.8*sin(ph);
   float envS  = 0.5 + 0.5*cos(ph - lagPh);         // smoothed+lagged set envelope, 0..1
-  // Depth-limited breaking makes H0 the breaking-height scale (H_break =
-  // GAMMA*h_b with h_b = H0/GAMMA), so scaling by H0 is scaling by H_break:
-  // bigger days pile more water up the beach — another emergent size cue.
-  // 0.2 sits inside the observed 0.15-0.3*H_break shoreline-setup band.
-  // Confined to the shoreward fringe: full strength where still water is
-  // thinner than ~0.7 m, gone below ~2 m, so the lineup, the break line and
-  // the takeoff never feel it. Gated by u_depthMix like every bathymetry
-  // -derived term (synthetic presets have no measured shoreline to move).
-  float nearShore = 1.0 - smoothstep(0.7, 2.0, waterDepthM(xz));
-  return 0.2*u_H0*envS*nearShore*u_depthMix;
+  // Confined to the shoreward fringe. The 2 m outer edge is load-bearing (the
+  // lineup, the break line and the takeoff never feel the lift); inside it the
+  // fade is deliberately steep — full strength out to ~1.2 m of still water
+  // (was 0.7 m, steepened 2026-08-11 with the coefficient above), so the whole
+  // inner sheet rides the full lift and the breathe survives drone distance.
+  float nearShore = 1.0 - smoothstep(1.2, 2.0, waterDepthM(xz));
+  return setupPeakM()*envS*nearShore;
+}
+
+// ---------- wet sand: the drying band the last set left behind ----------
+// Sand standing above the CURRENT water surface but below the waterline the
+// last set peak reached reads dark — recently under water, not yet drained.
+// Both lines are closed forms of the setup model above, so no history buffer
+// is needed: the current line is where the bed meets the lifted surface, the
+// set-peak line is the envelope maximum (envS = 1; on emerged sand
+// waterDepthM = 0, so the shallow fade is fully open by construction and
+// setupPeakM() IS the peak lift there). VIS multiplies both, because the
+// renderers compare the bed against the VIS-exaggerated surface (ocean()
+// applies h *= VIS after adding the lift) — the band must sit exactly on the
+// emergent waterline's own scale or it detaches from the water's edge.
+// Returns 0..1: ~1 just above today's waterline, fading to 0 at the set-peak
+// line. Deliberately standalone — ocean()'s out-param list must not grow —
+// so either renderer can call it wherever it shades emerged bed.
+// RENDERER HOOK: in a land branch, darken the sand albedo by this signal,
+// e.g. wetness = max(wetness, wetSand(xz, t)) feeding a dry->wet albedo mix.
+// web-three GRID_FRAG's land branch is wired; web/'s raymarcher shades the
+// beach through its own bed path and can adopt the same call in a follow-up.
+float wetSand(vec2 xz, float t){
+  float bedAbove = bedElevM(xz) - u_waterLevel;    // m above still water
+  float nowLine  = VIS*setupLiftM(xz, t);          // current lifted waterline
+  float peakLine = VIS*setupPeakM();               // set-peak waterline (envS = 1)
+  // Fully wet from the water's edge; the top fades in before the peak line so
+  // the set's highest reach is a soft drying fringe rather than a hard stripe.
+  float aboveWater = smoothstep(-0.03, 0.06, bedAbove - nowLine);
+  float belowPeak  = 1.0 - smoothstep(0.70*peakLine, peakLine + 0.10, bedAbove);
+  return aboveWater*belowPeak*u_depthMix;
 }
 
 // One breaker clock for every visual consequence of collapse. Age is measured
