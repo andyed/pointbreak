@@ -807,4 +807,35 @@ window.__pointbreak = {
     refreshHUD();
   },
   m4Ride: () => m4Ride,
+  // shoaling-wavelength A/B without a reload (mirrors #psi=)
+  setPsi: (enabled) => {
+    psiEnabled = Boolean(enabled);
+    m4RideState.n = null; m4RideState.prevX = null;
+    refreshHUD();
+  },
+  psi: () => psiEnabled,
+  // M6 part 3 acceptance metric, and M4's before it: the face height under the
+  // rider as a fraction of the best crest available at his own station. A ride
+  // that has drifted off the wave reads low here even though its (x, z) looks
+  // reasonable, which is exactly the failure Psi could have introduced.
+  //
+  // Computed through the same JS twin that places the rider, so a psi/no-psi
+  // A/B compares like with like — and the twin now follows P.phaseFn, so the
+  // "best crest" it scans is the one the GPU is actually drawing.
+  // Returns null while waiting between crests: there is no ride to score.
+  rideMetric: () => {
+    const r = m4Ride;
+    if (!r || r.waiting) return null;
+    const P = modelP();
+    const faceH = oceanHJS(r.x, r.z, simTime, P);
+    let bestH = -Infinity, bestZ = null;
+    for (let z = -280; z <= 300; z += 1) {
+      const h = oceanHJS(r.x, z, simTime, P);
+      if (h > bestH) { bestH = h; bestZ = z; }
+    }
+    return {
+      t: simTime, x: r.x, z: r.z, faceH, bestH, bestZ,
+      ratio: bestH > 1e-3 ? faceH / bestH : null,
+    };
+  },
 };
