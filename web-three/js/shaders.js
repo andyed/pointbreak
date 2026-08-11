@@ -156,8 +156,27 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float d      = breakLine(xz0.x) - xz0.y;        // >0 seaward of the line
   float steep  = exp(-max(d, 0.0)/70.0) * reefWindow(xz0.x);
   float plunge = smoothstep(0.45, 1.25, u_xi);    // Battjes: plunging from ~0.5
-  float lam    = (3.5 + 5.5*plunge) * steep       // sharpen approaching the line
-               + 9.0 * pocket * plunge;           // past-cusp at the zipper
+  // M6 part 1: drive Gerstner's Q explicitly instead of letting it fall out of
+  // three multiplied metre constants. In the parametric form the offset is
+  // (Q/k)*dh/dx, so this shader's lam (metres, times a dimensionless gradient)
+  // IS Q/k, and therefore Q = lam*k. Q = 1 is the cusp: the crest develops a
+  // vertical tangent and begins to overturn. Q > 1 self-intersects, which is
+  // the fold we want.
+  //
+  // The old constants never got there. Measured Q maxima at the most
+  // favourable point on the whole stage were 0.24 to 1.21, and only Sewers
+  // crossed 1 -- six of seven presets could not cusp at ANY lip tuning, so no
+  // amount of throw tuning was ever going to make them curl.
+  //
+  // Writing it in Q also puts the spilling/plunging split exactly where physics
+  // puts it: at the cusp. Low-xi sites now approach Q = 1 and sharpen hard
+  // without crossing (a spilling crest SHOULD NOT overturn); high-xi sites go
+  // well past it.
+  float kk     = 2.0*PI/LAM;
+  float Qapp   = 0.85 * steep;                       // sharpening on the way in
+  float Qover  = (0.10 + 1.15*plunge) * pocket;      // past the cusp at the zipper
+  float Q      = clamp(Qapp + Qover, 0.0, 2.4);      // cap: mesh, not sculpture
+  float lam    = Q / kk;
 
   vec2 off = lam * grad;
 

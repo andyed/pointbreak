@@ -16,6 +16,7 @@ import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, rayS, swellPhi, peelAngleAt,
          oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
+import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX } from './bed.js';
 import { makeSection } from './section.js';
@@ -295,6 +296,7 @@ const hudSurfer = document.getElementById('hudSurfer');
 const hudGeo = document.getElementById('hudGeo');
 const hudAudio = document.getElementById('hudAudio');
 const hudAlpha = document.getElementById('hudAlpha');
+const hudXi = document.getElementById('hudXi');
 function refreshHUD() {
   const p = state.preset ? PRESETS[state.preset].label : 'custom';
   hudPreset.textContent = state.paused ? p + ' (paused)' : p;
@@ -318,6 +320,17 @@ function refreshHUD() {
       hudAlpha.textContent =
         `${state.alpha}° deep → ${phi.toFixed(0)}° at break · peel ${down.toFixed(0)}°`;
     }
+  }
+  // M6 part 2: xi is AUTHORED and the measured seabed disagrees on every
+  // preset. Report both rather than letting the typed number stand alone —
+  // the gap is the same finding as the peel angle, and it is what M5 exists
+  // to close. The authored value still drives the render; see the spec.
+  if (hudXi) {
+    const xm = iribarrenMeasured(state.geoSpot, { H0: state.H0, T: state.T });
+    hudXi.textContent = xm === null
+      ? `${state.xi.toFixed(2)} authored · synthetic stage`
+      : `${state.xi.toFixed(2)} authored · ${xm.toFixed(2)} measured ` +
+        `(${xm < 0.5 ? 'spilling' : 'plunging'})`;
   }
   hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`;
 }

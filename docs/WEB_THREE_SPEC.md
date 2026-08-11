@@ -394,7 +394,7 @@ still does not overturn convincingly, and measurement says that is not because
 a term is missing. Three quantities are wrong, and two of them are one-line
 consequences of constants set before the seabed existed.
 
-### 1. The Gerstner cusp is never reached (independent; do first)
+### 1. The Gerstner cusp is never reached — **LANDED 2026-08-10**
 
 In the Gerstner parametric form the horizontal offset is `(Q/k)·∂h/∂x`, so this
 codebase's `lam` (metres, multiplying a dimensionless gradient) IS `Q/k`:
@@ -426,7 +426,7 @@ where the criterion says it is overturning. `lam` stops being a hand-tuned
 metre value and becomes `Q/k`, which is dimensionless, physical, and survives
 the wavelength becoming variable in part 3.
 
-### 2. ξ is authored, and the measured seabed disagrees (waits on M5)
+### 2. ξ is authored, and the measured seabed disagrees — **READOUT LANDED 2026-08-10**, driver waits on M5
 
 `plunge = smoothstep(0.45, 1.25, ξ)` gates every lip term, and ξ is typed into
 the preset bank. Computing it from the corrected submerged plane slope
@@ -502,17 +502,24 @@ one piece here that cannot be verified by a number.
 
 ### Order of work
 
-1. Parts 1 + 3 together — cusp-limited `Q` on a shoaling `k`. Both are
-   independent of M4/M5 and are the two that make steepness rise where it
-   should.
-2. Part 2's readout, alongside.
+1. ~~Parts 1 + 3~~ — **part 1 landed 2026-08-10** (Q explicit, cusp-limited),
+   **part 2's readout landed** (HUD reports authored vs measured ξ). Part 3
+   still open and is now the live item.
+2. Part 3: cusp-limited `Q` on a SHOALING `k`. Part 1 made the cusp reachable;
+   until `L` compresses, steepness still falls inshore, so the crest cusps at
+   the pocket and then subsides rather than pitching through. Measured after
+   part 1: the numbers cross the cusp but the fold does not yet read.
 3. Re-measure. Expect spilling character on this DEM: correct, and M5's remit.
 4. Part 4 only if the fold is still the defect.
 
 ### Acceptance
 
-- `Q` reaches 1.0 at the break on every mapped preset at its authored ξ, and
-  exceeds it only inside the pocket
+- ~~`Q` reaches 1.0 at the break on every mapped preset~~ — wrong as written,
+  corrected on implementation: a **spilling** crest must NOT overturn, so the
+  criterion is that `Q` crosses 1 only where ξ says plunging. **LANDED**:
+  effective Q attained on the stage over a 160 s sweep is Sewers 2.03,
+  Second Peak 1.13, Sharks 0.95 (was 1.21 / 0.40 / 0.24). The cusp now sits
+  exactly on the spilling/plunging boundary, which is where physics puts it.
 - wavelength measured at the break within 10% of `T√(gh)`; steepness `H/L`
   increases monotonically shoreward through the surf zone, which it currently
   does not

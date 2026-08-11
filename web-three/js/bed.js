@@ -362,3 +362,29 @@ export function incidenceAt(spotName, zc, { T, tide = 0, bedShape = 0, swellDeg 
   const k = wavenumberAt(omega, depth);
   return Math.asin(Math.min(kappa / Math.max(k, 1e-6), 1));
 }
+
+// ---------- Iribarren readout (M6 part 2) ----------
+// Mean bottom slope of the SUBMERGED-fit plane, degrees. The A/B plane and
+// this share one fit, so the number the HUD reports is the number the
+// counterfactual swaps in.
+export function planeSlopeDeg(spotName) {
+  const pf = PP_DEPTH_DATA.patches[spotName]?.planeFit;
+  if (!pf) return null;
+  return Math.atan(Math.hypot(pf[1], pf[2])) * 180 / Math.PI;
+}
+
+// xi = tan(beta) / sqrt(H0/L0), deep-water form (Battjes 1974): spilling
+// below 0.5, plunging 0.5-3.3. Returns null for the unmapped site, which has
+// no measured slope to compute one from.
+//
+// This is a READOUT, not a driver. Every preset is authored more plunging than
+// its bathymetry supports (0.19-0.33 measured against 0.35-1.15 authored), so
+// feeding it into `plunge` today would zero the lip on all seven. It becomes
+// the driver when M5's reef raises the local slope enough for it to mean
+// something. See WEB_THREE_SPEC.md M6 part 2.
+export function iribarrenMeasured(spotName, { H0, T }) {
+  const beta = planeSlopeDeg(spotName);
+  if (beta === null || !(H0 > 0) || !(T > 0)) return null;
+  const L0 = G * T * T / (2 * Math.PI);
+  return Math.tan(beta * Math.PI / 180) / Math.sqrt(H0 / L0);
+}
