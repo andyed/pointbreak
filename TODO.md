@@ -17,12 +17,17 @@ drop. Supersedes the 2026-08-09 surfer mission: the rider is garnish; the
 wave is the show.
 
 Priority order (STATUS 2026-08-11, after the workflow sprint 6709530):
-0. TIDE FLOW (added 2026-08-11, Andy's call): tide is a static knob everywhere
-   (keys, day bank) but never MOVES. Animate waterLevel through the published
-   MLLW->MHHW excursion over a compressed cycle (e.g. 12.4 h -> ~20 min of sim
-   time, rate-independent like Tour/drift) so a parked screensaver sees the
-   break slide seaward and back. Cheap: u_waterLevel already flows through
-   depth/shoreline/cameras. Fold into #drift.
+0. WATER PULL-BACK, minute-to-minute (REDEFINED 2026-08-11 by Andy: "less
+   excited about 20m cycle tide, more expecting minute to minute tide pull
+   back"). Mechanism is wave SETUP/SETDOWN, not astronomical tide: during a
+   set, broken waves push ~0.15-0.3*H_break of extra water level up the
+   shore; in the lull it drains back. Drive a shoreward waterLevel term from
+   the SMOOTHED, LAGGED set envelope (setEnv, 1/dF ~ 167 s — already the
+   minute rhythm; drain slower than surge). Waterline is emergent
+   (max(bed,water)) so the shoreline advances/retreats for free, and bigger
+   days pull back further — another size cue. NOTE: this deliberately
+   overrules MODEL.md section 5's swash/backwash exclusion — record the scope
+   change in MODEL.md when it lands. Astronomical drift demoted to secondary.
 1. [LANDED 1a/1c + foam tail + sound; camera fixed + Tour; conditions bank
    shipped — commits b34f031, 6709530. Screensaver entry:
    web-three/#cam=tour&drift=1. Critique NEEDS REVISION traces to M4/M5, not
@@ -54,9 +59,11 @@ Priority order (STATUS 2026-08-11, after the workflow sprint 6709530):
    sees a session, not a loop.
 3. [LANDED: burial root-caused (station 210 past every stageEnd), Tour
    auto-cut shipped. Residual polish: small-day Follow framing.] CAMERA.
-4. NEXT: M4 (re-measure its stale numbers first, then rider continuity on
-   the emergent line, then default-on if acceptance holds) -> M5.
-Then: M4 (scoped as M5's substrate only) -> M5 synthetic reef (the taxonomy;
+4. [LANDED 2026-08-11: re-measured (envelope already follows — growGeo gave
+   depth the height cap; no envelope work needed), rider continuity solve
+   shipped (model-js m4RideSolve; riding ratio 0.81-0.87 vs re-scan's
+   0.19-0.44), default ON for mapped spots, #m4=0 escape hatch.] M4 -> M5.
+Then: M5 synthetic reef (the taxonomy;
 one good spot ships before seven) -> M6 part 4 (explicit lip geometry) if the
 fold still doesn't read after 1-3. Deferred: wipeouts, ride grammar,
 rider-sits-low. Essay/figures: DONE, frozen.
@@ -178,16 +185,21 @@ precedent) — do not decide now.
       shader hack (ridges in the grid instead). B becomes a three-way A/B:
       measured -> measured+reef -> plane. Depends on M4; order of work and
       acceptance in the spec.
-- [ ] **M4 emergent break line — SPEC'D 2026-08-10, see WEB_THREE_SPEC.md.**
-      breakLine(x) becomes the locus where H0*Ks >= gamma*h; alpha becomes a
-      readout, not an input. Bake zBreak(x) as a 128-sample 1-D texture,
-      recomputed on spot/H0/T/tide change only. NOTE 2026-08-10: the original
-      motivation (authored and depth loci 75-133 m apart at Sewers; rider at 20%
-      of available crest on either) was mostly the frame error above, and is
-      resolved. M4's remaining value is the part the frame fix does NOT give:
-      alpha varying with H0 and tide, not just with the contour. Re-measure the
-      locus gap before building further — the number it was justified by has
-      changed.
+- [x] **M4 emergent break line — LANDED 2026-08-11, default ON for mapped
+      spots (#m4=0 reverts).** breakLine(x) = the H0*Ks >= gamma*h locus,
+      baked 128x1, rebaked on spot/H0/T/tide change only. Re-measure findings
+      recorded in the spec's M4 section: the 75-133 m gap is gone as a
+      constant but the locus swings ~200 m across H0 0.7->2.5 (the part the
+      authored line cannot express — SIZE_AUDIT's fix); the amplitude
+      envelope already followed (growGeo made depth own the height cap), so
+      the whole build was the rider. Rider = continuity solve (model-js
+      m4RideSolve): takeoff at the S minimum (mid-stage at Sewer Peak — the
+      crossing splits left/right there; we ride +x), one crest followed by
+      bisection, hand-off at the stage end, clamped to stage bounds. Riding
+      face-height ratio 0.81-0.87 (acceptance >= 0.7; the old global re-scan
+      measured 0.19-0.44 and teleported up to ~570 m mid-ride). Caveat for
+      M5: derived alpha at Second Peak is ~0-0.3 deg mid-stage (DEM ramp) —
+      the near-closeout M5 predicts is already visible.
 - [ ] Handedness: a left is now the sign of the swell incidence rather than a
       structural assumption, but `swellPhi()` still clamps positive and no
       control reaches it. Sign-preserving clamp + slider range if a left is

@@ -14,7 +14,7 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
-import { coastCurve, rayS, swellPhi, peelAngleAt,
+import { coastCurve, swellPhi, peelAngleAt, m4RideSolve,
          oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
@@ -218,7 +218,10 @@ scene.add(skyMesh);
 const surferGroup = makeSurferMesh();
 scene.add(surferGroup);
 
-// snapshot of the model uniforms for the JS twin (alpha already in radians)
+// snapshot of the model uniforms for the JS twin (alpha already in radians).
+// m4Ride is the frame's emergent-line rider solve (null off the M4 path): the
+// JS twin's surferState() returns it verbatim, exactly as the GLSL twin
+// returns u_surferPos, so mesh, Follow camera, audio and wake share one rider.
 function modelP() {
   return {
     T: state.T, H0: state.H0, alphaRad: state.alpha * Math.PI / 180,
@@ -227,6 +230,7 @@ function modelP() {
     geoMix: state.geoMix, contourX2: state.contourX2, contourX3: state.contourX3,
     stageStart: state.stageStart, stageEnd: state.stageEnd,
     rideOffset: uniforms.u_rideOffset.value,
+    m4Ride,
   };
 }
 
@@ -433,7 +437,19 @@ const section = makeSection(document.body, {
 });
 let showSection = false;
 let sectionX = 0;
-let m4Enabled = false;   // ?m4=1 — see WEB_THREE_SPEC.md "M4"
+// M4 emergent break line. DEFAULT ON for mapped spots as of 2026-08-11 (see
+// WEB_THREE_SPEC.md "M4" — rider continuity landed, envelope measured as
+// already following, no capture regression on secondpeak/sewers). #m4=0 is
+// the escape hatch; unmapped sites and the A-frame keep the authored line
+// regardless (bakeBreakLine returns null there).
+let m4Enabled = true;
+// the frame's emergent-line rider (model-js m4RideSolve result; null when the
+// authored path owns the rider) and its persistent crest-following state.
+// The state survives tide/H0 rebakes on purpose — the line moves smoothly and
+// the rider keeps following the same crest — and resets on preset change,
+// where the crest index means nothing in the re-centered world.
+let m4Ride = null;
+const m4RideState = { n: null, prevX: null, preset: null };
 section.el.style.display = 'none';
 
 // ---------- resize ----------
@@ -494,13 +510,11 @@ function frame(now) {
   // Cached on (site, swell, tide, bed) — recomputed only when one of those
   // changes, never per frame. The A-frame keeps the authored fold: it mirrors
   // about x=0 and has no measured line to derive from.
-  // M4 is INCOMPLETE and off unless ?m4=1. The bake below is correct — the
-  // baked line curves through the measured seabed as it should — but two
-  // pieces are missing: the rider solve picks an arbitrary x among the many
-  // stations where a crest meets the line (measured: it parked at the stage
-  // edge, x=262, in 0.56 m of water with a 6.59 m crest available at that same
-  // x), and the amplitude envelope still does not follow the emergent line.
-  // Shipping it on by default would be a visible regression.
+  // 2026-08-11 re-measure closed the two gaps that kept this off by default:
+  // the amplitude envelope already follows the emergent line (growGeo made
+  // depth own the height cap — see the spec's M4 section), and the rider is
+  // now a continuity solve (model-js m4RideSolve) instead of a per-frame
+  // global re-scan that teleported him across the stage.
   const baked = (!m4Enabled || state.aframe) ? null
     : bakeBreakLine(state.geoSpot, [-STAGE_W / 2, STAGE_W / 2],
         { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0 });
@@ -508,35 +522,28 @@ function frame(now) {
   if (baked) {
     uniforms.u_breakTex.value = baked.texture;
     uniforms.u_breakX.value.set(baked.x0, baked.x1);
-    // Solve the rider against the same baked line: march x for the station
-    // where a crest currently sits on the break line, then drop onto its face.
-    const w = 2 * Math.PI / state.T, k = 2 * Math.PI / 90;
-    const P = modelP();
-    let bestX = 0, bestErr = 1e9;
-    for (let x = baked.x0 + 10; x <= baked.x1 - 10; x += 4) {
-      const zb = breakZAt(x, baked.x0, baked.x1);
-      const ph = (w * simTime - k * rayS(x, zb, P)) / (2 * Math.PI);
-      const err = Math.abs(ph - Math.round(ph));
-      if (err < bestErr) { bestErr = err; bestX = x; }
+    // Rider continuity on the same baked line: follow ONE crest's crossing
+    // frame-to-frame, hand off at the stage end — never re-scan and jump.
+    if (m4RideState.preset !== state.preset) {
+      m4RideState.n = null; m4RideState.prevX = null;
+      m4RideState.preset = state.preset;
     }
-    const zb = breakZAt(bestX, baked.x0, baked.x1);
-    const pump = Math.sin(simTime * 2 * Math.PI / 6);
-    const faceOff = 11 + 5 * pump;
-    const vx = (90 / state.T) / Math.max(Math.sin(swellPhi(P)), 0.05);
-    uniforms.u_surferPos.value.set(bestX, zb - faceOff, vx, 0);
+    m4Ride = null;   // solve against the authored-path P (m4Ride: null)
+    m4Ride = m4RideSolve(simTime, modelP(),
+        (x) => breakZAt(x, baked.x0, baked.x1), m4RideState);
+    const s = m4Ride || surferStateJS(simTime, modelP());   // NaN-guard fallback
+    uniforms.u_surferPos.value.set(s.x, s.z, s.vx, s.vz);
+  } else {
+    m4Ride = null;
   }
   // Underwater is a camera state, not a fragment test: sample the JS twin's
   // surface height under the eye. gl_FrontFacing would conflate "below the
   // water" with "under M2's folded lip", which is a different thing entirely.
-  // u_rideOffset stays 0. Moving the rider onto the depth-derived breaking
-  // locus was tried and measurably made things worse: at Sewers the offset is
-  // ~110-133 m, and out there the model's wave is 0.5-1.8 m tall versus 7.3 m
-  // on the authored line. Depth currently drives the FOAM mask and the height
-  // cap, but the amplitude envelope (grow, reefWindow, setEnv) still peaks at
-  // the authored break line — so the two loci disagree and no rider placement
-  // satisfies both. The fix is to make the break line itself emergent
-  // (WEB_THREE_SPEC.md "M4 — emergent break line"), not to shim the rider.
-  // depthBreakOffset() is kept in bed.js: M4 needs exactly that crossing.
+  // u_rideOffset stays 0. Shimming the rider onto the depth locus while the
+  // break line stayed authored was tried 2026-08-10 and rejected (it dropped
+  // him between crests, and neither locus was where the tallest water was).
+  // M4 made the break line itself emergent instead — the shim is history; see
+  // WEB_THREE_SPEC.md "M4" for the measurements that closed it.
 
   const camH = oceanHJS(camera.position.x, camera.position.z, simTime, modelP());
   uniforms.u_camUnder.value = camera.position.y < camH ? 1 : 0;
@@ -615,7 +622,7 @@ function applyHashParams() {
   if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
   if (h.get('hud') === '0') document.body.classList.add('hidepanel');
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
-  if (h.get('m4') === '1') m4Enabled = true;          // work-in-progress emergent break line
+  if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
   uniforms.u_breakShape.value = structuralBreaker;
@@ -656,4 +663,11 @@ window.__pointbreak = {
     uniforms.u_breakShape.value = structuralBreaker;
     refreshHUD();
   },
+  // emergent-line A/B without a reload (captures; mirrors #m4=)
+  setM4: (enabled) => {
+    m4Enabled = Boolean(enabled);
+    m4RideState.n = null; m4RideState.prevX = null;
+    refreshHUD();
+  },
+  m4Ride: () => m4Ride,
 };

@@ -515,11 +515,14 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   h += mix(legacyMound, structuralMound, shape);
 
   // SIZE_AUDIT open item 1: the whole foam block was H0-free, so whitewater
-  // amount and brightness were identical at every size. One factor scales the
-  // structural foam terms with swell height. CALIBRATION CONTRACT: at the
-  // H0 = 1.5 m model-card day clamp(1.5/1.5, ...) == 1.0 and mix(1.0, 1.0, m)
-  // == 1.0, so every preset at 1.5 m renders bit-identically. Gated by
-  // u_depthMix like the other size routes (synthetic presets untouched).
+  // amount and brightness were identical at every size. This factor scales the
+  // H0-free foam terms (legacy path + aftermath residue) with swell height;
+  // the structural bands get the identical factor via sizeAmp inside
+  // breakerLifecycleAtX, so it must NOT be applied to them a second time (see
+  // the foam mix below). CALIBRATION CONTRACT: at the H0 = 1.5 m model-card
+  // day clamp(1.5/1.5, ...) == 1.0 and mix(1.0, 1.0, m) == 1.0, so every
+  // preset at 1.5 m renders bit-identically. Gated by u_depthMix like the
+  // other size routes (synthetic presets untouched).
   float sizeFoam = mix(1.0, clamp(u_H0/1.5, 0.55, 1.6), u_depthMix);
 
   // Legacy whitewater: broken into shore-normal streaks (never a solid sheet).
@@ -545,9 +548,27 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
                   * exp(-life.x/max(1.8*u_tau, 1.0));
   float structuralFoam = 1.55*impactFoam + 0.84*boreFoam
                        + 0.66*trailFoam + 0.42*trailLace;
-  // sizeFoam multiplies the streak/impact/bore/trail/lace terms of BOTH paths
-  // (identity at H0 = 1.5 either way); lip and crumb stay xi-owned below.
-  foam = mix(legacyFoam, structuralFoam, shape) * sizeFoam;
+  // Downstream aftermath residue (2026-08-11). The structural bands above are
+  // all clocked by life.w, which hard-zeros at BORE_END_S, and trailBand is
+  // capped shoreward at the moving front (life.y) — max extent frontSpeed*3.8 s
+  // = 9-16 m. So the wake vanished the instant the bore clock ran out and the
+  // wide inner-shelf whitewater field had no structural counterpart. Reuse the
+  // legacy long-tau residue terms (already computed above) as an aftermath
+  // floor: brk is inside-gated so it covers the whole broken field to the sand,
+  // and it decays on tau's clock (tau..2.4*tau), decoupled from the live bore.
+  // Coefficients keep it dimmer than the legacy field so the impact head stays
+  // the bright foreground event. Do NOT widen BORE_END_S instead — the narrow
+  // head is what makes the crash travel; the wake belongs to this residue.
+  float residue = lace*0.40 + 0.30*brk*env2*exp(-tSince/(1.6*tau))*streaks;
+  // Size scaling applies ONCE per term. impactBand/boreBand/trailBand already
+  // carry sizeAmp inside life.z/life.w (breakerLifecycleAtX), so multiplying
+  // structuralFoam by sizeFoam again made foam quadratic in H0 — down to x0.30
+  // at the 0.55 clamp on sub-1.5 m presets. sizeFoam now multiplies only the
+  // H0-free terms: the whole legacy path and the residue floor. CALIBRATION
+  // CONTRACT: both factors are exactly 1.0 at the H0 = 1.5 m model-card day,
+  // so the size-invariance calibration is preserved either way. Lip and crumb
+  // stay xi-owned below.
+  foam = mix(legacyFoam*sizeFoam, structuralFoam + residue*sizeFoam, shape);
 
   // pocket spray: whitewater thrown at the zipper itself, heavier when plunging
   // Structural mode keeps this as a thin lip edge; the separate spray pass owns

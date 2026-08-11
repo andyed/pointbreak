@@ -218,6 +218,13 @@ export function surfaceAt(x, z, t, P) {
 export const PUMP_PERIOD = 6.0;   // seconds, same cycle the wake/lean shaders use
 
 export function surferState(t, P) {
+  // MODEL-TWIN of model-glsl surferState()'s u_breakMix branch: with an
+  // emergent break line the crest/line crossing has no closed form, so main.js
+  // solves it once per frame (m4RideSolve below) and passes the result through
+  // P.m4Ride — the same value it uploads as u_surferPos, so mesh and shader
+  // wake stay on one rider.
+  if (P.m4Ride) return P.m4Ride;
+
   const k = 2 * PI / LAM;
   const w = 2 * PI / P.T;
   // c/sin(phi) along the break line — see model-glsl.js surferState
@@ -249,4 +256,118 @@ export function surferState(t, P) {
   const vz       = -coastCurveSlope(xs, P) * vx
                  - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
   return { x: xs, z: zs, vx, vz, pump };
+}
+
+// ---------- the M4 rider: continuity solve on the emergent line ----------
+// The first cut re-scanned every x each frame for the global minimum phase
+// residual and took whichever crest scored best. Measured 2026-08-11
+// (Playwright u_surferPos + bit-exact CPU replication): the winning crest
+// changes between frames, so the rider teleported — median 1-s |dx| 28-220 m,
+// >30 m hops (up to ~570 m) on 5-84 of 300 frames at 1/30 s, and 8-95% of
+// samples landed outside the mapped stage because the scan ran to the baked
+// +/-290 m where the contour fit is clamped.
+//
+// A rider follows ONE crest. Persistent state st = { n, prevX }: pick the
+// crest index n when it arrives at the takeoff (up-point stage edge), solve
+// THAT crest's crossing with the baked line each frame — S(x) along the line
+// is smooth, so bracket at 2 m and bisect — follow it down-point, and hand
+// off to the crest now nearest the takeoff when it runs off the stage end.
+// The march is clamped to [stageStart, stageEnd], never the baked +/-290.
+// The stage usually spans less than one wavelength of ray distance, so there
+// are windows with no crest on the line; the rider waits at the takeoff
+// (st.prevX = null there, so the next ride re-anchors at the takeoff side).
+//
+// zbFn is the baked emergent line (bed.js breakZAt bound to the bake bounds);
+// keeping it a callback keeps this file pure/node-testable and bed.js the
+// only owner of the bake.
+const RIDE_EDGE = 10;   // m inside the stage bounds — same margin the old scan used
+
+// nearest sign change of S(x) - target to prevX (continuity, not global best),
+// bisected to sub-mm. Returns null when the crest is not on the line here.
+function crestCrossing(target, S, xLo, xHi, prevX) {
+  const STEP = 2;
+  let bestLo = null, bestHi = null, bestDist = Infinity;
+  let pf = S(xLo) - target;
+  for (let x = xLo + STEP; x <= xHi + STEP; x += STEP) {
+    const xc = Math.min(x, xHi);
+    const f = S(xc) - target;
+    if ((pf <= 0) !== (f <= 0)) {
+      const mid = xc - STEP * 0.5;
+      const dist = prevX === null ? mid - xLo : Math.abs(mid - prevX);
+      if (dist < bestDist) { bestDist = dist; bestLo = xc - STEP; bestHi = xc; }
+    }
+    pf = f;
+    if (xc >= xHi) break;
+  }
+  if (bestLo === null) return null;
+  let lo = bestLo, hi = bestHi, fLo = S(lo) - target;
+  for (let i = 0; i < 34; i++) {
+    const mid = 0.5 * (lo + hi), fm = S(mid) - target;
+    if ((fm <= 0) === (fLo <= 0)) { lo = mid; fLo = fm; } else hi = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+
+export function m4RideSolve(t, P, zbFn, st) {
+  const k = 2 * PI / LAM, w = 2 * PI / P.T;
+  const xLo = (P.stageStart ?? -110) + RIDE_EDGE;
+  const xHi = (P.stageEnd ?? 290) - RIDE_EDGE;
+  if (!(xHi > xLo) || !(P.T > 0)) return null;
+  const S = (x) => rayS(x, zbFn(x), P);
+  const targetOf = (n) => (w * t - 2 * PI * n) / k;
+
+  // The takeoff is where a crest FIRST meets the line: the minimum of S over
+  // the stage, not the up-point stage edge. At Second Peak S is monotone and
+  // the two coincide, but at Sewer Peak the emergent line is more oblique
+  // than the crest over the up-point half, so the S minimum sits mid-stage —
+  // the wave breaks first AT the peak and the crossing splits into a left
+  // and a right. This model rides the down-point (+x) branch, so the march
+  // is restricted to x >= takeoff. (Assuming the edge instead made the
+  // Sewers rider wait forever: no crest ever crossed S(stageStart).)
+  const STEP = 2;
+  let takeoffX = xLo, sMin = S(xLo);
+  for (let x = xLo + STEP; x <= xHi + STEP; x += STEP) {
+    const xc = Math.min(x, xHi);
+    const s = S(xc);
+    if (s < sMin) { sMin = s; takeoffX = xc; }
+    if (xc >= xHi) break;
+  }
+  const scanLo = Math.max(takeoffX - STEP, xLo);
+  // most recent crest to have arrived at the takeoff: floor, so its
+  // down-point crossing satisfies S(x) = target >= sMin by construction
+  const nTakeoff = Math.floor((w * t - k * sMin) / (2 * PI));
+
+  if (!Number.isFinite(st.n)) { st.n = nTakeoff; st.prevX = null; }
+  let x = crestCrossing(targetOf(st.n), S, scanLo, xHi, st.prevX);
+  if (x === null && st.n !== nTakeoff) {
+    // the followed crest ran off the stage end (or the sim clock jumped):
+    // hand off to the crest now at the takeoff and start the next ride
+    st.n = nTakeoff; st.prevX = null;
+    x = crestCrossing(targetOf(st.n), S, scanLo, xHi, null);
+  }
+  const waiting = x === null;          // between crests: wait at the takeoff
+  if (waiting) x = takeoffX;
+  st.prevX = waiting ? null : x;
+
+  // ground velocity along the line: S(x(t)) = (w*t - 2*pi*n)/k, so
+  // dx/dt = c / (dS/dx) with c = LAM/T. Floored: a near-shore-parallel
+  // emergent line (derived alpha -> 0) is a closeout, not a divide by zero.
+  const e = 1.5;
+  const xa = Math.max(x - e, xLo), xb = Math.min(x + e, xHi);
+  const dSdx = (S(xb) - S(xa)) / Math.max(xb - xa, 1e-6);
+  // waiting keeps a token down-point heading: with vx = 0 the board's forward
+  // vector is the pump term alone, which flips sign every half cycle and spun
+  // the mesh 180 degrees on the spot. He faces the ride he is waiting for.
+  const vx = waiting ? 2 : clamp((LAM / P.T) / Math.max(dSdx, 0.02), 2, 90);
+  const zb = zbFn(x);
+  const dzbdx = (zbFn(xb) - zbFn(xa)) / Math.max(xb - xa, 1e-6);
+
+  const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
+  const faceOff = 11 + 5 * pump;       // same face position the authored path uses
+  const z  = zb - faceOff;
+  const vz = (waiting ? 0 : dzbdx * vx)
+           - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
+  if (!Number.isFinite(x) || !Number.isFinite(z)
+      || !Number.isFinite(vx) || !Number.isFinite(vz)) return null;
+  return { x, z, vx, vz, pump, waiting };
 }

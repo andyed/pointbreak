@@ -125,8 +125,22 @@ refraction/Walker result, not an aesthetic parameter.
 
 ## M4 — emergent break line
 
-**Status: PART-BUILT, behind `?m4=1`. Off by default — turning it on today is a
-visible regression.**
+**Status: BUILT, ON BY DEFAULT for mapped spots as of 2026-08-11. `#m4=0`
+reverts to the authored line; unmapped sites (Privates) and the A-frame keep
+the authored line regardless (no bathymetry to derive from).**
+
+**2026-08-11 re-measure** (shader-faithful CPU twin of `ocean()`'s amplitude
+path; sign convention: gap = z_authored − z_emergent, positive = emergent
+locus seaward, sampled at 1 m across each stage, tide 0, preset T): the
+2026-08-10 note below was right to distrust the old numbers. The static
+~75–133 m gap is gone *as a constant* — but only near the 1.5 m model card,
+where the two loci happen to cross (Sewers mean gap at 1.5 m is −1.4 m). At
+Sewers' own preset H₀ = 2.2 the emergent locus is still 35–106 m seaward, and
+the locus swings ~200 m across H₀ 0.7→2.5 (breaking in ~1.5 m of water on a
+0.7 day vs ~4.2 m on a 2.5 day, verified against the raw criterion). That
+H₀/tide dependence is what the authored line cannot express, and it is the fix
+for SIZE_AUDIT's master finding: at big H₀ the emergent line moves breaking
+into deeper water where `Hlim = H₀`, so size finally buys face height.
 
 **2026-08-10 note:** the measurements in this section pre-date MODEL.md §2.3
 (break line onto the contour) and §2.4 (refracted crests). The 75–133 m locus
@@ -137,21 +151,49 @@ uniquely buys is α varying with H₀ and tide — and it is the **substrate M5
 requires**, which is now its main justification.
 
 Built: the bake (`bed.js bakeBreakLine`), the 128x1 texture, the shader lookup
-(`breakTexZ`/`breakLine`), the CPU twin (`breakZAt`), derived-alpha readout, and
-the `u_surferPos` seam that lets the rider be solved CPU-side. The baked line
-curves through the measured seabed as it should.
+(`breakTexZ`/`breakLine`), the CPU twin (`breakZAt`), derived-alpha readout,
+the `u_surferPos` seam, and (2026-08-11) the rider continuity solve
+(`model-js.js m4RideSolve`, MODEL-TWIN of the GLSL `u_breakMix` branch). The
+baked line curves through the measured seabed as it should.
 
-Not built, and why it is still gated:
-1. **The rider solve picks an arbitrary station.** Many x satisfy "a crest is on
-   the break line" — one per crest. Taking the smallest phase residual parked
-   the rider at the stage edge (x = 262) in 0.56 m of water with a 6.59 m crest
-   available at that same x. It needs to track the peel continuously along the
-   line, not re-solve from scratch each frame.
-2. **The amplitude envelope still does not follow the emergent line.** `grow`
-   boosts only seaward of `zb` (`max(d,0)`), and `decay` keys off `brk`, so
-   moving `zb` does not move where the model makes its tallest water. Until
-   this is fixed, relocating the rider cannot help — measured ratio of face
-   height under the rider to best crest at his x is 0.20 either way.
+The two gaps that kept it gated, and how they closed:
+1. **The rider solve picked an arbitrary station — worse, a different one each
+   frame.** Many x satisfy "a crest is on the break line" — one per crest.
+   The global min-phase-residual re-scan teleported the rider: measured
+   (Playwright `u_surferPos` + bit-exact CPU replication) median 1-s |dx| of
+   28–220 m, >30 m hops (up to ~570 m) on 5–84 of 300 frames at 1/30 s, and
+   8–95% of samples outside the mapped stage because the scan ran to the baked
+   ±290 m. Fixed 2026-08-11 by a continuity solve: the takeoff is the minimum
+   of ray distance S over the stage (at Sewer Peak that minimum is mid-stage —
+   the wave breaks first AT the peak and the crossing splits into a left and a
+   right; the model rides the +x branch), one crest index is picked there,
+   that crest's crossing with the baked line is bisected each frame and
+   followed down-point, clamped to the stage bounds, handing off to the crest
+   at the takeoff when it runs off the end. Between crests (the stage spans
+   less than one wavelength of S) the rider waits at the takeoff. Face height
+   under the rider while riding: 0.81–0.87 of the best crest at his x across
+   all three measured spots × H₀ ∈ {0.7, 1.5, 2.5} — acceptance was ≥ 0.7;
+   the re-scan measured 0.19–0.44.
+2. ~~**The amplitude envelope still does not follow the emergent line.**
+   `grow` boosts only seaward of `zb` (`max(d,0)`), and `decay` keys off
+   `brk`, so moving `zb` does not move where the model makes its tallest
+   water. Until this is fixed, relocating the rider cannot help — measured
+   ratio of face height under the rider to best crest at his x is 0.20 either
+   way.~~ **Closed — and mostly not by M4** (measured 2026-08-11): with
+   `growGeo = min(Hsh, Hlim)/H₀`, depth owns the height cap (SIZE_AUDIT's
+   master finding), so the envelope stopped keying off the authored line when
+   the depth path landed. Under `m4` the argmax-z of face amplitude sits
+   4–12 m seaward of the emergent line at every station tested (the face just
+   before breaking — physically correct, not divergence). Where m4 does still
+   matter for the envelope: on a 0.7 m day with m4 off the peak sits 20–105 m
+   seaward of the depth locus (the authored-line decay cut clips in the wrong
+   place); with m4 on it tracks within 5–25 m. No envelope work was needed.
+
+One new caveat for the derived-α readout and M5: the emergent line at Second
+Peak is nearly shore-parallel (derived α ~0–0.3° mid-stage; Sewers reads 12°
+at 1.5 m rising to 32° at 2.5 m). The DEM-smoothed-to-a-ramp problem M5
+predicts is already visible in the bake — expect near-closeout derived α at
+Second Peak until the synthetic reef lands.
 
 ### The problem, measured
 
@@ -233,6 +275,17 @@ Keep `u_geoMix`-style fallback: unmapped sites and the A-frame keep the
 authored line, so nothing regresses where there is no bathymetry.
 
 ### Acceptance
+
+**2026-08-11 status:** rider criterion met — face height under the rider is
+0.81–0.87 of the best crest at his x *while riding* (Sewers / Second Peak /
+Sharks × H₀ 0.7 / 1.5 / 2.5, t = 30–90 s, shader-faithful CPU twin). The
+rider now also waits at the takeoff between crests (the stage spans less than
+one wavelength of ray distance, so a crest is on the line only ~20–45% of the
+time); waiting frames are lineup behaviour, not placement error. Continuity:
+across 16,200 frames at 1/30 s over all nine combos, zero samples outside the
+stage bounds and zero >30 m within-ride steps (the re-scan produced both, up
+to ~570 m). Tide drag rebakes in-loop as designed. Privates and the A-frame
+never enter the m4 path (`bakeBreakLine` returns null).
 
 - **The rider is on the wave.** Same controlled A/B as above: mean face height
   under the rider within 30% of the best crest available at his x, across a
