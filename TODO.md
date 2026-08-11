@@ -16,8 +16,17 @@ clock fake waves instantly) but honesty items that don't change the picture
 drop. Supersedes the 2026-08-09 surfer mission: the rider is garnish; the
 wave is the show.
 
-Priority order:
-1. SIZE -> CURL & CRASH. [1a+1c LANDED 2026-08-11; 1b = M6 part 3 still
+Priority order (STATUS 2026-08-11, after the workflow sprint 6709530):
+0. TIDE FLOW (added 2026-08-11, Andy's call): tide is a static knob everywhere
+   (keys, day bank) but never MOVES. Animate waterLevel through the published
+   MLLW->MHHW excursion over a compressed cycle (e.g. 12.4 h -> ~20 min of sim
+   time, rate-independent like Tour/drift) so a parked screensaver sees the
+   break slide seaward and back. Cheap: u_waterLevel already flows through
+   depth/shoreline/cameras. Fold into #drift.
+1. [LANDED 1a/1c + foam tail + sound; camera fixed + Tour; conditions bank
+   shipped — commits b34f031, 6709530. Screensaver entry:
+   web-three/#cam=tour&drift=1. Critique NEEDS REVISION traces to M4/M5, not
+   defects.] SIZE -> CURL & CRASH. [1a+1c LANDED 2026-08-11; 1b = M6 part 3 still
    open]. Delegated size audit: docs/research/SIZE_AUDIT.md — master finding
    is that the surf-zone surface height is H0-INVARIANT by construction
    (depth-limited amp = 0.5*gamma*dep), so size can only enter via gates
@@ -43,9 +52,10 @@ Priority order:
    supplies a "right now at Pleasure Point" live mode — port it to
    web-three. Idle mode drifts conditions over ~20 min so a parked screen
    sees a session, not a loop.
-3. CAMERA LANGUAGE. A screensaver IS its camera. Follow is currently buried
-   in the cliff at Sewers (defect, not polish); then the M3+ auto-cut item
-   (cut between rides, drone/follow alternation, no HUD by default).
+3. [LANDED: burial root-caused (station 210 past every stageEnd), Tour
+   auto-cut shipped. Residual polish: small-day Follow framing.] CAMERA.
+4. NEXT: M4 (re-measure its stale numbers first, then rider continuity on
+   the emergent line, then default-on if acceptance holds) -> M5.
 Then: M4 (scoped as M5's substrate only) -> M5 synthetic reef (the taxonomy;
 one good spot ships before seven) -> M6 part 4 (explicit lip geometry) if the
 fold still doesn't read after 1-3. Deferred: wipeouts, ride grammar,
