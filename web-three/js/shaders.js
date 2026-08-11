@@ -170,7 +170,17 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // reached by construction at S = 1 whatever the amplitude, and S is the one
   // dimensionless overturn knob.
   float kk     = 2.0*PI/LAM;
-  float aEst   = clamp(abs(h), 0.6, 12.0);           // local displayed amplitude, m
+  // PACK-ICE FIX (drone critique, 2026-08-11): between crests h crosses zero,
+  // so the old fixed 0.6 m floor let lam = S/(a k^2) blow up over near-flat
+  // water, and the wind-chop gradient (9 m / 3 m noise cells, resolved by the
+  // e = 2 m FD) got amplified into grid creases — a polygonal crack web with
+  // bright seams across the whole aftermath zone. Verified cause: state.chop=0
+  // removes the web, foam-tau toggles do not. Floor the amplitude estimate at
+  // a fraction of the day's DISPLAYED swell height instead: crests (|h| well
+  // above the floor) are untouched, troughs stop turning noise into folds.
+  // This is not a size factor (no H0 = 1.5 identity contract) — it must
+  // change trough behavior at every size; that is the fix.
+  float aEst   = clamp(abs(h), max(0.6, 0.30*u_H0*VIS), 12.0);  // local displayed amplitude, m
   // M6 part 1c: size enters through the breaking excess. ocean() computes
   // Hsh/Hlim for the foam gate; the curl never saw it. Recomputed here (4
   // lines) rather than widening ocean()'s signature, which both vehicles
@@ -387,10 +397,31 @@ void main() {
   // Two-octave erosion, low frequency dominant: a single ~1 m noise aliases
   // into per-pixel dither from the drone (0.57 m/px up there) — the ~3 m
   // octave carries the fingering, the fine octave only roughens edges.
+  //
+  // AGE (foam critique, 2026-08-11): a constant-threshold erosion carved the
+  // DECAYING aftermath field into hard polygonal plates with bright seams —
+  // pack ice, not dissolving whitewater. Foam must change character with age,
+  // not just density. tSince is the same seconds-since-the-crest clock
+  // ocean()'s residue decays on (rayS comes with the spliced MODEL_GLSL), so
+  // the fragment ages in lockstep with the model's own foam decay.
+  float wA = 2.0*PI/u_T;
+  float tSince = mod(wA*t - (2.0*PI/LAM)*rayS(xz), 2.0*PI)/wA;
+  float ageK = smoothstep(1.2, 0.62*u_T, tSince);   // 0 fresh -> 1 aftermath
+  // advect the erosion lattice shoreward with age: the aftermath pattern
+  // smears with the swash instead of sitting on a static noise grid. The
+  // mod() jump in tSince lands on the crest line, where foam is fresh and the
+  // seam is repainted before it can read.
+  vec2 axz = xz - vec2(0.0, 1.1)*min(tSince, 7.0);
+  float er = vnoise2(axz*0.35 + vec2(t*0.08, -t*0.05))*0.65
+           + vnoise2(axz*0.90 + vec2(t*0.10, -t*0.07))*0.35;
   float foamM = clamp(vFoam, 0.0, 1.0);
-  float er = vnoise2(xz*0.35 + vec2(t*0.08, -t*0.05))*0.65
-           + vnoise2(xz*0.90 + vec2(t*0.10, -t*0.07))*0.35;
-  foamM = smoothstep(0.15, 0.75, foamM + (er - 0.5) * 0.5);
+  // fresh foam keeps the hard eroded fingering; with age the noise stops
+  // carving (amplitude down) and the threshold ramp widens (soft gradient
+  // instead of a binary cell edge), then the whole sheet thins toward film.
+  float erAmp  = mix(0.50, 0.18, ageK);
+  float hiEdge = mix(0.75, 1.10, ageK);
+  foamM = smoothstep(0.15, hiEdge, foamM + (er - 0.5)*erAmp);
+  foamM *= mix(1.0, 0.70, ageK);   // aftermath never saturates: filmy, not plates
 
   // ---- 1. detail spectrum: fragment-stage normal perturbation ----
   // damped where foam owns the surface and over the boil slick; wind chop
@@ -413,11 +444,16 @@ void main() {
   vec2 fg = foamGrad(xz, t) * 0.25 * foamM;
   vec3 Nf = normalize(vec3(N.x - fg.x, N.y, N.z - fg.y));
 
-  // base albedo: web/'s NorCal palette (slate blue -> shelf -> murky inner)
+  // base albedo: web/'s NorCal palette (slate blue -> shelf -> murky inner).
+  // TONAL SEPARATION (critique, 2026-08-11): at screensaver distance the frame
+  // compressed into one mid-grey band — water, foam and sky within a stop of
+  // each other. Same hues (ratios preserved), values pulled DOWN ~30% so the
+  // dark water body sets the floor, fresh foam the near-white ceiling, and the
+  // marine-layer sky sits between: three distinct values at thumbnail size.
   float shoreT = smoothstep(-250.0, 60.0, xz.y - breakLine(xz.x));
-  vec3 deep  = vec3(0.10, 0.15, 0.19);
-  vec3 shelf = vec3(0.11, 0.21, 0.22);
-  vec3 inner = vec3(0.19, 0.27, 0.26);
+  vec3 deep  = vec3(0.065, 0.10, 0.135);
+  vec3 shelf = vec3(0.075, 0.145, 0.155);
+  vec3 inner = vec3(0.135, 0.195, 0.185);
   vec3 base  = mix(deep, mix(shelf, inner, smoothstep(0.5, 1.0, shoreT)), shoreT);
   base += vec3(0.03, 0.10, 0.10) * clamp(vWorldPos.y*0.35, 0.0, 1.2);
 
@@ -453,7 +489,11 @@ void main() {
   float cosV = max(dot(Ng, V), 0.0);
   float fres = 0.02 + 0.98*pow(1.0 - cosV, 5.0);
   float specKill = 1.0 - 0.95*foamM;
-  vec3 refl = skyColor(reflect(-V, Ng), t) * 0.88;
+  // 0.74 (was 0.88): part of the tonal-separation pass — the mirrored sky was
+  // lifting the whole far field to within a stop of the sky itself, so the
+  // horizon read as one band. Real wave-slope masking keeps water a full stop
+  // darker than what it reflects; sky stays untouched and therefore distinct.
+  vec3 refl = skyColor(reflect(-V, Ng), t) * 0.74;
   vec3 col = mix(base, refl, clamp(fres * specKill, 0.0, 1.0));
   // broad sheen = the diffuse marine-layer light; tight glitter = sun hits on
   // the detail normals — thousands of sub-pixel sparkles in motion. As detail
@@ -503,8 +543,14 @@ void main() {
   float ftex = 0.58 + 0.42*(vnoise2(xz*0.35 + vec2(t*0.15, -t*0.1))*0.6
                           + vnoise2(xz*1.15 - vec2(t*0.08, t*0.05))*0.4);
   float lamF = clamp(dot(Nf, sunDir), 0.0, 1.0);
-  vec3 foamCol = vec3(0.93, 0.95, 0.96) * (0.8 + 0.2*ftex) * (0.85 + 0.15*lamF);
-  col = mix(col, foamCol, clamp(foamM*1.15, 0.0, 0.97));
+  // fresh whitewater is the brightest thing in frame (tonal ceiling, raised
+  // from 0.93 as part of the value-range stretch); with age it grades to a
+  // thin blue-grey film that lets the darkened water body read through — the
+  // bright->filmy gradient the aftermath was missing.
+  vec3 foamCol = vec3(0.97, 0.98, 0.99) * (0.82 + 0.18*ftex) * (0.86 + 0.14*lamF);
+  vec3 filmCol = mix(base, vec3(0.60, 0.68, 0.70), 0.6);
+  foamCol = mix(foamCol, filmCol, 0.55*ageK);
+  col = mix(col, foamCol, clamp(foamM*mix(1.15, 0.90, ageK), 0.0, 0.97));
 
   // ---- 5. aerial perspective ----
   // fog toward the same procedural sky the dome draws, evaluated along the
@@ -551,30 +597,59 @@ void main(){
   float seedZ = position.z;
   vec4 life = breakerLifecycleAtX(x0, u_time);
   float plunge = smoothstep(0.45, 1.25, u_xi);
-  // The ballistic arc peaks during the compact impact, not halfway through the
-  // foam wake. life.z is already the canonical crash envelope.
-  float ageN = clamp(life.x/1.60, 0.0, 1.0);
-  float arc = 4.0*ageN*(1.0 - ageN);
 
-  // The real-point reference has a narrow bright head with a low tail. Keep
-  // lateral and shore-normal spread compact; vertical lift is taxonomy-gated.
-  float x = x0 + (seedZ - 0.5)*(2.2 + 3.8*ageN);
-  float z = life.y - (0.8 + 2.8*seedY)*ageN + (seedZ - 0.5)*3.2;
-  float y = 0.20 + u_H0*VIS*(0.16 + 0.34*seedY)
-          + u_H0*VIS*(0.30 + 0.78*seedY)*arc*plunge;
+  // PER-PARTICLE BALLISTICS (spray critique, 2026-08-11). The old pass flew
+  // every droplet on the ONE shared lifecycle phase plus a constant hover
+  // offset, so the whole population rose and floated in lockstep — detached
+  // bead-strings above the wave. Each droplet now owns a hashed launch delay
+  // and flight time: it leaves the LIP at the breaking front's position at
+  // launch time, arcs ballistically shoreward, and lands inside the trailing
+  // foam, where its alpha melts out.
+  float h1 = hash21(vec2(x0*1.73, seedY*31.7));
+  float h2 = hash21(vec2(seedZ*47.9, x0*0.61));
+  float Tf    = 0.45 + 0.75*seedY;                  // flight time, s
+  float delay = CRASH_PEAK_S - 0.25 + 0.95*h1;      // staggered launches across the crash
+  float tf    = life.x - delay;                     // this droplet's own flight clock, s
+  float u01   = clamp(tf/Tf, 0.0, 1.0);
+  float airborne = (tf > 0.0 && tf < Tf) ? 1.0 : 0.0;
+
+  // anchor: the front's position when THIS droplet launched (life.y is the
+  // front now; frontSpeed mirrors breakerLifecycleAtX's mix(2.4, 4.1, plunge)).
+  float frontSpeed = mix(2.4, 4.1, plunge);
+  float zLaunch = life.y - frontSpeed*tf*airborne;
+  // shoreward ballistic drift slower than the front (0.30-1.15x), so most
+  // droplets fall behind the head and land in the trail, not ahead of it
+  float vz = frontSpeed*(0.30 + 0.85*h2);
+
+  // vertical: lip height down to the foam, apex taxonomy- and size-gated.
+  // Heights in metres of DISPLAYED face (u_H0*VIS): identity at the 1.5 m
+  // calibration day like every size factor.
+  float yLip = 0.15 + u_H0*VIS*(0.50 + 0.30*seedZ);
+  float lift = u_H0*VIS*(0.22 + 0.70*seedY)*(0.30 + 0.70*plunge);
+  float x = x0 + (seedZ - 0.5)*2.4 + (h2 - 0.5)*1.8*u01;   // randomized spacing + drift
+  float z = zLaunch + vz*tf;
+  float y = yLip*(1.0 - u01) + 4.0*lift*u01*(1.0 - u01);   // parabola: lip -> apex -> foam
   vec3 world = vec3(x, y, z);
   vec4 mv = modelViewMatrix*vec4(world, 1.0);
 
-  float grain = 0.40 + 0.60*smoothstep(0.08, 0.98, hash21(vec2(x0*1.73, seedY*31.7)));
-  float live = clamp(u_breakShape, 0.0, 1.0)*life.z*grain;
+  float grain = 0.40 + 0.60*smoothstep(0.08, 0.98, h1);
+  // launch-window weight: droplets only leave while the crash is actually
+  // throwing water (widened impact bell); life.z + life.w keeps mid-flight
+  // droplets lit through the bore phase instead of gating on the fast-decaying
+  // impact term alone.
+  float lw = exp(-0.5*pow((delay - CRASH_PEAK_S)/(CRASH_SIGMA_S*2.6), 2.0));
+  float live = clamp(u_breakShape, 0.0, 1.0)*(life.z + 0.8*life.w)*lw*grain*airborne;
+  // fade in fast off the lip, melt out over the last quarter of the arc so
+  // splashdown reads as joining the foam, not popping off
+  float ends = smoothstep(0.0, 0.10, u01)*(1.0 - smoothstep(0.72, 1.0, u01));
   // SIZE_AUDIT open item 3: launch height already scales with H0 but droplet
   // opacity did not. Same 1.5 m calibration anchor (factor == 1.0 at H0 = 1.5,
   // so every 1.5 m preset is unchanged); tighter clamp than the foam factor
   // because alpha saturates faster than surface whiteness.
   float sizeSpray = clamp(u_H0/1.5, 0.7, 1.4);
-  vSprayAlpha = live*(0.30 + 0.70*seedY)*sizeSpray;
+  vSprayAlpha = live*(0.30 + 0.70*seedY)*ends*sizeSpray;
   vSprayShade = 0.72 + 0.28*seedZ;
-  gl_PointSize = clamp((2.5 + 6.5*seedY)*310.0/max(-mv.z, 12.0), 1.0, 15.0);
+  gl_PointSize = clamp((2.5 + 6.5*seedY)*(1.0 - 0.30*u01)*310.0/max(-mv.z, 12.0), 1.0, 15.0);
   gl_Position = projectionMatrix*mv;
 }
 `;

@@ -18,10 +18,14 @@
 import * as THREE from 'three';
 import { surferState, surfaceAt, PUMP_PERIOD } from './model-js.js';
 
-// wetsuit near-black + a slightly lighter deck so the board reads as a
-// separate object when the sun is behind the wave (web/ used 0.06-0.08 greys)
+// wetsuit near-black + a clearly lighter deck so the board reads as a
+// separate object at follow-cam range (~200 m). web/ used 0.06-0.08 greys;
+// that killed the board at distance, so the deck is now a light slate that
+// still sits below foam white — board/body separation is a value contrast,
+// not a hue read.
 const BODY_COL  = 0x101317;
-const BOARD_COL = 0x272e35;
+const BOARD_COL = 0x4a5560;
+const WAKE_COL  = 0xffffff;
 
 // capsule limb from point a to b (radius r): the same primitive web/'s SDF
 // rider is built from, so the silhouette language carries over
@@ -46,27 +50,48 @@ export function makeSurferMesh() {
   // rocker better than a box at this size). Rotate the GEOMETRY onto +z so
   // the mesh-space y scale flattens thickness, not length (scale applies in
   // local space before rotation — a rotated mesh would squash the wrong axis)
-  const boardGeo = new THREE.CapsuleGeometry(0.30, 1.9, 3, 8);
+  // slightly longer/wider than the first pass — at 200 m the board IS the
+  // "surfing" cue, the body alone reads as a swimmer
+  const boardGeo = new THREE.CapsuleGeometry(0.34, 2.1, 3, 8);
   boardGeo.rotateX(Math.PI / 2);
   const board = new THREE.Mesh(boardGeo, boardMat);
-  board.scale.set(1.0, 0.18, 1.0);           // 0.6 m wide, ~0.1 m thick
+  board.scale.set(1.0, 0.18, 1.0);           // ~0.7 m wide, ~0.12 m thick
   group.add(board);
 
-  // rider sub-group: surf stance, feet spread along the board axis, knees
-  // bent, arms out for balance. Lean (pump phase) is applied to THIS group.
+  // wake: one white quad trailing the tail, riding the water plane (~0.35
+  // below board center, matching the float offset in updateSurfer). It is a
+  // child of the GROUP, not the rider — the board basis follows the face, so
+  // the quad stays on the water while the body leans. Semi-transparent, no
+  // depth write: it tints the water white without stencil-cutting the mesh.
+  const wakeGeo = new THREE.PlaneGeometry(0.6, 1.5);
+  wakeGeo.rotateX(-Math.PI / 2);             // lie flat, normal up
+  const wake = new THREE.Mesh(wakeGeo, new THREE.MeshBasicMaterial({
+    color: WAKE_COL, transparent: true, opacity: 0.55,
+    depthWrite: false, side: THREE.DoubleSide,
+  }));
+  wake.name = 'wake';
+  wake.position.set(0, -0.30, -2.15);        // tail is at z ~ -1.4; trail behind
+  group.add(wake);
+
+  // rider sub-group: COMPRESSED surf stance — hips dropped to ~0.6 m, knees
+  // clearly bent (knee forward of the foot-hip line), torso driving forward
+  // over the front foot, arms LOW: lead hand reaching ahead of the knee,
+  // trail hand near the back hip. The first pass stood ~1.55 m tall with
+  // arms at shoulder height and read as a T-posed stick at distance.
+  // Lean (pump phase + face lean) is applied to THIS group.
   const rider = new THREE.Group();
   rider.name = 'rider';
-  const hip = [0, 0.78, 0.02];
-  rider.add(limb([0, 0.06,  0.38], [0.02, 0.45,  0.24], 0.085, bodyMat));  // front shin
-  rider.add(limb([0.02, 0.45, 0.24], hip, 0.095, bodyMat));                // front thigh
-  rider.add(limb([0, 0.06, -0.36], [-0.02, 0.42, -0.30], 0.085, bodyMat)); // back shin
-  rider.add(limb([-0.02, 0.42, -0.30], hip, 0.095, bodyMat));              // back thigh
-  const shoulder = [0, 1.24, 0.10];                                        // crouched torso
-  rider.add(limb(hip, shoulder, 0.15, bodyMat));
-  rider.add(limb(shoulder, [0.34, 1.02,  0.42], 0.055, bodyMat));          // lead arm
-  rider.add(limb(shoulder, [-0.30, 1.00, -0.34], 0.055, bodyMat));         // trail arm
+  const hip = [0, 0.60, 0.02];
+  rider.add(limb([0.02, 0.07,  0.42], [0.14, 0.36,  0.34], 0.085, bodyMat)); // front shin
+  rider.add(limb([0.14, 0.36,  0.34], hip, 0.10, bodyMat));                  // front thigh
+  rider.add(limb([-0.02, 0.07, -0.40], [-0.06, 0.32, -0.22], 0.085, bodyMat)); // back shin
+  rider.add(limb([-0.06, 0.32, -0.22], hip, 0.10, bodyMat));                 // back thigh
+  const shoulder = [0.02, 1.00, 0.18];       // compressed torso, forward bias
+  rider.add(limb(hip, shoulder, 0.16, bodyMat));
+  rider.add(limb(shoulder, [0.30, 0.62,  0.60], 0.055, bodyMat));            // lead arm, low + forward
+  rider.add(limb(shoulder, [-0.30, 0.58, -0.06], 0.055, bodyMat));           // trail arm, low
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), bodyMat);
-  head.position.set(0, 1.44, 0.14);
+  head.position.set(0.02, 1.16, 0.28);       // head over the front knee
   rider.add(head);
   group.add(rider);
 
@@ -86,12 +111,21 @@ const _qInv = new THREE.Quaternion();
 const _qUp = new THREE.Quaternion();
 const _qId = new THREE.Quaternion();
 const _qLean = new THREE.Quaternion();
+const _zAxis = new THREE.Vector3(0, 0, 1);
+const _qFace = new THREE.Quaternion();
 
 // how far the rider counter-tilts back toward gravity-vertical (0 = glued to
 // the board basis, 1 = always plumb). On steep plunging faces the raw surface
 // basis laid the body nearly horizontal (Slot close-up, M3 verification) —
 // a real surfer's board follows the face while the body stays mostly upright.
 const UPRIGHT = 0.6;
+
+// face lean: on top of the plumb counter-tilt, roll the body a little PAST
+// vertical toward the wave face (the side world-up tilts toward in the board
+// frame — _wUpLocal.x). tanh saturates the roll at FACE_LEAN on a steep face
+// and fades it to zero on flat water, so the waiting rider stands neutral
+// instead of flickering sign at wUpLocal.x ~ 0.
+const FACE_LEAN = 0.22;   // rad (~13 deg) max angulation into the face
 
 // Pose the rider for simulation time t and model params P. Returns the world
 // position so the Follow camera can reuse it without recomputing the model.
@@ -132,7 +166,11 @@ export function updateSurfer(group, t, P) {
     // lean from pump phase: web/'s SDF displaces the body top by 0.55*sin(...)
     // at 1.55 m height — the same tilt as a rotation about the lateral axis
     _qLean.setFromAxisAngle(_xAxis, Math.atan2(0.55 * Math.sin(t * 2 * Math.PI / PUMP_PERIOD), 1.55));
-    rider.quaternion.copy(_qId).multiply(_qLean);
+    // roll about the board axis into the face: rotating +theta about +z takes
+    // the body top toward -x, so the sign is negated to lean toward +x when
+    // world-up (and the face) is on the +x side
+    _qFace.setFromAxisAngle(_zAxis, -FACE_LEAN * Math.tanh(4 * _wUpLocal.x));
+    rider.quaternion.copy(_qId).multiply(_qLean).multiply(_qFace);
   }
 
   return group.position;

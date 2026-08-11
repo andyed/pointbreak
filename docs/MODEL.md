@@ -403,6 +403,52 @@ This is a 1-D phase traveling along a 2-D curve with a before/after material cha
 A few uniforms; no fluid solver; no FFT required for the break layer itself. The
 zipper motion — not water shading — is the recognizable signature of "a wave peeling."
 
+### 2.5 Wave setup/setdown: the shoreline breathes with the sets (2026-08-11)
+
+**Deliberate scope change.** §5 excluded swash/backwash as "texture, not
+structure." Andy overruled that exclusion on 2026-08-11 for the screensaver
+mission: the missing minute-to-minute motion is the shoreline itself advancing
+and retreating, and the honest mechanism for it is not astronomical tide (hours)
+or per-wave swash (seconds) but **wave setup/setdown** — mean-water-level
+physics on exactly the set/lull timescale the screen needs.
+
+The physics, qualitatively: breaking waves carry excess momentum flux —
+radiation stress, in Longuet-Higgins & Stewart's formulation — and dissipating
+it across the surf zone tilts the mean water surface upward toward the beach.
+The observed super-elevation at the shoreline is a modest fraction of the
+breaking height (of order 0.15–0.3·H_break), so during a set the still-water
+line stands measurably higher on the sand, and in the lull the piled water
+drains back seaward. This is *setup* (a raised mean level), not *swash* (the
+per-wave excursion around that level); §5's rejection of a shallow-water solver
+still stands — nothing here integrates a fluid.
+
+Implementation (`setupLiftM` in the shared GLSL):
+
+- **Driver** — the same two-component group envelope that makes the sets
+  (`setEnv`, period 1/Δf ≈ 167 s at the model-card Δf = 0.006 Hz), evaluated at
+  the station's ray coordinate so the surge arrives with the group that causes
+  it. Minute-scale and rate-independent by construction.
+- **Asymmetry, analytically** — the water should rise with the set and drain
+  *slower* than it rose, but GLSL has no per-frame state to run an
+  attack/decay follower. Instead the response is the set-envelope cosine with
+  a phase lag that itself swings over the cycle:
+  `envS = ½ + ½·cos(ph − (0.9 + 0.8·sin ph))`. The lag stays positive
+  (0.1–1.7 rad, base ≈ 24 s of the cycle), is largest on the falling limb
+  (the level holds high after the set peaks) and smallest on the rising limb
+  (the next set's surge arrives fast). Everything is a closed form in `u_time`.
+- **Scale** — `0.2·H₀·envS`. Depth-limited breaking makes H₀ the
+  breaking-height scale (H_break = γ·h_b with h_b = H₀/γ), so this is
+  0.2·H_break, inside the observed band — and bigger days pull back further,
+  another emergent size cue.
+- **Confinement** — faded in below ~2 m of still-water depth (full strength
+  under ~0.7 m), so the lineup, the break line and the takeoff never feel it.
+  Gated by `u_depthMix`: synthetic presets have no measured shoreline to move.
+- **Emergent waterline** — the lift is added both to the *depth* the physics
+  sees (shoaling, `Hlim`, the shore-fade, so broken waves run farther in
+  during a set) and to the *surface height* itself. The renderers already
+  take `max(bed, water)`, so the shoreline advances and retreats for free —
+  no repainted texture, no second waterline.
+
 ## 3. The Pleasure Point model card
 
 Canonical parameter values (the reference instance):
@@ -446,6 +492,11 @@ Same machinery, different knob positions:
   is not the goal; the zipper is a *reading* of the wave, not a hindcast.
 - **Surfers** — the wave is the protagonist.
 - **Swash/backwash, currents, kelp** — texture, not structure. Later, maybe.
+  *Partially overruled 2026-08-11 (Andy, screensaver mission): §2.2 already took
+  the static shoreline, and §2.5 now adds **wave setup/setdown** — the set-driven
+  mean-water-level rise and drain that moves the shoreline minute to minute. It
+  is mean-level physics, not per-wave swash: swash proper, backwash currents and
+  kelp remain out of scope, and the no-solver rule is untouched.*
 
 ## 6. Hooks
 

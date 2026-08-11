@@ -340,6 +340,46 @@ float setEnv(float s, float t){
   return 0.5 + 0.5*cos(2.0*PI*u_dF*(t - s/cg));
 }
 
+// ---------- wave setup / setdown: the minute-scale shoreline breath ----------
+// Broken waves carry excess momentum flux (radiation stress, Longuet-Higgins &
+// Stewart); releasing it in the surf zone tilts the mean water surface upward
+// toward the beach. During a set the still-water level near shore therefore
+// rides a modest fraction of the breaking height ABOVE its lull position, and
+// in the lull the piled water drains back seaward. MODEL.md 5's swash
+// exclusion is deliberately overruled here (2026-08-11, Andy, screensaver
+// mission): this is the minute-to-minute "tide pull-back" the screen needs,
+// and setup/setdown is mean-water-level physics, not per-wave swash.
+//
+// The driver is the SAME group envelope that pumps the sets (setEnv, period
+// 1/u_dF ~ minutes), but smoothed into a lagged, asymmetric response: the
+// surge arrives with the broken waves of the set, while the drain is gravity
+// pushing a thin sheet back through the surf zone and takes longer. GLSL has
+// no per-frame state to integrate an attack/decay envelope-follower with, so
+// the asymmetry is analytic in u_time: the phase lag itself swings with
+// sin(ph), which delays the falling limb of the cosine (slow drain) more than
+// the rising limb (fast surge). Rate independent — everything is a function
+// of t and u_dF, never of frame count.
+float setupLiftM(vec2 xz, float t){
+  float cg = 0.5*LAM/u_T;                          // group speed, as in setEnv
+  float ph = 2.0*PI*u_dF*(t - rayS(xz)/cg);        // set-envelope phase at this station
+  // Lag in set-cycle radians: base ~0.9 rad (~24 s of a 167 s cycle) keeps the
+  // water level trailing the set that raised it; the +0.8*sin(ph) swing holds
+  // the level high after the set peaks and releases it quickly when the next
+  // set arrives. Always positive (0.1..1.7 rad), so the response never leads.
+  float lagPh = 0.9 + 0.8*sin(ph);
+  float envS  = 0.5 + 0.5*cos(ph - lagPh);         // smoothed+lagged set envelope, 0..1
+  // Depth-limited breaking makes H0 the breaking-height scale (H_break =
+  // GAMMA*h_b with h_b = H0/GAMMA), so scaling by H0 is scaling by H_break:
+  // bigger days pile more water up the beach — another emergent size cue.
+  // 0.2 sits inside the observed 0.15-0.3*H_break shoreline-setup band.
+  // Confined to the shoreward fringe: full strength where still water is
+  // thinner than ~0.7 m, gone below ~2 m, so the lineup, the break line and
+  // the takeoff never feel it. Gated by u_depthMix like every bathymetry
+  // -derived term (synthetic presets have no measured shoreline to move).
+  float nearShore = 1.0 - smoothstep(0.7, 2.0, waterDepthM(xz));
+  return 0.2*u_H0*envS*nearShore*u_depthMix;
+}
+
 // One breaker clock for every visual consequence of collapse. Age is measured
 // at the canonical break line, not independently at each surface sample: the
 // lip, impact front, aerated bore and spray therefore remain one event as the
@@ -401,7 +441,14 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // Synthetic stand-in (kept for presets with no bathymetry behind them) and
   // the real thing: Green's law Ks = sqrt(cg0/cg), shallow-water cg = sqrt(gh).
   // Capped at 2.6 because breaking intervenes long before Ks runs away.
-  float dep     = modelDepthM(xz);
+  // Setup/setdown water is REAL depth: it feeds the shoaling/breaking terms
+  // here and lifts the surface itself further down, which is what walks the
+  // emergent waterline (surfacePos takes max(bed, water)) up and down the
+  // beach on the set rhythm. In the lifted zone the extra depth also raises
+  // Hlim slightly, so the last few metres of surf break a touch later during
+  // a set — deeper water genuinely is harder to break.
+  float lift    = setupLiftM(xz, t);
+  float dep     = modelDepthM(xz) + lift;
   float growSyn = 1.0 + 0.85*exp(-max(d,0.0)/90.0)*reef;
   float cg0     = G*u_T/(4.0*PI);          // deep-water group speed, gT/4pi
   float Ks      = clamp(sqrt(cg0/sqrt(G*dep)), 0.7, 2.6);
@@ -449,7 +496,11 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // ---- the wave dies in the swash ----
   // Without this the inshore wave settles at 32% amplitude and runs to the
   // stage edge forever, which is exactly why the beach was invisible.
-  float shoreFade = mix(1.0, smoothstep(0.0, 1.6, waterDepthM(xz)), u_depthMix);
+  // Setup water counts here too: during a set the raised sheet lets broken
+  // waves run farther up the shore before dying; in the lull they die where
+  // they always did. The excursion of the wave-covered zone therefore
+  // breathes with the same rhythm as the waterline itself.
+  float shoreFade = mix(1.0, smoothstep(0.0, 1.6, waterDepthM(xz) + lift), u_depthMix);
 
   // crest at theta=0 mod 2pi. Lines of constant rayS: bowed by the contour and
   // rotated by the REFRACTED swell incidence (swellPhi).
@@ -466,6 +517,13 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float q      = 1.6 + 3.2*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
   float amp    = 0.5*u_H0 * grow * decay * env * shoreFade;
   float h      = amp * crestShape(-theta, q) * 2.0;
+
+  // The mean-surface tilt itself: raise the water by the setup so the
+  // shoreline advance/retreat is EMERGENT — the renderers already take
+  // max(bed, water), so a higher sheet simply wins farther up the sand.
+  // Physical metres here; the trailing VIS multiply exaggerates it exactly
+  // as much as the waves that cause it, keeping the two visually consistent.
+  h += lift;
 
   // the boil: fixed upwelling over a shallow rock beside the takeoff —
   // glassy dome, chop suppressed, waves kink slightly over it
