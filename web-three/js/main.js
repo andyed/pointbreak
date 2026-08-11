@@ -9,7 +9,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
-import { makeState, applyPreset, PRESETS, describeGeoState } from '../../web/js/params.js';
+import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS } from '../../web/js/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
@@ -22,7 +22,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
          wavelengthAtStation, psiAt } from './bed.js';
 import { makeSection } from './section.js';
-import { applyConditionDay, nextGoodDay } from './conditions.js';
+import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
 
 // ---------- stage ----------
@@ -364,6 +364,7 @@ const hudAudio = document.getElementById('hudAudio');
 const hudAlpha = document.getElementById('hudAlpha');
 const hudXi = document.getElementById('hudXi');
 const hudLam = document.getElementById('hudLam');
+const hudSwell = document.getElementById('hudSwell');
 function refreshHUD() {
   const p = state.preset ? PRESETS[state.preset].label : 'custom';
   hudPreset.textContent = state.paused ? p + ' (paused)' : p;
@@ -408,6 +409,12 @@ function refreshHUD() {
   }
   // M5 bed mode (B key three-way): 0 measured+reef / 1 plane / 2 measured
   const bedMode = ['bed measured+reef', 'bed plane', 'bed measured'][state.bedShape || 0];
+  // Swell size in metres AND feet: the model is metric, surfers are not, and
+  // "5 ft" is the unit anyone judging this as a screensaver actually thinks in.
+  if (hudSwell) {
+    const ft = state.H0 * 3.28084;
+    hudSwell.textContent = `${state.H0.toFixed(1)} m (${ft.toFixed(1)} ft) · T ${state.T} s`;
+  }
   // M6 part 3: report the wavelength the crests are actually drawn at. Off the
   // Psi path that is the frozen 90 m and saying so is the point — the HUD is
   // where the constant stops being invisible. On it, report the compression
@@ -425,6 +432,18 @@ function refreshHUD() {
   hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`
     + (state.geoSpot ? ` · ${bedMode}` : '')
     + (activeDayLabel ? ` · ${activeDayLabel}` : '');
+}
+
+// Swell-height step, clamped to the PARAM_DEFS range. Rounded to the step so
+// repeated presses land on clean values instead of drifting on float error.
+const H0_DEF = PARAM_DEFS.find((d) => d.key === 'H0');
+function stepH0(dir) {
+  const v = (state.H0 || 0) + dir * H0_DEF.step;
+  const snapped = Math.round(v / H0_DEF.step) * H0_DEF.step;
+  state.H0 = Math.min(Math.max(snapped, H0_DEF.min), H0_DEF.max);
+  // A hand on the size knob means the day label no longer describes the ocean.
+  if (activeDayLabel) { activeDayLabel = null; activeDayKey = null; }
+  refreshHUD();
 }
 
 // ---------- keyboard (parity with web/) ----------
@@ -452,6 +471,26 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'c' || e.key === 'C') { showSection = !showSection; section.el.style.display = showSection ? '' : 'none'; }
   if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.15, TIDE_RANGE[0]); refreshHUD(); }
   if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.15, TIDE_RANGE[1]); refreshHUD(); }
+  // ---- swell size, live ----
+  // Size was reachable only through #day= or the preset bank, and the default
+  // 1.5 m card day breaks in ~2.9 m of water — a wall barely a metre of
+  // physical face, which reads as flat water from the cliff. Bumping H0 moves
+  // the M4 break locus seaward into deeper water, where Hlim = GAMMA*h is
+  // larger, so the face genuinely grows (SIZE_AUDIT's master finding is that
+  // this is the ONLY route size has in, and it needs M4 — which now ships).
+  // Bounds come from PARAM_DEFS so the keys can never ask for conditions the
+  // sliders forbid.
+  if (e.key === '-' || e.key === '_') { stepH0(-1); }
+  if (e.key === '=' || e.key === '+') { stepH0(+1); }
+  // D cycles the whole condition bank, junky days included: H0 alone makes a
+  // wave taller, a DAY also moves period, tide and chop together, which is
+  // what actually changes its character.
+  if (e.key === 'd' || e.key === 'D') {
+    const i = CONDITION_DAYS.findIndex((x) => x.key === activeDayKey);
+    const d = applyConditionDay(state, uniforms,
+      CONDITION_DAYS[(i + 1 + CONDITION_DAYS.length) % CONDITION_DAYS.length].key);
+    if (d) { activeDayKey = d.key; activeDayLabel = d.label; refreshHUD(); }
+  }
   // B cycles the bed mode three ways (M5): measured+reef (the spot) -> plane
   // (no structure at all) -> measured (the DEM's closeout — no reef) -> back.
   // One key shows: synthetic reef = the spot, plane = no peel, no reef =
@@ -716,6 +755,10 @@ function applyHashParams() {
   if (h.get('hud') === '0') document.body.classList.add('hidepanel');
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
+  if (h.has('h0')) {
+    const v = parseFloat(h.get('h0'));
+    if (Number.isFinite(v)) state.H0 = Math.min(Math.max(v, H0_DEF.min), H0_DEF.max);
+  }
   if (h.has('psi')) psiEnabled = h.get('psi') === '1'; // M6p3 shoaling wavelength (default OFF; water only)
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
