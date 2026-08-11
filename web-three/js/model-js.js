@@ -96,6 +96,17 @@ export function rayS(x, z, P) {
   return xx * Math.sin(phi) + contourZ(x, z, P) * Math.cos(phi);
 }
 
+// MODEL-TWIN of model-glsl.js rayPhase(): the spatial phase, radians.
+//
+// M6 part 3. The Psi form needs the baked table, which lives in bed.js, which
+// imports THREE — and this file must stay THREE-free so node --test can reach
+// it. So the caller INJECTS it as P.phaseFn (main.js builds it from the bake);
+// with no phaseFn this is exactly the frozen-LAM plane wave the model has
+// always used. Same injection contract as m4RideSolve's zbFn.
+export function rayPhase(x, z, P) {
+  return P.phaseFn ? P.phaseFn(x, z) : (2 * PI / LAM) * rayS(x, z, P);
+}
+
 // Realized peel angle at station x, radians (diagnostic — HUD and docs).
 export function peelAngleAt(x, P) {
   const cc = coastCurveSlope(x, P);
@@ -136,7 +147,11 @@ export function oceanH(x, z, t, P) {
   const decay = 1 - 0.68 * brk;
 
   const s     = rayS(x, z, P);
-  const theta = w * t - k * s;
+  // Crest phase follows rayPhase (shoals under P.phaseFn). setEnv stays on the
+  // metric ray coordinate: the GROUP envelope's cg = LAM/2T is still the frozen
+  // deep-water form in the shader too, so mirroring it here keeps the twin
+  // faithful. Moving the group speed is step 3's scope, not this one.
+  const theta = w * t - rayPhase(x, z, P);
   const env   = setEnv(s, t, P), env2 = env * env;
   const q     = 1.6 + 3.2 * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * P.xi);
   const amp   = 0.5 * P.H0 * grow * decay * env;
@@ -308,13 +323,26 @@ function crestCrossing(target, S, xLo, xHi, prevX) {
   return 0.5 * (lo + hi);
 }
 
+// M6 part 3, step 2: solved in PHASE (radians) rather than in the ray
+// coordinate S (metres). The two are the same statement while the wavelength is
+// constant — phase = k*S — but under the shoaling wavelength there is no single
+// k to divide by, so S stops being a usable crest label and the phase does not.
+//
+// The phase comes from rayPhase(), i.e. from P.phaseFn when the caller supplies
+// one and the frozen-LAM plane wave otherwise — the same injection contract as
+// zbFn, and for the same reason (bed.js owns the bake and imports THREE).
+//
+// The legacy branch is EXACTLY the old arithmetic, not an approximation of it:
+// with phase = k*S, dx/dt = w/(dPhi/dx) = (LAM/T)/(dS/dx), and the old dS/dx
+// floor of 0.02 and the new dPhi/dx floor both saturate the same [2, 90] clamp.
 export function m4RideSolve(t, P, zbFn, st) {
-  const k = 2 * PI / LAM, w = 2 * PI / P.T;
+  const w = 2 * PI / P.T;
   const xLo = (P.stageStart ?? -110) + RIDE_EDGE;
   const xHi = (P.stageEnd ?? 290) - RIDE_EDGE;
   if (!(xHi > xLo) || !(P.T > 0)) return null;
-  const S = (x) => rayS(x, zbFn(x), P);
-  const targetOf = (n) => (w * t - 2 * PI * n) / k;
+  // S here is the CREST LABEL along the break line, now in radians.
+  const S = (x) => rayPhase(x, zbFn(x), P);
+  const targetOf = (n) => w * t - 2 * PI * n;
 
   // The takeoff is where a crest FIRST meets the line: the minimum of S over
   // the stage, not the up-point stage edge. At Second Peak S is monotone and
@@ -335,7 +363,8 @@ export function m4RideSolve(t, P, zbFn, st) {
   const scanLo = Math.max(takeoffX - STEP, xLo);
   // most recent crest to have arrived at the takeoff: floor, so its
   // down-point crossing satisfies S(x) = target >= sMin by construction
-  const nTakeoff = Math.floor((w * t - k * sMin) / (2 * PI));
+  // (sMin is now a phase, so the k factor the old form carried is gone)
+  const nTakeoff = Math.floor((w * t - sMin) / (2 * PI));
 
   if (!Number.isFinite(st.n)) { st.n = nTakeoff; st.prevX = null; }
   let x = crestCrossing(targetOf(st.n), S, scanLo, xHi, st.prevX);
@@ -349,16 +378,18 @@ export function m4RideSolve(t, P, zbFn, st) {
   if (waiting) x = takeoffX;
   st.prevX = waiting ? null : x;
 
-  // ground velocity along the line: S(x(t)) = (w*t - 2*pi*n)/k, so
-  // dx/dt = c / (dS/dx) with c = LAM/T. Floored: a near-shore-parallel
-  // emergent line (derived alpha -> 0) is a closeout, not a divide by zero.
+  // ground velocity along the line: S(x(t)) = w*t - 2*pi*n with S in radians,
+  // so differentiating gives dx/dt = w / (dS/dx). Under the frozen wavelength
+  // that is identically the old (LAM/T)/(dS_metres/dx). Floored: a
+  // near-shore-parallel emergent line (derived alpha -> 0) is a closeout, not a
+  // divide by zero, and the clamp below is what actually bounds it.
   const e = 1.5;
   const xa = Math.max(x - e, xLo), xb = Math.min(x + e, xHi);
   const dSdx = (S(xb) - S(xa)) / Math.max(xb - xa, 1e-6);
   // waiting keeps a token down-point heading: with vx = 0 the board's forward
   // vector is the pump term alone, which flips sign every half cycle and spun
   // the mesh 180 degrees on the spot. He faces the ride he is waiting for.
-  const vx = waiting ? 2 : clamp((LAM / P.T) / Math.max(dSdx, 0.02), 2, 90);
+  const vx = waiting ? 2 : clamp(w / Math.max(dSdx, 1e-4), 2, 90);
   const zb = zbFn(x);
   const dzbdx = (zbFn(xb) - zbFn(xa)) / Math.max(xb - xa, 1e-6);
 

@@ -14,13 +14,13 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
-import { coastCurve, swellPhi, peelAngleAt, m4RideSolve,
+import { coastCurve, swellPhi, peelAngleAt, m4RideSolve, contourZ,
          oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
-         wavelengthAtStation } from './bed.js';
+         wavelengthAtStation, psiAt } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -239,6 +239,10 @@ function modelP() {
     stageStart: state.stageStart, stageEnd: state.stageEnd,
     rideOffset: uniforms.u_rideOffset.value,
     m4Ride,
+    // M6 part 3: the JS twin's phase field. Null off the Psi path, which makes
+    // rayPhase() fall back to the frozen-LAM plane wave — the branch the twin
+    // has always run. Set once per frame by the refraction bake below.
+    phaseFn: psiPhaseFn,
   };
 }
 
@@ -489,6 +493,10 @@ const m4RideState = { n: null, prevX: null, preset: null };
 // the rider, the audio crest solve and setEnv all still assume constant phi, so
 // this is a water-only preview until steps 2-3 of the spec's staged path land.
 let psiEnabled = false;
+// MODEL-TWIN of the shader's rayPhase(), rebuilt whenever the Psi bake changes.
+// Lives at module scope because modelP() is called from cameras and the rider
+// alike and every one of them must see the same phase field the GPU does.
+let psiPhaseFn = null;
 section.el.style.display = 'none';
 
 // ---------- resize ----------
@@ -545,6 +553,43 @@ function frame(now) {
   uniforms.u_stageBounds.value.set(state.stageStart, state.stageEnd);
   applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
+  // ---- M6 part 3: bake Psi, the depth-dependent phase field ----
+  // Ahead of the M4 block because the rider solve below consumes it: with a
+  // shoaling wavelength there is no single k, so the crest label the ride
+  // follows has to be the phase itself. Cached inside bakeRefraction on
+  // (site, T, tide, bed, swell), so this is a map lookup on all but the frames
+  // one of those changes.
+  // contourZ needs only the coast-curve fields, so give it a minimal snapshot
+  // rather than modelP() — which would otherwise have to exist before the
+  // phase function it carries.
+  const geoP = { aframe: state.aframe, geoMix: state.geoMix,
+                 contourX2: state.contourX2, contourX3: state.contourX3,
+                 stageStart: state.stageStart, stageEnd: state.stageEnd };
+  const refr = (!psiEnabled || state.aframe || !state.geoSpot) ? null
+    : bakeRefraction(state.geoSpot, {
+        T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0,
+        swellDeg: state.alpha, xRef: 0,
+      });
+  uniforms.u_psiMix.value = refr ? 1 : 0;
+  psiPhaseFn = refr
+    ? (x, z) => {
+        const xx = state.aframe ? Math.abs(x) : x;
+        return refr.kappa * xx + psiAt(contourZ(x, z, geoP));
+      }
+    : null;
+  if (refr) {
+    if (uniforms.u_refrTex.value !== refr.texture) {
+      uniforms.u_refrTex.value = refr.texture;
+      uniforms.u_refrPsi.value.set(refr.psiMin, refr.psiMax);
+      uniforms.u_refrKappa.value = refr.kappa;
+      refreshHUD();
+    }
+  }
+  // MODEL-TWIN of the shader's rayPhase(): kappa*x + Psi(contourZ). Null off
+  // the Psi path, which makes rayPhase() fall back to the frozen-LAM plane
+  // wave. Captured against a P WITHOUT phaseFn (contourZ never reads it, but
+  // building modelP() inside its own field would recurse).
+
   // ---- M4: bake the emergent break line ----
   // Cached on (site, swell, tide, bed) — recomputed only when one of those
   // changes, never per frame. The A-frame keeps the authored fold: it mirrors
@@ -580,27 +625,6 @@ function frame(now) {
     uniforms.u_surferPos.value.set(s.x, s.z, s.vx, s.vz);
   } else {
     m4Ride = null;
-  }
-
-  // ---- M6 part 3: bake Psi, the depth-dependent phase field ----
-  // Cached on (site, T, tide, bed, swell angle) inside bakeRefraction, so this
-  // is a map lookup on all but the frames those change. STAGED: water only —
-  // the rider (surferState/m4RideSolve), sound.js's crest solve and setEnv's
-  // group speed are all still on the constant-phi plane wave, so with #psi=1
-  // the rider drifts off the crests. Off by default until steps 2-3 land.
-  const refr = (!psiEnabled || state.aframe || !state.geoSpot) ? null
-    : bakeRefraction(state.geoSpot, {
-        T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0,
-        swellDeg: state.alpha, xRef: 0,
-      });
-  uniforms.u_psiMix.value = refr ? 1 : 0;
-  if (refr) {
-    if (uniforms.u_refrTex.value !== refr.texture) {
-      uniforms.u_refrTex.value = refr.texture;
-      uniforms.u_refrPsi.value.set(refr.psiMin, refr.psiMax);
-      uniforms.u_refrKappa.value = refr.kappa;
-      refreshHUD();
-    }
   }
   // Underwater is a camera state, not a fragment test: sample the JS twin's
   // surface height under the eye. gl_FrontFacing would conflate "below the
