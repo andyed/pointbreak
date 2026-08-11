@@ -169,7 +169,10 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // solve lam = S/(a*k^2) from the LOCAL displayed amplitude: the cusp is now
   // reached by construction at S = 1 whatever the amplitude, and S is the one
   // dimensionless overturn knob.
-  float kk     = 2.0*PI/LAM;
+  // M6 part 3: the cusp parameter is S = lam*a*k^2, so k must be the LOCAL
+  // wavenumber or the solved lam is wrong by (k_local/k_LAM)^2 — a factor of
+  // ~1.9 in 2 m of water. kLocalAt collapses to 2*PI/LAM when u_psiMix is off.
+  float kk     = kLocalAt(xz0);
   // PACK-ICE FIX (drone critique, 2026-08-11): between crests h crosses zero,
   // so the old fixed 0.6 m floor let lam = S/(a k^2) blow up over near-flat
   // water, and the wind-chop gradient (9 m / 3 m noise cells, resolved by the
@@ -207,7 +210,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // pull the face down into a concavity before throwing the crest ribbon over
   // it. This negative space is the cliff-scale barrel cue; simply increasing
   // the whole wave would leave the old rounded mound.
-  float thetaRaw = 2.0*PI/u_T*t - 2.0*PI/LAM*rayS(xz0);
+  float thetaRaw = 2.0*PI/u_T*t - rayPhase(xz0);
   float frontPhase = smoothstep(0.02, 0.78, -sin(thetaRaw))
                    * smoothstep(-0.35, 0.82, cos(thetaRaw));
   float hingeBand = exp(-(d*d)/(2.0*9.0*9.0))*reefWindow(xz0.x);
@@ -436,7 +439,7 @@ void main() {
   // ocean()'s residue decays on (rayS comes with the spliced MODEL_GLSL), so
   // the fragment ages in lockstep with the model's own foam decay.
   float wA = 2.0*PI/u_T;
-  float tSince = mod(wA*t - (2.0*PI/LAM)*rayS(xz), 2.0*PI)/wA;
+  float tSince = mod(wA*t - rayPhase(xz), 2.0*PI)/wA;
   float ageK = smoothstep(1.2, 0.62*u_T, tSince);   // 0 fresh -> 1 aftermath
   // advect the erosion lattice shoreward with age: the aftermath pattern
   // smears with the swash instead of sitting on a static noise grid. The

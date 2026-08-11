@@ -19,7 +19,8 @@ import { coastCurve, swellPhi, peelAngleAt, m4RideSolve,
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
-         reefFitFor } from './bed.js';
+         reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
+         wavelengthAtStation } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -130,6 +131,12 @@ const uniforms = {
   u_breakX:     { value: new THREE.Vector2(-300, 300) },
   u_breakZ:     { value: new THREE.Vector2(BREAK_Z_MIN, BREAK_Z_MAX) },
   u_surferPos:  { value: new THREE.Vector4() },
+  // M6 part 3 (staged, water only — see the spec). Off unless #psi=1.
+  u_refrTex:    { value: EMPTY_BED },
+  u_psiMix:     { value: 0 },
+  u_refrZ:      { value: new THREE.Vector2(REFR_ZC_MIN, REFR_ZC_MAX) },
+  u_refrPsi:    { value: new THREE.Vector2(0, 1) },
+  u_refrKappa:  { value: 0 },
 };
 applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
@@ -352,6 +359,7 @@ const hudGeo = document.getElementById('hudGeo');
 const hudAudio = document.getElementById('hudAudio');
 const hudAlpha = document.getElementById('hudAlpha');
 const hudXi = document.getElementById('hudXi');
+const hudLam = document.getElementById('hudLam');
 function refreshHUD() {
   const p = state.preset ? PRESETS[state.preset].label : 'custom';
   hudPreset.textContent = state.paused ? p + ' (paused)' : p;
@@ -396,6 +404,20 @@ function refreshHUD() {
   }
   // M5 bed mode (B key three-way): 0 measured+reef / 1 plane / 2 measured
   const bedMode = ['bed measured+reef', 'bed plane', 'bed measured'][state.bedShape || 0];
+  // M6 part 3: report the wavelength the crests are actually drawn at. Off the
+  // Psi path that is the frozen 90 m and saying so is the point — the HUD is
+  // where the constant stops being invisible. On it, report the compression
+  // across the surf zone (6 m of water -> the breaking depth for this H0).
+  if (hudLam) {
+    if (uniforms.u_psiMix.value > 0.5 && state.geoSpot) {
+      const opts = { T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0 };
+      const outer = wavelengthAtStation(state.geoSpot, -180, opts);
+      const inner = wavelengthAtStation(state.geoSpot, 40, opts);
+      hudLam.textContent = `L ${outer.toFixed(0)} → ${inner.toFixed(0)} m (shoaling)`;
+    } else {
+      hudLam.textContent = 'L 90 m (frozen)';
+    }
+  }
   hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`
     + (state.geoSpot ? ` · ${bedMode}` : '')
     + (activeDayLabel ? ` · ${activeDayLabel}` : '');
@@ -463,6 +485,10 @@ let m4Enabled = true;
 // where the crest index means nothing in the re-centered world.
 let m4Ride = null;
 const m4RideState = { n: null, prevX: null, preset: null };
+// M6 part 3, step 1: the water's phase field on the baked Psi. OFF by default —
+// the rider, the audio crest solve and setEnv all still assume constant phi, so
+// this is a water-only preview until steps 2-3 of the spec's staged path land.
+let psiEnabled = false;
 section.el.style.display = 'none';
 
 // ---------- resize ----------
@@ -555,6 +581,27 @@ function frame(now) {
   } else {
     m4Ride = null;
   }
+
+  // ---- M6 part 3: bake Psi, the depth-dependent phase field ----
+  // Cached on (site, T, tide, bed, swell angle) inside bakeRefraction, so this
+  // is a map lookup on all but the frames those change. STAGED: water only —
+  // the rider (surferState/m4RideSolve), sound.js's crest solve and setEnv's
+  // group speed are all still on the constant-phi plane wave, so with #psi=1
+  // the rider drifts off the crests. Off by default until steps 2-3 land.
+  const refr = (!psiEnabled || state.aframe || !state.geoSpot) ? null
+    : bakeRefraction(state.geoSpot, {
+        T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0,
+        swellDeg: state.alpha, xRef: 0,
+      });
+  uniforms.u_psiMix.value = refr ? 1 : 0;
+  if (refr) {
+    if (uniforms.u_refrTex.value !== refr.texture) {
+      uniforms.u_refrTex.value = refr.texture;
+      uniforms.u_refrPsi.value.set(refr.psiMin, refr.psiMax);
+      uniforms.u_refrKappa.value = refr.kappa;
+      refreshHUD();
+    }
+  }
   // Underwater is a camera state, not a fragment test: sample the JS twin's
   // surface height under the eye. gl_FrontFacing would conflate "below the
   // water" with "under M2's folded lip", which is a different thing entirely.
@@ -645,6 +692,7 @@ function applyHashParams() {
   if (h.get('hud') === '0') document.body.classList.add('hidepanel');
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
+  if (h.has('psi')) psiEnabled = h.get('psi') === '1'; // M6p3 shoaling wavelength (default OFF; water only)
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
   uniforms.u_breakShape.value = structuralBreaker;

@@ -17,7 +17,12 @@ drop. Supersedes the 2026-08-09 surfer mission: the rider is garnish; the
 wave is the show.
 
 Priority order (STATUS 2026-08-11, after the workflow sprint 6709530):
-0. WATER PULL-BACK, minute-to-minute (REDEFINED 2026-08-11 by Andy: "less
+0. [LANDED 2026-08-11 — `setupLiftM()`/`setupPeakM()`/`wetSand()` in
+   web/js/model-glsl.js: lagged asymmetric set envelope, 0.3*H0 peak, confined
+   shoreward of the 2 m contour so the lineup and break line never feel it,
+   waterline emergent via max(bed,water), plus the drying band the last set
+   left. MODEL.md 2.5 still quotes 0.2 — doc follow-up.]
+   WATER PULL-BACK, minute-to-minute (REDEFINED 2026-08-11 by Andy: "less
    excited about 20m cycle tide, more expecting minute to minute tide pull
    back"). Mechanism is wave SETUP/SETDOWN, not astronomical tide: during a
    set, broken waves push ~0.15-0.3*H_break of extra water level up the
@@ -170,6 +175,16 @@ precedent) — do not decide now.
       Part 3 reinstates the eikonal Psi bake already sitting dormant in
       bed.js (bakeRefraction/psiAt/zcAtPsi), staged so the rider moves to
       u_surferPos before the default flips.
+      **Part 3 STEP 1 LANDED 2026-08-11 (`#psi=1`, default off, water only).**
+      Physics extracted to web-three/js/dispersion.js (pure, THREE-free) +
+      tests/dispersion.test.js (9 headless tests). Second Peak crest spacing
+      now 104 -> 55 m vs the frozen 90 m. Two spec claims corrected by
+      measurement: the "Guo (2002)" formula in bed.js was not Guo (4.98% error
+      vs the real form's 0.79%), and "steepness decreases inshore, which is
+      backwards" is half wrong — it decreases inshore of the break in ANY
+      correct model; the real defect is the approach ramp (1.35x frozen vs
+      2.46x variable). Open: step 2 rider onto Psi, step 3 sound.js, step 4
+      flip default. Under #psi=1 the rider drifts off the crests BY DESIGN.
 - [ ] Rider sits low on the FAST presets (Sewers p50 0.18 vs Second Peak 0.41).
       Not sections (tested: sections=0 moves it 0.01) and not the frame.
       `faceOff` is a fixed 11+/-5 m, and the phase step that implies scales with

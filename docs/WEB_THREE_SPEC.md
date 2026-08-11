@@ -589,7 +589,63 @@ measured`), and keep the authored value driving the render until M5's reef
 raises the local slope enough for the measured one to mean something. Do not
 silently swap it — that would replace a wave that looks wrong with no wave.
 
-### 3. The wavelength never shoals (independent; do with part 1)
+### 3. The wavelength never shoals — **STEP 1 LANDED 2026-08-11, `#psi=1`, water only**
+
+**Status:** the phase field runs on the baked Ψ behind `#psi=1`, default OFF.
+Steps 2–4 of the staged path below (rider, audio, flip the default) are open.
+Physics extracted to `web-three/js/dispersion.js` — pure, THREE-free, and
+covered by `tests/dispersion.test.js` (9 tests, headless).
+
+**Two claims in the original text below were wrong, and measurement caught
+both:**
+
+1. **The dispersion formula was miscited.** `bed.js` computed
+   `k·h = y/√(tanh y)` while citing Guo (2002) and claiming "within ~1%". That
+   is a different approximation and its measured max error is **4.98%**, at
+   y ≈ 0.69 (h ≈ 39 m at T = 15 s) — the intermediate-depth band the phase
+   integral spends most of its length in. It passed every round-number
+   spot-check and peaked between them, which is why the test sweeps the band
+   rather than sampling it. Guo's actual form is
+   `k·h = y/[1 − exp(−y^{5/4})]^{2/5}`, measured 0.79%, matching the paper.
+   Nothing had shipped on the wrong one — the bake was dormant.
+
+2. **"Modelled steepness decreases approaching the beach, which is backwards"
+   is half wrong.** Measured on the model's own amplitude path (H₀ = 1.5,
+   T = 15): steepness peaks at the breaking depth and falls inshore of it in
+   *both* the frozen and the variable-L model. That fall is correct — a bore
+   decays, it does not keep steepening. The real defect is the **dynamic range
+   of the approach**:
+
+   | | h = 10 m | at break (h = 2.86 m) | ramp |
+   |---|---|---|---|
+   | frozen L = 90 m | 0.0181 | 0.0245 | **1.35×** |
+   | variable L | 0.0110 | 0.0271 | **2.46×** |
+
+   With L frozen the wave arrives almost as steep as it started, so there is
+   nothing for the fold to develop out of. Variable L nearly doubles the
+   steepening ramp. That — not a sign error inshore — is the measured reason
+   the crest peaks and subsides. `tests/dispersion.test.js` asserts both halves,
+   so the defect stays proven and cannot silently return.
+
+**What landed, and what it measures.** Crest spacing at Second Peak now reads
+**104 → 55 m** across the stage (HUD `wavelength` row) against the frozen 90 m,
+bracketing the 107 → 61 m predicted below. The frozen constant is right at
+~3.7 m depth and 36–40% too long through the inner surf zone, which is the part
+in frame. Verified in-browser at matched preset/camera/sim: no shader compile
+error, no console errors, no NaN or mesh detonation, crest structure carries
+further inshore, and the pre-existing plate artifacts near the takeoff are
+present identically in the `#psi=0` capture (not introduced here). Unmapped
+sites report `L 90 m (frozen)` and render unchanged — both `kLocalAt` and
+`rayPhase` gate on `u_psiMix * u_depthMix`, so a synthetic stage cannot pick up
+a depth-derived wavelength it has no depth for.
+
+**Known and expected under `#psi=1`:** the rider drifts off the crests. The
+water moved to Ψ; `surferState`/`m4RideSolve`, `sound.js`'s crest solve and
+`setEnv`'s group speed (`cg = LAM/2T`, which also feeds `setupLiftM`) are all
+still on the constant-φ plane wave. That is step 1's declared boundary, not a
+regression — and it is why the default stays off.
+
+### The original problem statement (kept — the table is still the target)
 
 `LAM` is a constant 90 m. Real overturning is driven by steepness `H/L`, and in
 shallow water `L = T√(gh)`, so at Second Peak the wave should compress across
@@ -616,8 +672,14 @@ verified at 17.1° → 9.4° → 7.9° and a 90 m mean wavelength matching LAM.
 Reinstating it buys the wavelength compression AND depth-varying refraction in
 one move. The staged path that avoids the revert's failure mode:
 
-1. Land `rayPhase` on the baked Ψ behind a flag, water only. Rider keeps the
-   constant-φ closed form; nothing else moves.
+1. ~~Land `rayPhase` on the baked Ψ behind a flag, water only. Rider keeps the
+   constant-φ closed form; nothing else moves.~~ **LANDED 2026-08-11 (`#psi=1`).**
+   `rayPhase()` and `kLocalAt()` in `model-glsl.js`; call sites moved are
+   `ocean()`'s `theta`, `breakerLifecycleAtX`'s `thetaBreak` (or the crash
+   detaches from the crest that causes it), `choppyPos`'s `thetaRaw` and the
+   S-form's `kk`, and the legacy-foam `tSince`. The S-form needed the local `k`
+   too: the cusp is `S = lam·a·k²`, so a frozen `k` mis-solves `lam` by
+   `(k_local/k_LAM)² ≈ 1.9` in 2 m of water.
 2. Move the rider onto `u_surferPos`, solved CPU-side against Ψ — the same seam
    M4 already uses. The zipper x stays closed form (`x = (ωt − 2πn − Ψ(0))/κ`,
    `V_p = ω/κ`); only z needs the `zcAtPsi` inversion.
@@ -658,10 +720,16 @@ one piece here that cannot be verified by a number.
   effective Q attained on the stage over a 160 s sweep is Sewers 2.03,
   Second Peak 1.13, Sharks 0.95 (was 1.21 / 0.40 / 0.24). The cusp now sits
   exactly on the spilling/plunging boundary, which is where physics puts it.
-- wavelength measured at the break within 10% of `T√(gh)`; steepness `H/L`
-  increases monotonically shoreward through the surf zone, which it currently
-  does not
-- HUD reports `Q`, local `L`, and ξ authored vs measured
+- ~~wavelength measured at the break within 10% of `T√(gh)`~~ **MET** —
+  within 0.2% at every preset H₀, asserted in `tests/dispersion.test.js`.
+- ~~steepness `H/L` increases monotonically shoreward through the surf zone~~
+  **WITHDRAWN as written** — it decreases inshore of the break in any correct
+  model, because a bore decays. Replaced by: the steepening ramp from h = 10 m
+  to the break must exceed 2.2× (measured 2.46×, vs 1.35× frozen), and
+  steepness must peak within 15% of the breaking depth. Both asserted.
+- ~~HUD reports `Q`, local `L`, and ξ authored vs measured~~ — `L` landed as a
+  `wavelength` row reading `104 → 55 m (shoaling)` or `90 m (frozen)`; ξ landed
+  with part 2. `Q` still to add.
 - the rider's p90 face height (MODEL.md 2.3's metric) does not regress below
   0.9 when the phase moves onto Ψ
 - no NaN in the displaced mesh: `Q > 1` self-intersects by design, and the

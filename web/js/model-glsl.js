@@ -60,6 +60,33 @@ uniform vec2 u_breakZ;      // decode window for z
 // is a single point. (x, z, vx, vz)
 uniform vec4 u_surferPos;
 
+// ---------- M6 part 3: the shoaling wavelength ----------
+// LAM below is a frozen 90 m, so the model's crests never compress as they come
+// in: at 2 m of water it lays down 90 m spacing where linear theory says ~66 m,
+// and the steepening ramp from deep water to the break has 1.4x of dynamic
+// range instead of 2.5x. That is the measured reason the crest peaks and
+// subsides instead of pitching (tests/dispersion.test.js).
+//
+// The fix is a depth-dependent phase field. For a straight contour, Snell makes
+// the alongshore wavenumber kappa = k*sin(phi) invariant, so the total spatial
+// phase separates exactly:
+//
+//     phase(x, zc) = kappa*x + Psi(zc),   Psi(zc) = integral of sqrt(k^2 - kappa^2)
+//
+// Psi has no closed form over a measured seabed, so bed.js bakes it to a 256x1
+// table (bakeRefraction -> dispersion.js integratePsi) exactly as M4 bakes the
+// break line. u_psiMix cross-fades to it; at 0 this whole path costs one mix.
+//
+// STAGED (WEB_THREE_SPEC.md M6 part 3): step 1 is the WATER ONLY. The rider,
+// the audio crest solve and setEnv's group speed all still assume the
+// constant-phi plane wave, so with u_psiMix = 1 the rider will drift off the
+// crests. That is expected and is why this is off by default (#psi=1 to try).
+uniform sampler2D u_refrTex;
+uniform float u_psiMix;     // 0 = frozen-LAM plane wave, 1 = baked Psi
+uniform vec2 u_refrZ;       // contour-z range the table spans
+uniform vec2 u_refrPsi;     // decode window for Psi, radians
+uniform float u_refrKappa;  // alongshore wavenumber, rad/m (Snell invariant)
+
 // ---------- constants ----------
 const float PI  = 3.14159265;
 const float G   = 9.81;
@@ -330,6 +357,48 @@ float rayS(vec2 xz){
   return xx*sin(phi) + contourZ(xz)*cos(phi);
 }
 
+// ---------- M6 part 3: local wavenumber and the Psi phase field ----------
+// Guo (2002) explicit dispersion, k*h = y/[1-exp(-y^1.25)]^0.4 with
+// y = omega^2*h/g. MODEL-TWIN of dispersion.js wavenumberAt(): 0.79% max error
+// against the exact root, verified in tests/dispersion.test.js. (The previous
+// y/sqrt(tanh y) form in bed.js was cited as Guo and is not — 4.98% error.)
+float kLocalAt(vec2 xz){
+  float omega = 2.0*PI/u_T;
+  float h = modelDepthM(xz);
+  float y = omega*omega*h/G;
+  // pow(0, 0.4) is 0 and the divide would blow up; y is floored by modelDepthM's
+  // 0.35 m so this is belt-and-braces, but the mesh is unforgiving about NaN.
+  float den = max(pow(1.0 - exp(-pow(y, 1.25)), 0.4), 1e-4);
+  float k = (y/den)/h;
+  // Off the bathymetry there is no depth to disperse over: fall back to the
+  // frozen carrier so synthetic presets and the A-frame are untouched.
+  return mix(2.0*PI/LAM, k, u_psiMix*u_depthMix);
+}
+
+// Psi(contourZ) from the 256x1 bake. Same 16-bit RG decode as breakTexZ.
+float psiLookup(float zc){
+  float f = clamp((zc - u_refrZ.x)/max(u_refrZ.y - u_refrZ.x, 1e-3), 0.0, 1.0)*255.0;
+  int i = int(floor(f));
+  float tf = f - float(i);
+  vec4 a = texelFetch(u_refrTex, ivec2(min(i, 255), 0), 0);
+  vec4 b = texelFetch(u_refrTex, ivec2(min(i+1, 255), 0), 0);
+  float pa = mix(u_refrPsi.x, u_refrPsi.y, (a.r*255.0*256.0 + a.g*255.0)/65535.0);
+  float pb = mix(u_refrPsi.x, u_refrPsi.y, (b.r*255.0*256.0 + b.g*255.0)/65535.0);
+  return mix(pa, pb, tf);
+}
+
+// The spatial phase the crest field runs on. At u_psiMix = 0 this is exactly
+// the old k*rayS plane wave, so the legacy path is bit-identical, not merely
+// close. At 1 it is kappa*x + Psi(zc) — the same separation of variables, with
+// the shore-normal part integrated over the real depth instead of assumed
+// constant. A-frame folds x here exactly as rayS does.
+float rayPhase(vec2 xz){
+  float legacy = (2.0*PI/LAM)*rayS(xz);
+  float xx = mix(xz.x, abs(xz.x), u_aframe);
+  float baked = u_refrKappa*xx + psiLookup(contourZ(xz));
+  return mix(legacy, baked, u_psiMix*u_depthMix);
+}
+
 // Carrier crest with group envelope. Groups travel at cg = c/2 (deep-water).
 // Takes the RAY coordinate, not z: sets are bands parallel to the crests, so
 // with an oblique swell they must arrive along the ray. Passing z made the
@@ -427,11 +496,12 @@ float wetSand(vec2 xz, float t){
 // zipper moves down the point. Returns (age seconds, front z, impact gain,
 // bore gain). Geometry and particles consume this same function.
 vec4 breakerLifecycleAtX(float x, float t){
-  float k = 2.0*PI/LAM;
   float w = 2.0*PI/u_T;
   float zb = breakLine(x);
   vec2 atBreak = vec2(x, zb);
-  float thetaBreak = w*t - k*rayS(atBreak);
+  // Same phase field as ocean()'s crests, or the crash detaches from the wave
+  // that causes it the moment u_psiMix comes on.
+  float thetaBreak = w*t - rayPhase(atBreak);
   float age = mod(thetaBreak, 2.0*PI)/w;
 
   // A compact plunging impact gives way to a lower, longer-lived bore. The
@@ -472,7 +542,6 @@ float crestShape(float phase, float q){
 // Returns h; outs: foam, pocket, brk (surf-zone mask), crest (unbroken crest lines)
 float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, out float crest){
   float x = xz.x, z = xz.y;
-  float k = 2.0*PI/LAM;
   float w = 2.0*PI/u_T;
   float zb = breakLine(x);
   float d  = zb - z;                       // >0 seaward of break line
@@ -544,8 +613,10 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float shoreFade = mix(1.0, smoothstep(0.0, 1.6, waterDepthM(xz) + lift), u_depthMix);
 
   // crest at theta=0 mod 2pi. Lines of constant rayS: bowed by the contour and
-  // rotated by the REFRACTED swell incidence (swellPhi).
-  float theta  = w*t - k*rayS(xz);
+  // rotated by the REFRACTED swell incidence (swellPhi). Under u_psiMix the
+  // spacing between those lines compresses with the depth (M6 part 3) instead
+  // of staying frozen at LAM.
+  float theta  = w*t - rayPhase(xz);
   // ---- forward pitch ----
   // Real shoaling waves are asymmetric: steep front face, gentle back. Skewing
   // the phase by sin(theta) steepens the shoreward face, scaled by how close

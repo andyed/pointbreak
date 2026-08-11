@@ -16,6 +16,10 @@
 import * as THREE from 'three';
 import { PP_DEPTH_DATA } from '../../data/model/pp_depth_patches.js';
 import { PRESETS } from '../../web/js/params.js';
+import {
+  alongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,
+  incidenceAt as dispIncidenceAt,
+} from './dispersion.js';
 
 // 1x1 stand-in so the sampler is always bound. Presets with no bathymetry run
 // with u_depthMix = 0, and an unbound sampler is undefined behaviour.
@@ -559,15 +563,9 @@ let refrTex = null, refrKey = '';
 const refrPsi = new Float32Array(REFR_N);
 let refrKappa = 0, refrPsiMin = 0, refrPsiMax = 1;
 
-// Guo (2002) explicit dispersion: with y = omega^2*h/g, k*h = y/sqrt(tanh(y)).
-// Within ~1% of the exact root of omega^2 = g*k*tanh(k*h) and needs no
-// iteration, which matters because this is evaluated per sample per rebake.
-function wavenumberAt(omega, h) {
-  const y = omega * omega * Math.max(h, 0.05) / G;
-  return (y / Math.sqrt(Math.tanh(y))) / Math.max(h, 0.05);
-}
-
 // Returns { texture, kappa, psiMin, psiMax } or null with no bathymetry.
+// The maths lives in dispersion.js (pure, THREE-free, node-testable); this
+// function owns only the bathymetry sampling and the texture packing.
 export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg = 50, xRef = 0 } = {}) {
   if (!spotName) return null;
   const key = [spotName, T, tide, bedShape, swellDeg, xRef].join('|');
@@ -575,37 +573,17 @@ export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg =
     return { texture: refrTex, kappa: refrKappa, psiMin: refrPsiMin, psiMax: refrPsiMax };
   }
   const omega = 2 * Math.PI / T;
-  const k0 = omega * omega / G;                    // deep-water wavenumber
-  const kappa = k0 * Math.sin(swellDeg * Math.PI / 180);
+  const kappa = alongshoreKappa(omega, swellDeg);
   const wl = MSL_ABOVE_NAVD88 + tide;
-  const dz = (REFR_ZC_MAX - REFR_ZC_MIN) / (REFR_N - 1);
 
-  // Trapezoid the shore-normal wavenumber shoreward from the seaward edge.
-  // Integration STOPS at the waterline. Past it there is no propagating wave,
-  // and the depth floor would otherwise make k explode: at 0.05 m, k is
-  // ~0.64 rad/m, so the beach alone contributed ~64 rad of pure fiction and
-  // the phase field came out as noise (the mesh detonated when this was first
-  // switched on). Freeze Psi instead — the shore fade has killed the wave
-  // there anyway.
-  const MIN_PROPAGATING_DEPTH = 0.5;
-  let psi = 0, prevKz = null, frozen = false;
-  for (let i = 0; i < REFR_N; i++) {
-    const zc = REFR_ZC_MIN + dz * i;
-    const depth = wl - bedElevBlended(spotName, xRef, zc, bedShape);
-    if (depth <= MIN_PROPAGATING_DEPTH) frozen = true;
-    if (frozen) { refrPsi[i] = psi; continue; }
-    const k = wavenumberAt(omega, depth);
-    // k < kappa means the ray has turned parallel to the contour and cannot
-    // travel further shoreward (caustic). Floor it rather than take sqrt of a
-    // negative: the phase then advances alongshore only, which is the correct
-    // degenerate behaviour and keeps Psi monotonic for the rider's inversion.
-    const kz = Math.sqrt(Math.max(k * k - kappa * kappa, 1e-6));
-    if (prevKz !== null) psi += 0.5 * (kz + prevKz) * dz;
-    prevKz = kz;
-    refrPsi[i] = psi;
-  }
-  refrPsiMin = refrPsi[0];
-  refrPsiMax = refrPsi[REFR_N - 1];
+  const baked = integratePsi({
+    elevAt: (zc) => bedElevBlended(spotName, xRef, zc, bedShape),
+    waterLevel: wl, omega, kappa,
+    zMin: REFR_ZC_MIN, zMax: REFR_ZC_MAX, n: REFR_N,
+  });
+  refrPsi.set(baked.psi);
+  refrPsiMin = baked.psiMin;
+  refrPsiMax = baked.psiMax;
   const span = Math.max(refrPsiMax - refrPsiMin, 1e-6);
 
   const rgba = new Uint8Array(REFR_N * 4);
@@ -626,31 +604,28 @@ export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg =
 
 // CPU twin of the shader lookup (rider, audio, HUD).
 export function psiAt(zc) {
-  const f = Math.min(Math.max((zc - REFR_ZC_MIN) / (REFR_ZC_MAX - REFR_ZC_MIN), 0), 1) * (REFR_N - 1);
-  const i = Math.min(Math.floor(f), REFR_N - 2);
-  return refrPsi[i] + (refrPsi[i + 1] - refrPsi[i]) * (f - i);
+  return psiSample(refrPsi, zc, REFR_ZC_MIN, REFR_ZC_MAX);
 }
 
 // Invert Psi (monotonic non-decreasing) — the rider needs the contour position
-// of a given crest phase. Bisection on the table, 24 steps over ~430 m is
-// sub-millimetre and this runs once per frame, not per fragment.
+// of a given crest phase.
 export function zcAtPsi(target) {
-  let lo = REFR_ZC_MIN, hi = REFR_ZC_MAX;
-  for (let i = 0; i < 24; i++) {
-    const mid = 0.5 * (lo + hi);
-    if (psiAt(mid) < target) lo = mid; else hi = mid;
-  }
-  return 0.5 * (lo + hi);
+  return zcAtPsiIn(refrPsi, target, REFR_ZC_MIN, REFR_ZC_MAX);
 }
 
 // Local incidence from shore-normal, radians — the readout that says whether
 // the swell has actually straightened out by the time it breaks.
 export function incidenceAt(spotName, zc, { T, tide = 0, bedShape = 0, swellDeg = 50, xRef = 0 } = {}) {
   const omega = 2 * Math.PI / T;
-  const kappa = (omega * omega / G) * Math.sin(swellDeg * Math.PI / 180);
-  const depth = Math.max(MSL_ABOVE_NAVD88 + tide - bedElevBlended(spotName, xRef, zc, bedShape), 0.05);
-  const k = wavenumberAt(omega, depth);
-  return Math.asin(Math.min(kappa / Math.max(k, 1e-6), 1));
+  const depth = MSL_ABOVE_NAVD88 + tide - bedElevBlended(spotName, xRef, zc, bedShape);
+  return dispIncidenceAt(omega, depth, alongshoreKappa(omega, swellDeg));
+}
+
+// Local wavelength at a station, metres — the HUD readout and the number the
+// M6 part 3 acceptance is measured against.
+export function wavelengthAtStation(spotName, zc, { T, tide = 0, bedShape = 0, xRef = 0 } = {}) {
+  const depth = MSL_ABOVE_NAVD88 + tide - bedElevBlended(spotName, xRef, zc, bedShape);
+  return wavelengthAt(2 * Math.PI / T, depth);
 }
 
 // ---------- Iribarren readout (M6 part 2) ----------
