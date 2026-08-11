@@ -31,6 +31,7 @@ ITEMS = [
     ('docs/figures/fig-topology.svg',  'fig-topology.svg'),
     ('docs/figures/fig-ladder.svg',    'fig-ladder.svg'),
     ('docs/figures/fig-week.svg',      'fig-week.svg'),
+    ('docs/figures/fig-floor.svg',     'fig-floor.svg'),
     ('docs/figures/assets',            'assets'),
     ('docs/figures/vendor',            'vendor'),
     ('docs/figures/js',                'js'),
