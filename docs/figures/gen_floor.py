@@ -10,12 +10,13 @@ The claim, in one line: over submerged ground the seabed is 0.58 m RMS about a
 arrive at 10 deg — leaving ~5 deg between crest and break line. 5 deg is a
 closeout. Both ingredients of a peel are missing: relief AND bearing.
 
-MEASUREMENT NOTE, and the reason this figure exists. Fitting the plane over the
-full 680x580 m stage patch (as bed.js planeResidualRms does) returns 2.6-4.5 m
-RMS, and MODEL.md 2.2 quotes that range. Those patches are roughly half dry
-land: the cliff dominates the residual. Restricted to submerged ground the same
-fit gives 0.58 m. The larger number is a measurement of the cliff, not the reef,
-and should not be read as evidence that the seabed carries structure.
+MEASUREMENT NOTE. Building this figure is what surfaced the plane-fit bug fixed
+on 2026-08-10 (MODEL.md 2.2 correction): the A/B plane was fitted over every
+post, 20-40% of each stage frame is dry cliff, and the cliff set both the slope
+(2.07 deg vs 1.05 deg at Second Peak) and the residual (2.56 m vs 0.32 m). Both
+are now submerged-fit. This generator does its own independent submerged-only
+fit over the whole point window and reports 0.50 m RMS on a 1:58 ramp, which
+cross-checks the patch builder.
 
 A contour map cannot carry this. At 2 m contour intervals the relief is between
 the lines, and the bearing is a property of the whole family rather than of any

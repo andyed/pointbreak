@@ -226,12 +226,21 @@ float bedElevM(vec2 xz){
   float e00 = bedTexel(i0),                e10 = bedTexel(i0 + ivec2(1,0));
   float e01 = bedTexel(i0 + ivec2(0,1)),   e11 = bedTexel(i0 + ivec2(1,1));
   float measured = mix(mix(e00, e10, f.x), mix(e01, e11, f.x), f.y);
-  // A/B counterfactual: the least-squares plane through this same patch keeps
-  // the depth scale, mean slope and orientation and throws away only the
-  // structure (2.5-3.8 m RMS at these spots). Toggling it isolates the effect
-  // of reef SHAPE from the effect of depth, which a hand-drawn ramp could not.
+  // A/B counterfactual: the least-squares plane through the SUBMERGED part of
+  // this patch keeps the depth scale, mean slope and orientation and throws
+  // away only the structure (0.3-0.9 m RMS at these spots).
+  //
+  // Both halves of that were wrong until 2026-08-10. The plane was fitted over
+  // every post, and 20-40% of each stage frame is dry cliff, so the cliff set
+  // the slope: the counterfactual came out ~2x too steep (2.07 deg vs 1.05 deg
+  // at Second Peak) and the quoted "structure" was ~8x too large (2.56 m vs
+  // 0.32 m). Substituting it also reshaped the beach, which is the one thing
+  // the A/B has to hold constant to isolate reef SHAPE from depth.
+  // Now the plane is submerged-fit AND substituted only where there is water,
+  // smoothstepped across the waterline so plane mode has no seam there.
   float plane = u_bedPlane.x + u_bedPlane.y*xz.x + u_bedPlane.z*xz.y;
-  return mix(measured, plane, u_bedShape);
+  float wet = smoothstep(u_waterLevel + 0.15, u_waterLevel - 0.15, measured);
+  return mix(measured, plane, u_bedShape * wet);
 }
 
 // Still-water depth, metres. Zero on land — the shoreline is wherever this

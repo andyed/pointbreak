@@ -134,7 +134,9 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
       total internal reflection), murk, and a deepening ramp past the finite
       NCEI patch (extrapolation, flagged as such in BED_VERT)
 - [x] Bed A/B (B): swap the measured bed for its own least-squares plane —
-      same depth scale and mean slope, structure removed (2.5-3.8 m rms).
+      same depth scale and mean slope, structure removed (0.3-0.9 m rms,
+      submerged-fit; the 2.5-3.8 m figure fitted across the cliff, corrected
+      2026-08-10).
       Removing the reef collapses the peel; this is the causal demo.
 - [x] Cross-section station along-shore (, and .)
 - [ ] DEM land artifacts: cliff-top structures read as rectangular steps at

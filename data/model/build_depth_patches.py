@@ -108,13 +108,24 @@ def build():
         # and orientation with the STRUCTURE removed, so toggling it isolates
         # "shape of the reef" from "how deep and how steep it is". A hand-picked
         # ramp would confound the two.
-        n = len(vals)
+        # SUBMERGED POSTS ONLY. Fitting over the whole patch let the cliff set
+        # the plane: roughly a third of each stage frame is dry land, and its
+        # rise dominated both the fitted slope and the residual. That made the
+        # A/B claim ("same depth scale, mean slope and orientation, structure
+        # removed") false — the counterfactual plane carried the cliff's slope,
+        # so switching to it changed the beach as well as the reef, which is
+        # the one thing the demo exists to hold constant. It also inflated the
+        # reported reef structure ~8x (2.57 m vs 0.32 m at Second Peak).
+        n = 0
         sx = sz = sxx = szz = sxz = se = sxe = sze = 0.0
         for j in range(NZ):
             z = Z0 + (Z1 - Z0) * j / (NZ - 1)
             for i in range(NX):
                 x = X0 + (X1 - X0) * i / (NX - 1)
                 e = (vals[j * NX + i] / 65535) * (E_MAX - E_MIN) + E_MIN
+                if e >= MSL_ABOVE_NAVD88:
+                    continue
+                n += 1
                 sx += x; sz += z; se += e
                 sxx += x * x; szz += z * z; sxz += x * z
                 sxe += x * e; sze += z * e
@@ -130,10 +141,12 @@ def build():
             return det3([[rhs[r] if c == col else M[r][c] for c in range(3)]
                          for r in range(3)])
         plane = [sub(0)/D, sub(1)/D, sub(2)/D] if abs(D) > 1e-9 else [0.0, 0.0, 0.0]
-        rms = (sum(((vals[j*NX+i]/65535)*(E_MAX-E_MIN)+E_MIN
-                    - (plane[0] + plane[1]*(X0+(X1-X0)*i/(NX-1))
-                       + plane[2]*(Z0+(Z1-Z0)*j/(NZ-1))))**2
-                   for j in range(NZ) for i in range(NX)) / n) ** 0.5
+        _res = [((vals[j*NX+i]/65535)*(E_MAX-E_MIN)+E_MIN
+                 - (plane[0] + plane[1]*(X0+(X1-X0)*i/(NX-1))
+                    + plane[2]*(Z0+(Z1-Z0)*j/(NZ-1))))
+                for j in range(NZ) for i in range(NX)
+                if (vals[j*NX+i]/65535)*(E_MAX-E_MIN)+E_MIN < MSL_ABOVE_NAVD88]
+        rms = (sum(r*r for r in _res) / max(len(_res), 1)) ** 0.5
 
         raw = struct.pack('<%dH' % len(vals), *vals)
         patches[name] = {
@@ -143,7 +156,10 @@ def build():
             'planeFit': [round(v, 6) for v in plane],
             # how much vertical structure the plane throws away — this IS the
             # reef, quantified. Small rms means the A/B has little to show.
+            # Submerged posts only; see the fit above for why.
             'planeResidualRmsM': round(rms, 2),
+            'planeFitDomain': 'submerged',
+            'planeFitSamples': n,
             # fraction of the patch that is dry land at MSL — a quick sanity
             # signal that the stage actually contains a shoreline
             'landFractionAtMsl': round(

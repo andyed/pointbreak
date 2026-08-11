@@ -144,8 +144,12 @@ export function bedElevBlended(spotName, x, z, bedShape = 0) {
   if (!bedShape) return measured;
   const pf = PP_DEPTH_DATA.patches[spotName]?.planeFit;
   if (!pf) return measured;
+  // MODEL-TWIN of model-glsl.js bedElevM: submerged-fit plane, substituted
+  // only where there is water, smoothstepped across the waterline.
   const plane = pf[0] + pf[1] * x + pf[2] * z;
-  return measured + (plane - measured) * bedShape;
+  const t = Math.min(Math.max((measured - (MSL_ABOVE_NAVD88 + 0.15)) / -0.3, 0), 1);
+  const wet = t * t * (3 - 2 * t);
+  return measured + (plane - measured) * bedShape * wet;
 }
 
 export function planeResidualRms(spotName) {

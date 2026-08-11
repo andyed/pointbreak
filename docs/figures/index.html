@@ -917,11 +917,11 @@ depth and exposure.</desc>
 
     <p class="prose">
       One thing the contour map cannot show is how flat that floor actually
-      is. Fitted over the whole stage, the seabed at Second Peak deviates
-      2.57&nbsp;m RMS from its own least-squares plane &mdash; but roughly a
-      third of that patch is dry cliff, and the cliff is doing the work.
-      Restricted to ground that is actually underwater, the deviation is
-      0.32&nbsp;m. The reef is a ramp with centimetres of texture on it.
+      is. Measured against its own least-squares plane, the seabed at Second
+      Peak deviates by 0.32&nbsp;m RMS &mdash; decimetres of texture on a 1:58
+      ramp. (An earlier version of this page said 2.57&nbsp;m. That fit ran the
+      plane across the whole stage frame, a third of which is dry cliff, and
+      the cliff was doing the work.)
     </p>
     <p class="prose">
       That matters because a peel is an angle, not a lump. The break line
@@ -1081,10 +1081,29 @@ depth and exposure.</desc>
     <p class="prose">
       The test is a counterfactual. Below, the same swell runs over the same
       site twice: once over the surveyed seabed, and once over that
-      seabed's own least-squares plane: identical mean depth, slope and
-      orientation, with only the structure removed (0.32 m RMS at Second
-      Peak over submerged ground; the 2.57 m figure quoted elsewhere fits the
-      plane across the cliff as well as the reef).
+      seabed's own least-squares plane &mdash; identical mean depth, slope and
+      orientation, with only the structure removed (0.32&nbsp;m RMS at Second
+      Peak).
+    </p>
+
+    <p class="prose">
+      The honest result is that almost nothing happens. Averaged over the
+      stage the two frames differ by about 1% of full brightness, and the
+      shoreline is unchanged by construction. That is not the demo failing;
+      it is the demo working and returning a negative. There is only
+      0.32&nbsp;m of reef at this resolution, so removing it removes almost
+      nothing.
+    </p>
+
+    <p class="prose">
+      An earlier version of this page claimed the opposite &mdash; that the
+      shoreline straightened and the peel collapsed. It did, but for the wrong
+      reason: the plane was fitted through the cliff as well as the seabed, so
+      switching to it made the counterfactual roughly twice as steep and moved
+      the beach. Both are now fixed, and with the confounds gone the effect
+      goes with them. What sets the peel here is not the reef's relief but the
+      angle its contours make with the arriving crest &mdash; 6&deg;, per
+      Fig.&nbsp;4 &mdash; and 10&nbsp;m bathymetry does not resolve that.
     </p>
 
     <div class="sim-pair">
@@ -1094,7 +1113,7 @@ depth and exposure.</desc>
             data-src="sim/web-three/#preset=secondpeak&amp;cam=drone&amp;hud=0&amp;sim=42"
             title="Simulation over the surveyed seabed"></iframe>
         </div>
-        <figcaption>Surveyed seabed: the shoreline curves and the break peels along the point.</figcaption>
+        <figcaption>Surveyed seabed: the measured floor, 0.32&nbsp;m RMS of structure on a 1:58 ramp.</figcaption>
       </figure>
       <figure class="sim-figure">
         <div class="sim-frame">
@@ -1102,7 +1121,7 @@ depth and exposure.</desc>
             data-src="sim/web-three/#preset=secondpeak&amp;cam=drone&amp;bed=plane&amp;hud=0&amp;sim=42"
             title="Simulation over a featureless plane of the same mean slope"></iframe>
         </div>
-        <figcaption>Same depth and slope, reef removed: the shoreline straightens and the peel collapses.</figcaption>
+        <figcaption>Same depth, slope and shoreline, reef removed. Look for the difference: there is barely one.</figcaption>
       </figure>
     </div>
 

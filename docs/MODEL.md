@@ -179,6 +179,25 @@ and both vehicles bind it as `u_bed`.
   `u_depthMix = 0`, which collapses every term above back to the §2 stand-ins.
   The `web/` raymarcher stays depth-free by the same switch.
 
+**Correction, 2026-08-10.** The A/B plane was fitted over every post in the
+stage frame, and 20–40% of each frame is dry cliff. Two consequences, both
+wrong, both now fixed in `build_depth_patches.py`:
+
+- The fitted plane took its slope from the cliff, so the counterfactual was
+  about **twice too steep** (2.07° vs 1.05° at Second Peak). "Same depth scale,
+  mean slope and orientation" was false, and switching to it reshaped the beach
+  — the one thing the A/B must hold constant to isolate reef *shape* from depth.
+- The reported structure was **~8× too large**: 2.56 m RMS at Second Peak
+  against 0.32 m over submerged ground. Submerged-only values are 0.31–0.93 m
+  across the mapped bank.
+
+The plane is now fitted on submerged posts only, and substituted only where
+there is water (smoothstepped across the waterline, so plane mode has no seam
+there). The honest reading of the A/B is therefore weaker than first claimed:
+this reef is a ramp with decimetres of texture, and what a peel needs from it
+is *bearing*, not relief — which is what §2.4 measures and what M5 is specified
+to supply.
+
 This supersedes §5's "swash/backwash … texture, not structure" only for the
 static shoreline; currents and backwash remain out of scope. §5's rejection of
 a *shallow-water solver* stands — nothing here integrates a fluid.
@@ -360,8 +379,9 @@ are now the same wave. And a ~9° peel angle is a closeout, so V_p runs 38–50 
 That is not a defect in the refraction. It is the honest result of straight,
 shore-parallel contours: with those, refraction guarantees a near-closeout.
 Pleasure Point's character has to come from **contour obliquity**, which the
-~10 m NCEI posts smooth away — the bed A/B in §2.2 already showed that removing
-the reef collapses the peel. Getting both straight-in crests and a real peel
+~10 m NCEI posts smooth away. (The bed A/B in §2.2 was cited here as showing
+that removing the reef collapses the peel; see the correction below — it was
+measuring the cliff, and the reef it removes is only 0.3–0.9 m RMS.) Getting both straight-in crests and a real peel
 needs sub-grid reef structure, and that has to ride on an emergent break line
 (M4), because `coastCurve` is a baked fit while depth is sampled at runtime:
 invented relief would move the depth gate and not the break line, re-splitting
