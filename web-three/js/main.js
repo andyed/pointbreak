@@ -20,6 +20,8 @@ import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX } from './bed.js';
 import { makeSection } from './section.js';
+import { applyConditionDay, nextGoodDay } from './conditions.js';
+import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -50,6 +52,18 @@ const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 5000);
 
 const state = makeState();
 let structuralBreaker = 1;   // shipped path; #shape=legacy is the reversible A/B
+
+// ---------- conditions bank (screensaver "good day" curator) ----------
+// A named condition-day rides on top of the site preset: it swaps the OCEAN
+// (H0/T/tide/chop/dF), never the reef. #day=<key> picks one, #day=live pulls
+// today's SC116 nowcast, #drift=1 hard-switches through the surf-worthy days
+// every DRIFT_PERIOD_S of SIM time (rate independent — pause freezes the
+// drift, speed scales it, same contract as the Tour camera).
+const DRIFT_PERIOD_S = 300;
+let activeDayKey = null;     // conditions.js key currently applied (drift cursor)
+let activeDayLabel = null;   // HUD suffix; also set by day=live from the nowcast
+let driftEnabled = false;
+let driftLeg = 0;            // last drift interval acted on (floor(sim/period))
 
 // ---------- the grid ----------
 // PlaneGeometry is authored in XY; rotate onto XZ (y up) then shift so
@@ -248,28 +262,64 @@ function cliffStation(x) {
   const top = cliffTop(state.geoSpot, x, MSL_ABOVE_NAVD88);
   return [x, top.elev + EYE_H, top.z];
 }
+// The along-shore station Cliff/Follow stand at. 210 was tuned on Second Peak
+// and is past stageEnd for EVERY mapped spot (Sewers ends at x=75.6): each
+// preset re-centers the world on its own surf node, and off the measured
+// bounds the coastline swings inland — at Sewers the waterline recedes from
+// z≈126 at the peak to z≈252 at x=210, so a camera parked there stood ~290 m
+// inland with the bluff plateau filling the frame. Clamp to the preset's own
+// down-point stage end instead; the synthetic site keeps the original number.
+function cliffStationX() {
+  return state.geoSpot ? Math.min(210, state.stageEnd ?? 215) : 210;
+}
 
 const CAM_PRESETS = [
   { name: 'Free',   pos: () => [-140, 55, -230],                              target: () => [40, 0, 40] },
-  { name: 'Cliff',  pos: () => cliffStation(210),                             target: () => [-120, 3, breakLineJS(-120) - 10] },
+  // Cliff aims at the peak, seaward of the break — not down the coast axis:
+  // the stand is a plateau 30-45 m inland whose up-coast top runs at roughly
+  // eye level, so a shot along the shore toward x=-120 keeps that bluff in
+  // half the frame at every mapped spot. Telephoto (30) crops the foreground
+  // the same way Follow's zoom does.
+  { name: 'Cliff',  pos: () => cliffStation(cliffStationX()),                 target: () => [-30, 2, breakLineJS(-30) - 25], fov: 30 },
   { name: 'Lineup', pos: () => [35, 8.5, breakLineJS(35) - 30],               target: () => [0, 4.0, breakLineJS(0) + 2], fov: 32 },
   { name: 'Drone',  pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
-  { name: 'Follow', pos: () => cliffStation(210),                             target: () => [0, 2, breakLineJS(0) - 11] },
+  { name: 'Follow', pos: () => cliffStation(cliffStationX()),                 target: () => [0, 2, breakLineJS(0) - 11] },
+  { name: 'Tour',   pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
 ];
 let camIdx = 0;
 const BASE_FOV = 50;
+
+// Tour = the screensaver camera: hard cuts Drone -> Cliff -> Follow on a fixed
+// SIM-time cadence (rate independence: pausing freezes the cut clock too, and
+// speed scaling shortens the shots with the waves). No easing by design — a
+// cut reads as a camera change; a glide reads as a mistake.
+const TOUR_SHOTS = ['Drone', 'Cliff', 'Follow'];
+const TOUR_CUT_S = 24;
+let tourLeg = -1;   // last leg applied; -1 forces a cut on the first frame
 
 function applyCam(i) {
   camIdx = i;
   const p = CAM_PRESETS[i];
   camera.position.set(...p.pos());
   controls.target.set(...p.target());
-  // Follow owns the camera every frame; OrbitControls would fight the track.
-  // Leaving Follow restores free orbiting and the wide field of view.
-  controls.enabled = p.name !== 'Follow';
-  if (p.name !== 'Follow') { camera.fov = p.fov || BASE_FOV; camera.updateProjectionMatrix(); }
+  // Follow and Tour own the camera every frame; OrbitControls would fight the
+  // track. Leaving them restores free orbiting and the wide field of view.
+  const scripted = p.name === 'Follow' || p.name === 'Tour';
+  controls.enabled = !scripted;
+  if (!scripted) { camera.fov = p.fov || BASE_FOV; camera.updateProjectionMatrix(); }
+  if (p.name === 'Tour') tourLeg = -1;   // re-entering always cuts immediately
   controls.update();
   refreshHUD();
+}
+
+// hard cut to a named shot (Tour legs reuse the presets' own framing)
+function cutToShot(name) {
+  const p = CAM_PRESETS.find((c) => c.name === name);
+  camera.position.set(...p.pos());
+  controls.target.set(...p.target());
+  camera.fov = p.fov || BASE_FOV;
+  camera.updateProjectionMatrix();
+  camera.lookAt(controls.target);
 }
 
 // per-frame Follow update: telephoto tracking, zoom ∝ 1/distance (web/ parity:
@@ -279,7 +329,7 @@ function updateFollowCam(sWorld) {
   // Stand where the Cliff preset stands — the comment above CAM_PRESETS always
   // said Follow was on the real cliff, but this hardcoded an offset off the old
   // tilted break line instead, which put it out to sea once the line moved.
-  const [cx, cy, cz] = cliffStation(210);
+  const [cx, cy, cz] = cliffStation(cliffStationX());
   camera.position.set(cx, cy, cz);
   const dist = Math.hypot(sWorld.x - cx, sWorld.z - cz);
   const zoom = Math.min(Math.max(1500 / Math.max(dist, 40), 2.0), 6.5);
@@ -332,7 +382,8 @@ function refreshHUD() {
       : `${state.xi.toFixed(2)} authored · ${xm.toFixed(2)} measured ` +
         `(${xm < 0.5 ? 'spilling' : 'plunging'})`;
   }
-  hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`;
+  hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`
+    + (activeDayLabel ? ` · ${activeDayLabel}` : '');
 }
 
 // ---------- keyboard (parity with web/) ----------
@@ -340,7 +391,13 @@ const presetKeys = Object.keys(PRESETS);
 window.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const n = parseInt(e.key, 10);
-  if (n >= 1 && n <= presetKeys.length) { applyPreset(state, presetKeys[n - 1]); refreshHUD(); return; }
+  if (n >= 1 && n <= presetKeys.length) {
+    applyPreset(state, presetKeys[n - 1]);
+    // manual preset = the user took the wheel; a stale day label would lie
+    // (drift, if on, re-enters the good rotation at the next boundary)
+    activeDayKey = null; activeDayLabel = null;
+    refreshHUD(); return;
+  }
   if (e.key === 'v' || e.key === 'V') applyCam((camIdx + 1) % CAM_PRESETS.length);
   if (e.key === 's' || e.key === 'S') { state.surfer = 1 - state.surfer; refreshHUD(); }
   if (e.key === ' ') { state.paused = !state.paused; refreshHUD(); e.preventDefault(); }
@@ -395,9 +452,26 @@ let simTime = 0;
 let last = performance.now();
 
 function frame(now) {
-  const dt = Math.min((now - last) / 1000, 0.1);   // clamp tab-switch jumps
+  // Clamp tab-switch jumps; floor at 0 because the FIRST rAF timestamp can
+  // precede the module-eval performance.now() that seeded `last` (Chromium
+  // hands the frame's begin time), and a negative dt walked simTime below 0.
+  const dt = Math.min(Math.max((now - last) / 1000, 0), 0.1);
   last = now;
   if (!state.paused && Number.isFinite(dt)) simTime += dt * state.speed;
+
+  // Conditions drift: one hard switch to the next surf-worthy day at each
+  // DRIFT_PERIOD_S boundary of SIM time. Interval index, not an accumulator,
+  // so it is rate independent and survives setSim() jumps in either direction.
+  if (driftEnabled) {
+    // max(sim, 0): a sim clock at/below zero is still the zeroth interval, so
+    // neither startup jitter nor a setSim() to a negative value fires a switch
+    const leg = Math.floor(Math.max(simTime, 0) / DRIFT_PERIOD_S);
+    if (leg !== driftLeg) {
+      driftLeg = leg;
+      const d = applyConditionDay(state, uniforms, nextGoodDay(activeDayKey));
+      if (d) { activeDayKey = d.key; activeDayLabel = d.label; refreshHUD(); }
+    }
+  }
 
   resize();
   uniforms.u_time.value = simTime;
@@ -471,10 +545,19 @@ function frame(now) {
   // and tide, so redraw on change rather than every frame.
   if (showSection) section.draw(state, sectionX, state.tide || 0, state.bedShape || 0);
 
+  // Tour: pick the leg from SIM time (never wall clock — pause freezes the
+  // cuts, speed scales them) and hard-cut whenever it changes.
+  const touring = CAM_PRESETS[camIdx].name === 'Tour';
+  let following = CAM_PRESETS[camIdx].name === 'Follow';
+  if (touring) {
+    const leg = Math.floor(simTime / TOUR_CUT_S) % TOUR_SHOTS.length;
+    if (leg !== tourLeg) { tourLeg = leg; cutToShot(TOUR_SHOTS[leg]); }
+    following = TOUR_SHOTS[leg] === 'Follow';
+  }
+
   // surfer pose + Follow camera share one surferState/surfaceAt evaluation.
   // The follow shot tracks the ride line even with the rider hidden (S off)
   // so V-cycling never lands on a dead camera.
-  const following = CAM_PRESETS[camIdx].name === 'Follow';
   surferGroup.visible = state.surfer === 1;
   if (surferGroup.visible || following) {
     const sWorld = updateSurfer(surferGroup, simTime, modelP());
@@ -482,8 +565,9 @@ function frame(now) {
   }
 
   // OrbitControls.update() re-derives position from its spherical state and
-  // would undo the follow track (enabled=false only blocks input, not update)
-  if (!following) controls.update();
+  // would undo the follow/tour track (enabled=false only blocks input, not
+  // update)
+  if (!following && !touring) controls.update();
   skyMesh.position.copy(camera.position);   // keep the dome centered on the eye
   
   if (!state.paused) {
@@ -504,6 +588,27 @@ function applyHashParams() {
   if (!h.toString()) return 0;
   const p = h.get('preset');
   if (p && PRESETS[p]) applyPreset(state, p);
+  // Conditions day rides on top of the preset (ocean over reef). Handled
+  // before #tide= so an explicit tide in the hash still wins over the day's.
+  const dayKey = h.get('day');
+  if (dayKey === 'live') {
+    // Today's ocean at Pleasure Point (MOP SC116 nowcast, CORS verified).
+    // Async by nature; applies when it lands. Offline it falls back to the
+    // localStorage cache, and with no cache it quietly keeps the preset —
+    // a screensaver must never die on a fetch.
+    fetchTodaysOcean()
+      .catch(() => cachedOcean() || Promise.reject(new Error('offline, no cache')))
+      .then((o) => {
+        applyOcean(state, o);
+        activeDayLabel = `live · ${describeOcean(o)}`;
+        refreshHUD();
+      })
+      .catch(() => { activeDayLabel = 'live unavailable'; refreshHUD(); });
+  } else if (dayKey) {
+    const d = applyConditionDay(state, uniforms, dayKey);
+    if (d) { activeDayKey = d.key; activeDayLabel = d.label; }
+  }
+  if (h.get('drift') === '1') driftEnabled = true;
   if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, TIDE_RANGE[0]), TIDE_RANGE[1]);
   if (h.get('bed') === 'plane') state.bedShape = 1;
   if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
@@ -518,12 +623,22 @@ function applyHashParams() {
   if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
   const camName = (h.get('cam') || '').toLowerCase();
   const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);
+  // Tour is the screensaver: chrome defaults OFF unless the hash asks for it.
+  if (camName === 'tour' && !h.has('hud')) document.body.classList.add('hidepanel');
   applyCam(ci >= 0 ? ci : 0);
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
 applyCam(0);
 simTime = applyHashParams();
+// Anchor the drift clock to wherever the hash put the sim, so #sim=9000 does
+// not fire a burst of catch-up switches; with no static day picked, drift
+// starts inside the good rotation immediately rather than 300 s from now.
+driftLeg = Math.floor(Math.max(simTime, 0) / DRIFT_PERIOD_S);   // same floor as the loop
+if (driftEnabled && !activeDayKey) {
+  const d = applyConditionDay(state, uniforms, nextGoodDay(null));
+  if (d) { activeDayKey = d.key; activeDayLabel = d.label; }
+}
 refreshHUD();
 resize();
 requestAnimationFrame(frame);
@@ -535,6 +650,7 @@ window.__pointbreak = {
   camera, controls, state, surferGroup, sprayPoints, uniforms,
   sim: () => simTime,
   setSim: (t) => { if (Number.isFinite(t)) simTime = t; },
+  day: () => activeDayKey,   // conditions-bank cursor (null = preset ocean)
   setBreakerShape: (enabled) => {
     structuralBreaker = enabled ? 1 : 0;
     uniforms.u_breakShape.value = structuralBreaker;

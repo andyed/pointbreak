@@ -478,7 +478,12 @@ void main() {
   float trans = clamp(dot(-sunDir, Ng), 0.0, 1.0);
   float pocketW = 0.25 + 0.75*clamp(vPocket*1.6, 0.0, 1.0);
   float thin  = clamp(vCrest*pocketW + 1.4*vPocket, 0.0, 1.5);
-  float hMean = clamp(vWorldPos.y / max(u_H0*VIS, 0.001), 0.0, 1.0);
+  // SIZE_AUDIT item 6: dividing by u_H0*VIS was INVERTED — a taller face
+  // normalized its own height away, so the crest glow got DIMMER as H0 rose.
+  // Height enters in metres now. 4.8 = 1.5*VIS: the H0 = 1.5 m model-card
+  // day calibration, so the 1.5 m day renders exactly as before and bigger
+  // faces saturate the clamp instead of dividing themselves dark.
+  float hMean = clamp(vWorldPos.y / 4.8, 0.0, 1.0);
   float sss   = pow(back, 3.0) * thin * hMean * trans;
   col += vec3(0.16, 0.42, 0.38) * sss * 1.5;
 
@@ -562,7 +567,12 @@ void main(){
 
   float grain = 0.40 + 0.60*smoothstep(0.08, 0.98, hash21(vec2(x0*1.73, seedY*31.7)));
   float live = clamp(u_breakShape, 0.0, 1.0)*life.z*grain;
-  vSprayAlpha = live*(0.30 + 0.70*seedY);
+  // SIZE_AUDIT open item 3: launch height already scales with H0 but droplet
+  // opacity did not. Same 1.5 m calibration anchor (factor == 1.0 at H0 = 1.5,
+  // so every 1.5 m preset is unchanged); tighter clamp than the foam factor
+  // because alpha saturates faster than surface whiteness.
+  float sizeSpray = clamp(u_H0/1.5, 0.7, 1.4);
+  vSprayAlpha = live*(0.30 + 0.70*seedY)*sizeSpray;
   vSprayShade = 0.72 + 0.28*seedZ;
   gl_PointSize = clamp((2.5 + 6.5*seedY)*310.0/max(-mv.z, 12.0), 1.0, 15.0);
   gl_Position = projectionMatrix*mv;

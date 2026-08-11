@@ -369,8 +369,13 @@ vec4 breakerLifecycleAtX(float x, float t){
   float boreWindow = smoothstep(0.18, 0.55, age)
                    * (1.0 - smoothstep(BORE_FADE_START_S, BORE_END_S, age));
   float boreAge = boreWindow*exp(-age/3.20);
-  float impact = activity*impactAge*(0.18 + 0.82*plunge);
-  float bore = activity*boreAge*(0.72 + 0.28*(1.0 - plunge));
+  // SIZE_AUDIT open item 2: the canonical crash number was xi- and
+  // envelope-gated only — no H0 term, so a 2.5 m day crashed exactly as hard
+  // as a 0.7 m day. Same H0/1.5 calibration as ocean()'s sizeFoam: factor is
+  // exactly 1.0 at the 1.5 m model-card day, so 1.5 m presets are unchanged.
+  float sizeAmp = mix(1.0, clamp(u_H0/1.5, 0.55, 1.6), u_depthMix);
+  float impact = activity*impactAge*(0.18 + 0.82*plunge)*sizeAmp;
+  float bore = activity*boreAge*(0.72 + 0.28*(1.0 - plunge))*sizeAmp;
   return vec4(age, frontZ, impact, bore);
 }
 
@@ -509,6 +514,14 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float structuralMound = u_H0*(0.62*impactBand + 0.27*boreBand)*moundNoise;
   h += mix(legacyMound, structuralMound, shape);
 
+  // SIZE_AUDIT open item 1: the whole foam block was H0-free, so whitewater
+  // amount and brightness were identical at every size. One factor scales the
+  // structural foam terms with swell height. CALIBRATION CONTRACT: at the
+  // H0 = 1.5 m model-card day clamp(1.5/1.5, ...) == 1.0 and mix(1.0, 1.0, m)
+  // == 1.0, so every preset at 1.5 m renders bit-identically. Gated by
+  // u_depthMix like the other size routes (synthetic presets untouched).
+  float sizeFoam = mix(1.0, clamp(u_H0/1.5, 0.55, 1.6), u_depthMix);
+
   // Legacy whitewater: broken into shore-normal streaks (never a solid sheet).
   float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.16, z*0.028) + vec2(1.7, t*0.015));
   float legacyFoam = brk * env2 * exp(-tSince/tau) * streaks;
@@ -532,7 +545,9 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
                   * exp(-life.x/max(1.8*u_tau, 1.0));
   float structuralFoam = 1.55*impactFoam + 0.84*boreFoam
                        + 0.66*trailFoam + 0.42*trailLace;
-  foam = mix(legacyFoam, structuralFoam, shape);
+  // sizeFoam multiplies the streak/impact/bore/trail/lace terms of BOTH paths
+  // (identity at H0 = 1.5 either way); lip and crumb stay xi-owned below.
+  foam = mix(legacyFoam, structuralFoam, shape) * sizeFoam;
 
   // pocket spray: whitewater thrown at the zipper itself, heavier when plunging
   // Structural mode keeps this as a thin lip edge; the separate spray pass owns
