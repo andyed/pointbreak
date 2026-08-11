@@ -689,7 +689,11 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   if (u_surfer > 0.5) {
     vec4 s = surferState(t);
     float behind = smoothstep(s.x + 2.0, s.x - 6.0, x) * smoothstep(s.x - 80.0, s.x - 30.0, x);
-    float pathZ = -coastCurve(x) - 11.0;   // the ride line: 11 m seaward of the contour
+    // the ride line: 11 m seaward of whatever break line is LIVE. breakLine()
+    // already mixes authored vs baked-emergent by u_breakMix, so the wake
+    // follows the M4 line when it is on instead of the pre-M4 authored contour
+    // (which sat sideways of the actual peel at mapped spots).
+    float pathZ = breakLine(x) - 11.0;
     float wake = behind * exp(-pow(z - pathZ, 2.0)/(2.0*3.0*3.0));
     foam = clamp(foam + wake*0.75, 0.0, 1.0);
   }
