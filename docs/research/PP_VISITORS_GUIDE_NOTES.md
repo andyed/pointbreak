@@ -99,3 +99,38 @@ name, the venue does not.
 The speakeasy naming story and the O'Neill house are the essay's opening
 texture — the place was named for pleasure before surfing gave the name its
 second meaning.
+
+## Lineup etiquette — source for a possible story/game mode
+
+3. "Right of way question," surfing-waves.com forum, 27–28 March 2019.
+   https://surfing-waves.com/forum/viewtopic.php?f=9&t=36508
+   Read 2026-08-11. Culture source. A visitor drops in at **First Peak** from the
+   inside on a longboarder who was already up and outside, and asks the forum who
+   was right. Regulars answer: the wave belongs to the surfer already riding, and
+   the poster describes First Peak that day as unusually competitive.
+
+**Why it matters here.** The rules argued in that thread are *the* rules a
+multi-agent lineup would need, and they are per-break, not universal — the thread
+itself contrasts longboard-priority spots with shortboard-favoured ones, and notes
+that Pleasure Point posts its own guidelines on a sign. Extracted, in the form a
+sim could use:
+
+- **Priority** goes to the surfer closest to the breaking part of the wave (the
+  curl/peak), which at a peeling right means the surfer furthest up-point.
+- **First up wins** — once someone is riding, the wave is theirs, and the deeper
+  or later surfer must yield.
+- **Collision avoidance is the inside surfer's burden**, unconditionally — the
+  duty holds even when you believe you had the right of way.
+- **Density is the variable.** The complaint is not about the rules but about
+  crowd: at First Peak on a good day the rules are contested continuously.
+
+**Model implications, if a story/game mode ever happens.** These are agent rules,
+not wave rules — none of them touch MODEL.md. The interesting coupling is that
+priority is defined by *position relative to the moving break point*, which the
+model already computes: the zipper's instantaneous break location **is** the
+priority reference, so "who has the wave" is derivable from the same `u(t)` that
+drives the peel. That is the cheap and correct hook — a lineup mode should read
+priority off the break line rather than carrying a separate rules system. The
+open defect noted in the repo (amplitude envelope not following the break line)
+would have to be fixed first, or every priority call would be made against a
+break point that is not where the tallest water is.

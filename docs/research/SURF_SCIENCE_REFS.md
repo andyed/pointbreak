@@ -229,6 +229,26 @@ procedural surface — is closest in spirit to wave particles (front advection) 
 Thürey-style lip/foam spawn at the breakpoint; Tessendorf choppy displacement remains
 the cheapest crest-sharpening term for the unbroken wall.
 
+### 5.1 Shipped implementations (prior art, not papers)
+
+- **Storm Breakers** — Unity URP ocean package, CC0-1.0,
+  https://github.com/Stormrider31/Storm-Breakers (106★ / 20 forks / 14 commits;
+  open-sourced when the author went back to salaried work). Proprietary wave model,
+  no cited literature; ships **breaking waves** with lip VFX, procedural splash audio,
+  buoyancy, and shoreline demos. Read 2026-08-11.
+
+  **Why it is the relevant precedent, and where it stops.** It is the closest thing to
+  a commodity "breaking wave near a shore" substrate that actually shipped, and CC0
+  means it can be read without licence entanglement — which is exactly the role the
+  "don't rewrite deep-water ocean" rule reserves for a commodity package. But it breaks
+  waves *as an effect*, on an authored shoreline, in a game engine. It has no measured
+  bathymetry, no peel angle, no Iribarren number, and no notion of a break line whose
+  position is set by depth. It cannot answer "where does this wave break at Pleasure
+  Point," which is the whole question here. Useful for foam/lip/audio craft and for
+  buoyancy-driven rider feel; not a source of wave kinematics, and not a substrate this
+  project can adopt (wrong engine — see the parked-TouchDesigner note in CLAUDE.md for
+  how vehicle choices get decided).
+
 ---
 
 *Compiled 2026-08-09. Verification notes: JCR SI 29 titles/pages taken from the

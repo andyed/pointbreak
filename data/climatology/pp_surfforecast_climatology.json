@@ -1,0 +1,93 @@
+{
+  "source": {
+    "name": "surf-forecast.com break statistics",
+    "break": "Pleasure Point-First Peak",
+    "urls": [
+      "https://www.surf-forecast.com/breaks/Pleasure-Point-First-Peak/surf-stats",
+      "https://www.surf-forecast.com/breaks/Pleasure-Point-First-Peak/wind-stats"
+    ],
+    "read_utc": "2026-08-11",
+    "model": "NWW3",
+    "sample_note": "3590 model predictions per month-of-year since 2006, values every 3 hours (August figure quoted on the page; other months assumed comparable)",
+    "grid_node_offset_km": 48,
+    "grid_node_offset_mi": 30,
+    "break_metadata": {
+      "type": "reef",
+      "bottom": "reef",
+      "hand": "right",
+      "ideal_swell": "SSW",
+      "ideal_wind": "NW (offshore)",
+      "ideal_tide": "low",
+      "consistency_rating_of_10": 3,
+      "coords_as_published": [36.96, -121.97]
+    },
+    "redistribution": "NOT redistributed. These are transcribed numeric readings from the published graphs, cited under normal citation practice. The graph images themselves are not stored in this repository."
+  },
+
+  "units": {
+    "all_values": "percent of time",
+    "size_bins_m": ["<0.5", "0.5-1.3", "1.3-2", "2-3", ">3"],
+    "size_bins_ft": ["<1.5", "1.5-4", "4-6.5", "6.5-10", ">10"]
+  },
+
+  "schema": {
+    "badges": "at-the-break summary printed on each graph; too_small + swell = 100 (statistics), too_small + blown_out + clean = 100 (consistency)",
+    "bars": "the bar chart under each rose: [<0.5, 0.5-1.3, 1.3-2, 2-3, >3]. In the statistics graphs these sum to ~100. In the consistency graphs the <0.5 bin is forced to 0 (labelled 'flat') and the rest do NOT sum to the clean badge - see README caveat 3."
+  },
+
+  "statistics_all_swell_any_wind": {
+    "january":   {"too_small": 98, "swell": 2.0, "bars": [97, 0.2, 1.0, 1.2, 1.0]},
+    "february":  {"too_small": 95, "swell": 5,   "bars": [93, 1.1, 1.2, 3, 1.8]},
+    "march":     {"too_small": 97, "swell": 3,   "bars": [89, 3, 5, 3, 0.2]},
+    "april":     {"too_small": 97, "swell": 3,   "bars": [85, 3, 9, 3, 0]},
+    "may":       {"too_small": 97, "swell": 3,   "bars": [72, 8, 17, 4, 0]},
+    "june":      {"too_small": 96, "swell": 4,   "bars": [69, 11, 16, 4, 0]},
+    "july":      {"too_small": 97, "swell": 3,   "bars": [62, 13, 22, 4, 0]},
+    "august":    {"too_small": 98, "swell": 2.0, "bars": [57, 18, 23, 2.0, 0]},
+    "september": {"too_small": 98, "swell": 2.0, "bars": [64, 10, 24, 2.0, 0]},
+    "october":   {"too_small": 98, "swell": 2.0, "bars": [81, 6, 11, 3, 0.2]},
+    "november":  {"too_small": 99, "swell": 1.0, "bars": [94, 3, 2, 0.6, 0]},
+    "december":  {"too_small": 98, "swell": 2.0, "bars": [97, 0.4, 0.6, 1.8, 0.6]},
+    "spring":    {"too_small": 96, "swell": 4,   "bars": [82, 4, 10, 3, 0]},
+    "summer":    {"too_small": 96, "swell": 4,   "bars": [62, 14, 20, 3, 0]},
+    "autumn":    {"too_small": 97, "swell": 3,   "bars": [80, 5, 12, 1.9, 0.4]},
+    "winter":    {"too_small": 96, "swell": 4,   "bars": [95, 0.5, 0.9, 2, 1.1]},
+    "year":      {"too_small": 96, "swell": 4,   "bars": [79, 6, 11, 3, 0.3]}
+  },
+
+  "consistency_light_or_offshore_wind": {
+    "january":   {"too_small": 98, "blown_out": 1.7, "clean": 0.3, "bars": [0, 0,   0.7, 0.3, 0]},
+    "february":  {"too_small": 95, "blown_out": 4,   "clean": 0.7, "bars": [0, 0.8, 0.5, 0.5, 0.2]},
+    "march":     {"too_small": 97, "blown_out": 2.0, "clean": 1.0, "bars": [0, 1.9, 4,   1.0, 0]},
+    "april":     {"too_small": 97, "blown_out": 1.0, "clean": 2.0, "bars": [0, 3,   7,   2,   0]},
+    "may":       {"too_small": 97, "blown_out": 1.0, "clean": 2.0, "bars": [0, 7,   13,  2,   0]},
+    "june":      {"too_small": 96, "blown_out": 0,   "clean": 4,   "bars": [0, 9,   14,  4,   0]},
+    "july":      {"too_small": 97, "blown_out": 0,   "clean": 3,   "bars": [0, 12,  20,  3,   0]},
+    "august":    {"too_small": 98, "blown_out": 0.1, "clean": 1.9, "bars": [0, 18,  22,  1.9, 0]},
+    "september": {"too_small": 98, "blown_out": 0.2, "clean": 1.8, "bars": [0, 8,   23,  1.8, 0]},
+    "october":   {"too_small": 98, "blown_out": 0,   "clean": 2.0, "bars": [0, 5,   10,  2,   0]},
+    "november":  {"too_small": 99, "blown_out": 1.0, "clean": 0,   "bars": [0, 1.9, 1.2, 0,   0]},
+    "december":  {"too_small": 98, "blown_out": 1.8, "clean": 0.2, "bars": [0, 0.2, 0.3, 0.2, 0]},
+    "spring":    {"too_small": 96, "blown_out": 2,   "clean": 1.9, "bars": [0, 4,   8,   1.9, 0]},
+    "summer":    {"too_small": 96, "blown_out": 1.0, "clean": 3,   "bars": [0, 13,  19,  3,   0]},
+    "autumn":    {"too_small": 97, "blown_out": 1.6, "clean": 1.4, "bars": [0, 4,   11,  1.4, 0]},
+    "winter":    {"too_small": 96, "blown_out": 4,   "clean": 0.3, "bars": [0, 0.4, 0.5, 0.3, 0]},
+    "year":      {"too_small": 96, "blown_out": 2,   "clean": 1.6, "bars": [0, 6,   10,  1.6, 0]}
+  },
+
+  "wind": {
+    "record_note": "graphs titled 'averages since 2006'",
+    "prevailing_direction": "WNW",
+    "strength_bins_kph": ["0-10", "10-20", "20-30", "30-40", ">40"],
+    "strength_bins_mph": ["0-6", "6-12", "12-19", "19-25", ">25"],
+    "year":   {"offshore": 17,  "onshore": 3, "bars": [4, 9, 6, 1.6, 0.5]},
+    "summer": {"offshore": 35,  "onshore": 3, "bars": [8, 17, 11, 3, 0.1]},
+    "winter": {"offshore": 1.2, "onshore": 3, "bars": [0.5, 1.0, 0.9, 0.9, 1.4]}
+  },
+
+  "derived_checks": {
+    "swell_badge_vs_bars_ge_2m": "statistics swell% tracks the sum of the two largest bins (2-3m plus >3m) to within rounding in 10 of 13 panels - e.g. Aug 2.0 vs 2.0, Jun 4 vs 4, Apr 3 vs 3. Outliers: Oct (2.0 vs 3.2), Nov (1.0 vs 0.6), Year (4 vs 3.3).",
+    "clean_badge_vs_2_3m_bar": "consistency clean% equals the 2-3m bar exactly in 12 of 13 panels (Feb is the exception: 0.7 vs 0.5).",
+    "implication": "the 'too small' threshold for this break appears to sit at roughly 2 m (6.5 ft) offshore Hs at the node, not at a surfable size at the break. This is the single largest reason the published 3/10 consistency rating is unusable as a PP prior."
+  }
+}

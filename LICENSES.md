@@ -64,6 +64,13 @@ California, Hutt/Black/Mead, Battjes, McCowan, Storlazzi et al.). Those are
 referenced and paraphrased under normal citation practice; none of their text
 is reproduced at length here, and none of it is relicensed by this repository.
 
+**surf-forecast.com.** `data/climatology/pp_surfforecast_climatology.json` and
+`docs/research/PP_SWELL_CLIMATOLOGY.md` hold numeric readings transcribed from
+surf-forecast.com's published break-statistics graphs, with attribution. The
+graph images are their copyrighted content and are **not** stored or
+redistributed here; the refetch recipe in `data/climatology/README.md` points at
+their site rather than shipping copies.
+
 ## Not a forecast
 
 Nothing in this repository is validated against measurements of Pleasure Point.

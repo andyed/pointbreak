@@ -78,6 +78,7 @@ the wave that demonstrates it is on Santa Cruz's west side.
 - `docs/research/` — data-access notes, surf-science citations, ground truth
 - `docs/figures/` — the essay and its figure generators
 - `data/osm/`, `data/bathy/` — raw pulls + processing (see each README)
+- `data/climatology/` — transcribed surf-forecast.com break stats; a weak source, kept for provenance (see its README)
 - `data/model/` — generated stage profiles and seabed patches read by both renderers
 - `web/` — raymarched reference build (maintenance-only)
 - `web-three/` — three.js displaced-grid build; the current vehicle
