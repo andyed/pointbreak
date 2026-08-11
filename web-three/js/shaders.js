@@ -15,7 +15,9 @@
 // past the cusp limit at the pocket when xi plunges, so the lip pitches and
 // folds. Normals come from finite differences on the DISPLACED positions.
 // The model itself is untouched — everything here is renderer-side geometry
-// and texture.
+// and texture. Breaker anatomy adds one canonical lifecycle shared with
+// model-glsl: the grid shapes the face/lip/impact mound, while a sparse point
+// pass gives only the impact its airy volume.
 
 import { MODEL_GLSL } from '../../web/js/model-glsl.js';
 
@@ -159,17 +161,30 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
 
   vec2 off = lam * grad;
 
+  // Structural face anatomy. On the shoreward/front quadrant of the carrier,
+  // pull the face down into a concavity before throwing the crest ribbon over
+  // it. This negative space is the cliff-scale barrel cue; simply increasing
+  // the whole wave would leave the old rounded mound.
+  float thetaRaw = 2.0*PI/u_T*t - 2.0*PI/LAM*rayS(xz0);
+  float frontPhase = smoothstep(0.02, 0.78, -sin(thetaRaw))
+                   * smoothstep(-0.35, 0.82, cos(thetaRaw));
+  float hingeBand = exp(-(d*d)/(2.0*9.0*9.0))*reefWindow(xz0.x);
+  float anatomy = clamp(u_breakShape, 0.0, 1.0)*plunge;
+  h -= 0.34*u_H0*VIS*frontPhase*hingeBand*anatomy;
+
   // lip throw & curl: toward-crest convergence folds the crest symmetrically;
   // a plunging lip is thrown SHOREWARD (+z) and curled DOWNWARD (-y).
   // This forms a cycloid-like barrel instead of a flat horizontal overhang.
   float hN = clamp(h / max(u_H0*VIS, 0.001), 0.0, 1.4);
   float lipJit = 0.65 + 0.7*vnoise2(vec2(xz0.x*0.11, t*0.45));
   
-  float throwMag = 7.5 * pocket * plunge * hN * lipJit;
+  float lipTip = mix(1.0, 1.0 + 0.65*frontPhase, anatomy);
+  float throwMag = 7.5 * pocket * plunge * hN * lipJit * lipTip;
   off.y += throwMag;
   
   // Curl downward: scale drop by how far forward it's thrown
-  float dropMag = 3.5 * pocket * plunge * pow(hN, 2.0) * lipJit;
+  float dropMag = 3.5 * pocket * plunge * pow(hN, 2.0) * lipJit
+                * mix(1.0, 0.72 + 0.82*frontPhase, anatomy);
   h -= dropMag;
 
   // guards: bounded (foam-front FD spikes must not shred the mesh), finite,
@@ -465,6 +480,58 @@ void main() {
   col = pow(clamp(col, 0.0, 1.0), vec3(0.92));
   if (!(col.r == col.r)) col = vec3(0.0);   // NaN guard (house rule)
   gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+// Sparse impact volume. These are not free-running particles with their own
+// simulation clock: every point samples breakerLifecycleAtX(), so the airborne
+// collapse cannot outrun the surface mound or leave foam at a different locus.
+export const SPRAY_VERT = `
+uniform float u_time;
+varying float vSprayAlpha;
+varying float vSprayShade;
+${MODEL_GLSL}
+
+void main(){
+  float x0 = position.x;
+  float seedY = position.y;
+  float seedZ = position.z;
+  vec4 life = breakerLifecycleAtX(x0, u_time);
+  float plunge = smoothstep(0.45, 1.25, u_xi);
+  // The ballistic arc peaks during the compact impact, not halfway through the
+  // foam wake. life.z is already the canonical crash envelope.
+  float ageN = clamp(life.x/1.60, 0.0, 1.0);
+  float arc = 4.0*ageN*(1.0 - ageN);
+
+  // The real-point reference has a narrow bright head with a low tail. Keep
+  // lateral and shore-normal spread compact; vertical lift is taxonomy-gated.
+  float x = x0 + (seedZ - 0.5)*(2.2 + 3.8*ageN);
+  float z = life.y - (0.8 + 2.8*seedY)*ageN + (seedZ - 0.5)*3.2;
+  float y = 0.20 + u_H0*VIS*(0.16 + 0.34*seedY)
+          + u_H0*VIS*(0.30 + 0.78*seedY)*arc*plunge;
+  vec3 world = vec3(x, y, z);
+  vec4 mv = modelViewMatrix*vec4(world, 1.0);
+
+  float grain = 0.40 + 0.60*smoothstep(0.08, 0.98, hash21(vec2(x0*1.73, seedY*31.7)));
+  float live = clamp(u_breakShape, 0.0, 1.0)*life.z*grain;
+  vSprayAlpha = live*(0.30 + 0.70*seedY);
+  vSprayShade = 0.72 + 0.28*seedZ;
+  gl_PointSize = clamp((2.5 + 6.5*seedY)*310.0/max(-mv.z, 12.0), 1.0, 15.0);
+  gl_Position = projectionMatrix*mv;
+}
+`;
+
+export const SPRAY_FRAG = `
+varying float vSprayAlpha;
+varying float vSprayShade;
+
+void main(){
+  vec2 q = gl_PointCoord - vec2(0.5);
+  float r = length(q);
+  float alpha = vSprayAlpha*(1.0 - smoothstep(0.16, 0.50, r));
+  if (alpha < 0.012) discard;
+  vec3 foam = mix(vec3(0.76, 0.80, 0.79), vec3(0.98), vSprayShade);
+  gl_FragColor = vec4(foam, alpha);
 }
 `;
 

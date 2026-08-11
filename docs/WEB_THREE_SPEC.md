@@ -77,8 +77,9 @@ then retires.
 ## Cameras
 
 - `OrbitControls` free mode (default for dev).
-- Authored presets: Cliff (16 m, fixed lineup), Drone (top-down ortho-ish),
-  Follow (telephoto tracking surferState, zoom ∝ 1/distance).
+- Authored presets: Cliff (16 m, fixed lineup), Lineup (low telephoto anatomy
+  proof), Drone (top-down ortho-ish), Follow (telephoto tracking surferState,
+  zoom ∝ 1/distance).
 - Keys: V cycles presets, S surfer, 1–7 spot presets, space pause — parity
   with web/.
 
@@ -97,6 +98,30 @@ then retires.
     sliding.
 - Perf budget: 60 fps at 1080p on the M-series MacBook, DPR capped 1.5;
   fbm octaves are the first knob to drop under load.
+
+### Breaker anatomy pass (2026-08-10)
+
+The original M2 fold produced a broad raised ridge with foam on it. The
+structural pass keeps the same bed, break line, refraction and carrier phase,
+but makes the breaking event readable as five linked parts: dark concave face,
+compact pitching lip, negative-space pocket, bright impact head, low aerated
+train. `breakerLifecycleAtX()` in the shared model is the only collapse clock;
+surface mound, foam age and the sparse airborne point pass all consume it.
+
+This is the default web-three renderer path. `N` toggles the legacy/structural
+A/B, and `#shape=legacy` makes comparisons reproducible. The raymarcher remains
+the legacy reference. Acceptance is matched-time Cliff, Lineup and Drone proof:
+structural mode must preserve clean dark set lanes, narrow the impact head, show
+a lip/face hinge at plunging sites, retain a lower trailing foam band, and keep
+Privates spilling. It must not change shoreline, break locus or crest bearing.
+
+The crash must be an EVENT, not merely a better foam profile. At First Peak the
+physics-owned peel speed is ~38.6 m/s; the structural lifecycle therefore uses a
+0.20 s impact sigma (~15 m head) and a hard 3.8 s bore end (~146 m wake). In
+matched frames one second apart, the bright impact head should move ~39 m
+down-point, water ahead must remain unbroken, and only the lower wake may remain
+behind. Do not slow that motion to make it easier to see: its speed is the
+refraction/Walker result, not an aesthetic parameter.
 
 ## M4 — emergent break line
 

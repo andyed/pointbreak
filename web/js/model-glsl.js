@@ -24,6 +24,7 @@ uniform float u_tau;      // foam e-folding, s
 uniform float u_chop;     // local wind-sea texture 0..1
 uniform float u_aframe;   // 0 point break, 1 A-frame (abs fold); no site sets 1
 uniform float u_surfer;   // 0 off, 1 riding
+uniform float u_breakShape;// 1 = structural breaker anatomy, 0 = legacy ridge A/B
 uniform float u_geoMix;   // 1 = OSM/NCEI stage profile, 0 = synthetic fallback
 uniform vec2 u_contourFit;// NCEI equal-elevation contour: x2*x^2 + x3*x^3
 uniform vec2 u_stageBounds;// OSM canon-neighbor midpoints in local stage metres
@@ -67,6 +68,14 @@ const float VIS = 3.2;    // visual amplitude gain: physical heights are nearly
                           // invisible at landscape scale; exaggerate, don't lie about kinematics
 const float GAMMA = 0.78; // depth-limited breaker index H/h (McCowan solitary-wave
                           // limit; Battjes/Nairn put field values ~0.7-0.9)
+
+// Breaker lifecycle in SECONDS, deliberately independent of peel speed. The
+// zipper kinematics stay in rayS()/swellPhi(); these only decide how much of
+// the already-broken line remains visible behind its moving head.
+const float CRASH_PEAK_S = 0.42;
+const float CRASH_SIGMA_S = 0.20;
+const float BORE_FADE_START_S = 2.60;
+const float BORE_END_S = 3.80;
 
 // ---------- hash / noise ----------
 float hash11(float p){ p = fract(p*0.1031); p *= p+33.33; return fract((p+p)*p); }
@@ -331,6 +340,40 @@ float setEnv(float s, float t){
   return 0.5 + 0.5*cos(2.0*PI*u_dF*(t - s/cg));
 }
 
+// One breaker clock for every visual consequence of collapse. Age is measured
+// at the canonical break line, not independently at each surface sample: the
+// lip, impact front, aerated bore and spray therefore remain one event as the
+// zipper moves down the point. Returns (age seconds, front z, impact gain,
+// bore gain). Geometry and particles consume this same function.
+vec4 breakerLifecycleAtX(float x, float t){
+  float k = 2.0*PI/LAM;
+  float w = 2.0*PI/u_T;
+  float zb = breakLine(x);
+  vec2 atBreak = vec2(x, zb);
+  float thetaBreak = w*t - k*rayS(atBreak);
+  float age = mod(thetaBreak, 2.0*PI)/w;
+
+  // A compact plunging impact gives way to a lower, longer-lived bore. The
+  // front moves shoreward; the site taxonomy only changes their relative
+  // energy, so Privates still crumbles while Sewers throws.
+  float plunge = smoothstep(0.45, 1.25, u_xi);
+  float frontSpeed = mix(2.4, 4.1, plunge);
+  float frontZ = zb + frontSpeed*age;
+  float env = setEnv(rayS(atBreak), t);
+  float activity = env*env*reefWindow(x);
+  // The previous 0.68 s sigma made a 52 m First Peak impact head, while its
+  // 0.55*T bore e-fold covered ~297 m: the head moved mathematically but the
+  // whole line stayed white, so no crash ran down the wave. A narrow head plus
+  // a terminal wake restores foreground/background in time without touching Vp.
+  float impactAge = exp(-0.5*pow((age - CRASH_PEAK_S)/CRASH_SIGMA_S, 2.0));
+  float boreWindow = smoothstep(0.18, 0.55, age)
+                   * (1.0 - smoothstep(BORE_FADE_START_S, BORE_END_S, age));
+  float boreAge = boreWindow*exp(-age/3.20);
+  float impact = activity*impactAge*(0.18 + 0.82*plunge);
+  float bore = activity*boreAge*(0.72 + 0.28*(1.0 - plunge));
+  return vec4(age, frontZ, impact, bore);
+}
+
 // Sharpened crest profile: q=1 sinusoid-ish, q>2 peaked (Gerstner cusp stand-in)
 float crestShape(float phase, float q){
   // rounding can push c01 a hair below 0 at troughs; pow(negative, fractional)
@@ -436,29 +479,66 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float tSince = mod(theta, 2.0*PI)/w;
   float tau = max(u_tau, 0.5);
 
-  // pocket: crest currently crossing the break line — the zipper's locus
+  // pocket: crest currently crossing the break line — the zipper's locus.
+  // The legacy 22 m bell reads as a raised ridge from the cliff. Structural
+  // mode contracts it to a few posts so the face/lip transition has a visible
+  // hinge rather than a broad cosmetic glow.
   float crestNear = smoothstep(0.55, 0.98, cos(theta));
-  pocket = crestNear * exp(-(d*d)/(2.0*22.0*22.0)) * env2 * reef;
+  float pocketLegacy = exp(-(d*d)/(2.0*22.0*22.0));
+  float pocketCompact = exp(-(d*d)/(2.0*7.5*7.5));
+  pocket = crestNear * mix(pocketLegacy, pocketCompact, clamp(u_breakShape, 0.0, 1.0))
+         * env2 * reef;
   // unbroken crest lines (approaching swell stays legible from above)
   crest = crestNear * (1.0 - brk) * env2;
 
-  // the broken front is a rolling foamy mound, not a flat sheet — give it height
-  float boreBand = brk * env2 * exp(-abs(z - zb)/9.0);
-  h += 0.30*u_H0 * boreBand * (0.75 + 0.25*vnoise2(vec2(x*0.2, t*0.8)));
+  // Legacy keeps a static symmetric mound on the break line. Structural mode
+  // transfers that mass into the shared lifecycle: a compact impact at the
+  // moving front, followed by a lower aerated bore and a foam train behind it.
+  float shape = clamp(u_breakShape, 0.0, 1.0);
+  float boreBandLegacy = brk * env2 * exp(-abs(z - zb)/9.0);
+  vec4 life = breakerLifecycleAtX(x, t);
+  float frontWidth = 2.8 + 0.90*life.x;
+  float frontBand = exp(-0.5*pow((z - life.y)/frontWidth, 2.0));
+  float impactBand = frontBand*life.z;
+  float boreBand = frontBand*life.w;
+  float trailStart = smoothstep(zb - 2.0, zb + 1.5, z);
+  float trailEnd = 1.0 - smoothstep(life.y - 1.5, life.y + 2.5, z);
+  float trailBand = trailStart*trailEnd*life.w;
+  float moundNoise = 0.75 + 0.25*vnoise2(vec2(x*0.2, t*0.8));
+  float legacyMound = 0.30*u_H0*boreBandLegacy*moundNoise;
+  float structuralMound = u_H0*(0.62*impactBand + 0.27*boreBand)*moundNoise;
+  h += mix(legacyMound, structuralMound, shape);
 
-  // fresh whitewater, broken into shore-normal streaks (never a solid sheet)
+  // Legacy whitewater: broken into shore-normal streaks (never a solid sheet).
   float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.16, z*0.028) + vec2(1.7, t*0.015));
-  foam = brk * env2 * exp(-tSince/tau) * streaks;
-  foam += boreBand * 0.85 * exp(-tSince/(0.5*u_T));
+  float legacyFoam = brk * env2 * exp(-tSince/tau) * streaks;
+  legacyFoam += boreBandLegacy * 0.85 * exp(-tSince/(0.5*u_T));
 
   // foam lace: dimmer, longer-lived residue; two octaves so cells don't read blocky
   float laceN = vnoise2(vec2(x*0.22, z*0.045) + vec2(0.0, t*0.02))*0.62
               + vnoise2(vec2(x*0.74, z*0.15) - vec2(t*0.01, 0.0))*0.38;
   float lace = brk * env2 * exp(-tSince/(2.4*tau)) * smoothstep(0.45, 0.72, laceN);
-  foam += lace * 0.4;
+  legacyFoam += lace * 0.4;
+
+  // Structural whitewater changes character with age instead of only fading:
+  // dense granular impact -> coherent low bore -> perforated trailing lace.
+  float clumps = vnoise2(vec2(x*0.31, z*0.16) + vec2(t*0.04, -t*0.06))*0.58
+               + vnoise2(vec2(x*0.83, z*0.43) - vec2(t*0.07, 0.0))*0.42;
+  float impactFoam = impactBand*smoothstep(0.20, 0.66, clumps + 0.28);
+  float boreFoam = boreBand*(0.62 + 0.38*streaks);
+  float trailFoam = trailBand*(0.34 + 0.48*streaks)
+                  * exp(-life.x/max(2.4*u_tau, 1.0));
+  float trailLace = trailBand*smoothstep(0.48, 0.73, laceN)
+                  * exp(-life.x/max(1.8*u_tau, 1.0));
+  float structuralFoam = 1.55*impactFoam + 0.84*boreFoam
+                       + 0.66*trailFoam + 0.42*trailLace;
+  foam = mix(legacyFoam, structuralFoam, shape);
 
   // pocket spray: whitewater thrown at the zipper itself, heavier when plunging
-  foam += pocket * (0.45 + 0.75*smoothstep(0.3, 1.4, u_xi));
+  // Structural mode keeps this as a thin lip edge; the separate spray pass owns
+  // the airy volume, so the surface itself does not turn into a white wall.
+  float lipFoam = pocket * (0.45 + 0.75*smoothstep(0.3, 1.4, u_xi));
+  foam += lipFoam*mix(1.0, 0.52, shape);
 
   // spilling crumb: low-xi waves dribble foam down the face before fully breaking
   float crumb = crestNear * (1.0 - brk) * env2

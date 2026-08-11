@@ -10,7 +10,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS, describeGeoState } from '../../web/js/params.js';
-import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG } from './shaders.js';
+import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
+         SPRAY_VERT, SPRAY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, rayS, swellPhi, peelAngleAt,
@@ -47,6 +48,7 @@ scene.background = new THREE.Color(0xdfe3e5);   // horizon grey fallback behind 
 const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 5000);
 
 const state = makeState();
+let structuralBreaker = 1;   // shipped path; #shape=legacy is the reversible A/B
 
 // ---------- the grid ----------
 // PlaneGeometry is authored in XY; rotate onto XZ (y up) then shift so
@@ -93,6 +95,7 @@ const uniforms = {
   u_chop:     { value: state.chop },
   u_aframe:   { value: state.aframe },
   u_surfer:   { value: state.surfer },
+  u_breakShape: { value: structuralBreaker },
   u_geoMix:   { value: state.geoMix },
   u_contourFit: { value: new THREE.Vector2(state.contourX2, state.contourX3) },
   u_stageBounds: { value: new THREE.Vector2(state.stageStart, state.stageEnd) },
@@ -121,6 +124,38 @@ const mat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
 scene.add(new THREE.Mesh(geo, mat));
+
+// ---------- airborne impact whitewater ----------
+// Deterministic stations/seeds keep A/B captures reproducible. This is a
+// deliberately sparse volume: the Point reference is clean dark lanes with a
+// narrow collapsing head, not the opaque particle blizzard of a surf game.
+function makeSprayGeometry(count = 5200) {
+  let seed = 0x51f15e;
+  const random = () => {
+    seed = (1664525*seed + 1013904223) >>> 0;
+    return seed/4294967296;
+  };
+  const pos = new Float32Array(count*3);
+  for (let i = 0; i < count; i++) {
+    pos[i*3] = -285 + 570*random();
+    pos[i*3 + 1] = random();
+    pos[i*3 + 2] = random();
+  }
+  const sprayGeo = new THREE.BufferGeometry();
+  sprayGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  return sprayGeo;
+}
+const sprayMat = new THREE.ShaderMaterial({
+  vertexShader: SPRAY_VERT,
+  fragmentShader: SPRAY_FRAG,
+  uniforms,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.NormalBlending,
+});
+const sprayPoints = new THREE.Points(makeSprayGeometry(), sprayMat);
+sprayPoints.frustumCulled = false; // positions are shader-authored from seeds
+scene.add(sprayPoints);
 
 // ---------- the seabed ----------
 // Its own surface so the free camera can dive and watch the floor descend.
@@ -192,6 +227,7 @@ controls.enableDamping = true;
 controls.maxDistance = 2000;
 
 // Cliff = web/'s cliff camera (16 m over the point, shooting the lineup);
+// Lineup = low telephoto water view used to judge face/lip negative space;
 // Drone = high near-top-down matching web/'s ortho drone window (~±170 m in
 // z at fov 50 -> height ≈ 170/tan(25°) ≈ 365 m; slight z offset keeps the
 // look-at well-conditioned and puts seaward at the top of frame like web/).
@@ -215,6 +251,7 @@ function cliffStation(x) {
 const CAM_PRESETS = [
   { name: 'Free',   pos: () => [-140, 55, -230],                              target: () => [40, 0, 40] },
   { name: 'Cliff',  pos: () => cliffStation(210),                             target: () => [-120, 3, breakLineJS(-120) - 10] },
+  { name: 'Lineup', pos: () => [35, 8.5, breakLineJS(35) - 30],               target: () => [0, 4.0, breakLineJS(0) + 2], fov: 32 },
   { name: 'Drone',  pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
   { name: 'Follow', pos: () => cliffStation(210),                             target: () => [0, 2, breakLineJS(0) - 11] },
 ];
@@ -229,7 +266,7 @@ function applyCam(i) {
   // Follow owns the camera every frame; OrbitControls would fight the track.
   // Leaving Follow restores free orbiting and the wide field of view.
   controls.enabled = p.name !== 'Follow';
-  if (p.name !== 'Follow') { camera.fov = BASE_FOV; camera.updateProjectionMatrix(); }
+  if (p.name !== 'Follow') { camera.fov = p.fov || BASE_FOV; camera.updateProjectionMatrix(); }
   controls.update();
   refreshHUD();
 }
@@ -282,7 +319,7 @@ function refreshHUD() {
         `${state.alpha}° deep → ${phi.toFixed(0)}° at break · peel ${down.toFixed(0)}°`;
     }
   }
-  hudGeo.textContent = describeGeoState(state);
+  hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`;
 }
 
 // ---------- keyboard (parity with web/) ----------
@@ -307,6 +344,12 @@ window.addEventListener('keydown', (e) => {
   // B swaps the measured seabed for its own least-squares plane: same depth
   // scale and mean slope, structure removed. The A/B that isolates reef SHAPE.
   if (e.key === 'b' || e.key === 'B') { state.bedShape = state.bedShape ? 0 : 1; refreshHUD(); }
+  // N isolates breaker anatomy without touching bed/refraction/model timing.
+  if (e.key === 'n' || e.key === 'N') {
+    structuralBreaker = structuralBreaker ? 0 : 1;
+    uniforms.u_breakShape.value = structuralBreaker;
+    refreshHUD();
+  }
   // , and . slide the cross-section's transect along the shore, so the profile
   // can be read where the wave is actually peeling rather than only at x=0.
   if (e.key === ',') sectionX = Math.max(sectionX - 25, -250);
@@ -442,7 +485,7 @@ function frame(now) {
 // So an essay can embed the same build framed several ways without shipping
 // several builds. Hash rather than query: no server round-trip, and it keeps
 // the deployed sim a pure static file.
-//   #preset=secondpeak&cam=cliff&section=1&bed=plane&tide=-0.5&surfer=1&sim=42&hud=0
+//   #preset=secondpeak&cam=cliff&shape=legacy&section=1&bed=plane&tide=-0.5&surfer=1&sim=42&hud=0
 function applyHashParams() {
   const h = new URLSearchParams(location.hash.replace(/^#/, ''));
   if (!h.toString()) return 0;
@@ -455,6 +498,9 @@ function applyHashParams() {
   if (h.get('hud') === '0') document.body.classList.add('hidepanel');
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.get('m4') === '1') m4Enabled = true;          // work-in-progress emergent break line
+  if (h.get('shape') === 'legacy') structuralBreaker = 0;
+  if (h.get('shape') === 'structural') structuralBreaker = 1;
+  uniforms.u_breakShape.value = structuralBreaker;
   if (h.has('swell')) state.swellDeg = Math.min(Math.max(parseFloat(h.get('swell')) || 50, 0), 85);
   if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
   const camName = (h.get('cam') || '').toLowerCase();
@@ -473,7 +519,12 @@ requestAnimationFrame(frame);
 // reads rider state, and can jump the sim clock (e.g. straight to mid-ride)
 // through this. Not a public API — the UI stays keyboard-led.
 window.__pointbreak = {
-  camera, controls, state, surferGroup, uniforms,
+  camera, controls, state, surferGroup, sprayPoints, uniforms,
   sim: () => simTime,
   setSim: (t) => { if (Number.isFinite(t)) simTime = t; },
+  setBreakerShape: (enabled) => {
+    structuralBreaker = enabled ? 1 : 0;
+    uniforms.u_breakShape.value = structuralBreaker;
+    refreshHUD();
+  },
 };
