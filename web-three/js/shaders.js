@@ -156,27 +156,40 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float d      = breakLine(xz0.x) - xz0.y;        // >0 seaward of the line
   float steep  = exp(-max(d, 0.0)/70.0) * reefWindow(xz0.x);
   float plunge = smoothstep(0.45, 1.25, u_xi);    // Battjes: plunging from ~0.5
-  // M6 part 1: drive Gerstner's Q explicitly instead of letting it fall out of
-  // three multiplied metre constants. In the parametric form the offset is
-  // (Q/k)*dh/dx, so this shader's lam (metres, times a dimensionless gradient)
-  // IS Q/k, and therefore Q = lam*k. Q = 1 is the cusp: the crest develops a
-  // vertical tangent and begins to overturn. Q > 1 self-intersects, which is
-  // the fold we want.
+  // M6 part 1, CORRECTED 2026-08-11 (size audit, docs/research/SIZE_AUDIT.md).
+  // The 2026-08-10 version asserted "Q = lam*k, and Q = 1 is the cusp". That
+  // derivation was amplitude-blind and WRONG: for off = lam*grad on
+  // h = a*cos(k x), dx/dx0 = 1 - lam*a*k^2*cos, so the cusp is
   //
-  // The old constants never got there. Measured Q maxima at the most
-  // favourable point on the whole stage were 0.24 to 1.21, and only Sewers
-  // crossed 1 -- six of seven presets could not cusp at ANY lip tuning, so no
-  // amount of throw tuning was ever going to make them curl.
+  //     S := lam * a * k^2 = 1        (not lam*k = 1)
   //
-  // Writing it in Q also puts the spilling/plunging split exactly where physics
-  // puts it: at the cusp. Low-xi sites now approach Q = 1 and sharpen hard
-  // without crossing (a spilling crest SHOULD NOT overturn); high-xi sites go
-  // well past it.
+  // With the displayed amplitude a ~ 7 m, a*k ~ 0.49, so the "Q = 1.13"
+  // measured yesterday never actually cusped -- the crest sharpened and
+  // rounded, which is what the screen showed. Parametrize by S directly and
+  // solve lam = S/(a*k^2) from the LOCAL displayed amplitude: the cusp is now
+  // reached by construction at S = 1 whatever the amplitude, and S is the one
+  // dimensionless overturn knob.
   float kk     = 2.0*PI/LAM;
-  float Qapp   = 0.85 * steep;                       // sharpening on the way in
-  float Qover  = (0.10 + 1.15*plunge) * pocket;      // past the cusp at the zipper
-  float Q      = clamp(Qapp + Qover, 0.0, 2.4);      // cap: mesh, not sculpture
-  float lam    = Q / kk;
+  float aEst   = clamp(abs(h), 0.6, 12.0);           // local displayed amplitude, m
+  // M6 part 1c: size enters through the breaking excess. ocean() computes
+  // Hsh/Hlim for the foam gate; the curl never saw it. Recomputed here (4
+  // lines) rather than widening ocean()'s signature, which both vehicles
+  // splice. NOTE (audit master finding): inside the surf zone the surface
+  // height itself is H0-INVARIANT (amp = 0.5*gamma*dep once depth-limited), so
+  // this gate is the ONLY route size has into the fold until M4 lets the break
+  // move seaward into deeper water. At the fixed line excess scales ~linearly
+  // with H0 (0.7 m day ~ 0.6, 1.5 m ~ 1.0-1.2, 2.5 m ~ 1.5 clamped), so big
+  // days fold harder and small days crumble, from one physical number.
+  float depQ    = modelDepthM(xz0);
+  float KsQ     = clamp(sqrt((G*u_T/(4.0*PI))/sqrt(G*depQ)), 0.7, 2.6);
+  float excessQ = (u_H0*KsQ) / max(GAMMA*depQ, 0.05);
+  float sizeGate = mix(1.0, clamp(excessQ, 0.0, 1.5), u_depthMix);
+  // S calibrated against the old convergence at the 1.5 m model-card day
+  // (approach ~0.42, full pocket on plunging ~1.4 before the gate).
+  float Sapp   = 0.42 * steep;                       // sharpening on the way in
+  float Sover  = (0.15 + 1.30*plunge) * pocket * sizeGate;
+  float S      = clamp(Sapp + Sover, 0.0, 1.8);      // >1 folds; cap guards the mesh
+  float lam    = S / (aEst * kk * kk);
 
   vec2 off = lam * grad;
 
@@ -194,15 +207,31 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // lip throw & curl: toward-crest convergence folds the crest symmetrically;
   // a plunging lip is thrown SHOREWARD (+z) and curled DOWNWARD (-y).
   // This forms a cycloid-like barrel instead of a flat horizontal overhang.
-  float hN = clamp(h / max(u_H0*VIS, 0.001), 0.0, 1.4);
+  // M6 part 1a: VIOLENCE IN METRES. This used hN = h/(H0*VIS) -- face height
+  // NORMALIZED by the swell height -- so a 2.5 m day threw its lip exactly as
+  // far as a 0.7 m day. Shape stays xi-governed (plunge); the throw and drop
+  // now scale with the actual face height in metres, calibrated so the 1.5 m
+  // model-card day renders identically to the old constants
+  // (7.5*hN = 7.5*hM/1.5 = 5.0*hM at H0 = 1.5; likewise 3.5*hN^2 = 1.55*hM^2).
+  // hM capped at 3.5 m: the biggest physical face this stage produces is
+  // ~3.2 m at H0 = 2.5, and the 20 m offset clamp below still backstops the
+  // mesh. Honest-physics note (TODO mission 1): bigger H0 also LOWERS measured
+  // Iribarren, so size buys violence here, not barrel shape -- hollowness
+  // stays the conditions bank's job.
+  float hM = clamp(h / VIS, 0.0, 3.5);              // physical face height, m
   float lipJit = 0.65 + 0.7*vnoise2(vec2(xz0.x*0.11, t*0.45));
-  
+
   float lipTip = mix(1.0, 1.0 + 0.65*frontPhase, anatomy);
-  float throwMag = 7.5 * pocket * plunge * hN * lipJit * lipTip;
+  float throwMag = 5.0 * pocket * plunge * hM * lipJit * lipTip;
   off.y += throwMag;
-  
-  // Curl downward: scale drop by how far forward it's thrown
-  float dropMag = 3.5 * pocket * plunge * pow(hN, 2.0) * lipJit
+
+  // Curl downward. LINEAR in face height — the first metre-calibration kept
+  // the old quadratic (1.55*hM^2) and the critique caught it eating the crest
+  // at size: ~7.5 m of drop on a 2.5 m day, so the big face subtended barely
+  // more screen than the 1.5 m one. A fall distance scales like the height
+  // fallen from, not its square. 3.0*hM matches the old drop at the 1.5 m
+  // model-card day (3.5*hN^2 = 5.9 m ~ 3.0*1.95).
+  float dropMag = 3.0 * pocket * plunge * hM * lipJit
                 * mix(1.0, 0.72 + 0.82*frontPhase, anatomy);
   h -= dropMag;
 

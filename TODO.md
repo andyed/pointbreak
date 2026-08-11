@@ -7,11 +7,51 @@
 - [x] Reconcile MODEL.md numbers against verified literature (peel-angle ranges,
       Iribarren thresholds, Pleasure Point bathymetry if published)
 
-## MISSION (reprioritized 2026-08-09): simulate the SURFER
-The wave is the stage; the ride is the show. v0 surfer shipped in web/ —
-closed-form rider on the zipper (no state): face position + 6s pump cycle +
-follow-cam. All further surfer work is web-three work (M3/M3+ below) — do not
-build it in the raymarcher (per WEB_THREE_SPEC.md).
+## MISSION (reprioritized 2026-08-11): the SCREENSAVER
+#1 goal: something surf aficionados would respect as a screensaver. Judged in
+10 seconds of watching — peel, curl that scales with size, sets/lulls, tide —
+and it must run unattended with a camera that knows where to look. The
+Surfline PP cam stays the ground truth. Model honesty still matters (surfers
+clock fake waves instantly) but honesty items that don't change the picture
+drop. Supersedes the 2026-08-09 surfer mission: the rider is garnish; the
+wave is the show.
+
+Priority order:
+1. SIZE -> CURL & CRASH. [1a+1c LANDED 2026-08-11; 1b = M6 part 3 still
+   open]. Delegated size audit: docs/research/SIZE_AUDIT.md — master finding
+   is that the surf-zone surface height is H0-INVARIANT by construction
+   (depth-limited amp = 0.5*gamma*dep), so size can only enter via gates
+   until M4 moves the break seaward; also corrected the 2026-08-10 cusp
+   claim (S = lam*a*k^2 = 1, not lam*k = 1 — the old "Q = 1.13" never
+   cusped). Landed: S-form overturn + excess sizeGate + violence-in-metres
+   + sound sizeAmp. Open tail ranked in the audit (foam block H0-free is
+   #1). Original three couplings:
+   (a) throw/drop/spray amplitude is H0-NORMALIZED (hN = h/(H0*VIS) in
+       choppyPos) — a 2.5 m day curls exactly as hard as 0.7 m. Scale the
+       violence by actual H in metres, keep SHAPE governed by xi.
+   (b) M6 part 3 — LAM frozen at 90 m so steepness H/L FALLS inshore.
+       The eikonal Psi bake in bed.js is the machinery.
+   (c) breaking excess (Hsh/Hlim, already computed in ocean() for foam)
+       never reaches Q — big days should cross the cusp earlier and harder.
+   Honest physics note: Iribarren says bigger H0 -> LOWER xi -> more
+   spilling. Big != barrels; the right DAY = barrels. Violence scales with
+   H; hollowness comes from the conditions bank (below).
+2. CONDITIONS PICKER + "good day" curator. All six knobs exist (H0, T,
+   alpha_deep, tide, xi, dF). Author a small bank of named condition-days
+   ("8 ft WNW groundswell, low tide", "3 ft summer windswell") and steer
+   toward the good ones; web/'s cdip.js (MOP SC116 nowcast, CORS verified)
+   supplies a "right now at Pleasure Point" live mode — port it to
+   web-three. Idle mode drifts conditions over ~20 min so a parked screen
+   sees a session, not a loop.
+3. CAMERA LANGUAGE. A screensaver IS its camera. Follow is currently buried
+   in the cliff at Sewers (defect, not polish); then the M3+ auto-cut item
+   (cut between rides, drone/follow alternation, no HUD by default).
+Then: M4 (scoped as M5's substrate only) -> M5 synthetic reef (the taxonomy;
+one good spot ships before seven) -> M6 part 4 (explicit lip geometry) if the
+fold still doesn't read after 1-3. Deferred: wipeouts, ride grammar,
+rider-sits-low. Essay/figures: DONE, frozen.
+Packaging: fullscreen page first; .saver/Electron later (Psychodeli
+precedent) — do not decide now.
 
 ## Phase 1 — proof of read (web/ raymarcher — reference, maintenance-only)
 - [x] v0 web build (web/): raymarched cliff view + ortho drone view, zipper +

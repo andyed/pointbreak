@@ -186,10 +186,13 @@ export function surfaceAt(x, z, t, P) {
   const d      = breakLine(x, P) - z;
   const steep  = Math.exp(-Math.max(d, 0) / 70) * reefWindow(x, P);
   const plunge = smoothstep(0.45, 1.25, P.xi);
-  // MODEL-TWIN of choppyPos's Q form (M6 part 1): lam = Q/k, cusp at Q = 1.
-  // The APPROACH term only — the fold terms stay omitted here for the reason
-  // documented above (the rider stands on the face, not inside the lip).
-  const lam    = (0.85 * steep) / (2 * PI / LAM);
+  // MODEL-TWIN of choppyPos's overturn form (M6 part 1, corrected 2026-08-11):
+  // cusp at S = lam*a*k^2 = 1, so lam = S/(a*k^2) from the local displayed
+  // amplitude. APPROACH term only — the fold terms stay omitted here for the
+  // reason documented above (the rider stands on the face, not inside the lip).
+  const kk_    = 2 * PI / LAM;
+  const aEst   = Math.min(Math.max(Math.abs(h), 0.6), 12.0);
+  const lam    = (0.42 * steep) / (aEst * kk_ * kk_);
 
   let ox = lam * gx, oz = lam * gz;
   const len = Math.hypot(ox, oz);

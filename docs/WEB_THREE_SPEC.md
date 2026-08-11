@@ -394,7 +394,15 @@ still does not overturn convincingly, and measurement says that is not because
 a term is missing. Three quantities are wrong, and two of them are one-line
 consequences of constants set before the seabed existed.
 
-### 1. The Gerstner cusp is never reached — **LANDED 2026-08-10**
+### 1. The Gerstner cusp is never reached — **LANDED 2026-08-10, CORRECTED 2026-08-11**
+
+**Correction:** the landed form asserted the cusp at `Q = lam·k = 1`. That
+derivation is amplitude-blind and wrong — the cusp is `S = lam·a·k² = 1`, so
+the "Q = 1.13" measured on 2026-08-10 was S ≈ 0.55 and never overturned. The
+shader now parametrizes in S and solves `lam = S/(a_local·k²)`, reaching the
+cusp by construction at any amplitude. Size enters via the breaking-excess
+gate. Full derivation and the renderer-wide size sweep that caught it:
+docs/research/SIZE_AUDIT.md.
 
 In the Gerstner parametric form the horizontal offset is `(Q/k)·∂h/∂x`, so this
 codebase's `lam` (metres, multiplying a dimensionless gradient) IS `Q/k`:

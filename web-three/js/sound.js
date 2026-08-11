@@ -161,7 +161,10 @@ export function updateAudio(camera, t, P, camUnder = false) {
     const dist = Math.sqrt(dx * dx + dz * dz + camY * camY);
     const distAtten = dist > 15 ? 15 / dist : 1;
 
-    let gain = (brk * 0.85 + 0.02) * env * distAtten / VOICE_COUNT;
+    // Size audit 2026-08-11: loudness never saw H0 — a 2.5 m day crashed at
+    // 0.7 m volume. Calibrated to 1.0 at the 1.5 m model-card day.
+    const sizeAmp = 0.45 + 0.55 * Math.min(P.H0 / 1.5, 2.0);
+    let gain = (brk * 0.85 + 0.02) * env * distAtten * sizeAmp / VOICE_COUNT;
     let freq = 120 + brk * 1800;
     if (P.xi > 0.5) freq *= 0.6;          // plunging: heavier, lower crash
     if (camUnder) { freq = Math.min(freq, 300); gain *= 0.5; }
