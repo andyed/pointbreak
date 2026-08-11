@@ -14,7 +14,7 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
-import { coastCurve, swellPhi, peelAngleAt, m4RideSolve, contourZ,
+import { coastCurve, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
          oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
@@ -532,6 +532,9 @@ const m4RideState = { n: null, prevX: null, preset: null };
 // the rider, the audio crest solve and setEnv all still assume constant phi, so
 // this is a water-only preview until steps 2-3 of the spec's staged path land.
 let psiEnabled = false;
+// last emergent-line bake, kept at module scope so the takeoff probe can walk
+// the same line the rider does rather than re-deriving one that might differ.
+let lastBaked = null;
 // MODEL-TWIN of the shader's rayPhase(), rebuilt whenever the Psi bake changes.
 // Lives at module scope because modelP() is called from cameras and the rider
 // alike and every one of them must see the same phase field the GPU does.
@@ -641,6 +644,7 @@ function frame(now) {
   const baked = (!m4Enabled || state.aframe) ? null
     : bakeBreakLine(state.geoSpot, [-STAGE_W / 2, STAGE_W / 2],
         { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0 });
+  lastBaked = baked;
   uniforms.u_breakMix.value = baked ? 1 : 0;
   if (baked) {
     if (uniforms.u_breakTex.value !== baked.texture) {
@@ -807,6 +811,33 @@ window.__pointbreak = {
     refreshHUD();
   },
   m4Ride: () => m4Ride,
+  // Where does a crest FIRST meet the break line? m4RideSolve takes the takeoff
+  // as argmin S over the stage. When that minimum is INTERIOR, crests satisfy
+  // the criterion in both directions from it and the peak splits into a left
+  // and a right — an A-frame, arrived at geometrically without u_aframe ever
+  // being set. This reports where the minimum sits so "one spot has a corner"
+  // can be told apart from "the bake does this everywhere".
+  takeoffProfile: (step = 1) => {
+    if (!lastBaked) return null;
+    const P = modelP();
+    const xLo = (P.stageStart ?? -110) + 10, xHi = (P.stageEnd ?? 290) - 10;
+    const S = (x) => rayPhase(x, breakZAt(x, lastBaked.x0, lastBaked.x1), P);
+    const xs = [], ss = [];
+    for (let x = xLo; x <= xHi; x += step) { xs.push(x); ss.push(S(x)); }
+    let iMin = 0;
+    for (let i = 1; i < ss.length; i++) if (ss[i] < ss[iMin]) iMin = i;
+    // Depth of the left branch in radians: how far S climbs going UP-point from
+    // the takeoff. Below 2*pi no whole crest fits on that side, so there is no
+    // left to ride however interior the minimum looks.
+    const leftRise = ss[0] - ss[iMin];
+    const rightRise = ss[ss.length - 1] - ss[iMin];
+    return {
+      xLo, xHi, takeoffX: xs[iMin],
+      frac: (xs[iMin] - xLo) / Math.max(xHi - xLo, 1e-6),
+      leftRise, rightRise,
+      leftCrests: leftRise / (2 * Math.PI), rightCrests: rightRise / (2 * Math.PI),
+    };
+  },
   // shoaling-wavelength A/B without a reload (mirrors #psi=)
   setPsi: (enabled) => {
     psiEnabled = Boolean(enabled);
