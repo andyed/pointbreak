@@ -382,6 +382,146 @@ swell re-derives α through M4 naturally), and any claim that the invented
 reef is Pleasure Point's actual geology — it is a plausible wedge fitted to a
 surf-description target, and every surface that shows it says "synthetic".
 
+
+## M6 — the curl (steepness, not sculpture)
+
+**Status: SPEC. Parts 1 and 3 are independent of M4/M5 and can land now;
+part 2 reports honestly and waits on M5; part 4 is optional.**
+
+The lip machinery already exists — Tessendorf choppy convergence, a pocket
+term, `u_breakShape` face anatomy, lip throw and downward curl. The crest
+still does not overturn convincingly, and measurement says that is not because
+a term is missing. Three quantities are wrong, and two of them are one-line
+consequences of constants set before the seabed existed.
+
+### 1. The Gerstner cusp is never reached (independent; do first)
+
+In the Gerstner parametric form the horizontal offset is `(Q/k)·∂h/∂x`, so this
+codebase's `lam` (metres, multiplying a dimensionless gradient) IS `Q/k`:
+
+    Q = lam · k
+
+With `LAM = 90 m` fixed, `k = 0.0698` and the cusp — where the crest develops a
+vertical tangent and begins to overturn — sits at **lam = 1/k = 14.3 m**.
+Measured maxima (steep = 1, pocket = 1, i.e. the most favourable point on the
+whole stage):
+
+| preset | ξ authored | plunge | lam max | **Q max** |
+|---|---|---|---|---|
+| Sewers | 1.15 | 0.96 | 17.4 | **1.21** |
+| First Peak | 0.85 | 0.50 | 10.8 | 0.75 |
+| The Hook | 0.80 | 0.41 | 9.4 | 0.66 |
+| Second Peak | 0.65 | 0.16 | 5.8 | **0.40** |
+| Jack's | 0.50 | 0.01 | 3.7 | 0.26 |
+| Sharks | 0.45 | 0.00 | 3.5 | 0.24 |
+| Privates | 0.35 | 0.00 | 3.5 | 0.24 |
+
+Six of seven presets cannot cusp, so no amount of lip-throw tuning will make
+them curl — the crest can only round over. Only Sewers crosses, and barely.
+
+Fix: make the cusp explicit rather than emergent from three multiplied
+constants. Compute `Q = lam·k` in the shader, report it, and drive it from the
+breaking state — `Q → 1` as the wave reaches the break criterion, `Q > 1` only
+where the criterion says it is overturning. `lam` stops being a hand-tuned
+metre value and becomes `Q/k`, which is dimensionless, physical, and survives
+the wavelength becoming variable in part 3.
+
+### 2. ξ is authored, and the measured seabed disagrees (waits on M5)
+
+`plunge = smoothstep(0.45, 1.25, ξ)` gates every lip term, and ξ is typed into
+the preset bank. Computing it from the corrected submerged plane slope
+(MODEL.md 2.2 correction) and the model card's own H₀ and T:
+
+    ξ = tan(β) / √(H₀/L₀)
+
+| preset | ξ authored | ξ measured |
+|---|---|---|
+| Sewers | 1.15 | **0.19** |
+| Second Peak | 0.65 | **0.26** |
+| Sharks | 0.45 | **0.29** |
+| Privates | 0.35 | **0.33** |
+
+Every preset is authored more plunging than its bathymetry supports, and all
+seven measure **spilling** (Battjes ξ < 0.5). This is the same finding as the
+peel angle, arriving through a second door: a 1:58 ramp does not plunge.
+Feeding measured ξ in today would zero the lip on all seven.
+
+So: derive ξ, report both numbers in the HUD (`ξ 0.65 authored · 0.26
+measured`), and keep the authored value driving the render until M5's reef
+raises the local slope enough for the measured one to mean something. Do not
+silently swap it — that would replace a wave that looks wrong with no wave.
+
+### 3. The wavelength never shoals (independent; do with part 1)
+
+`LAM` is a constant 90 m. Real overturning is driven by steepness `H/L`, and in
+shallow water `L = T√(gh)`, so at Second Peak the wave should compress across
+the surf zone:
+
+| | offshore (h = 6 m) | at break (h = 1.9 m) |
+|---|---|---|
+| Second Peak | 107 m | **61 m** |
+| Sewers | 115 m | 79 m |
+| Privates | 92 m | 36 m |
+
+Frozen at 90 m, `L` cannot fall, while `H` is capped by `γh` and therefore
+*falls* inshore — so modelled steepness **decreases** approaching the beach,
+which is backwards, and is why the crest peaks and then subsides instead of
+pitching.
+
+**The machinery for this already exists and is dormant.** `bed.js
+bakeRefraction` integrates `Ψ(contourZ) = ∫kz dz` with `k(h)` from Guo (2002)
+explicit dispersion, plus `psiAt` / `zcAtPsi` / `incidenceAt` CPU twins. It was
+built and reverted on 2026-08-10 (MODEL.md 2.4) because the rider, audio and JS
+twin all assume a constant-φ plane wave — not because the phase was wrong; it
+verified at 17.1° → 9.4° → 7.9° and a 90 m mean wavelength matching LAM.
+
+Reinstating it buys the wavelength compression AND depth-varying refraction in
+one move. The staged path that avoids the revert's failure mode:
+
+1. Land `rayPhase` on the baked Ψ behind a flag, water only. Rider keeps the
+   constant-φ closed form; nothing else moves.
+2. Move the rider onto `u_surferPos`, solved CPU-side against Ψ — the same seam
+   M4 already uses. The zipper x stays closed form (`x = (ωt − 2πn − Ψ(0))/κ`,
+   `V_p = ω/κ`); only z needs the `zcAtPsi` inversion.
+3. Port `sound.js`'s crest solve to Ψ.
+4. Flip the default; delete the constant-φ branch for mapped spots, keep it for
+   Privates and the A-frame, which have no depth to refract over.
+
+### 4. A thrown lip is a surface the height field cannot represent (optional)
+
+Past the cusp a real lip is multivalued in z: the crest passes over the trough.
+A displaced height field self-intersects and z-fights, which the M2 spec
+explicitly accepted. If parts 1–3 leave the fold unconvincing, the standard fix
+is Müller et al., *Real-time Breaking Waves for Shallow Water Simulations* —
+promote the crest band to explicit geometry (a swept ribbon or particles) where
+`Q > 1`, and blend it back into the height field behind the zipper.
+
+Scope this only after 1–3, and only if measurement says the fold is the
+remaining defect. It is a renderer change, not a model change, and it is the
+one piece here that cannot be verified by a number.
+
+### Order of work
+
+1. Parts 1 + 3 together — cusp-limited `Q` on a shoaling `k`. Both are
+   independent of M4/M5 and are the two that make steepness rise where it
+   should.
+2. Part 2's readout, alongside.
+3. Re-measure. Expect spilling character on this DEM: correct, and M5's remit.
+4. Part 4 only if the fold is still the defect.
+
+### Acceptance
+
+- `Q` reaches 1.0 at the break on every mapped preset at its authored ξ, and
+  exceeds it only inside the pocket
+- wavelength measured at the break within 10% of `T√(gh)`; steepness `H/L`
+  increases monotonically shoreward through the surf zone, which it currently
+  does not
+- HUD reports `Q`, local `L`, and ξ authored vs measured
+- the rider's p90 face height (MODEL.md 2.3's metric) does not regress below
+  0.9 when the phase moves onto Ψ
+- no NaN in the displaced mesh: `Q > 1` self-intersects by design, and the
+  existing offset clamp and finite guards must still hold
+
 ## Out of scope (unchanged from MODEL.md §5)
 
 Barrel-interior POV camera, true fluid sim, swash/kelp/cliff geometry (cliffs

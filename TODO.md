@@ -99,6 +99,20 @@ build it in the raymarcher (per WEB_THREE_SPEC.md).
       at Second Peak). Known cost, and M5's whole motivation: taxonomy dead
       (~9 deg everywhere), V_p 38-50 m/s, audio quiet (zipper stations ~534 m
       apart).
+- [ ] **M6 curl — SPEC'D 2026-08-10, see WEB_THREE_SPEC.md "M6".** The lip
+      machinery exists; three quantities are wrong. (1) Gerstner cusps at
+      Q = lam*k = 1, i.e. lam = 14.3 m at LAM=90; measured Q max is 0.24-1.21
+      and only Sewers crosses, so six of seven presets CANNOT curl at any
+      tuning. Make Q explicit and drive it from the break criterion.
+      (2) xi is authored 0.35-1.15 but measures 0.19-0.33 on the corrected
+      submerged slope — all seven are spilling. Report both; keep authored
+      driving the render until M5's reef makes the measured one mean
+      something. (3) LAM is frozen at 90 m but should compress 107 -> 61 m
+      across the surf zone, so modelled steepness FALLS inshore instead of
+      rising. Parts 1+3 are independent of M4/M5 — do them first.
+      Part 3 reinstates the eikonal Psi bake already sitting dormant in
+      bed.js (bakeRefraction/psiAt/zcAtPsi), staged so the rider moves to
+      u_surferPos before the default flips.
 - [ ] Rider sits low on the FAST presets (Sewers p50 0.18 vs Second Peak 0.41).
       Not sections (tested: sections=0 moves it 0.01) and not the frame.
       `faceOff` is a fixed 11+/-5 m, and the phase step that implies scales with
