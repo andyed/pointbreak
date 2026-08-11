@@ -120,9 +120,13 @@ export function breakLine(x, P) {
   return -coastCurve(x, P) + Math.min(sec, 0) * (P.sections >= 0.05 ? 1 : 0);
 }
 
+// MODEL-TWIN of the GLSL reefWindow. Knots ride on P (P.reefWin), same
+// injection contract as zbFn/phaseFn; the legacy synthetic constants are the
+// fallback so a P without them is the pre-2026-08-11 behaviour exactly.
 export function reefWindow(x, P) {
   const xx = mix(x, Math.abs(x), P.aframe);
-  return smoothstep(-110, -35, xx) * (1 - smoothstep(215, 290, xx));
+  const w = P.reefWin || [-110, -35, 215, 290];
+  return smoothstep(w[0], w[1], xx) * (1 - smoothstep(w[2], w[3], xx));
 }
 
 function setEnv(s, t, P) {

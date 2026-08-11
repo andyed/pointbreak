@@ -9,7 +9,8 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
-import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS } from '../../web/js/params.js';
+import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS,
+         reefWindowKnots } from '../../web/js/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
@@ -116,6 +117,7 @@ const uniforms = {
   u_geoMix:   { value: state.geoMix },
   u_contourFit: { value: new THREE.Vector2(state.contourX2, state.contourX3) },
   u_stageBounds: { value: new THREE.Vector2(state.stageStart, state.stageEnd) },
+  u_reefWin:    { value: new THREE.Vector4(...reefWindowKnots(state.stageStart, state.stageEnd)) },
   u_bed:        { value: EMPTY_BED },
   u_depthMix:   { value: 0 },
   u_bedRect:    { value: new THREE.Vector4() },
@@ -237,6 +239,7 @@ function modelP() {
     chop: state.chop, aframe: state.aframe,
     geoMix: state.geoMix, contourX2: state.contourX2, contourX3: state.contourX3,
     stageStart: state.stageStart, stageEnd: state.stageEnd,
+    reefWin: reefWindowKnots(state.stageStart, state.stageEnd),
     rideOffset: uniforms.u_rideOffset.value,
     m4Ride,
     // M6 part 3: the JS twin's phase field. Null off the Psi path, which makes
@@ -593,6 +596,7 @@ function frame(now) {
   uniforms.u_geoMix.value = state.geoMix;
   uniforms.u_contourFit.value.set(state.contourX2, state.contourX3);
   uniforms.u_stageBounds.value.set(state.stageStart, state.stageEnd);
+  uniforms.u_reefWin.value.fromArray(reefWindowKnots(state.stageStart, state.stageEnd));
   applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
   // ---- M6 part 3: bake Psi, the depth-dependent phase field ----

@@ -3,6 +3,36 @@
 
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 
+// ---------- the finite-reef envelope ----------
+// reefWindow(x) fades the wave in and out at the ends of the shelf. Its four
+// knots were hard-coded as (-110, -35, 215, 290) — which is exactly the
+// SYNTHETIC stage [-110, 290] feathered inward by 75 m. That was the rule all
+// along; it was just frozen at the one stage that existed when it was written.
+//
+// Six mapped spots later, every one of them still inherited that same envelope
+// in world x, so all six shared one manufactured shelf edge at x ~ -35..-64 —
+// measured 2026-08-11 (scripts/measure_takeoff.mjs): the takeoff clustered
+// there on 5 of 6 spots regardless of where the spot's own stage sat, and the
+// peak split into a left and a right at a point break whose stated convention
+// is that no site ships aframe = 1. The envelope also feathers M5's synthetic
+// reef (bed.js makeReefFn), so the corner reached the seabed too.
+//
+// Same rule, each spot's own bounds. MODEL.md 2.1 says the OSM partitions "do
+// not replace the authored finite-reef envelope" — that stands: this does not
+// replace the envelope, it stops pinning it to a stage none of these spots
+// occupy. The partitions are still not measured reef edges; they are, at
+// least, per-spot and defensible, which one shared constant is not.
+//
+// The feather is capped so a narrow stage keeps a plateau: First Peak spans
+// 113 m, and two 75 m ramps would invert it.
+export const REEF_FEATHER_MAX = 75;
+
+export function reefWindowKnots(stageStart, stageEnd) {
+  const w = Math.max(stageEnd - stageStart, 1);
+  const f = Math.min(REEF_FEATHER_MAX, 0.35 * w);
+  return [stageStart, stageStart + f, stageEnd - f, stageEnd];
+}
+
 export const PARAM_DEFS = [
   // key,        label,               min,   max,   step,  unit
   { key: 'alpha',    label: 'Peel angle α',   min: 20,    max: 80,   step: 1,     unit: '°'  },

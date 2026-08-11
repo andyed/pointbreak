@@ -28,6 +28,7 @@ uniform float u_breakShape;// 1 = structural breaker anatomy, 0 = legacy ridge A
 uniform float u_geoMix;   // 1 = OSM/NCEI stage profile, 0 = synthetic fallback
 uniform vec2 u_contourFit;// NCEI equal-elevation contour: x2*x^2 + x3*x^3
 uniform vec2 u_stageBounds;// OSM canon-neighbor midpoints in local stage metres
+uniform vec4 u_reefWin;   // finite-reef envelope knots: in0, in1, out0, out1 (metres)
 
 // ---------- seabed (NCEI patch on the stage frame) ----------
 uniform sampler2D u_bed;  // RGBA8: R high byte, G low byte of NAVD88 elevation
@@ -236,9 +237,16 @@ float breakLine(float x){
 
 // Authored finite-reef envelope. OSM spot partitions do not claim to measure
 // physical reef edges, so geo profiles shape the break but do not replace it.
+//
+// The knots are now PER SPOT (params.js reefWindowKnots): the same rule the
+// hard-coded (-110, -35, 215, 290) always expressed — stage bounds feathered
+// inward — applied to each spot's own bounds instead of to the one synthetic
+// stage that existed when it was written. On the synthetic stage the two are
+// bit-identical. See params.js for the measurement that forced this.
 float reefWindow(float x){
   float xx = mix(x, abs(x), u_aframe);
-  return smoothstep(-110.0, -35.0, xx) * (1.0 - smoothstep(215.0, 290.0, xx));
+  return smoothstep(u_reefWin.x, u_reefWin.y, xx)
+       * (1.0 - smoothstep(u_reefWin.z, u_reefWin.w, xx));
 }
 
 // ---------- seabed: real depth, not distance-to-an-authored-line ----------

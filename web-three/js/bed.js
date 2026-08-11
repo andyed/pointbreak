@@ -15,7 +15,8 @@
 
 import * as THREE from 'three';
 import { PP_DEPTH_DATA } from '../../data/model/pp_depth_patches.js';
-import { PRESETS } from '../../web/js/params.js';
+import { PRESETS, reefWindowKnots } from '../../web/js/params.js';
+import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 import {
   alongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,
   incidenceAt as dispIncidenceAt,
@@ -126,12 +127,27 @@ function reefCard(name) {
 // the reefWindow ends (the smoothstep pair is a MODEL-TWIN of the GLSL
 // reefWindow; the A-frame fold never reaches this code — no mapped preset
 // ships aframe = 1).
-function makeReefFn(betaDeg, targetEl, zRef, seed) {
+// The finite-reef envelope for a spot, from its own OSM stage bounds. Falls
+// back to the synthetic stage — and therefore to the legacy constants exactly —
+// for any spot without a usable contour fit.
+function reefWinFor(spotName) {
+  const pr = PP_GEO_DATA.profiles[spotName];
+  return pr?.contourFit?.usable
+    ? reefWindowKnots(pr.stageBoundsM[0], pr.stageBoundsM[1])
+    : reefWindowKnots(-110, 290);
+}
+
+function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
   const bRad = betaDeg * Math.PI / 180;
   const tanB = Math.tan(bRad), cosB = Math.cos(bRad), sinB = Math.sin(bRad);
   return (x, z, em) => {
     if (em >= REEF_CEIL_EL) return 0;
-    const w = smoothstepJS(-110, -35, x) * (1 - smoothstepJS(215, 290, x));
+    // MODEL-TWIN of the GLSL reefWindow, per spot: the synthetic reef must be
+    // feathered by the SAME envelope the water uses, or the seabed carries a
+    // shelf edge the wave field does not (which is how one hard-coded ramp put
+    // the same corner on all six spots — see params.js reefWindowKnots).
+    const w = smoothstepJS(reefWin[0], reefWin[1], x)
+            * (1 - smoothstepJS(reefWin[2], reefWin[3], x));
     if (w <= 0) return 0;
     // crest line: through the natural crest-depth contour at REEF_ANCHOR_X,
     // sweeping shoreward down-point at the fitted strike
@@ -200,12 +216,13 @@ export function reefFitFor(name) {
   if (zRef === null) { fitCache.set(name, null); return null; }
 
   const seed = nameSeed(name);
+  const reefWin = reefWinFor(name);
   let beta = Math.min(Math.max(card.alphaDeg - PHI_BREAK_DEG, 3), 80);
   let derived = 0, iterations = 0, reefFn = null;
   const xs = [-16, -8, 0, 8, 16];            // mid-window stations
   for (let it = 1; it <= REEF_FIT_MAX_ITER; it++) {
     iterations = it;
-    reefFn = makeReefFn(beta, targetEl, zRef, seed);
+    reefFn = makeReefFn(beta, targetEl, zRef, seed, reefWin);
     const elevAt = (x, z) => { const em = rawAt(x, z); return em + reefFn(x, z, em); };
     let sxz = 0, sxx = 0;
     for (const x of xs) {
