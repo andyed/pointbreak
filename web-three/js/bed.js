@@ -73,7 +73,7 @@ const REEF_RIDGE_WAVELENGTH = 50;  // m along-strike ridge spacing (their "secti
 const REEF_RIDGE_MOD = 0.15;  // fractional amplitude modulation from the ridges
 const REEF_ANCHOR_X = 24;     // m: crest line meets the natural crest-depth contour here
 const REEF_FIT_TOL_DEG = 1.0;
-const REEF_FIT_MAX_ITER = 5;  // response is nearly linear in beta; 5 is plenty
+const REEF_FIT_MAX_ITER = 14; // secant evaluations; load-time only, so cheap
 
 // Deterministic per spot: seed from the OSM canon name, value noise from an
 // integer hash. No Math.random anywhere — same name, same grid, every load.
@@ -238,10 +238,19 @@ export function reefFitFor(name) {
     xs.push(-16, -8, 0, 8, 16);
   }
   const xMean = xs.reduce((q, v) => q + v, 0) / xs.length;
-  for (let it = 1; it <= REEF_FIT_MAX_ITER; it++) {
-    iterations = it;
-    reefFn = makeReefFn(beta, targetEl, zRef, seed, reefWin);
-    const elevAt = (x, z) => { const em = rawAt(x, z); return em + reefFn(x, z, em); };
+  // Root-find beta so the DERIVED peel angle hits the target. The old rule was
+  // a fixed-gain step, beta += (target - derived), capped at 5 iterations. That
+  // converges only where the local gain d(derived)/d(beta) happens to be near
+  // 1; where it is not, the step over- or undershoots and five rounds are not
+  // enough. Second Peak stalled at 69 deg against a 58 deg target that way.
+  //
+  // Secant instead: it MEASURES the local gain from two evaluations rather than
+  // assuming it, with a bisection safeguard once the root is bracketed and the
+  // best-so-far kept regardless. Load time, once per spot, cached — the extra
+  // evaluations are free.
+  const evaluate = (b) => {
+    const fn = makeReefFn(b, targetEl, zRef, seed, reefWin);
+    const elevAt = (x, z) => { const em = rawAt(x, z); return em + fn(x, z, em); };
     // Fit against the SMOOTHED locus, because that is the line the renderer
     // draws (bakeBreakLine smoothM). Fitting the raw march while rendering the
     // smoothed one is the same authority split as everything else today: the
@@ -281,18 +290,58 @@ export function reefFitFor(name) {
     // right at a site that is a right.
     const meanSlope = sxz / sxx;
     const dir = Math.sign(meanSlope) || 1;
-    signViolations = 0;
+    let viol = 0;
     for (let i = 1; i < zbs.length; i++) {
       const local = (zbs[i] - zbs[i - 1]) / (xs[i] - xs[i - 1]);
-      if (Math.sign(local) !== dir) signViolations++;
+      if (Math.sign(local) !== dir) viol++;
     }
-    derived = Math.atan(Math.abs(meanSlope)) * 180 / Math.PI;
-    const resid = card.alphaDeg - derived;
-    if (Math.abs(resid) <= REEF_FIT_TOL_DEG) break;
-    if (it < REEF_FIT_MAX_ITER) {
-      beta = Math.min(Math.max(beta + Math.min(Math.max(resid, -15), 15), 3), 80);
+    const d = Math.atan(Math.abs(meanSlope)) * 180 / Math.PI;
+    return { derived: d, reefFn: fn, viol };
+  };
+
+  let bestErr = Infinity;
+  const record = (b, r) => {
+    const e = Math.abs(r.derived - card.alphaDeg);
+    if (e < bestErr) {
+      bestErr = e; beta = b; derived = r.derived;
+      reefFn = r.reefFn; signViolations = r.viol;
     }
+  };
+
+  let b0 = beta;
+  let r0 = evaluate(b0); iterations = 1; record(b0, r0);
+  let f0 = r0.derived - card.alphaDeg;
+  // second probe on the side the residual points to, so the pair usually
+  // brackets the root immediately
+  let b1 = Math.min(Math.max(b0 - Math.sign(f0) * 8, 3), 80);
+  let r1 = evaluate(b1); iterations++; record(b1, r1);
+  let f1 = r1.derived - card.alphaDeg;
+
+  while (iterations < REEF_FIT_MAX_ITER && bestErr > REEF_FIT_TOL_DEG) {
+    let b2;
+    if (f0 * f1 < 0) {
+      // bracketed: secant, but keep it inside the bracket (false position)
+      b2 = b1 - f1 * (b1 - b0) / (f1 - f0);
+      const lo = Math.min(b0, b1), hi = Math.max(b0, b1);
+      if (!(b2 > lo && b2 < hi) || !Number.isFinite(b2)) b2 = 0.5 * (lo + hi);
+    } else {
+      const denom = f1 - f0;
+      b2 = Math.abs(denom) < 1e-6 ? b1 - Math.sign(f1) * 8
+                                  : b1 - f1 * (b1 - b0) / denom;
+      if (!Number.isFinite(b2)) b2 = b1 - Math.sign(f1) * 8;
+      // never leap more than 20 deg on an unbracketed step
+      b2 = b1 + Math.min(Math.max(b2 - b1, -20), 20);
+    }
+    b2 = Math.min(Math.max(b2, 3), 80);
+    if (Math.abs(b2 - b1) < 1e-3) break;            // converged in beta
+    const r2 = evaluate(b2); iterations++; record(b2, r2);
+    const f2 = r2.derived - card.alphaDeg;
+    if (f0 * f1 < 0 && f1 * f2 < 0) { b0 = b1; f0 = f1; }
+    else if (f0 * f1 < 0) { /* keep b0 as the opposite bracket */ }
+    else { b0 = b1; f0 = f1; }
+    b1 = b2; f1 = f2;
   }
+
   const fit = {
     spot: name, synthetic: true,
     targetDeg: card.alphaDeg,
