@@ -21,7 +21,7 @@ import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
-         wavelengthAtStation, psiAt } from './bed.js';
+         wavelengthAtStation, psiAt, PEEL_SMOOTH_M } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -539,6 +539,13 @@ let psiEnabled = false;
 // it does remove the A-frame on all 18 combos, and it costs the peel — see the
 // measured note in WEB_THREE_SPEC. #peeldir=1 to A/B it.
 let peelDirEnabled = false;
+// Wave-scale smoothing of the break locus. Physically right and visually much
+// better (A-frames 8/18 -> 4/18, long continuous peel lines), but it takes the
+// peel ANGLE with it — alpha collapses to 5-28 deg against 38-66 deg targets,
+// because alpha was being carried by the very locus wander it removes, and the
+// reef fit cannot make it back (beta clamps out). Shipping it on would trade a
+// torn wave for seven identical mushy ones. #smooth=1 to see it.
+let smoothEnabled = false;
 // last emergent-line bake, kept at module scope so the takeoff probe can walk
 // the same line the rider does rather than re-deriving one that might differ.
 let lastBaked = null;
@@ -655,6 +662,7 @@ function frame(now) {
   const baked = (!m4Enabled || state.aframe) ? null
     : bakeBreakLine(state.geoSpot, [-STAGE_W / 2, STAGE_W / 2],
         { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0,
+          smoothM: smoothEnabled ? PEEL_SMOOTH_M : 0,
           peel: peelDirEnabled
             ? { phiRad: swellPhi(peelP), curveAt: (x) => coastCurve(x, peelP) }
             : null });
@@ -778,7 +786,8 @@ function applyHashParams() {
     if (Number.isFinite(v)) state.H0 = Math.min(Math.max(v, H0_DEF.min), H0_DEF.max);
   }
   if (h.has('psi')) psiEnabled = h.get('psi') === '1';
-  if (h.has('peeldir')) peelDirEnabled = h.get('peeldir') === '1'; // M6p3 shoaling wavelength (default OFF; water only)
+  if (h.has('peeldir')) peelDirEnabled = h.get('peeldir') === '1';
+  if (h.has('smooth')) smoothEnabled = h.get('smooth') === '1'; // M6p3 shoaling wavelength (default OFF; water only)
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
   uniforms.u_breakShape.value = structuralBreaker;

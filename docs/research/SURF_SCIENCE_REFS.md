@@ -249,6 +249,52 @@ the cheapest crest-sharpening term for the unbroken wall.
   project can adopt (wrong engine — see the parked-TouchDesigner note in CLAUDE.md for
   how vehicle choices get decided).
 
+- **Ocean Community Next Gen** — Unity ocean shader package, **BSD 3-Clause**,
+  https://github.com/eliasts/Ocean_Community_Next_Gen (1.1k★ / 173 forks / 101
+  commits; last commit **2020-05-19**, inactive). Lineage: the 2009 Unity forum
+  community ocean shader → HeadHunter → Laurent Clave (mobile + boat physics) →
+  Elias Tsiantas (optimization pass, shader LODs, editor rewrite). Read
+  2026-08-11.
+
+  **This is the commodity substrate, named.** `Ocean.cs` is a Tessendorf-style
+  **IFFT over a Phillips spectrum** — `P_spectrum(vec_k, wind)` with the usual
+  `L = |wind|²/g` fetch scale, `Fourier.FFT2(..., FourierDirection.Backward)`
+  for the surface and a second transform for the choppy displacement, animated
+  by `√(g·k)·t`. That is exactly the "FFT deep-water ocean … Tessendorf-style
+  IFFT or a Gerstner sum" that MODEL.md §6 nominates as the substrate half of
+  the layering, and exactly what CLAUDE.md's "don't rewrite deep-water ocean"
+  rule points at. It is a good, well-optimized instance of the commodity thing.
+
+  **Deep water only, and that is structural, not an omission.** The dispersion
+  is `ω = √(gk)` — no `tanh(kh)` — so there is no depth in the model at any
+  point. No bathymetry, no shoaling, no refraction, no breaking. `hasShore`,
+  `shoreDistance`, `shoreStrength` are shader-side blend/foam near a shoreline,
+  not physics: they fade the surface, they do not change the wave. Everything
+  MODEL.md §1.1–§1.3 builds on begins where this package ends. It confirms the
+  layering thesis rather than competing with it — the break layer is the
+  contribution precisely because packages like this one already solve the other
+  half well and stop cleanly at the surf zone.
+
+  **But §6's substrate hook is now in tension with §4.5, and this is what makes
+  that visible.** §6 was written when the plan was to composite the zipper over
+  a bought-in surface. Since §2.2/§2.3 the water is not a composite: `web-three`
+  displaces a grid from the shared model, and §4.5 rules that **surface height
+  under the rider is physics-owned, one evaluation, shared**. Dropping an
+  independent FFT surface in beside it would recreate the exact defect §4.5 was
+  written to kill — two authorities for one quantity, no arbitration rule.
+  If a substrate is ever added, the only form consistent with §4.5 is as a
+  *perturbation gated by the same depth field* — deep-water chop whose amplitude
+  dies as `h` falls, so it vanishes before the surf zone where the zipper owns
+  the surface — not as a second surface that the break layer draws on top of.
+  Worth recording now, because the tension is invisible until someone tries it.
+
+  **Licence contrast worth noting.** BSD 3-Clause, so unlike Celeris (GPL-3.0)
+  this one could be read and reimplemented without licence entanglement. The
+  point is mostly moot: a Phillips-spectrum IFFT is textbook Tessendorf, and
+  there is no reason to route it through a Unity port. Wrong engine either way
+  (Unity C#; the 2020 "WebGL fix" commit means Unity's WebGL export target, not
+  a browser-native library).
+
 ---
 
 *Compiled 2026-08-09. Verification notes: JCR SI 29 titles/pages taken from the
@@ -278,3 +324,80 @@ Healy & Rennie 2009, JCR 25(3), 539–557.*
   published numerical scheme is not copyrightable, and implementing from the
   paper is clean where reading the source is not. If a solver is ever wanted
   here, the path is the paper, not the repository.
+
+  **Full read, 2026-08-11.** Notes from the paper itself rather than the
+  abstract, in the order they bear on this project.
+
+  *The scheme.* Extended Boussinesq in the Madsen & Sørensen (1992) form.
+  Advective and bottom-slope terms go through **KP07** (Kurganov & Petrova
+  2007, second-order well-balanced positivity-preserving central-upwind FVM);
+  the dispersive terms are added as central-FDM source terms in KP07's final
+  step. Positivity preservation is what buys the moving shoreline — no wet/dry
+  bookkeeping. Time integration is 3rd-order Adams–Bashforth predictor with an
+  optional 4th-order Adams–Moulton corrector, so the state history is three
+  full fields deep. The dispersive terms make the flux equations implicit, one
+  tridiagonal system per row and per column, solved by **cyclic reduction**
+  (Thomas is serial and would force a GPU→host→GPU round trip each step). That
+  implicit solve, not the physics, is the part that makes a WebGL2 port real
+  work. State is packed as `float4` textures with `w, P, Q` in r/g/b, and they
+  report **single precision is sufficient** — KP07 stayed robust — which is the
+  relevant fact for float32 render targets here.
+
+  *Compute is no longer the reason not to.* Conical-island benchmark (Briggs et
+  al. 1995), 601×601 cells at constant Δt = 0.005 s: **under 15 s** on an NVIDIA
+  Quadro K600 with a 1.8 GHz Xeon. Their comparison point is Fuhrman & Madsen
+  at 234×201 taking **3.3 h** on a Pentium 4. A K600 is a 2013 entry-level part.
+  This project's depth patch is 96×84 posts over 680×580 m. Worth stating
+  because it removes an argument the project never actually leaned on: MODEL.md
+  §5 rejects a solver on *intent* ("a reading of the wave, not a hindcast"), not
+  on cost. That rationale is untouched by this paper. What the 15 s number kills
+  is only the unstated assumption that a solver would be too slow to consider —
+  it would not be, at this scale, on this hardware.
+
+  *Validity covers this site.* The extended Boussinesq form is stated accurate
+  for **kd < 3**. At T = 14 s, L₀ = 306 m and k₀ = 0.021 m⁻¹, so kd = 0.4 at
+  20 m depth and still only 2.0 at 100 m. The entire nearshore domain qualifies.
+  Where still water elevation is undefined (land above sea level) they set d = 0
+  and the equations **degenerate to NLSW automatically** — structurally the same
+  switch as `u_depthMix = 0` for the synthetic presets.
+
+  *No explicit breaking model.* §2.5 of the paper: breaking is not treated
+  directly; numerical dissipation from the **minmod limiter** imitates it. It
+  validates — on the H/d = 0.18 conical island, where the soliton genuinely
+  breaks, their run-up matches measurement about as well as Lynett et al. (2002)
+  and Tonelli & Petti (2010), both of which *do* carry explicit breaking models,
+  and better than Fuhrman & Madsen (2008), which over-predicts gauge #22 by
+  ~25%. See the note against MODEL.md §4.5 item 2: in a phase-resolving solver,
+  "how much energy is lost" is not a quantity anyone declares.
+
+  *Formulas worth having independent of adopting the solver.*
+  - Wet/dry velocity regularization: `u = √2·h·P / √(h⁴ + max(h⁴, ε))`, reused
+    for Manning friction `f = g·n² / h^(1/3)`. A principled form of the
+    `isFinite()` guard CLAUDE.md asks for.
+  - Sponge-layer damping: `γ(x,y) = ½(1 + cos(π(L_s − D(x,y))/L_s))`, with L_s
+    the layer width and D the normal distance to the absorbing boundary.
+  - Eckart (1952) explicit dispersion approximation:
+    `k = (ω²/g)·√(coth(ω²d/g))`. An alternative to the Guo (2002) form §4.5
+    declares physics-owned; worth a numerical A/B if `dispersion.js` is
+    revisited, given §4.5 already records the comment and the code disagreeing
+    by 4.98%.
+  - Solitary wave insertion: `η = H_s·sech²(k_s·((x−x₀)cos θ + (y−y₀)sin θ))`
+    with `k_s = √(3|H_s|/4d³)`, `c_s = √(g(H_s + d))`.
+
+  *What it would not fix.* Celeris refracts whatever bathymetry it is handed.
+  MODEL.md §2.4 found that over ~10 m NCEI posts, straight shore-parallel
+  contours make refraction forget the deep-water angle — 38° and 70° both arrive
+  at ~9°, V_p runs 38–50 m/s, every preset collapses to the same closeout. A
+  phase-resolving solver reproduces that *more* faithfully, not less. The
+  binding constraint is contour obliquity below grid resolution, and it stays
+  binding under any scheme that resolves phase. Celeris is the existence proof
+  for the road not taken; it is not a route around M4.
+
+  *Open, not verified:* whether the Lynett group has published a later
+  WebGPU/browser Celeris variant. If one exists the licence-and-portability
+  conclusion above needs revisiting. Not checked as of 2026-08-11.
+
+  *Validation benchmarks used, for reference if quantitative fidelity is ever
+  claimed here:* Synolakis (1987) solitary run-up on a 1:19.85 planar beach;
+  Whalin (1971) focusing over a semicircular shoal; Briggs et al. (1995)
+  solitary run-up on a conical island.

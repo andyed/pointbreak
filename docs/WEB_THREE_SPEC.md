@@ -784,3 +784,57 @@ constraint. It is to make the reef actually produce a sustained oblique locus,
 which means a component that a tilted plane cannot express: a seaward-convex
 nose (Mead & Black's *focus*/*pinnacle*, already in the taxonomy in
 `docs/research/SURF_SCIENCE_REFS.md` §2.2 and not yet built).
+
+### The peel is the noise — measured to a conclusion (2026-08-11)
+
+Continuing the table above. Two more interventions, and the chain closes.
+
+| state | A-frames | right-branch crests | derived α vs target |
+|---|---|---|---|
+| as shipped | 8 / 18 | 1.2 – 3.0 | 38/38, 50/49, 58/57, 62/62, 48/47, 66/67 |
+| + interpolated break crossing | 13 / 18 | 1.3 – 3.0 | — |
+| + 90 m wave-scale locus smoothing | **4 / 18** | 0.2 – 1.8 | **5–28° vs 38–66°** |
+| + reef fit re-run against the smoothed locus | — | — | **still 5–28°** |
+
+**The break crossing was quantized** to the 2 m march step with no interpolation
+(`markBreak` returned the step, not the zero of `H₀K_s − γh`). Fixed — it is
+strictly more correct — and it changed the A-frame count not at all. So the
+locus wander is real structure, not march quantization. Kept.
+
+**Why the wander is so large.** The residual of the measured bed against its own
+fitted plane is only 0.31–0.93 m. But the bed slopes at about 1:75, so an
+elevation residual of 0.9 m displaces the break crossing by ~70 m. The peel
+signal the reef is fitted to carry is ~5 m of z per bake step. **The noise runs
+4–13× the signal.**
+
+**Smoothing at the wave's own scale is right and it works** — a crest 60–100 m
+long cannot break at a 5 m wiggle any more than it refracts off a pebble.
+A-frames fall to 4/18 (and the four survivors are Sewers and The Hook, the two
+spots with the most pronounced geometry), the peel survives, and the cliff view
+shows long continuous lines instead of notched ones.
+
+**And α collapses with it, to 5–28° against 38–66° targets.** Re-running the
+reef fit against the smoothed locus — the right thing to do regardless, since
+fitting a raw march while rendering a smoothed line is the same authority split
+as everything else here — does not recover it. β clamps out.
+
+**Conclusion: the peel angle this model renders is the noise.** Not partly. The
+reef contributes 5–28° of obliquity; everything above that was locus wander
+amplified by a 1:75 bed. A planar wedge capped at 3.2 m of relief and clamped
+below −0.5 m NAVD88 cannot produce a sustained oblique break line on this
+bathymetry, which is precisely the question the fit was supposed to settle.
+
+Smoothing therefore ships behind `#smooth=1`, **default off** — on by default it
+would trade one torn wave for seven identical mushy ones, and losing the spot
+taxonomy is worse than the tear. Three A/B flags now bracket this: `#psi=1`
+(shoaling wavelength), `#smooth=1` (wave-scale locus), `#peeldir=1` (direction
+constraint). None is shippable alone. All three are measured.
+
+**What M5 needs.** A component a tilted plane cannot express: a seaward-convex
+nose — Mead & Black's *focus* (convergence, local peak in H, easier takeoff)
+or *pinnacle* (abrupt, small-area, defines the takeoff zone), both in
+`docs/research/SURF_SCIENCE_REFS.md` §2.2 and neither built. The acceptance is
+now sharp and already scored by `scripts/measure_takeoff.mjs` plus the α
+readout: **A-frames at 0, right branch above 1.5 crests, and derived α within
+tolerance of target — all three at once, with `#smooth=1` on.** No
+configuration tried so far achieves two of them together.

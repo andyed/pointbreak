@@ -534,6 +534,19 @@ declaration constrains the derivation — never the reverse.**
 2. **`brk` does three jobs** — "is breaking", "how much energy is lost"
    (`decay`), and "draw foam". They need separating before either of the first
    two can be reasoned about alone.
+
+   *Note, 2026-08-11 (Celeris read).* Celeris (Tavakkol & Lynett 2017) carries
+   **no explicit breaking model at all** — numerical dissipation from the
+   minmod flux limiter imitates it, and validates against breaking-wave run-up
+   about as well as the models that do declare one, better than one of them.
+   The lesson for this list is that job two is not a peer of the other two. In
+   a phase-resolving scheme "how much energy is lost" is *nobody's declared
+   quantity*; it falls out of the discretization. Only "is breaking" (a
+   threshold on the field) and "draw foam" (authorship) are things anyone owns.
+   So the separation to aim for is two jobs, not three — and `decay` should be
+   understood as an artifact of having no solver to lose the energy for us,
+   rather than as a third authority awaiting an owner. See
+   `research/SURF_SCIENCE_REFS.md` (Celeris, full read).
 3. **The JS twin's synthetic height path should not exist.** It is authority B
    on a quantity physics owns.
 4. **`VIS` is already correctly excluded from the break threshold** (noted in
@@ -568,6 +581,19 @@ declaration constrains the derivation — never the reverse.**
   deep-water ocean (TD: the community FFTOcean asset; web: Tessendorf-style IFFT or
   a Gerstner sum). The break layer is the novel contribution; the substrate is
   commodity.
+
+  *Constraint, 2026-08-11.* This hook predates §4.5 and is now bounded by it.
+  Written when the plan was to composite over a bought-in surface; since
+  §2.2/§2.3 there is no composite — `web-three` displaces a grid from the shared
+  model, and §4.5 makes **surface height under the rider physics-owned, one
+  evaluation, shared**. An independent FFT surface added beside it would be
+  authority B on exactly that quantity. The only form consistent with the rule
+  is a **perturbation gated by the same depth field**: deep-water chop whose
+  amplitude decays as `h` falls, gone before the surf zone, so the zipper still
+  owns the surface where it matters. Not a second surface the break layer draws
+  on top of. (Surveyed instance: Ocean Community Next Gen, BSD-3, Phillips-
+  spectrum IFFT with `ω = √(gk)` and no depth term anywhere — see
+  `research/SURF_SCIENCE_REFS.md` §5.1.)
 
 ## References
 

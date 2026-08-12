@@ -172,13 +172,15 @@ function marchBreakFn(elevAt, x, H0, T) {
   const cg0 = G * T / (4 * Math.PI);
   const wl = MSL_ABOVE_NAVD88;
   const { z0, z1 } = PP_DEPTH_DATA.grid;
-  let last = null;
-  for (let z = z0; z <= z1; z += 2) {
-    const depth = wl - elevAt(x, z);
-    if (depth <= 0.35) break;
-    const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * depth)), 0.7), 2.6);
-    if (H0 * Ks >= GAMMA * depth) return z;
-    last = z;
+  let last = null, fLast = null;
+  for (let z = z0; z <= z1; z += MARCH_DZ) {
+    const f = breakExcess(elevAt(x, z), wl, H0, cg0);
+    if (f === null) break;
+    if (f >= 0) {
+      if (last === null || fLast === null) return z;
+      return last + (z - last) * (-fLast) / Math.max(f - fLast, 1e-9);
+    }
+    last = z; fLast = f;
   }
   return last === null ? z0 : last;
 }
@@ -235,14 +237,32 @@ export function reefFitFor(name) {
     iterations = it;
     reefFn = makeReefFn(beta, targetEl, zRef, seed, reefWin);
     const elevAt = (x, z) => { const em = rawAt(x, z); return em + reefFn(x, z, em); };
+    // Fit against the SMOOTHED locus, because that is the line the renderer
+    // draws (bakeBreakLine smoothM). Fitting the raw march while rendering the
+    // smoothed one is the same authority split as everything else today: the
+    // reef would be tuned to a wave nobody sees. Measured cost of getting this
+    // wrong: with smoothing on and the fit still raw, derived alpha collapsed
+    // 57 deg -> 16 deg, because the raw locus's alpha was carried by the very
+    // wander the smoothing removes.
+    const dense = [];
+    for (let x = xs[0]; x <= xs[xs.length - 1] + 1e-6; x += FIT_DENSE_DX) dense.push(x);
+    const rawZ = dense.map((x) => marchBreakFn(elevAt, x, card.H0, card.T));
+    const halfF = Math.max(1, Math.round((PEEL_SMOOTH_M / 2) / FIT_DENSE_DX));
+    const smZ = rawZ.map((_, i) => {
+      let acc = 0, n = 0;
+      for (let j = i - halfF; j <= i + halfF; j++) {
+        acc += rawZ[Math.min(Math.max(j, 0), rawZ.length - 1)]; n++;
+      }
+      return acc / n;
+    });
+    const dMean = dense.reduce((q, v) => q + v, 0) / dense.length;
     let sxz = 0, sxx = 0;
-    const zbs = [];
-    for (const x of xs) {
-      const zb = marchBreakFn(elevAt, x, card.H0, card.T);
-      zbs.push(zb);
-      const dx = x - xMean;                  // stations are no longer zero-mean
-      sxz += dx * zb; sxx += dx * dx;
+    for (let i = 0; i < dense.length; i++) {
+      const dx = dense[i] - dMean;
+      sxz += dx * smZ[i]; sxx += dx * dx;
     }
+    const zbs = smZ;
+    xs.length = 0; for (const x of dense) xs.push(x);
     // DIRECTION (MODEL.md 4.5: authorship owns it, the derivation must respect
     // it). The mean slope is taken |absolute| below, which is exactly where the
     // sign — the peel direction — used to be discarded. Keep it, and check that
@@ -534,21 +554,43 @@ const BREAK_N = 128;
 export const BREAK_Z_MIN = -400, BREAK_Z_MAX = 400;
 // Along-shore smoothing length for the break locus, metres — roughly a
 // wavelength, the scale below which a crest cannot resolve the seabed.
-const PEEL_SMOOTH_M = 90;
+export const PEEL_SMOOTH_M = 90;
+// Shore-normal march step for the break criterion, metres. The crossing is
+// interpolated between steps, so this sets cost, not precision.
+const MARCH_DZ = 2;
+// Along-shore sampling for the reef fit, metres. Dense enough that the 90 m
+// smoothing kernel the renderer uses is resolved in the fit too.
+const FIT_DENSE_DX = 10;
 let breakTex = null, breakKey = '', breakArr = new Float32Array(BREAK_N);
+
+// Excess at a station: H0*Ks - gamma*h. Negative seaward of the break, positive
+// inside it; the break line is its zero crossing.
+function breakExcess(elev, wl, H0, cg0) {
+  const depth = wl - elev;
+  if (depth <= 0.35) return null;                   // beach
+  const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * depth)), 0.7), 2.6);
+  return H0 * Ks - GAMMA * depth;
+}
 
 function markBreak(spotName, x, opts) {
   const { H0, T, tide, bedShape } = opts;
   const cg0 = G * T / (4 * Math.PI);
   const wl = MSL_ABOVE_NAVD88 + tide;
   const { z0, z1 } = PP_DEPTH_DATA.grid;
-  let last = null;
-  for (let z = z0; z <= z1; z += 2) {
-    const depth = wl - bedElevBlended(spotName, x, z, bedShape);
-    if (depth <= 0.35) break;                       // hit the beach; stop
-    const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * depth)), 0.7), 2.6);
-    if (H0 * Ks >= GAMMA * depth) return z;         // seaward-most crossing
-    last = z;
+  let last = null, fLast = null;
+  for (let z = z0; z <= z1; z += MARCH_DZ) {
+    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, H0, cg0);
+    if (f === null) break;                          // hit the beach; stop
+    if (f >= 0) {
+      // INTERPOLATE the crossing. Returning the march step quantized the break
+      // line to MARCH_DZ, and on a gently sloping bed the crossing moves tens of
+      // metres for a centimetre of elevation, so that quantization was a floor
+      // on locus noise before any bathymetry was involved — and locus noise is
+      // what tears the peel into a left and a right (MODEL.md 4.5).
+      if (last === null || fLast === null) return z;
+      return last + (z - last) * (-fLast) / Math.max(f - fLast, 1e-9);
+    }
+    last = z; fLast = f;
   }
   return last === null ? z0 : last;
 }
@@ -589,17 +631,17 @@ export function bakeBreakLine(spotName, xRange, opts) {
   //
   // The cost, stated: at those stations the break line is no longer purely
   // depth-derived. That is the rule working as intended, not a violation of it.
-  const peel = opts.peel || null;
-  if (peel) {
-    // Smooth the locus at the WAVE's scale before constraining it. A crest is
-    // ~60-100 m long; it cannot break at a 5 m wiggle in the DEM any more than
-    // it refracts off a pebble, so sub-wavelength structure in z_b is sampling
-    // noise, not bathymetry the wave can feel. Skipping this made the running
-    // max below eat the entire line — direction was satisfied and the peel was
-    // gone (measured: A-frames 0/18, but right-branch crests also 0.00, i.e. a
-    // closeout). The locus is reversal-dominated at small scale; the constraint
-    // has to act on the scale the wave actually resolves.
-    const half = Math.max(1, Math.round((PEEL_SMOOTH_M / 2) / ((x1 - x0) / (BREAK_N - 1))));
+  // ---------- smooth the locus at the WAVE's scale ----------
+  // Independent of the direction constraint below, and justified on its own:
+  // a crest is 60-100 m long and cannot break at a 5 m wiggle in the DEM any
+  // more than it refracts off a pebble, so sub-wavelength structure in z_b is
+  // sampling noise. And that noise is AMPLIFIED: the bed slopes at ~1:75 here,
+  // so the measured 0.31-0.93 m elevation residual displaces the break crossing
+  // by 22-70 m. The peel signal the reef is fitted for is ~5 m of z per bake
+  // step, so the noise runs 4-13x larger than the signal it is meant to carry.
+  const smoothM = opts.smoothM || 0;
+  if (smoothM > 0) {
+    const half = Math.max(1, Math.round((smoothM / 2) / ((x1 - x0) / (BREAK_N - 1))));
     const sm = new Float32Array(BREAK_N);
     for (let i = 0; i < BREAK_N; i++) {
       let acc = 0, n = 0;
@@ -615,7 +657,10 @@ export function bakeBreakLine(spotName, xRange, opts) {
       const q2 = Math.round(u2 * 65535);
       rgba[i * 4] = (q2 >> 8) & 255; rgba[i * 4 + 1] = q2 & 255;
     }
+  }
 
+  const peel = opts.peel || null;
+  if (peel) {
     const sp = Math.sin(peel.phiRad), cp = Math.cos(peel.phiRad);
     const xAt = (i) => x0 + (x1 - x0) * (i / (BREAK_N - 1));
     const qOf = (i, z) => xAt(i) * sp + (z + peel.curveAt(xAt(i))) * cp;
