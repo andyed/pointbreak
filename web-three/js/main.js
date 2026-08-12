@@ -369,6 +369,43 @@ const hudAlpha = document.getElementById('hudAlpha');
 const hudXi = document.getElementById('hudXi');
 const hudLam = document.getElementById('hudLam');
 const hudSwell = document.getElementById('hudSwell');
+const topPreset = document.getElementById('topPreset');
+const topCam = document.getElementById('topCam');
+const siteControls = document.getElementById('siteControls');
+const cameraControls = document.getElementById('cameraControls');
+const menuToggle = document.getElementById('menuToggle');
+const menuClose = document.getElementById('menuClose');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+const controlDrawer = document.getElementById('controlDrawer');
+
+function syncControlUI() {
+  if (topPreset) topPreset.textContent = state.paused
+    ? `${state.preset ? PRESETS[state.preset].label : 'Custom'} · paused`
+    : (state.preset ? PRESETS[state.preset].label : 'Custom');
+  if (topCam) topCam.textContent = CAM_PRESETS[camIdx].name;
+
+  siteControls?.querySelectorAll('[data-preset]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.preset === state.preset));
+  });
+  cameraControls?.querySelectorAll('[data-camera]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(Number(button.dataset.camera) === camIdx));
+  });
+
+  const toggleStates = {
+    surfer: Boolean(state.surfer),
+    audio: isAudioEnabled(),
+    pause: Boolean(state.paused),
+    section: Boolean(showSection),
+  };
+  document.querySelectorAll('[data-action]').forEach((button) => {
+    const active = toggleStates[button.dataset.action];
+    if (typeof active !== 'boolean') return;
+    button.setAttribute('aria-pressed', String(active));
+    const stateLabel = button.querySelector('.control-state');
+    if (stateLabel) stateLabel.textContent = active ? 'On' : 'Off';
+  });
+}
+
 function refreshHUD() {
   const p = state.preset ? PRESETS[state.preset].label : 'custom';
   hudPreset.textContent = state.paused ? p + ' (paused)' : p;
@@ -436,6 +473,7 @@ function refreshHUD() {
   hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`
     + (state.geoSpot ? ` · ${bedMode}` : '')
     + (activeDayLabel ? ` · ${activeDayLabel}` : '');
+  syncControlUI();
 }
 
 // Swell-height step, clamped to the PARAM_DEFS range. Rounded to the step so
@@ -450,29 +488,78 @@ function stepH0(dir) {
   refreshHUD();
 }
 
+function selectPreset(key) {
+  if (!PRESETS[key]) return;
+  applyPreset(state, key);
+  // A site choice owns the reef only. Clear a named condition so the readout
+  // cannot imply that the old ocean still describes the new selection.
+  activeDayKey = null;
+  activeDayLabel = null;
+  refreshHUD();
+}
+
+function setSectionVisible(visible) {
+  showSection = Boolean(visible);
+  section.el.style.display = showSection ? '' : 'none';
+  refreshHUD();
+}
+
+function setMenuOpen(open) {
+  document.body.classList.toggle('menu-open', open);
+  controlDrawer.setAttribute('aria-hidden', String(!open));
+  menuToggle.setAttribute('aria-expanded', String(open));
+  menuToggle.setAttribute('aria-label', open ? 'Close controls' : 'Open controls');
+  if (open) {
+    menuClose.focus();
+  } else if (controlDrawer.contains(document.activeElement)) {
+    menuToggle.focus();
+  }
+}
+
 // ---------- keyboard (parity with web/) ----------
 const presetKeys = Object.keys(PRESETS);
 window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.body.classList.contains('menu-open')) {
+    setMenuOpen(false);
+    return;
+  }
+  if (e.key === 'Tab' && document.body.classList.contains('menu-open')) {
+    const focusable = [...controlDrawer.querySelectorAll('button, summary, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter((element) => !element.disabled && element.getClientRects().length > 0);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      last?.focus();
+      e.preventDefault();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      first?.focus();
+      e.preventDefault();
+    }
+    return;
+  }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // Buttons own Space/letter input while the drawer is open. Without this,
+  // activating a visible control could also trigger its keyboard shortcut.
+  if (e.target.closest('button, summary, input, select, textarea')) return;
   const n = parseInt(e.key, 10);
   if (n >= 1 && n <= presetKeys.length) {
-    applyPreset(state, presetKeys[n - 1]);
-    // manual preset = the user took the wheel; a stale day label would lie
-    // (drift, if on, re-enters the good rotation at the next boundary)
-    activeDayKey = null; activeDayLabel = null;
-    refreshHUD(); return;
+    selectPreset(presetKeys[n - 1]);
+    return;
   }
   if (e.key === 'v' || e.key === 'V') applyCam((camIdx + 1) % CAM_PRESETS.length);
   if (e.key === 's' || e.key === 'S') { state.surfer = 1 - state.surfer; refreshHUD(); }
   if (e.key === ' ') { state.paused = !state.paused; refreshHUD(); e.preventDefault(); }
-  if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('hidepanel');
+  if (e.key === 'h' || e.key === 'H') {
+    setMenuOpen(false);
+    document.body.classList.toggle('hidepanel');
+  }
   // M for mute/unmute. The keypress is the user gesture the AudioContext needs,
   // so audio can only ever start deliberately.
   if (e.key === 'm' || e.key === 'M') { toggleAudio(); refreshHUD(); }
   // C shows the cross-section (the bed-shape -> wave argument); [ and ] move
   // the tide, which is the cheapest lever that proves it — the breaking point
   // slides along the profile and the whitewater band moves with it.
-  if (e.key === 'c' || e.key === 'C') { showSection = !showSection; section.el.style.display = showSection ? '' : 'none'; }
+  if (e.key === 'c' || e.key === 'C') setSectionVisible(!showSection);
   if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.15, TIDE_RANGE[0]); refreshHUD(); }
   if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.15, TIDE_RANGE[1]); refreshHUD(); }
   // ---- swell size, live ----
@@ -555,6 +642,58 @@ let lastBaked = null;
 // alike and every one of them must see the same phase field the GPU does.
 let psiPhaseFn = null;
 section.el.style.display = 'none';
+
+function initControlUI() {
+  presetKeys.forEach((key) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.preset = key;
+    button.setAttribute('aria-pressed', 'false');
+    button.textContent = PRESETS[key].label;
+    button.addEventListener('click', () => {
+      selectPreset(key);
+      setMenuOpen(false);
+    });
+    siteControls.append(button);
+  });
+
+  CAM_PRESETS.forEach((preset, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.camera = String(index);
+    button.setAttribute('aria-pressed', 'false');
+    button.textContent = preset.name;
+    button.addEventListener('click', () => {
+      applyCam(index);
+      setMenuOpen(false);
+    });
+    cameraControls.append(button);
+  });
+
+  document.querySelector('[data-action="surfer"]').addEventListener('click', () => {
+    state.surfer = 1 - state.surfer;
+    refreshHUD();
+  });
+  document.querySelector('[data-action="audio"]').addEventListener('click', () => {
+    toggleAudio();
+    refreshHUD();
+  });
+  document.querySelector('[data-action="pause"]').addEventListener('click', () => {
+    state.paused = !state.paused;
+    refreshHUD();
+  });
+  document.querySelector('[data-action="section"]').addEventListener('click', () => {
+    setSectionVisible(!showSection);
+  });
+
+  menuToggle.addEventListener('click', () => {
+    setMenuOpen(!document.body.classList.contains('menu-open'));
+  });
+  menuClose.addEventListener('click', () => setMenuOpen(false));
+  drawerBackdrop.addEventListener('click', () => setMenuOpen(false));
+}
+
+initControlUI();
 
 // ---------- resize ----------
 function resize() {

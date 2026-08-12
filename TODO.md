@@ -88,6 +88,12 @@ No parity port. Consequences to carry honestly:
 - [ ] 4b. Wind as data (chop scalar + drift direction are compile-time now);
       sky state (sun visibility → glitter amplitude; marine layer default)
 - [ ] 4c. Decide the live clamps (Hs 3.0 m / Tp 18 s) — surface or raise
+- [ ] 4d. Season + conditions control panel: extend the responsive drawer's
+      domain sections rather than creating a second UI/state system. Season
+      shapes the ocean-state distribution (direction, period, size, wind),
+      never the reef/site preset; named days, live conditions and eventual
+      manual controls all write through the same condition application path.
+      Gate the truthful surface on 3c and the tide-polarity fix in 4a.
 
 ### Track 5 — the reads (after Track 1 geometry)
 - [ ] Foam first — the largest water-level gap: attachment to crests,
