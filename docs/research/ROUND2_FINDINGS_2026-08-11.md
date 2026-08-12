@@ -72,7 +72,16 @@ range; the current build reproduces the repo's own corrected figures at 1.04%.)
 
 ## New defects found (none verified by a second seat except where noted)
 
-### P0 — `web/` reference build: the wave never breaks (VERIFIED BY HAND)
+### ~~P0~~ WITHDRAWN — `web/` reference build: the wave never breaks
+
+> **Superseded 2026-08-11: `web/` is deprecated** (Andy's call — web-three is
+> the only renderer). This defect is real and verified, and is now **expected
+> behaviour of a dead build**. Do not fix it. The three shared modules under
+> `web/js/` (`model-glsl.js`, `params.js`, `cdip.js`) remain load-bearing; see
+> CLAUDE.md. The finding is kept because it dates the raymarch build's death
+> and because it is a worked example of a defect a green console cannot see.
+
+
 
 `u_reefWin` is declared and consumed in the shared GLSL
 (`web/js/model-glsl.js:31`, `:248–249`) but **never set by `web/js/main.js`**,

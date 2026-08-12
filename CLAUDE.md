@@ -9,6 +9,28 @@ A simplified point-break wave model (Pleasure Point, Santa Cruz) as real-time
 graphics. Core artifact: `docs/MODEL.md`. Everything derives from it — when model
 and implementation disagree, fix one deliberately and record why.
 
+## Repo layout — web/ is DEPRECATED (2026-08-11)
+
+**web-three/ is the only renderer.** The `web/` raymarch build is deprecated:
+do not maintain it, do not fix its rendering, and do not read its breakage as a
+regression signal. (It is currently broken — `u_reefWin` is never set, so the
+wave never breaks. That is now expected, not a bug to fix.)
+
+`web/` is NOT a deletable directory. Three modules under `web/js/` are
+load-bearing for web-three and stay maintained:
+
+| file | role |
+|---|---|
+| `web/js/model-glsl.js` | **THE shared GPU model** — source of truth for the wave math |
+| `web/js/params.js` | the preset bank (imported by `bed.js` and `main.js`) |
+| `web/js/cdip.js` | the SC116 live-ocean fetch |
+
+Raymarch-only, and therefore dead: `web/index.html`, `web/js/main.js`,
+`web/js/ui.js`, `web/js/shaders.js`.
+
+The layout implies `web/` is alive when it is not; moving the three shared
+modules to a neutral `shared/` is the obvious cleanup, not yet done.
+
 ## Conventions
 
 - **Method-named, not venue-named** — the repo is `pointbreak`, artifacts are named
