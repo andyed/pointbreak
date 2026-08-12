@@ -284,7 +284,21 @@ float bedElevM(vec2 xz){
   // smoothstepped across the waterline so plane mode has no seam there.
   float plane = u_bedPlane.x + u_bedPlane.y*xz.x + u_bedPlane.z*xz.y;
   float wet = smoothstep(u_waterLevel + 0.15, u_waterLevel - 0.15, measured);
-  return mix(measured, plane, u_bedShape * wet);
+  float e = mix(measured, plane, u_bedShape * wet);
+  // EXTRAPOLATION RAMP, applied here so every consumer sees the same ground
+  // (2026-08-12). The uv clamp above means each sample outside the patch
+  // returns the EDGE elevation, i.e. a flat plateau at whatever height the
+  // rim happened to be — and where that rim is above water it drew a pale
+  // tableland bounded by the patch RECTANGLE, which is the straight diagonal
+  // across the land in the cliff view. BED_VERT already ramped its own copy
+  // down (it had to, or the seabed mesh punched a hole in the far water), so
+  // the two surfaces disagreed about the same ground. Ramping inside bedElevM
+  // makes the land path, the waterline (max(bed, water)), waterDepthM and the
+  // seabed mesh agree by construction: outside the data the ground descends
+  // at 4.5 cm/m until it is under water and the coastline simply ends in the
+  // haze. Zero inside the patch, so nothing measured moves.
+  vec2 dOut = max(max(u_bedRect.xy - xz, xz - u_bedRect.zw), vec2(0.0));
+  return e - 0.045 * length(dOut);
 }
 
 // Still-water depth, metres. Zero on land — the shoreline is wherever this

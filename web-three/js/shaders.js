@@ -445,15 +445,28 @@ const float HAZE_H      = 70.0;
 // featureless land blob) all live out there: the render should stop CLAIMING
 // that region rather than keep dressing it. Ramps are hundreds of metres —
 // this is a fade of assertion, not a drawn border.
+// RADIAL, not rectangular (rewritten 2026-08-12). The first version took
+// max(|xz - c| - half) per axis, which is a RECTANGLE: its ramp met the terrain
+// along axis-aligned lines and drew a hard tan/grey edge straight across the
+// land — the "goofy straight lines" this feature exists to help with, made
+// worse once the DEM reached 9.4 km of coast. A radial falloff has no corners
+// and no preferred direction, so the fade reads as distance, not as a border.
+//
+// Normalized to the MEASURED PATCH (u_bedRect), so the fade tracks the data
+// actually held: it begins 62% of the way out and is full at the patch edge —
+// with the 2026-08-12 extent that is a ~200-240 m ramp, hundreds of times the
+// DEM residual, so no post grid can print itself along the boundary.
+// Synthetic presets carry no patch and fall back to the stage ellipse.
 float provenanceAt(vec2 xz){
-  const vec2 STAGE_HALF   = vec2(300.0, 250.0);
+  const vec2 STAGE_HALF   = vec2(320.0, 270.0);
   const vec2 STAGE_CENTER = vec2(0.0, 10.0);
-  vec2 dOut = max(abs(xz - STAGE_CENTER) - STAGE_HALF, vec2(0.0));
-  float prov = 1.0 - smoothstep(0.0, 250.0, length(dOut));
+  vec2 c = STAGE_CENTER, halfExt = STAGE_HALF;
   if (u_depthMix > 0.5) {
-    vec2 dBed = max(max(u_bedRect.xy + 25.0 - xz, xz - (u_bedRect.zw - 25.0)), vec2(0.0));
-    prov = min(prov, 1.0 - smoothstep(0.0, 180.0, length(dBed)));
+    c = 0.5*(u_bedRect.xy + u_bedRect.zw);
+    halfExt = max(0.5*(u_bedRect.zw - u_bedRect.xy), vec2(1.0));
   }
+  float r = length((xz - c) / halfExt);   // 1.0 on the ellipse through the edge
+  float prov = 1.0 - smoothstep(0.62, 1.0, r);
   return mix(1.0, prov, clamp(u_matte, 0.0, 1.0));
 }
 
@@ -946,8 +959,10 @@ ${BED_OUTSIDE_GLSL}
 
 void main(){
   vec2 xz = position.xz;
+  // The extrapolation ramp moved INTO bedElevM (2026-08-12) so the seabed and
+  // the water grid's land path cannot disagree about the same ground; applying
+  // it again here would double it.
   float e = bedElevM(xz) - u_waterLevel;
-  e -= 0.045 * bedOutside(xz);          // extrapolation, not data — see above
   vec3 P = vec3(xz.x, e, xz.y);
   vBedPos = P;
   vBedDepth = max(-e, 0.0);
@@ -1016,7 +1031,9 @@ void main(){
   // (First attempt subtracted the lift with the old epsilon — that UN-discards
   // the swash band and drew murk across it: goo went 45 -> 450. Measured.)
   float swashM = 0.35 + VIS*setupLiftM(xz, u_time);
-  float eFrag = bedElevM(xz) - u_waterLevel - 0.045 * bedOutside(xz);
+  // Ramp is inside bedElevM now (2026-08-12) — this must match BED_VERT's
+  // elevation EXACTLY or the discard test punches holes in the far seabed.
+  float eFrag = bedElevM(xz) - u_waterLevel;
   if (eFrag >= -swashM) discard;
   // normal by finite difference on the bed field itself
   float e = 1.5;
