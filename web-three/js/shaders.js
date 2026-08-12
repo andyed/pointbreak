@@ -357,10 +357,37 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
 // correct across the waterline instead of shearing along it. With
 // u_depthMix = 0 the bed sits at -999 m and can never win, so presets with no
 // bathymetry behind them render exactly as before.
+// Highest the displayed surface can reach ON DRY GROUND, metres above still
+// water. Not the open-water crest bound: where the bed is already above the
+// waterline the wave is depth-limited to nothing, so the only thing that can
+// still arrive is the set's water pull-back — setupLiftM, capped at
+// 0.3*H0*VIS = 2.88 m at the H0 3.0 m ceiling, and confined shoreward of the
+// 2 m contour. 6 m is a bit over 2x that cap.
+// Calibrated, not guessed: at the first cut (16 m, the open-water crest bound)
+// this test fired on 0-11.6% of vertices and 0% at three spots — measurably
+// useless. Above 6 m it covers 19-42% of each patch. The swash check
+// (npm run check:swash) is the guard: it measures the breathing waterline
+// directly, so clipping the run-up would show up as a breathe regression.
+uniform float u_landSkipM;   // = CREST_CEIL_M; huge value disables the skip
+
 vec3 surfacePos(vec2 xz0, float t, out float foam, out float pocket,
                 out float brk, out float crest, out float land){
-  vec3 P = choppyPos(xz0, t, foam, pocket, brk, crest);
+  // Bed FIRST (2026-08-12 perf). This used to run choppyPos — five ocean()
+  // evaluations — and only then discover the bed was above it and throw the
+  // whole result away, on every vertex over dry land, three times per vertex
+  // (main() calls this for P, Px and Pz to build the FD normal). The app is
+  // vertex-bound (GPU timing 2026-08-12: cost is linear in water-grid
+  // triangles, near-flat in pixels), and 20-44% of each patch is dry ground,
+  // so that was the single largest pure waste in the frame.
+  // Above CREST_CEIL_M no wave can reach, so the answer is known without the
+  // wave: bit-identical output, minus the work.
   float bedY = mix(-999.0, bedElevM(xz0) - u_waterLevel, u_depthMix);
+  if (bedY > u_landSkipM) {
+    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0;
+    land = 1.0;
+    return vec3(xz0.x, bedY, xz0.y);
+  }
+  vec3 P = choppyPos(xz0, t, foam, pocket, brk, crest);
   land = 0.0;
   if (bedY > P.y) {
     P = vec3(xz0.x, bedY, xz0.y);

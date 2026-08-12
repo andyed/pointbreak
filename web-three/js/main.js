@@ -171,6 +171,11 @@ const uniforms = {
   u_refrKappa:  { value: 0 },
   // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
   u_matte:      { value: 1 },
+  // Land-vertex wave-math skip threshold, m above still water (shaders.js
+  // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
+  // page session — GPU timing across separate browser launches is too noisy
+  // to resolve the effect (3.1-4.4 ms for identical configs, measured).
+  u_landSkipM:  { value: 6.0 },
 };
 applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
@@ -1114,6 +1119,8 @@ window.__pointbreak = {
     refreshHUD();
   },
   m4Ride: () => m4Ride,
+  // perf A/B: set huge to disable the land-vertex skip, 6.0 to restore
+  setLandSkip: (m) => { uniforms.u_landSkipM.value = m; },
   // Where does a crest FIRST meet the break line? m4RideSolve takes the takeoff
   // as argmin S over the stage. When that minimum is INTERIOR, crests satisfy
   // the criterion in both directions from it and the peak splits into a left
