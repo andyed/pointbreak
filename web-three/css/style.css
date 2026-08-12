@@ -185,19 +185,80 @@ body.menu-open .control-drawer { transform: translateX(0); visibility: visible; 
 #hud .k { color: var(--secondary); font-weight: 550; }
 #hud .v { color: var(--accent); font-weight: 550; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
-.keyboard-help { padding: 18px 0 0; color: var(--secondary); font-size: 12px; line-height: 1.8; font-weight: 550; text-wrap: pretty; }
-kbd { min-width: 20px; padding: 2px 5px; color: var(--ink); background: var(--panel-raised); border: 1px solid var(--line); border-radius: 4px; font: 650 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.key-deck { padding: 22px 0 0; }
+.key-group-label { margin-bottom: 7px; color: var(--secondary); font-size: 12px; font-weight: 650; }
+.break-keys { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.command-keys { margin-top: 9px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.break-keys button, .command-keys button {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 6px;
+  color: var(--ink);
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.command-keys button { justify-content: flex-start; padding-inline: 10px; }
+.break-keys button[aria-pressed="true"], .command-keys button[aria-pressed="true"] {
+  color: #061116;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+kbd {
+  min-width: 25px;
+  padding: 4px 6px;
+  color: inherit;
+  background: #233139;
+  border: 1px solid #62727a;
+  border-radius: 4px;
+  box-shadow: 0 2px 0 #05090b;
+  font: 750 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: center;
+}
+.break-keys button[aria-pressed="true"] kbd, .command-keys button[aria-pressed="true"] kbd {
+  background: #dff7ff;
+  border-color: #133744;
+  box-shadow: 0 2px 0 #2e788f;
+}
+.space-key kbd { min-width: 52px; }
+
+.ui-reveal {
+  display: none;
+  position: fixed;
+  z-index: 40;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  min-height: 44px;
+  padding: 0 14px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
 
 button:focus-visible, summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 @media (hover: hover) and (pointer: fine) {
-  .icon-button:hover, .site-controls button:hover, .camera-controls button:hover, .toggle-controls button:hover { background: var(--panel-raised); }
-  .site-controls button[aria-pressed="true"]:hover, .camera-controls button[aria-pressed="true"]:hover { background: var(--accent); }
+  .icon-button:hover, .site-controls button:hover, .camera-controls button:hover, .toggle-controls button:hover,
+  .break-keys button:hover, .command-keys button:hover, .ui-reveal:hover { background: #1c2a31; }
+  .site-controls button[aria-pressed="true"]:hover, .camera-controls button[aria-pressed="true"]:hover,
+  .break-keys button[aria-pressed="true"]:hover, .command-keys button[aria-pressed="true"]:hover { background: var(--accent); }
 }
 
 body.hidepanel .appbar,
 body.hidepanel .control-drawer,
 body.hidepanel .drawer-backdrop { display: none; }
+body.hidepanel .ui-reveal { display: block; }
 
 /* Cross-section analysis panel (C toggles). */
 .section-panel {

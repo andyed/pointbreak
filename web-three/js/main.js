@@ -377,6 +377,8 @@ const menuToggle = document.getElementById('menuToggle');
 const menuClose = document.getElementById('menuClose');
 const drawerBackdrop = document.getElementById('drawerBackdrop');
 const controlDrawer = document.getElementById('controlDrawer');
+const breakKeys = document.getElementById('breakKeys');
+const uiReveal = document.getElementById('uiReveal');
 
 function syncControlUI() {
   if (topPreset) topPreset.textContent = state.paused
@@ -403,6 +405,20 @@ function syncControlUI() {
     button.setAttribute('aria-pressed', String(active));
     const stateLabel = button.querySelector('.control-state');
     if (stateLabel) stateLabel.textContent = active ? 'On' : 'Off';
+  });
+
+  breakKeys?.querySelectorAll('[data-shortcut]').forEach((button, index) => {
+    button.setAttribute('aria-pressed', String(presetKeys[index] === state.preset));
+  });
+  const shortcutStates = {
+    s: Boolean(state.surfer),
+    m: isAudioEnabled(),
+    c: Boolean(showSection),
+    ' ': Boolean(state.paused),
+  };
+  document.querySelectorAll('.command-keys [data-shortcut]').forEach((button) => {
+    const active = shortcutStates[button.dataset.shortcut];
+    if (typeof active === 'boolean') button.setAttribute('aria-pressed', String(active));
   });
 }
 
@@ -516,6 +532,45 @@ function setMenuOpen(open) {
   }
 }
 
+function runShortcut(key) {
+  const normalized = key.length === 1 ? key.toLowerCase() : key;
+  const n = parseInt(normalized, 10);
+  if (n >= 1 && n <= presetKeys.length) {
+    selectPreset(presetKeys[n - 1]);
+    return true;
+  }
+  if (normalized === 'v') applyCam((camIdx + 1) % CAM_PRESETS.length);
+  else if (normalized === 's') { state.surfer = 1 - state.surfer; refreshHUD(); }
+  else if (normalized === ' ') { state.paused = !state.paused; refreshHUD(); }
+  else if (normalized === 'h') {
+    const hidden = document.body.classList.toggle('hidepanel');
+    if (hidden) setMenuOpen(false);
+    syncControlUI();
+  }
+  else if (normalized === 'm') { toggleAudio(); refreshHUD(); }
+  else if (normalized === 'c') setSectionVisible(!showSection);
+  else if (normalized === '[') { state.tide = Math.max((state.tide || 0) - 0.15, TIDE_RANGE[0]); refreshHUD(); }
+  else if (normalized === ']') { state.tide = Math.min((state.tide || 0) + 0.15, TIDE_RANGE[1]); refreshHUD(); }
+  else if (normalized === '-' || normalized === '_') stepH0(-1);
+  else if (normalized === '=' || normalized === '+') stepH0(+1);
+  else if (normalized === 'd') {
+    const i = CONDITION_DAYS.findIndex((x) => x.key === activeDayKey);
+    const d = applyConditionDay(state, uniforms,
+      CONDITION_DAYS[(i + 1 + CONDITION_DAYS.length) % CONDITION_DAYS.length].key);
+    if (d) { activeDayKey = d.key; activeDayLabel = d.label; refreshHUD(); }
+  }
+  else if (normalized === 'b') { state.bedShape = ((state.bedShape || 0) + 1) % 3; refreshHUD(); }
+  else if (normalized === 'n') {
+    structuralBreaker = structuralBreaker ? 0 : 1;
+    uniforms.u_breakShape.value = structuralBreaker;
+    refreshHUD();
+  }
+  else if (normalized === ',') sectionX = Math.max(sectionX - 25, -250);
+  else if (normalized === '.') sectionX = Math.min(sectionX + 25, 250);
+  else return false;
+  return true;
+}
+
 // ---------- keyboard (parity with web/) ----------
 const presetKeys = Object.keys(PRESETS);
 window.addEventListener('keydown', (e) => {
@@ -541,62 +596,7 @@ window.addEventListener('keydown', (e) => {
   // Buttons own Space/letter input while the drawer is open. Without this,
   // activating a visible control could also trigger its keyboard shortcut.
   if (e.target.closest('button, summary, input, select, textarea')) return;
-  const n = parseInt(e.key, 10);
-  if (n >= 1 && n <= presetKeys.length) {
-    selectPreset(presetKeys[n - 1]);
-    return;
-  }
-  if (e.key === 'v' || e.key === 'V') applyCam((camIdx + 1) % CAM_PRESETS.length);
-  if (e.key === 's' || e.key === 'S') { state.surfer = 1 - state.surfer; refreshHUD(); }
-  if (e.key === ' ') { state.paused = !state.paused; refreshHUD(); e.preventDefault(); }
-  if (e.key === 'h' || e.key === 'H') {
-    setMenuOpen(false);
-    document.body.classList.toggle('hidepanel');
-  }
-  // M for mute/unmute. The keypress is the user gesture the AudioContext needs,
-  // so audio can only ever start deliberately.
-  if (e.key === 'm' || e.key === 'M') { toggleAudio(); refreshHUD(); }
-  // C shows the cross-section (the bed-shape -> wave argument); [ and ] move
-  // the tide, which is the cheapest lever that proves it — the breaking point
-  // slides along the profile and the whitewater band moves with it.
-  if (e.key === 'c' || e.key === 'C') setSectionVisible(!showSection);
-  if (e.key === '[') { state.tide = Math.max((state.tide || 0) - 0.15, TIDE_RANGE[0]); refreshHUD(); }
-  if (e.key === ']') { state.tide = Math.min((state.tide || 0) + 0.15, TIDE_RANGE[1]); refreshHUD(); }
-  // ---- swell size, live ----
-  // Size was reachable only through #day= or the preset bank, and the default
-  // 1.5 m card day breaks in ~2.9 m of water — a wall barely a metre of
-  // physical face, which reads as flat water from the cliff. Bumping H0 moves
-  // the M4 break locus seaward into deeper water, where Hlim = GAMMA*h is
-  // larger, so the face genuinely grows (SIZE_AUDIT's master finding is that
-  // this is the ONLY route size has in, and it needs M4 — which now ships).
-  // Bounds come from PARAM_DEFS so the keys can never ask for conditions the
-  // sliders forbid.
-  if (e.key === '-' || e.key === '_') { stepH0(-1); }
-  if (e.key === '=' || e.key === '+') { stepH0(+1); }
-  // D cycles the whole condition bank, junky days included: H0 alone makes a
-  // wave taller, a DAY also moves period, tide and chop together, which is
-  // what actually changes its character.
-  if (e.key === 'd' || e.key === 'D') {
-    const i = CONDITION_DAYS.findIndex((x) => x.key === activeDayKey);
-    const d = applyConditionDay(state, uniforms,
-      CONDITION_DAYS[(i + 1 + CONDITION_DAYS.length) % CONDITION_DAYS.length].key);
-    if (d) { activeDayKey = d.key; activeDayLabel = d.label; refreshHUD(); }
-  }
-  // B cycles the bed mode three ways (M5): measured+reef (the spot) -> plane
-  // (no structure at all) -> measured (the DEM's closeout — no reef) -> back.
-  // One key shows: synthetic reef = the spot, plane = no peel, no reef =
-  // closeout. Modes 0/1/2 map to bed.js applyBed's contract.
-  if (e.key === 'b' || e.key === 'B') { state.bedShape = ((state.bedShape || 0) + 1) % 3; refreshHUD(); }
-  // N isolates breaker anatomy without touching bed/refraction/model timing.
-  if (e.key === 'n' || e.key === 'N') {
-    structuralBreaker = structuralBreaker ? 0 : 1;
-    uniforms.u_breakShape.value = structuralBreaker;
-    refreshHUD();
-  }
-  // , and . slide the cross-section's transect along the shore, so the profile
-  // can be read where the wave is actually peeling rather than only at x=0.
-  if (e.key === ',') sectionX = Math.max(sectionX - 25, -250);
-  if (e.key === '.') sectionX = Math.min(sectionX + 25, 250);
+  if (runShortcut(e.key) && e.key === ' ') e.preventDefault();
 });
 
 // ---------- cross-section overlay ----------
@@ -670,6 +670,22 @@ function initControlUI() {
     cameraControls.append(button);
   });
 
+  presetKeys.forEach((key, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.shortcut = String(index + 1);
+    button.setAttribute('aria-label', `${index + 1} — ${PRESETS[key].label}`);
+    button.setAttribute('aria-pressed', 'false');
+    const keycap = document.createElement('kbd');
+    keycap.textContent = String(index + 1);
+    button.append(keycap);
+    breakKeys.append(button);
+  });
+
+  document.querySelectorAll('.key-deck [data-shortcut]').forEach((button) => {
+    button.addEventListener('click', () => runShortcut(button.dataset.shortcut));
+  });
+
   document.querySelector('[data-action="surfer"]').addEventListener('click', () => {
     state.surfer = 1 - state.surfer;
     refreshHUD();
@@ -691,6 +707,11 @@ function initControlUI() {
   });
   menuClose.addEventListener('click', () => setMenuOpen(false));
   drawerBackdrop.addEventListener('click', () => setMenuOpen(false));
+  uiReveal.addEventListener('click', () => {
+    document.body.classList.remove('hidepanel');
+    syncControlUI();
+    menuToggle.focus();
+  });
 }
 
 initControlUI();

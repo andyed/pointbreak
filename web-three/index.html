@@ -96,13 +96,38 @@
       </div>
     </details>
 
-    <p class="keyboard-help">
-      Keyboard: <kbd>1</kbd>–<kbd>7</kbd> break · <kbd>V</kbd> camera ·
-      <kbd>S</kbd> surfer · <kbd>C</kbd> section · <kbd>M</kbd> audio ·
-      <kbd>Space</kbd> pause · <kbd>H</kbd> hide UI
-    </p>
+    <section class="key-deck" aria-labelledby="keyDeckHeading">
+      <div class="section-heading">
+        <h2 id="keyDeckHeading">Shortcut keys</h2>
+        <span>Tap or type</span>
+      </div>
+      <p class="key-group-label">Break</p>
+      <div id="breakKeys" class="break-keys" aria-label="Break shortcuts"></div>
+      <div class="command-keys" aria-label="View shortcuts">
+        <button type="button" data-shortcut="v" aria-label="V — next camera">
+          <kbd>V</kbd><span>Camera</span>
+        </button>
+        <button type="button" data-shortcut="s" aria-label="S — toggle surfer" aria-pressed="false">
+          <kbd>S</kbd><span>Surfer</span>
+        </button>
+        <button type="button" data-shortcut="c" aria-label="C — toggle seabed section" aria-pressed="false">
+          <kbd>C</kbd><span>Section</span>
+        </button>
+        <button type="button" data-shortcut="m" aria-label="M — toggle ocean audio" aria-pressed="false">
+          <kbd>M</kbd><span>Audio</span>
+        </button>
+        <button type="button" data-shortcut=" " class="space-key" aria-label="Space — toggle pause" aria-pressed="false">
+          <kbd>Space</kbd><span>Pause</span>
+        </button>
+        <button type="button" data-shortcut="h" aria-label="H — hide interface">
+          <kbd>H</kbd><span>Hide UI</span>
+        </button>
+      </div>
+    </section>
   </div>
 </aside>
+
+<button id="uiReveal" class="ui-reveal" type="button">Show controls</button>
 
 <script type="module" src="js/main.js"></script>
 </body>
