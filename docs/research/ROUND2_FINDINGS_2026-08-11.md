@@ -196,3 +196,37 @@ console errors**; captures in scratchpad `verify_after/`.
 6. Re-run the killed verification + critic phases:
    `Workflow({scriptPath: ".../pointbreak-plan-execution-wf_a91f50f3-bd0.js", resumeFromRunId: "wf_a91f50f3-bd0"})`
    — completed agents replay from cache.
+
+## Verification status — INCOMPLETE, and why
+
+The verify + critic phases **never ran**. The workflow was killed twice: first
+when the machine froze, and again on resume when it froze harder (the agent
+fleet's headless-Chromium captures, plus a live WebGL preview tab, plus
+Spotlight/icon churn over ~640 scratch PNGs, took the desktop down). No further
+capture runs will be made this session.
+
+**Verified by hand (cheap, no rendering):**
+- `npm test` → 25/25 pass, including `check-shader-literals.mjs`.
+- `node --check` clean on all five changed files.
+- A four-shot render check (drone/cliff, default and `#nose=1`) → no console
+  errors; kelp polarity visibly fixed.
+- The `u_reefWin` regression in `web/` — confirmed by grep against the shared
+  GLSL. (Now moot: web/ is deprecated.)
+
+**NOT verified — do not treat as established:**
+- Nose v2's derived-α figures per spot, and whether the wide-stage flattening
+  is actually fixed. The implementer measured it; nobody checked.
+- Whether `#nose=1` is still bit-identical to default on Second Peak. The
+  ensemble agent measured that under the OLD nose, contradicting
+  `WEB_THREE_SPEC.md:869`. **Unreconciled.**
+- The kelp canopy's appearance against the ortho — polarity is right, but it
+  may read as cloud shadow rather than a defined wedge.
+- Spot distinguishability (pairwise drone RMSE) after the round.
+- `scripts/capture_temporal.mjs` — new, never run by a second seat. Its zipper
+  speed / set cadence / foam advection numbers are unconfirmed.
+- Every one of this document's four refutations of the audit. A refutation from
+  a single agent with no second seat is exactly as unproven as what it
+  overturned.
+
+Next session, with an explicit capture budget (tens of frames, one browser at a
+time): resume `wf_a91f50f3-bd0` or re-verify by hand in that order.

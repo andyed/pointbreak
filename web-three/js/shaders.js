@@ -147,7 +147,7 @@ float kelpMask(vec2 xz, float depthM){
   float clump = smoothstep(0.24, 0.64, p);
   float k = scour * outer * clump * clamp(u_depthMix, 0.0, 1.0);
   if (!(k == k)) k = 0.0;   // NaN guard (house rule)
-  return clamp(k, 0.0, 1.0);
+  return clamp(k, 0.0, 1.0) * 0.0; // TEMP-AB-OFF
 }
 `;
 
@@ -647,6 +647,7 @@ void main() {
 
   float lam = clamp(dot(N, sunDir), 0.0, 1.0);
   base *= 0.62 + 0.50*lam;   // gentle slope shading so faces still read
+  gl_FragColor = vec4(pow(clamp(base,0.0,1.0),vec3(0.92)), 1.0); return; // TEMP-BASE-PROBE
 
   // ---- 2. fresnel + glitter ----
   // Schlick, F0 ~ 0.02: near-black looking straight down, mirror at grazing.

@@ -8,7 +8,7 @@
 // sequence on a fixed SIM-time step and measures those three things straight
 // off the rendered pixels — no CPU twin anywhere in the path. It is the
 // replacement acceptance instrument for `rideMetric`, which scores through the
-// displaced JS twin (`main.js:887`) and therefore certifies twin
+// displaced JS twin (`main.js:901`) and therefore certifies twin
 // self-consistency rather than what the GPU drew.
 //
 // DETERMINISM
@@ -16,17 +16,26 @@
 // `simTime += dt*state.speed` off rAF timestamps (`main.js:578-580`), so two
 // runs of the same nominal sequence land on different phases. Here the clock is
 // driven instead:
-//   1. `#sim=<t0>` seeds the first frame through applyHashParams (`main.js:807,
-//      :811`), which also anchors the drift clock (`main.js:815`) — the same
-//      contract scripts/capture_audit_matrix.mjs relies on.
+//   1. `#sim=<t0>` seeds the first frame through applyHashParams (`main.js:821`
+//      returns it, `:825` assigns simTime), which also anchors the drift clock
+//      (`main.js:829`) — the same contract capture_audit_matrix.mjs relies on.
 //   2. `state.speed = 0` is then set through the debug hook, which zeroes the
-//      accumulation term while leaving `state.paused` false — so the surfer /
-//      audio / spray block at `main.js:736` still runs against the injected
-//      time. (`#speed=0` in the hash does NOT work: `parseFloat('0') || 1`
-//      at `main.js:801` is a falsy-default trap and yields 1.)
-//   3. Each subsequent frame is `__pointbreak.setSim(t)` (`main.js:830`)
+//      accumulation term at `main.js:580` while leaving `state.paused` false —
+//      so the surfer / audio / spray block at `main.js:736` still runs against
+//      the injected time. (`#speed=0` in the hash does NOT work:
+//      `parseFloat('0') || 1` at `main.js:815` is a falsy-default trap and
+//      yields 1 — the repo-wide pattern noted in CLAUDE.md.)
+//   3. Each subsequent frame is `__pointbreak.setSim(t)` (`main.js:844`)
 //      followed by two rAF ticks, so the render loop has copied simTime into
-//      `u_time` and drawn before the screenshot.
+//      `u_time` (`main.js:597`) and drawn before the screenshot.
+//
+// CONDITIONS DRIFT IS A TRAP FOR ANY LONG SEQUENCE
+// With `#drift=1`, main.js:585-594 hard-switches the whole condition day (H0,
+// T, alpha, dF, ...) at every DRIFT_PERIOD_S = 300 s boundary of SIM time. A
+// cadence window is 520 s long, so it would silently straddle two different
+// oceans and the autocorrelation would be measuring the edit, not the swell.
+// Drift defaults OFF (`main.js:69`) and no sequence here enables it; the guard
+// in capture() refuses the combination rather than trusting that to hold.
 // `--reload-each` does the literal per-frame `#sim=` + reload instead; it is
 // slower by a module re-init per frame and exists to VALIDATE mode (2) rather
 // than to be used. `--verify-clock` runs both and reports the residual.
@@ -228,6 +237,22 @@ async function capture() {
   await page.waitForTimeout(2600);            // shader compile + first bakes, as in capture_audit_matrix
   // Freeze the accumulator, not the loop (see header, step 2).
   await page.evaluate(() => { window.__pointbreak.state.speed = 0; });
+
+  // Conditions-drift guard (see header). A window that crosses a 300 s SIM
+  // boundary with drift on measures two different oceans spliced together, and
+  // nothing downstream would reveal it — the manifest records only the FINAL
+  // state. Refuse rather than warn: a silently-spliced cadence number is worse
+  // than no cadence number.
+  const DRIFT_PERIOD_S = 300;
+  if (/(^|&)drift=1(&|$)/.test(CFG.hash)) {
+    const tEnd = CFG.t0 + (CFG.n - 1) * CFG.dt;
+    if (Math.floor(CFG.t0 / DRIFT_PERIOD_S) !== Math.floor(tEnd / DRIFT_PERIOD_S)) {
+      await browser.close();
+      console.error(`REFUSING: #drift=1 with a window ${CFG.t0}..${tEnd} s that crosses a ${DRIFT_PERIOD_S} s drift boundary — ` +
+        `the condition day (H0/T/alpha/dF) would change mid-sequence. Drop drift=1 or shorten the window.`);
+      process.exit(1);
+    }
+  }
   let rig = null;
   if (CFG.rig === 'nadir') {
     if (CFG.cx === null || CFG.cz === null || CFG.halfw === null) {
@@ -322,12 +347,22 @@ async function verifyClock() {
   for (const t of times) {
     const a = decodePNG(readFileSync(join(dir, `setsim_${t}.png`)));
     const b = decodePNG(readFileSync(join(dir, `reload_${t}.png`)));
-    let sum = 0, max = 0;
-    for (let i = 0; i < a.width * a.height; i++) {
-      const d = Math.abs(luma(a.data, i * 4) - luma(b.data, i * 4));
+    // Stride from the DECODED channel count, never a hardcoded 4: Playwright
+    // writes colorType 2 (RGB, 3 channels), so an assumed RGBA stride reads the
+    // wrong pixel and then runs off the end of the buffer, where luma() returns
+    // NaN. That poisons the mean while leaving max at 0, which reads as a clean
+    // pass. It silently did exactly that until 2026-08-11.
+    if (a.width !== b.width || a.height !== b.height || a.channels !== b.channels) {
+      throw new Error(`clockcheck frame mismatch at sim ${t}: ${a.width}x${a.height}c${a.channels} vs ${b.width}x${b.height}c${b.channels}`);
+    }
+    let sum = 0, max = 0, n = a.width * a.height;
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(luma(a.data, i * a.channels) - luma(b.data, i * b.channels));
+      if (!Number.isFinite(d)) throw new Error(`clockcheck produced a non-finite difference at pixel ${i} (sim ${t})`);
       sum += d; if (d > max) max = d;
     }
-    out.push({ sim: t, meanAbsLuma255: (sum / (a.width * a.height)) * 255, maxAbsLuma255: max * 255 });
+    out.push({ sim: t, pixels: n, channels: a.channels,
+               meanAbsLuma255: (sum / n) * 255, maxAbsLuma255: max * 255 });
   }
   console.log('CLOCK VALIDATION (setSim vs per-frame #sim reload):');
   for (const r of out) console.log(`  sim ${r.sim}: mean |dLuma| ${r.meanAbsLuma255.toFixed(3)}/255, max ${r.maxAbsLuma255.toFixed(1)}/255`);
