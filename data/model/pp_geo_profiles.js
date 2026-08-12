@@ -6,7 +6,7 @@ export const PP_GEO_DATA = Object.freeze({
     "osm": "data/osm/pp_geometry.json",
     "osmSha256": "b2f963b18e6c52fc8c8150d6f0fe3b438048f309905b9e306929aff8fc65b1d7",
     "bathy": "data/bathy/pp_bathy.json",
-    "bathySha256": "98f7070c15812685b63527f08e4db7a8c56faa69a07b829efc36075d807b5df1",
+    "bathySha256": "d86344141404f7cbf6ba5ae0f1b4eb29e7ae9f921bf4bb9047f6d1b30f7c7962",
     "bathyDatum": "NAVD88"
   },
   "profiles": {
@@ -17,25 +17,25 @@ export const PP_GEO_DATA = Object.freeze({
         -62.7
       ],
       "stageAlongENU": [
-        0.98050657,
-        0.19648632
+        0.98089648,
+        0.19453043
       ],
       "stageShoreENU": [
-        -0.19648632,
-        0.98050657
+        -0.19453043,
+        0.98089648
       ],
       "osmCoastTangentDeg": -7.1,
-      "bathyContourTangentDeg": 11.3,
+      "bathyContourTangentDeg": 11.2,
       "reefElevationNavd88M": -1.53,
-      "shoreSlope": 0.013373,
+      "shoreSlope": 0.013371,
       "stageBoundsM": [
         -201.2,
         75.6
       ],
       "contourFit": {
-        "x2": 0.0019007403,
-        "x3": 5.929612e-06,
-        "rmseM": 0.98,
+        "x2": 0.0018862552,
+        "x3": 5.905726e-06,
+        "rmseM": 1.0,
         "samples": 28,
         "usable": true
       }
@@ -47,25 +47,25 @@ export const PP_GEO_DATA = Object.freeze({
         54.7
       ],
       "stageAlongENU": [
-        0.6580969,
-        0.75293324
+        0.65882561,
+        0.7522957
       ],
       "stageShoreENU": [
-        -0.75293324,
-        0.6580969
+        -0.7522957,
+        0.65882561
       ],
       "osmCoastTangentDeg": 57.3,
       "bathyContourTangentDeg": 48.8,
-      "reefElevationNavd88M": -1.66,
-      "shoreSlope": 0.020162,
+      "reefElevationNavd88M": -1.65,
+      "shoreSlope": 0.020161,
       "stageBoundsM": [
         -75.6,
         57.0
       ],
       "contourFit": {
-        "x2": 9.21104e-05,
-        "x3": -6.008661e-06,
-        "rmseM": 0.29,
+        "x2": 9.99834e-05,
+        "x3": -5.681012e-06,
+        "rmseM": 0.27,
         "samples": 13,
         "usable": true
       }
@@ -77,25 +77,25 @@ export const PP_GEO_DATA = Object.freeze({
         158.5
       ],
       "stageAlongENU": [
-        0.6861419,
-        0.72746772
+        0.68665375,
+        0.72698462
       ],
       "stageShoreENU": [
-        -0.72746772,
-        0.6861419
+        -0.72698462,
+        0.68665375
       ],
       "osmCoastTangentDeg": 47.4,
-      "bathyContourTangentDeg": 46.7,
+      "bathyContourTangentDeg": 46.6,
       "reefElevationNavd88M": -1.3,
-      "shoreSlope": 0.017928,
+      "shoreSlope": 0.017926,
       "stageBoundsM": [
         -57.1,
         156.6
       ],
       "contourFit": {
-        "x2": -0.0002805391,
-        "x3": -1.008669e-06,
-        "rmseM": 0.2,
+        "x2": -0.0002712777,
+        "x3": -1.024511e-06,
+        "rmseM": 0.22,
         "samples": 21,
         "usable": true
       }
@@ -107,25 +107,25 @@ export const PP_GEO_DATA = Object.freeze({
         377.9
       ],
       "stageAlongENU": [
-        0.79119561,
-        0.61156317
+        0.79100243,
+        0.61181301
       ],
       "stageShoreENU": [
-        -0.61156317,
-        0.79119561
+        -0.61181301,
+        0.79100243
       ],
       "osmCoastTangentDeg": 32.8,
       "bathyContourTangentDeg": 37.7,
       "reefElevationNavd88M": -0.91,
-      "shoreSlope": 0.017463,
+      "shoreSlope": 0.01746,
       "stageBoundsM": [
         -156.7,
         174.8
       ],
       "contourFit": {
-        "x2": -6.91526e-05,
-        "x3": 4.10619e-07,
-        "rmseM": 1.55,
+        "x2": -6.88946e-05,
+        "x3": 3.96073e-07,
+        "rmseM": 1.53,
         "samples": 33,
         "usable": true
       }
@@ -137,25 +137,25 @@ export const PP_GEO_DATA = Object.freeze({
         579.4
       ],
       "stageAlongENU": [
-        0.75582243,
-        0.65477665
+        0.75639865,
+        0.6541109
       ],
       "stageShoreENU": [
-        -0.65477665,
-        0.75582243
+        -0.6541109,
+        0.75639865
       ],
       "osmCoastTangentDeg": 44.8,
       "bathyContourTangentDeg": 40.9,
       "reefElevationNavd88M": -0.74,
-      "shoreSlope": 0.018262,
+      "shoreSlope": 0.018259,
       "stageBoundsM": [
         -174.8,
         133.6
       ],
       "contourFit": {
-        "x2": 0.000692422,
-        "x3": -3.793698e-06,
-        "rmseM": 1.17,
+        "x2": 0.0006953325,
+        "x3": -3.750839e-06,
+        "rmseM": 1.16,
         "samples": 31,
         "usable": true
       }
@@ -167,25 +167,25 @@ export const PP_GEO_DATA = Object.freeze({
         757.8
       ],
       "stageAlongENU": [
-        0.56957079,
-        0.82194228
+        0.57058044,
+        0.82124172
       ],
       "stageShoreENU": [
-        -0.82194228,
-        0.56957079
+        -0.82124172,
+        0.57058044
       ],
       "osmCoastTangentDeg": 55.1,
-      "bathyContourTangentDeg": 55.3,
+      "bathyContourTangentDeg": 55.2,
       "reefElevationNavd88M": -0.69,
-      "shoreSlope": 0.019528,
+      "shoreSlope": 0.019533,
       "stageBoundsM": [
         -133.6,
         189.7
       ],
       "contourFit": {
-        "x2": 0.0005932429,
-        "x3": -2.579593e-06,
-        "rmseM": 1.16,
+        "x2": 0.0005954409,
+        "x3": -2.513464e-06,
+        "rmseM": 1.22,
         "samples": 32,
         "usable": true
       }
@@ -197,25 +197,25 @@ export const PP_GEO_DATA = Object.freeze({
         1014.0
       ],
       "stageAlongENU": [
-        0.77645307,
-        0.63017508
+        0.77800665,
+        0.62825604
       ],
       "stageShoreENU": [
-        -0.63017508,
-        0.77645307
+        -0.62825604,
+        0.77800665
       ],
       "osmCoastTangentDeg": 56.5,
-      "bathyContourTangentDeg": 39.1,
+      "bathyContourTangentDeg": 38.9,
       "reefElevationNavd88M": -0.52,
-      "shoreSlope": 0.011051,
+      "shoreSlope": 0.011025,
       "stageBoundsM": [
         -189.7,
         250.0
       ],
       "contourFit": {
-        "x2": 0.0008050538,
-        "x3": 4.712299e-06,
-        "rmseM": 16.52,
+        "x2": 0.000800333,
+        "x3": 4.786653e-06,
+        "rmseM": 16.62,
         "samples": 44,
         "usable": false
       }

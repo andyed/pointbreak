@@ -38,9 +38,15 @@ MLLW_ABOVE_NAVD88, MHHW_ABOVE_NAVD88 = 0.043, 1.669
 
 # Stage patch: a bit wider than the 600x500 m playfield so the shader's
 # bilinear taps and the far skirt never sample outside the patch.
-X0, X1 = -340.0, 340.0
-Z0, Z1 = -280.0, 300.0
-NX, NZ = 96, 84          # ~7.1 x 7.0 m posts; the DEM itself is ~10 m, so this
+# Extent doubled 2026-08-12: the old ±340 x ±290 cut ended in straight seams a
+# drone frame could see (the "goofy straight lines" report). The NCEI subset on
+# disk spans ~5.3 x 2.7 km in the apex frame, so the patches were using a
+# sliver of data already fetched; the wave model's domain (stage bounds, reef
+# windows, break march in x) is UNCHANGED — the extra terrain is scene context
+# that lets the fog-out land on real layout instead of a rectangle edge.
+X0, X1 = -640.0, 640.0
+Z0, Z1 = -520.0, 520.0
+NX, NZ = 180, 148        # ~7.2 x 7.0 m posts; the DEM itself is ~10 m, so this
                          # resamples without pretending to add resolution.
 
 # Uint16 quantization window, metres NAVD88. 1/65535 of 60 m = 0.9 mm steps —
@@ -116,12 +122,27 @@ def build():
         # so switching to it changed the beach as well as the reef, which is
         # the one thing the demo exists to hold constant. It also inflated the
         # reported reef structure ~8x (2.57 m vs 0.32 m at Second Peak).
+        # ...and WINDOWED to the surf zone (2026-08-12). The patch extent was
+        # doubled so the scene has real terrain out to where the fog takes over,
+        # but the plane is a counterfactual for the BREAK, not for the whole
+        # frame: fitting it across the extra offshore span tilted it enough that
+        # Second Peak's plane stopped crossing the propagating-depth cutoff
+        # inside the refraction span (tests/dispersion.test.js caught it). The
+        # window below is the pre-extension cut, i.e. the domain the wave model
+        # actually uses, so "same depth scale and mean slope, structure removed"
+        # keeps meaning what it meant.
+        FIT_X0, FIT_X1 = -340.0, 340.0
+        FIT_Z0, FIT_Z1 = -280.0, 300.0
         n = 0
         sx = sz = sxx = szz = sxz = se = sxe = sze = 0.0
         for j in range(NZ):
             z = Z0 + (Z1 - Z0) * j / (NZ - 1)
+            if z < FIT_Z0 or z > FIT_Z1:
+                continue
             for i in range(NX):
                 x = X0 + (X1 - X0) * i / (NX - 1)
+                if x < FIT_X0 or x > FIT_X1:
+                    continue
                 e = (vals[j * NX + i] / 65535) * (E_MAX - E_MIN) + E_MIN
                 if e >= MSL_ABOVE_NAVD88:
                     continue
@@ -141,11 +162,14 @@ def build():
             return det3([[rhs[r] if c == col else M[r][c] for c in range(3)]
                          for r in range(3)])
         plane = [sub(0)/D, sub(1)/D, sub(2)/D] if abs(D) > 1e-9 else [0.0, 0.0, 0.0]
+        # residual reported over the SAME window as the fit, for the same reason
         _res = [((vals[j*NX+i]/65535)*(E_MAX-E_MIN)+E_MIN
                  - (plane[0] + plane[1]*(X0+(X1-X0)*i/(NX-1))
                     + plane[2]*(Z0+(Z1-Z0)*j/(NZ-1))))
                 for j in range(NZ) for i in range(NX)
-                if (vals[j*NX+i]/65535)*(E_MAX-E_MIN)+E_MIN < MSL_ABOVE_NAVD88]
+                if (vals[j*NX+i]/65535)*(E_MAX-E_MIN)+E_MIN < MSL_ABOVE_NAVD88
+                and FIT_X0 <= X0+(X1-X0)*i/(NX-1) <= FIT_X1
+                and FIT_Z0 <= Z0+(Z1-Z0)*j/(NZ-1) <= FIT_Z1]
         rms = (sum(r*r for r in _res) / max(len(_res), 1)) ** 0.5
 
         raw = struct.pack('<%dH' % len(vals), *vals)

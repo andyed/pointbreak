@@ -962,7 +962,13 @@ varying vec3  vBedPos;
 varying float vBedDepth;
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
+${SKY_GLSL}
 ${BED_OUTSIDE_GLSL}
+
+// Aerial perspective, shared verbatim with GRID_FRAG so the water and the bed
+// converge on the same horizon instead of meeting at a seam (2026-08-12).
+const float FOG_DENSITY = 0.0011;
+const float HAZE_H      = 70.0;
 
 vec3 sunDirB = normalize(vec3(-0.45, 0.42, -0.28));
 
@@ -1055,6 +1061,21 @@ void main(){
   vec3 col = albedo * lam * lightAtBed;
   vec3 murk = vec3(0.05, 0.12, 0.13);
   col = mix(col, murk, 1.0 - exp(-0.028 * sight));   // e-fold ~36 m
+
+  // AERIAL PERSPECTIVE — this shader had none, so every distant bed fragment
+  // converged on the murk constant and rendered as a near-black sliver. Local
+  // to the surf zone that is invisible (the water hides it); once the patch
+  // extent doubled on 2026-08-12 the far waterline put those slivers on
+  // screen as a black band, which check_swash caught at 551 px. The water
+  // shader has fogged since M1 — the bed simply never got the same treatment,
+  // and murk-without-fog is not a physical endpoint: at 2 km of haze the
+  // seabed cannot be darker than the air in front of it.
+  // Same law, same constants as GRID_FRAG's section 5, so the two surfaces
+  // converge on one horizon rather than meeting at a seam.
+  float dyB = max(cameraPosition.y - vBedPos.y, 0.0);
+  float inLayerB = dyB > HAZE_H ? HAZE_H / dyB : 1.0;
+  vec3 VB = normalize(cameraPosition - vBedPos);
+  col = mix(col, skyColor(-VB, u_time), 1.0 - exp(-sight * inLayerB * FOG_DENSITY));
   gl_FragColor = vec4(col, 1.0);
 }
 `;
