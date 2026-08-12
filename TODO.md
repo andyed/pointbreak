@@ -23,10 +23,16 @@ Source: docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md. Decisions by Andy
 DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
 
 ### Track 1 — the reef owns the break line (blocks Tracks 3 and 5)
-- [ ] 1a. `lift` probe along 38th's crest line — confirm the nose dives below
-      the natural bed (queued from last session; first move)
-- [ ] 1b. Nose v2: deepen relative to the BED, not the datum — the one change
-      that could hit all three of: A-frames→0, peel ≥1.5 crests, α on target
+- [x] 1a. `lift` probe along 38th's crest line — CONFIRMED: on the four wide
+      stages the v1 crest datum fell below the natural bed inside the fit
+      window, lift zeroed at every fit station, α collapsed to 0.97–2.65°
+      (bed.js nose-v2 header; EXTERNAL_VALIDITY_AUDIT)
+- [x] 1b. Nose v2 LANDED (fc062a7): amplitude taper in stage fraction,
+      bed-relative. Re-measured 2026-08-12 post V-fix (spec nose table): the
+      v1 wide-stage collapse is gone, but at the tuned 0.25 it is near-inert
+      on five of six spots (|Δα| ≤ 1.3°) and makes Sharks WORSE (48.5 → 39.5
+      vs 66 target). Not the one change that hits all three criteria; the
+      sharks residual moves to 1c's ensemble judgement.
 - [ ] 1c. Judge the FLAG ENSEMBLE (#psi + #smooth + #peeldir + nose-v2), not
       flags alone — each fixes a different §4.5 defect, each fails alone; the
       candidate shipping default is a combination
@@ -37,11 +43,19 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
 - **DECIDED 2026-08-11 (Andy): Sewer Peak's A-frame is canon-true** — the
   guides call it a bowly A-frame with rideable lefts. "A-frames = 0" applies
   to every OTHER preset; at Sewers an interior takeoff with leftCrests ≥ 1 is
-  correct behaviour, not the defect. (V-fix status: teleports 46–180 m → 9.4 m,
-  α on target 4/6 unsmoothed — commit db61da0. Residual: sharks α collapse,
-  thehook spurious A-frame, firstpeak α ~10° low.)
+  correct behaviour, not the defect. (V-fix status: LANDED parts 1–3 —
+  reef cross-shore bound + break-line slew limit db61da0, branch-following
+  crossing selection 6c4e2f6; teleports 46–180 m → 9.4 m, α on target 4/6
+  unsmoothed. Residual: sharks α collapse (confirmed again in the 2026-08-12
+  nose re-measure: 48.5 vs 66), thehook spurious A-frame, firstpeak α ~10° low.)
 
 ### Track 1b — scene identity (PROMOTED; parallel, independent of 1)
+- [x] DEM extended to 9.4 km of coast (Cowell's → Bombora), patch extent
+      doubled (1874939); extrapolation ramp moved into bedElevM, killing the
+      rectangular tableland (8f74205)
+- [x] Modeled-domain matte + world-collision clamp (9c08211; matte applies to
+      land too f5221d7; bed mesh discarded within the swash band of the LIFTED
+      waterline f74b9a3). A/B reverts: #matte=0, #noclip=1.
 - [ ] Headland: the ~110° corner cannot appear in the per-spot re-centered
       coastline — build the real shoreline from data/osm (audit: no frame
       reads as Pleasure Point at any altitude)
@@ -107,9 +121,21 @@ No parity port. Consequences to carry honestly:
 - [ ] Temporal audit harness: N-frame captures → zipper speed vs Vp=c/sin α,
       set cadence (is the 3.4× group-speed error visible?), foam advection.
       The audit's biggest blind spot: every visual claim was one frozen frame.
+      The 3.4× is now RECORDED as an open defect with the numbers in the
+      spec's M6 section (setEnv/setupLiftM 0.5·LAM/T ≈ 3.2 m/s vs shoaling
+      gT/4π ≈ 10.9 m/s at T=14) — fix gated on M6p3 steps 2–4.
+- [x] Swash standing check landed (c538dcf, scripts/check_swash.mjs): goo +
+      breathe measured across a FULL set cycle, not one frame. Perf landed
+      with it: quality tiers with auto-fallback — vertex-bound, not
+      fill-bound (662c8c1, #q=), land-vertex wave-math skip with the
+      threshold recalibrated to 6 m (758b137).
 - [ ] Absolute scale from pixels: crest spacing in a drone frame vs
       dispersion — confirms LAM shoaling with no replica involved
-- [ ] Constant dedup: γ (5 files) and LAM (3 files) to shared constants
+- [x] Constant dedup DONE 2026-08-12: γ and G live in dispersion.js only
+      (bed.js/model-js.js import), LAM exported from model-js.js (sound.js
+      imports); the GLSL consts in model-glsl.js stay the GPU source of
+      truth. Verified bit-identical lineProbe on Second Peak. Residue:
+      section.js and scripts/capture_temporal.mjs still carry local copies.
 - [x] Audit the two unaudited surfaces — DONE 2026-08-11 (ROUND2_FINDINGS):
       web/ is now DEPRECATED rather than fixed; the deployed essay predates the
       indicted config (m4Enabled=false, 2026-08-10 build) so its figures stand

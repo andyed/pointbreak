@@ -89,6 +89,10 @@ uniform vec2 u_refrPsi;     // decode window for Psi, radians
 uniform float u_refrKappa;  // alongshore wavenumber, rad/m (Snell invariant)
 
 // ---------- constants ----------
+// GPU SOURCE OF TRUTH for the shared physics constants. GLSL cannot import, so
+// the JS side carries exactly one mirror of each: G and GAMMA live in
+// web-three/js/dispersion.js, LAM in web-three/js/model-js.js. Change a value
+// here and there together, nowhere else.
 const float PI  = 3.14159265;
 const float G   = 9.81;
 const float LAM = 90.0;   // display wavelength, m (shoaled ~15 s swell at ~8 m depth)

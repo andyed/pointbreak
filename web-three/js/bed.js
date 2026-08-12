@@ -19,7 +19,7 @@ import { PRESETS, reefWindowKnots } from '../../web/js/params.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 import {
   alongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,
-  incidenceAt as dispIncidenceAt,
+  incidenceAt as dispIncidenceAt, GAMMA, G,
 } from './dispersion.js';
 
 // 1x1 stand-in so the sampler is always bound. Presets with no bathymetry run
@@ -42,7 +42,9 @@ export function tideLabel(t) {
   return Math.abs(t) < 0.05 ? 'MSL' : (t > 0 ? 'above MSL' : 'below MSL');
 }
 
-const GAMMA = 0.78, G = 9.81;
+// GAMMA / G come from dispersion.js (the one JS home for the pure physics
+// constants); the GLSL copies in model-glsl.js are the GPU source of truth
+// and must stay numerically identical.
 
 function smoothstepJS(a, b, x) {
   const t = Math.min(Math.max((x - a) / (b - a), 0), 1);

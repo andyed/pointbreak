@@ -16,8 +16,9 @@
 // against a depth axis is a chart, and charts belong in chart space.
 
 import { bedElevBlended, MSL_ABOVE_NAVD88, planeResidualRms, TIDE_RANGE, tideLabel } from './bed.js';
+import { GAMMA } from './dispersion.js';
 
-const GAMMA = 0.78;        // must match model-glsl.js
+// GAMMA now imported — one JS mirror of the GLSL constant (dispersion.js)
 const G = 9.81;
 const Z0 = -260, Z1 = 180; // transect span in stage metres (seaward -> inland)
 const N = 220;

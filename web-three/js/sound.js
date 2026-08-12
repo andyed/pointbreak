@@ -18,9 +18,8 @@
 //      A limiter now sits before output.
 //   5. the underwater test was `camera.y < 1.0`. main.js already computes the
 //      real thing against the JS twin of the surface; it is passed in.
-import { breakLine, reefWindow, coastCurve, rayS, swellPhi } from './model-js.js';
+import { breakLine, reefWindow, coastCurve, rayS, swellPhi, LAM } from './model-js.js';
 
-const LAM = 90.0;
 const VOICE_COUNT = 4;
 const BUFFER_SECONDS = 6;      // long enough that the loop is not audible
 const TIME_CONST = 0.1;        // parameter smoothing; avoids zipper noise

@@ -645,6 +645,31 @@ water moved to Ψ; `surferState`/`m4RideSolve`, `sound.js`'s crest solve and
 still on the constant-φ plane wave. That is step 1's declared boundary, not a
 regression — and it is why the default stays off.
 
+**Open defect — the group speed has two authorities (recorded 2026-08-12).**
+The model carries two irreconcilable values of `cg` at once:
+
+- **The set envelope and setup**: `setEnv` (model-glsl.js, mirrored in
+  model-js.js `setEnv` and sound.js `updateAudio`) and `setupLiftM`
+  (model-glsl.js) use `cg = 0.5·LAM/T` — half the *display* phase speed. At
+  T = 14 s that is 0.5·90/14 ≈ **3.2 m/s**.
+- **The shoaling path**: Green's-law `Ks` everywhere it appears
+  (model-glsl.js `ocean()`, bed.js's M4 march, dispersion.js `shoaledHeight`)
+  uses the physical deep-water group speed `cg₀ = gT/4π` ≈ **10.9 m/s** at
+  T = 14 s.
+
+A factor of **3.4×**. The deep-water relation `cg = c/2` is being applied to
+`LAM = 90 m`, which is not a deep-water wavelength — it is the display
+wavelength of an already-shoaled ~15 s swell (deep-water L for T = 14 s is
+gT²/2π ≈ 306 m) — so the envelope's groups crawl at a speed no linear theory
+assigns to this swell at any depth. Consequence: set groups take ~3.4× too long
+to traverse the stage, so the spacing between sets in *space* (and the lag
+`setupLiftM` sees between offshore envelope and shoreline surge) is wrong even
+where the beat period 1/dF is right. TODO Track 6's temporal-audit item ("is
+the 3.4× group-speed error visible?") is this defect. **Not fixed here**: moving
+`cg` changes the set cadence the whole screensaver is tuned around, and it is
+gated on the deferred waveform work (M6 part 3 steps 2–4) — fix the envelope's
+transport when the phase field's consumers move, not before.
+
 ### The original problem statement (kept — the table is still the target)
 
 `LAM` is a constant 90 m. Real overturning is driven by steepness `H/L`, and in
@@ -855,34 +880,58 @@ A real point is shallowest at its apex and falls away down-point; tilting the
 crest the same way makes the wave break first at the top and progressively later
 down it.
 
-Derived α at card conditions, target → derived:
+**The v1 table that stood here is withdrawn (2026-08-12).** It claimed the nose
+moved Second Peak 55 → 59, and re-measurement found `#nose=1` **bit-identical to
+default on Second Peak** under that build — the published numbers could not have
+come from the shipping instrument. Its wide-stage collapse column (α → 1–3° on
+the four spots over 277 m) was real for v1, and the cause suspected below was
+confirmed: the deepened crest fell below the natural bed and
+`lift = max(crestEl − em, 0)` zeroed the reef down-point. That is why v2
+(`fc062a7`) tapers the uplift **amplitude, in stage fraction, relative to the
+natural bed** (`REEF_NOSE_FRAC` in bed.js) instead of tilting the crest
+elevation toward a datum the bed can out-climb. The confirmed diagnosis from
+the first build, kept for the record:
 
-| spot | stage span | no nose | nose |
-|---|---|---|---|
-| First Peak | 113 m | 50 → 50 | **50 → 50** |
-| Second Peak | 194 m | 58 → 55 | **58 → 59** |
-| Sewers | 277 m | 38 → 38 | 38 → 3 |
-| The Hook | 289 m | 48 → 47 | 48 → 3 |
-| Shark's Cove | 304 m | 66 → 66 | 66 → 1 |
-| 38th | 312 m | 62 → 61 | 62 → 2 |
+> the deepened crest eventually falls below the natural bed, at which point
+> `lift = max(crestEl − em, 0)` is zero and the reef simply stops existing
+> down-point. Over a 300 m stage the drop reaches ~2.3 m against a reef capped
+> at 3.2 m of relief. The fix is not a smaller gradient — it is deepening
+> relative to the **natural bed** rather than to a fixed datum.
 
-**It works, and only on the narrow stages.** Second Peak is the best fit that
-spot has ever had, and by a mechanism rather than by noise. The split is by
-stage width, not by gradient magnitude — a fixed total drop and a fixed gradient
-both produce it, so tuning the constant is not the answer and three passes at it
-was already one too many.
+### The nose, re-measured (2026-08-12) — v2, post V-fix
 
-**Likely cause, stated as unconfirmed:** the deepened crest eventually falls
-below the natural bed, at which point `lift = max(crestEl − em, 0)` is zero and
-the reef simply stops existing down-point. Over a 300 m stage the drop reaches
-~2.3 m against a reef capped at 3.2 m of relief, so the wide stages would lose
-their reef over the down-point half and the α fit would be averaging a real
-tilt up-point against a flat, noisy remainder. Check before building further:
-sample `lift` along the crest line on 38th and see where it goes to zero.
+Current build: nose v2 plus the V-fix parts 1–3 (`db61da0` reef cross-shore
+bound + break-line slew limit, `6c4e2f6` branch-following crossing selection),
+which changed the very line the nose acts on. Instrument: one headless page per
+config at `#preset=<spot>&sim=42&hud=0` (± `&nose=1`, i.e. the tuned
+`REEF_NOSE_FRAC = 0.25`), reading `__pointbreak.takeoffProfile(1)`,
+`lineProbe(4.72)`, and derived α at x = 0 (`derivedAlphaDeg`, the HUD
+instrument). Cells read **nose off → nose on**.
 
-If that is it, the fix is not a smaller gradient — it is deepening relative to
-the **natural bed** rather than to a fixed datum, so the nose keeps a constant
-clearance instead of diving through the floor.
+| spot | stage span | target α | derived α (x=0) | takeoff frac | left crests | right crests |
+|---|---|---|---|---|---|---|
+| Sewers | 277 m | 38 | 38.4 → 38.5 | 0.50 → 0.50 | 1.87 → 1.86 | 1.52 → 1.52 |
+| First Peak | 113 m | 50 | 50.6 → 50.9 | 0.43 → 0.43 | 0.94 → 0.91 | 1.03 → 1.02 |
+| Second Peak | 194 m | 58 | 63.4 → 62.1 | 0.28 → 0.28 | 0.77 → 0.75 | 0.94 → 0.91 |
+| 38th | 312 m | 62 | 61.4 → 61.3 | 0.36 → 0.37 | 1.30 → 1.23 | 1.94 → 1.87 |
+| The Hook | 289 m | 48 | 46.9 → 47.4 | 0.42 → 0.45 | 1.90 → 1.76 | 1.60 → 1.47 |
+| Shark's Cove | 304 m | 66 | 48.5 → 39.5 | 0.38 → 0.37 | 1.40 → 1.13 | 1.60 → 1.33 |
+
+What the numbers say, post V-fix:
+
+- **The v1 wide-stage collapse is gone.** No spot loses its α to the nose the
+  way v1's 38 → 3 did; the bed-relative taper keeps authority to the stage end.
+- **The nose is close to inert at the tuned fraction** on five of six spots:
+  |Δα| ≤ 1.3°, takeoff moves ≤ 0.03 of the stage. The branch-following
+  selection now owns the line that v1's locus wander used to, so there is
+  little left for the nose to fix.
+- **Shark's Cove is the exception, and the nose makes it worse**: 48.5 → 39.5
+  against a 66° target. Sharks is already the V-fix's residual α collapse with
+  the nose off (48.5 vs 66 — TODO Track 1); the nose deepens that hole rather
+  than filling it.
+- Interior takeoffs everywhere (frac 0.28–0.50). At Sewers with
+  left crests ≈ 1.9 that is the canon-true A-frame (decided 2026-08-11); the
+  other spots' left branches sit at or under ~1.5 crests.
 
 Ships behind `#nose=1`, default off. Four A/B flags now: `#psi`, `#smooth`,
 `#peeldir`, `#nose`.

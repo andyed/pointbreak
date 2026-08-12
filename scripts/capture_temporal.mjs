@@ -8,33 +8,33 @@
 // sequence on a fixed SIM-time step and measures those three things straight
 // off the rendered pixels — no CPU twin anywhere in the path. It is the
 // replacement acceptance instrument for `rideMetric`, which scores through the
-// displaced JS twin (`main.js:901`) and therefore certifies twin
+// displaced JS twin (`main.js:1183`) and therefore certifies twin
 // self-consistency rather than what the GPU drew.
 //
-// DETERMINISM
+// DETERMINISM (line refs re-verified against main.js 2026-08-12)
 // Wall-clock capture is not comparable run to run: the sim integrates
-// `simTime += dt*state.speed` off rAF timestamps (`main.js:578-580`), so two
+// `simTime += dt*state.speed` off rAF timestamps (`main.js:816-820`), so two
 // runs of the same nominal sequence land on different phases. Here the clock is
 // driven instead:
-//   1. `#sim=<t0>` seeds the first frame through applyHashParams (`main.js:821`
-//      returns it, `:825` assigns simTime), which also anchors the drift clock
-//      (`main.js:829`) — the same contract capture_audit_matrix.mjs relies on.
+//   1. `#sim=<t0>` seeds the first frame through applyHashParams (`main.js:1088`
+//      returns it, `:1089` assigns simTime), which also anchors the drift clock
+//      (`main.js:1093`) — the same contract capture_audit_matrix.mjs relies on.
 //   2. `state.speed = 0` is then set through the debug hook, which zeroes the
-//      accumulation term at `main.js:580` while leaving `state.paused` false —
-//      so the surfer / audio / spray block at `main.js:736` still runs against
-//      the injected time. (`#speed=0` in the hash does NOT work:
-//      `parseFloat('0') || 1` at `main.js:815` is a falsy-default trap and
+//      accumulation term at `main.js:820` while leaving `state.paused` false —
+//      so the surfer / tour / audio block at `main.js:926-997` still runs
+//      against the injected time. (`#speed=0` in the hash does NOT work:
+//      `parseFloat('0') || 1` at `main.js:1075` is a falsy-default trap and
 //      yields 1 — the repo-wide pattern noted in CLAUDE.md.)
-//   3. Each subsequent frame is `__pointbreak.setSim(t)` (`main.js:844`)
+//   3. Each subsequent frame is `__pointbreak.setSim(t)` (`main.js:1108`)
 //      followed by two rAF ticks, so the render loop has copied simTime into
-//      `u_time` (`main.js:597`) and drawn before the screenshot.
+//      `u_time` (`main.js:837`) and drawn before the screenshot.
 //
 // CONDITIONS DRIFT IS A TRAP FOR ANY LONG SEQUENCE
-// With `#drift=1`, main.js:585-594 hard-switches the whole condition day (H0,
+// With `#drift=1`, main.js:825-834 hard-switches the whole condition day (H0,
 // T, alpha, dF, ...) at every DRIFT_PERIOD_S = 300 s boundary of SIM time. A
 // cadence window is 520 s long, so it would silently straddle two different
 // oceans and the autocorrelation would be measuring the edit, not the swell.
-// Drift defaults OFF (`main.js:69`) and no sequence here enables it; the guard
+// Drift defaults OFF (`main.js:93`) and no sequence here enables it; the guard
 // in capture() refuses the combination rather than trusting that to hold.
 // `--reload-each` does the literal per-frame `#sim=` + reload instead; it is
 // slower by a module re-init per frame and exists to VALIDATE mode (2) rather
@@ -123,6 +123,13 @@ if (!seqDef) { console.error(`unknown sequence "${seqName}" — one of ${Object.
 let hash = flags.hash || seqDef.hash;
 if (flags.preset) hash = hash.replace(/preset=[^&]*/, `preset=${flags.preset}`);
 if (flags.cam) hash = hash.replace(/cam=[^&]*/, `cam=${flags.cam}`);
+// Pin the quality tier (added 2026-08-12). considerQuality (main.js:215)
+// auto-drops a tier and REBUILDS the water geometry whenever the rAF-delta
+// median over a 90-frame window exceeds 22 ms, and a headless capture on a
+// loaded box can trip that mid-sequence. A mid-sequence mesh-density change is
+// a nonstationary background under the temporal-median residual — exactly the
+// splice the drift guard exists to refuse. #q= locks the tier (main.js:52-58).
+if (!/(^|&)q=/.test(hash)) hash += '&q=high';
 
 const CFG = {
   name: flags.name || `${seqName}_${(hash.match(/preset=([^&]*)/) || [, 'x'])[1]}`,
@@ -193,7 +200,7 @@ const PAGE_SNAPSHOT = () => {
 // nadir view is a change of instrument, not of subject. up = -z puts +x to the
 // right and +z (shoreward) down the frame, which is the orientation every
 // metric below assumes. controls.update() is stubbed rather than merely
-// disabled: `enabled=false` blocks input only, and main.js:733 calls update()
+// disabled: `enabled=false` blocks input only, and main.js:973 calls update()
 // every frame, which would re-derive the pose from OrbitControls' spherical
 // state and undo the rig.
 const APPLY_NADIR = ({ alt, cx, cz, halfw, w, h }) => {
@@ -830,7 +837,15 @@ function analyze(manifest) {
   }
   let geom = null;
   if (gx && gz && Number.isFinite(dzdx)) {
-    const kx = gx.k, kz = gz.k, kmag = Math.hypot(kx, kz);
+    // SIGN (fixed 2026-08-12): gradComponent measures dphi/dx of phi = arg(C),
+    // and the phaseSpeed derivation gives arg(C) = -w*t_b. For a plane carrier
+    // cos(w*t - k.x) the break-time field is t_b = (k.x)/w, so dphi/dx = -kx:
+    // the raw gradients are the NEGATIVE of the conventional wavenumber.
+    // Negate here so kx/kz report in the cos(w*t - k.x) convention and the
+    // dtdx chain below carries the true sign. Without this, Vp_alongX (and the
+    // down-point/up-point label) came out inverted relative to the fitPhase
+    // estimators, which handle the sign internally via speed = -w/slope.
+    const kx = -gx.k, kz = -gz.k, kmag = Math.hypot(kx, kz);
     const dtdx = (kx + kz * dzdx) / wCar;           // s per metre of x
     const vpx = 1 / dtdx;                            // along the x axis
     const vp = vpx * Math.sqrt(1 + dzdx * dzdx);     // along the break line (Walker's V_p)
@@ -866,7 +881,19 @@ function analyze(manifest) {
   // checked against what the model claims rather than trusted: [x_m, z_m,
   // mean residual] per along-shore column.
   const breakProfile = cols.map((ix) => [grid.x0 + (ix + 0.5) * binM, grid.z0 + (zBreak[ix] + 0.5) * binM, colAct[ix]]);
+  // Seaward-clip canary (added 2026-08-12). On the first budget run the
+  // autoframe aimed 100 m shoreward of the residual-measured activity (its
+  // brightness prescan is swash-biased) and 14% of break-line columns landed
+  // ON the first covered z-row — the frame edge, not a measured line. When the
+  // argmax hugs the seaward boundary, whatever breaks further out is clipped
+  // and alpha/Vp inherit the truncation. Report it rather than trusting it.
+  let izMinCovered = Infinity;
+  for (const b of water) { const iz = Math.floor(b / grid.nx); if (iz < izMinCovered) izMinCovered = iz; }
+  const edgeCols = cols.filter((ix) => zBreak[ix] <= izMinCovered + 1).length;
+  const seawardClip = { edgeColumns: edgeCols, columns: cols.length, share: cols.length ? edgeCols / cols.length : 0,
+    clipped: cols.length > 0 && edgeCols / cols.length > 0.05 };
   out.zipper = {
+    seawardClip,
     geometry: geom,
     breakProfile,
     // full along-shore residual profiles, so the peel can be read directly as
@@ -947,10 +974,23 @@ function analyze(manifest) {
     }
     profB.push(p);
   }
-  const advLags = [];
-  for (let i = 0; i + 1 < N; i++) {
-    const { lag, r } = bestLag(profB[i], profB[i + 1], Math.round(40 / binM));
-    if (Number.isFinite(lag) && r > 0.5) advLags.push((lag * binM) / dt);
+  // Lesson-3 linearity (added 2026-08-12): a lag accepted at ONE separation is
+  // not a speed — measure_cam.py carries this check and this harness did not.
+  // The cross-shore profile correlation is run at frame separations 1, 2 and 4;
+  // a real advection doubles its lag when the separation doubles, so the three
+  // per-separation speeds must agree. The same lag at every separation (or a
+  // speed that scales with the separation) is aliasing or a static pattern.
+  const ADV_SEPS = [1, 2, 4];
+  const advBySep = {};
+  let advLags = [];
+  for (const k of ADV_SEPS) {
+    const v = [];
+    for (let i = 0; i + k < N; i++) {
+      const { lag, r } = bestLag(profB[i], profB[i + k], Math.round((40 * k) / binM));
+      if (Number.isFinite(lag) && r > 0.5) v.push((lag * binM) / (k * dt));
+    }
+    advBySep[k] = { median_m_per_s: median(v), pairsAccepted: v.length };
+    if (k === 1) advLags = v;
   }
   // INSTRUMENT CONTROL. The same phase estimator, pointed cross-shore at the
   // carrier, must return the wave celerity travelling SHOREWARD (+z, per
@@ -990,12 +1030,20 @@ function analyze(manifest) {
   out.foam = {
     method: 'cross-shore residual-profile cross-correlation (advection) + Eulerian vs Lagrangian decorrelation (persistence)',
     advection_m_per_s: { median: advMed, p25: quantile(advLags, 0.25), p75: quantile(advLags, 0.75), pairsAccepted: advLags.length },
+    // Linearity check: per-separation speeds (frame gaps 1/2/4) must agree for
+    // the median above to mean anything. See MEASUREMENT_LESSONS.md lesson 3.
+    advectionBySeparation: advBySep,
     // The shader's own front speed, for comparison — model-glsl breakerLifecycleAtX
     // uses mix(2.4, 4.1, smoothstep(0.45,1.25,xi)).
     shaderFrontSpeed_m_per_s: 2.4 + (4.1 - 2.4) * smoothstep(0.45, 1.25, st.xi),
     eulerianCorr: eul, lagrangianCorr: lag2,
     eulerian_efold_s: efold(eul), lagrangian_efold_s: efold(lag2),
-    authored_tau_s: st.tau, boreEfold_s: 3.2, ageWindow_s: 0.62 * st.T,
+    // Shader references, verified against model-glsl.js 2026-08-12: the bore
+    // e-fold is exp(-age/3.20) at :544 and the bore window is an ABSOLUTE
+    // 0.18..3.8 s of age (smoothstep rise 0.18-0.55, fade BORE_FADE_START_S
+    // 2.6 .. BORE_END_S 3.8, :103-106) — the previous `ageWindow_s: 0.62*T`
+    // had no counterpart anywhere in the shader.
+    authored_tau_s: st.tau, boreEfold_s: 3.2, boreWindow_s: [0.18, 3.8],
     lagsSeconds: Array.from({ length: maxK }, (_, i) => (i + 1) * dt),
   };
   return out;
@@ -1031,6 +1079,9 @@ function report(m) {
     : `rig: hash camera (${m.rig.hash})`);
   L.push(`grid: ${m.grid.waterBins} water bins of ${m.grid.totalBins} (warm/land cut ${m.grid.warmCut})`);
   L.push(`break band: z ${f2(m.zipper.breakProfile_z_range_m[0], 0)}..${f2(m.zipper.breakProfile_z_range_m[1], 0)} m over ${m.zipper.columnsUsed} along-shore columns`);
+  if (m.zipper.seawardClip && m.zipper.seawardClip.clipped) {
+    L.push(`*** SEAWARD CLIP: ${m.zipper.seawardClip.edgeColumns}/${m.zipper.seawardClip.columns} break-line columns sit on the seaward frame edge — re-aim the rig (lower --cz or wider --halfw) before trusting alpha/Vp ***`);
+  }
   const z = m.zipper;
   L.push(`\n[1] ZIPPER SPEED`);
   if (z.geometry) {
@@ -1063,13 +1114,14 @@ function report(m) {
   const fo = m.foam;
   L.push(`\n[3] FOAM ADVECTION / PERSISTENCE`);
   L.push(`    shoreward advection ${f2(fo.advection_m_per_s.median)} m/s (IQR ${f2(fo.advection_m_per_s.p25)}..${f2(fo.advection_m_per_s.p75)}, ${fo.advection_m_per_s.pairsAccepted} pairs); shader front speed ${f2(fo.shaderFrontSpeed_m_per_s)} m/s`);
+  L.push(`    linearity: speed by frame separation ${Object.entries(fo.advectionBySeparation).map(([k, v]) => `${k}dt: ${f2(v.median_m_per_s)} m/s (${v.pairsAccepted}p)`).join('  ')} — must agree`);
   L.push(`    Eulerian decorrelation e-fold ${f2(fo.eulerian_efold_s, 1)} s; Lagrangian (advection-following) ${f2(fo.lagrangian_efold_s, 1)} s`);
   const ct = m.control;
   L.push(`    [control] cross-shore carrier phase speed ${ct.crossShoreCarrier ? f2(ct.crossShoreCarrier.speed_m_per_s) : 'n/a'} m/s (R2 ${ct.crossShoreCarrier ? f2(ct.crossShoreCarrier.r2) : '-'}) — must be POSITIVE/shoreward; sqrt(g*h_b)=${f2(ct.shallowWaterCelerity_at_hb_m_per_s)}, LAM/T=${f2(ct.deepWaterCelerity_LAMoverT_m_per_s)}`);
   L.push(`    corr @ lags ${fo.lagsSeconds.slice(0, 6).map((s) => s.toFixed(1) + 's').join(' ')}`);
   L.push(`      eulerian   ${fo.eulerianCorr.slice(0, 6).map((v) => f2(v)).join('  ')}`);
   L.push(`      lagrangian ${fo.lagrangianCorr.slice(0, 6).map((v) => f2(v)).join('  ')}`);
-  L.push(`    authored tau ${fo.authored_tau_s} s; bore e-fold ${fo.boreEfold_s} s; foam-age window 0.62T = ${f2(fo.ageWindow_s, 1)} s`);
+  L.push(`    authored tau ${fo.authored_tau_s} s; bore e-fold ${fo.boreEfold_s} s; bore window ${fo.boreWindow_s[0]}..${fo.boreWindow_s[1]} s of age`);
   console.log(L.join('\n'));
 }
 

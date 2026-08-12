@@ -12,8 +12,13 @@
 // of the model uniforms: { T, H0, alphaRad, xi, sections, dF, chop, aframe,
 // geoMix, contourX2, contourX3, stageStart, stageEnd }.
 
+import { GAMMA } from './dispersion.js';   // one JS home for the physics constants
+
 const PI  = Math.PI;
-const LAM = 90.0;   // MODEL-TWIN: display wavelength, m
+// MODEL-TWIN: display wavelength, m. Exported as the ONE JS definition
+// (sound.js imports it); the GLSL const in model-glsl.js is the GPU source of
+// truth and must stay numerically identical.
+export const LAM = 90.0;
 const VIS = 3.2;    // MODEL-TWIN: visual amplitude gain
 
 // ---------- GLSL-style helpers ----------
@@ -81,7 +86,7 @@ export function coastCurveSlope(x, P) {
 // rider is placed from this and drawn from that.
 export function swellPhi(P) {
   const a  = clamp(P.alphaRad, 0.06, 1.45);
-  const hb = Math.max(P.H0 / 0.78, 0.4);          // GAMMA = 0.78
+  const hb = Math.max(P.H0 / GAMMA, 0.4);         // depth-limited breaking depth
   const c0 = 9.81 * P.T / (2 * PI);
   const cb = Math.sqrt(9.81 * hb);
   const s  = Math.sin(a) * clamp(cb / Math.max(c0, 0.1), 0, 1);

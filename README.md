@@ -104,7 +104,10 @@ Keys: `1`–`7` sites, `V` camera (Free / Cliff / Drone / Follow), `S` surfer,
 `C` cross-section, `B` swap the seabed for its least-squares plane, `[` `]` tide,
 `,` `.` move the section transect, `space` pause, `H` hide panels.
 
-URL hash params drive the same build from outside: `#preset=firstpeak&cam=cliff&section=1&bed=plane&tide=-0.5&hud=0`.
+URL hash params drive the same build from outside:
+`#preset=firstpeak&cam=cliff&section=1&bed=plane&tide=-0.5&hud=0`. The full
+list — presets, condition days, quality tiers, and which flags are A/B reverts
+vs gated features — is in [docs/CONTROLS.md](docs/CONTROLS.md).
 
 ```
 npm test              # geo + depth model guards
