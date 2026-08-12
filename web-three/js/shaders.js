@@ -532,7 +532,17 @@ void main() {
     landCol = albedo * lamL;
   }
   if (landF > 0.997) {
-    // solidly ashore: fog and return, skipping the whole water stack
+    // solidly ashore: fog and return, skipping the whole water stack.
+    // The modeled-domain matte applies HERE TOO — this early return used to
+    // skip it, so unmodeled land stayed sharp while the water beside it faded
+    // (the striped far cliff in the 2026-08-11 free-cam report). Same
+    // treatment, same pre-fog placement as section 4.6 below.
+    float provL = provenanceAt(xz);
+    if (provL < 1.0) {
+      float lumaL = dot(landCol, vec3(0.299, 0.587, 0.114));
+      vec3 matteL = mix(vec3(lumaL), vec3(0.55, 0.60, 0.61), 0.4);
+      landCol = mix(matteL, landCol, mix(0.22, 1.0, provL));
+    }
     float dyL = max(cameraPosition.y - vWorldPos.y, 0.0);
     float inLayerL = dyL > HAZE_H ? HAZE_H / dyL : 1.0;
     vec3 colL = mix(landCol, skyColor(-V, t), 1.0 - exp(-dist * inLayerL * FOG_DENSITY));
