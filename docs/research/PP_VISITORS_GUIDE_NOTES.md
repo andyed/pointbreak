@@ -134,3 +134,40 @@ priority off the break line rather than carrying a separate rules system. The
 open defect noted in the repo (amplitude envelope not following the break line)
 would have to be fixed first, or every priority call would be made against a
 break point that is not where the tallest water is.
+
+## Reading a surf report — the vocabulary the app should speak
+
+4. "How to Read a Surf Report: A guide for tracking waves and finding surf,"
+   Warm Winds (Rhode Island surf shop). Read 2026-08-11.
+   https://www.warmwinds.com/blog/guides-4/how-to-read-a-surf-reporta-guide-for-tracking-waves-and-finding-surf-51
+   Culture/vocabulary source, not a measurement source. Useful because it is the
+   register an actual surfer uses, which is the register the HUD and the
+   conditions bank should be in.
+
+**The distinction the model already makes but the UI did not.** Swell height is
+trough-to-crest in deep water; wave height is trough-to-crest on a wave *about
+to break*. They are different numbers and the guide is emphatic about it. That
+is exactly `u_H0` versus `min(Hsh, Hlim)` — the model has both and only ever
+showed H₀. Measured on the repo's own dispersion module at T = 14 s: H₀ 0.8 m
+breaks at 1.31 m, H₀ 1.5 breaks at 2.17, H₀ 2.8 breaks at 3.57. The HUD's
+`swell` row reports the deep-water number; the number a surfer would quote is
+the breaking one, and both belong there.
+
+**Period is the energy readout, not a texture knob.** 6–12 s = windswell, weak,
+small waves at the coast; 12–20 s = groundswell, powerful, "the best surf for
+most areas". The conditions bank already spans 9–17 s, so it covers both
+regimes — but the app never says which one it is showing. A `windswell` /
+`groundswell` label costs one comparison and tells the viewer what they are
+looking at.
+
+**Swell window** — the range of directions with unobstructed straight-line
+access to a break. This is the concept `PP_SWELL_CLIMATOLOGY.md` found
+surf-forecast getting wrong for Pleasure Point (their window runs ~045–225°
+through S and E, discarding the W–NW quadrant that is PP's actual winter
+source after it wraps Soquel Point). Worth stating in the essay in these terms,
+because "swell window" is the phrase a surfer already owns.
+
+**Model implications.** None to MODEL.md. Three to the HUD and the bank:
+report breaking height alongside H₀, label the period regime, and name the
+swell window. All three are vocabulary, and all three are already computable
+from state the model has.
