@@ -561,6 +561,18 @@ void main() {
     vec3 cliffCol = vec3(0.52, 0.46, 0.36);
     vec3 albedo = mix(mix(drySand, wetSand, wetness), cliffCol,
                       smoothstep(1.8, 6.5, above));
+    // Marine terrace (2026-08-12, "land mass styling"). Above the cliff band
+    // the blob was uniform cliffCol — the audit's "featureless tan carrying
+    // zero place identity". The bluff top at Pleasure Point is a vegetated
+    // terrace, so: low-saturation scrub clumps over dirt, elevation-gated.
+    // Value structure only — no props are invented, and the clump noise is
+    // the same field the water and kelp use, so it reads as one scene.
+    vec3 dirtCol  = vec3(0.47, 0.42, 0.33);
+    vec3 scrubCol = vec3(0.31, 0.33, 0.23);
+    float terrace = smoothstep(6.5, 10.0, above);
+    float veg = smoothstep(0.35, 0.75,
+        vnoise2(xz*0.055 + vec2(7.7, -3.1))*0.6 + vnoise2(xz*0.21)*0.4);
+    albedo = mix(albedo, mix(dirtCol, scrubCol, veg), terrace);
     // roughen with the same noise field the water uses, so the two surfaces
     // read as one scene rather than two asset libraries. The third, sub-metre
     // octave is the blocky-sand fix: the two coarse octaves alone left the
@@ -589,7 +601,13 @@ void main() {
     if (provL < 1.0) {
       float lumaL = dot(landCol, vec3(0.299, 0.587, 0.114));
       vec3 matteL = mix(vec3(lumaL), vec3(0.55, 0.60, 0.61), 0.4);
-      landCol = mix(matteL, landCol, mix(0.22, 1.0, provL));
+      // Land fades HARDER than water (pow pulls the ramp earlier, floor 0.0
+      // rather than 0.22): we model surf, not the town — inland the fade
+      // should finish, not hover at 22%. The wider DEM means this now lands
+      // on real coastline shape, which is what makes a full fade read as
+      // marine layer instead of a missing asset ("don't render what we don't
+      // model; real layout covers the gaps" — Andy, 2026-08-12).
+      landCol = mix(matteL, landCol, pow(provL, 1.8));
     }
     float dyL = max(cameraPosition.y - vWorldPos.y, 0.0);
     float inLayerL = dyL > HAZE_H ? HAZE_H / dyL : 1.0;

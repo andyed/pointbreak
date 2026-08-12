@@ -381,6 +381,12 @@ const CAM_PRESETS = [
   { name: 'Cliff',  pos: () => cliffStation(cliffStationX()),                 target: () => [-30, 2, breakLineJS(-30) - 25], fov: 30 },
   { name: 'Lineup', pos: () => [35, 8.5, breakLineJS(35) - 30],               target: () => [0, 4.0, breakLineJS(0) + 2], fov: 32 },
   { name: 'Drone',  pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
+  // The headland shot. Round-2 finding (ROUND2_FINDINGS_2026-08-11): Sewer
+  // Peak's DEM patch already carries 111.5 deg of coastline rotation including
+  // the OSM apex — the Drone framing just crops it (footprint ends z=+173 m,
+  // the corner's limbs sweep to +320). Higher and aimed shoreward, the corner
+  // is in frame; a camera fix, not geometry work.
+  { name: 'Point',  pos: () => [0, 560, 200],                                 target: () => [0, 0, 140] },
   { name: 'Follow', pos: () => cliffStation(cliffStationX()),                 target: () => [0, 2, breakLineJS(0) - 11] },
   { name: 'Tour',   pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
 ];
