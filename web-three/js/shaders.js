@@ -999,8 +999,19 @@ void main(){
   // included: testing bare bedElevM punched a hole in the far seabed, because
   // outside the NCEI patch bedElevM clamps to an above-water edge value while
   // the vertex had already ramped that ground down to deep water.
+  // The -0.02 epsilon assumed the water surface never dips below still level;
+  // at the swash it does — detail chop and the breathing waterline notch the
+  // surface locally under the sand, and the bed pokes through the notch as
+  // near-black Beer-Lambert murk (the 2026-08-12 "black pixel goo" report,
+  // set-phase dependent: 0 goo px at the sim=60 lull, 45 at the sim=110 peak
+  // at the default view). Discard anything within SWASH_M of the LIFTED
+  // waterline instead: deep enough to cover the chop amplitude, and in water
+  // that shallow the murk term had rendered the bed invisible anyway.
+  // (First attempt subtracted the lift with the old epsilon — that UN-discards
+  // the swash band and drew murk across it: goo went 45 -> 450. Measured.)
+  float swashM = 0.35 + VIS*setupLiftM(xz, u_time);
   float eFrag = bedElevM(xz) - u_waterLevel - 0.045 * bedOutside(xz);
-  if (eFrag >= -0.02) discard;
+  if (eFrag >= -swashM) discard;
   // normal by finite difference on the bed field itself
   float e = 1.5;
   float hx = bedElevM(xz + vec2(e,0.0)) - bedElevM(xz - vec2(e,0.0));
