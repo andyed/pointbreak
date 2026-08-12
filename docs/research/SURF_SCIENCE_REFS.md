@@ -256,3 +256,25 @@ reference list of Scarfe, B.E., Elwany, M.H.S., Mead, S.T., and Black, K.P., 200
 "The Science of Surfing Waves and Surfing Breaks — A Review," Scripps Institution of
 Oceanography Technical Report (eScholarship qt6h72j1fz), cross-checked against Scarfe,
 Healy & Rennie 2009, JCR 25(3), 539–557.*
+
+- **Celeris** — Tavakkol, S. and Lynett, P., 2017. "Celeris: A GPU-accelerated
+  open source software with a Boussinesq-type wave solver for real-time
+  interactive simulation and visualization." *Computer Physics Communications*
+  217, 117–127. Preprint: arXiv:1611.05984. Code:
+  https://github.com/SasanTV/Celeris — read 2026-08-11.
+
+  Extended Boussinesq equations solved by a hybrid finite-volume /
+  finite-difference scheme with moving shoreline boundaries, GPU-accelerated,
+  faster than real time, validated against three standard non-breaking and
+  breaking benchmarks. It is the existence proof for the option this project
+  did NOT take: a phase-resolving solver in which shape, breaking, peel and
+  direction are all outputs of one computation and therefore cannot contradict
+  each other (MODEL.md §4.5).
+
+  **Licence, and what that means here.** The code is **GPL-3.0**, C++/DirectX,
+  no browser build, 19 stars, inactive. It cannot be vendored: GPL-3.0 would
+  extend to the combined work and this repository's MIT half cannot be
+  relicensed away (LICENSES.md). The *method* is a different matter — a
+  published numerical scheme is not copyrightable, and implementing from the
+  paper is clean where reading the source is not. If a solver is ever wanted
+  here, the path is the paper, not the repository.

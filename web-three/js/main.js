@@ -15,7 +15,7 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
-import { coastCurve, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
+import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
          oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
@@ -535,6 +535,10 @@ const m4RideState = { n: null, prevX: null, preset: null };
 // the rider, the audio crest solve and setEnv all still assume constant phi, so
 // this is a water-only preview until steps 2-3 of the spec's staged path land.
 let psiEnabled = false;
+// Direction constraint on the baked break line (MODEL.md 4.5). OFF by default:
+// it does remove the A-frame on all 18 combos, and it costs the peel — see the
+// measured note in WEB_THREE_SPEC. #peeldir=1 to A/B it.
+let peelDirEnabled = false;
 // last emergent-line bake, kept at module scope so the takeoff probe can walk
 // the same line the rider does rather than re-deriving one that might differ.
 let lastBaked = null;
@@ -645,9 +649,15 @@ function frame(now) {
   // depth own the height cap — see the spec's M4 section), and the rider is
   // now a continuity solve (model-js m4RideSolve) instead of a per-frame
   // global re-scan that teleported him across the stage.
+  // `peel` hands the bake the site's DIRECTION (MODEL.md 4.5). Pleasure Point
+  // is a right; the constraint keeps the baked line from ever reversing.
+  const peelP = modelP();
   const baked = (!m4Enabled || state.aframe) ? null
     : bakeBreakLine(state.geoSpot, [-STAGE_W / 2, STAGE_W / 2],
-        { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0 });
+        { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0,
+          peel: peelDirEnabled
+            ? { phiRad: swellPhi(peelP), curveAt: (x) => coastCurve(x, peelP) }
+            : null });
   lastBaked = baked;
   uniforms.u_breakMix.value = baked ? 1 : 0;
   if (baked) {
@@ -767,7 +777,8 @@ function applyHashParams() {
     const v = parseFloat(h.get('h0'));
     if (Number.isFinite(v)) state.H0 = Math.min(Math.max(v, H0_DEF.min), H0_DEF.max);
   }
-  if (h.has('psi')) psiEnabled = h.get('psi') === '1'; // M6p3 shoaling wavelength (default OFF; water only)
+  if (h.has('psi')) psiEnabled = h.get('psi') === '1';
+  if (h.has('peeldir')) peelDirEnabled = h.get('peeldir') === '1'; // M6p3 shoaling wavelength (default OFF; water only)
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
   uniforms.u_breakShape.value = structuralBreaker;

@@ -740,3 +740,47 @@ one piece here that cannot be verified by a number.
 Barrel-interior POV camera, true fluid sim, swash/kelp/cliff geometry (cliffs
 may come later as a backdrop card), audio reactivity (that's the Psychodeli
 port's job, after web-three proves the look).
+
+## The A-frame, and what killing it revealed (2026-08-11)
+
+Measured with `scripts/measure_takeoff.mjs` (takeoff = argmin S over the stage;
+"crests" = whole wavelengths that fit on each branch of it).
+
+| state | A-frames | right-branch crests |
+|---|---|---|
+| as shipped | 8 / 18 | 1.2 – 3.0 |
+| per-spot reef window | 9 / 18 | 1.2 – 2.6 |
+| + α fit widened to the full stage | **13 / 18** | 1.3 – 3.0 |
+| + direction constraint on the baked line | **0 / 18** | **0.0 – 1.2** |
+| + wave-scale (90 m) smoothing first | **0 / 18** | 0.0 – 1.2 |
+
+Three things this settles.
+
+**1. Direction cannot be derived, only declared.** Widening the α fit from 32 m
+to the whole stage made the split *worse*, not better. A bounded additive reef
+on a measured DEM can move the mean slope of the break locus; it cannot hold
+the sign of the local slope. MODEL.md §4.5's rule is not a stylistic preference
+— it is what the measurement forces.
+
+**2. Declaring it works.** Constraining the baked locus so its crest label never
+decreases (running max, which flattens reversals into closeout sections rather
+than inventing a left) takes the A-frame to zero on every spot and size.
+
+**3. And it costs the entire peel — which is the real finding.** With direction
+enforced, the right branch carries under one wavelength almost everywhere: the
+breakpoint crosses the whole stage in less than one wave period. That is a
+closeout. Wave-scale smoothing first does not recover it.
+
+So **the peel angle this model currently renders is coming from small-scale
+wander in the depth locus, not from a coherent reef slope.** Take the wander
+away — which is exactly what enforcing one direction does — and there is almost
+no peel left. That is the same finding M5 was built to address ("the DEM smooths
+the bedding into a featureless ramp") arriving through a third door, and it says
+M5's synthetic wedge is not yet supplying the peel either: the noise is.
+
+The constraint ships behind `#peeldir=1`, default OFF — it trades a wrong wave
+for a duller one, and neither is shippable. The next move is not another
+constraint. It is to make the reef actually produce a sustained oblique locus,
+which means a component that a tilted plane cannot express: a seaward-convex
+nose (Mead & Black's *focus*/*pinnacle*, already in the taxonomy in
+`docs/research/SURF_SCIENCE_REFS.md` §2.2 and not yet built).

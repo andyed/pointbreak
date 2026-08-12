@@ -484,6 +484,61 @@ Same machinery, different knob positions:
   only preset that is an *event* rather than a state. Bilaterally symmetric —
   kaleidoscope-native.
 
+## 4.5 Authority: who owns each quantity (2026-08-11)
+
+Every defect found on 2026-08-11 was the same defect wearing different clothes:
+**two sources of truth for one quantity, with no rule for which wins.** Not a
+physics failure and not a heuristic failure — an arbitration failure. The list,
+all measured:
+
+| quantity | authority A | authority B | how it showed up |
+|---|---|---|---|
+| wavelength | `LAM = 90` constant | linear dispersion | crests 36–40% too long through the surf zone; shoaling ramp 1.35× instead of 2.46× |
+| surface height | `model-js.oceanH`, synthetic | GPU `ocean()`, depth-limited | the rider stands on a wave that never breaks while the GPU draws one that does |
+| peel angle α | authored in the preset bank | derived from the M4 bake | fit hits the target at mid-window and crosses zero out on the flanks |
+| reef extent | hard-coded `(-110, -35, 215, 290)` | each spot's OSM bounds | one manufactured shelf edge at the same world x on all six spots |
+| peel direction | rider restricted to the `+x` branch | break field, no handedness | an A-frame at a point break; 8 of 18 preset × H₀ combos |
+| dispersion relation | "Guo (2002)" in the comment | a different formula in the code | 4.98% max error against a claimed ~1% |
+
+A model may be a caricature. It may be a simulation. It may not be **both about
+the same quantity**, because then no disagreement is resolvable and every fix
+relocates the contradiction instead of closing it.
+
+### The rule
+
+**Physics owns the field. Authorship owns the character. Where they meet, the
+declaration constrains the derivation — never the reverse.**
+
+| quantity | owner | the other side may |
+|---|---|---|
+| dispersion, wavelength `L(h)` | **physics** — `dispersion.js`, Guo (2002) | nothing. No constant may shadow it. |
+| shoaling `K_s`, depth-limited cap `γh` | **physics** | nothing. |
+| refraction, incidence φ(h) | **physics** — Snell on the baked Ψ | nothing. |
+| break *location* z_b(x) | **physics** — the `H₀K_s ≥ γh` locus over measured bathymetry | be constrained (see below), never overridden |
+| surface height under the rider | **physics** — one evaluation, shared | the CPU twin must *be* that evaluation, not a second model |
+| **peel direction** | **authorship** — the site is a right | the derivation must return only lines consistent with it |
+| **peel angle α** | **authorship** — the preset target | the fit reports its residual honestly and is rejected if it violates direction |
+| spot identity, stage extent | **authorship** — OSM canon | supplies the numbers, does not pick the spots |
+| swell conditions (H₀, T, tide, chop) | **authorship** — the bank, or CDIP live | — |
+| visual exaggeration `VIS` | **authorship** | must never enter a physical threshold |
+
+### What follows immediately
+
+1. **Direction is declared, so the α fit must be sign-constrained.** The split
+   is not a rendering artifact to mask — masking it removes the dissipation with
+   it (tried 2026-08-11, reverted: gating `brk` by peel sense left undissipated
+   swell piling up over half the stage, a worse version of the original
+   complaint). It has to be prevented upstream: a fit that returns a line whose
+   α changes sign on the stage is an invalid fit. The current fit samples five
+   stations spanning 32 m of a 113–312 m reef, so it cannot see the violation.
+2. **`brk` does three jobs** — "is breaking", "how much energy is lost"
+   (`decay`), and "draw foam". They need separating before either of the first
+   two can be reasoned about alone.
+3. **The JS twin's synthetic height path should not exist.** It is authority B
+   on a quantity physics owns.
+4. **`VIS` is already correctly excluded from the break threshold** (noted in
+   `ocean()`); that exclusion is now a rule, not a local fix.
+
 ## 5. Deliberately out of scope
 
 - **Barrel interior / tube ride POV** — a camera-and-geometry problem, not a model

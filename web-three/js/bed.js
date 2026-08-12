@@ -218,18 +218,46 @@ export function reefFitFor(name) {
   const seed = nameSeed(name);
   const reefWin = reefWinFor(name);
   let beta = Math.min(Math.max(card.alphaDeg - PHI_BREAK_DEG, 3), 80);
-  let derived = 0, iterations = 0, reefFn = null;
-  const xs = [-16, -8, 0, 8, 16];            // mid-window stations
+  let derived = 0, iterations = 0, reefFn = null, signViolations = 0;
+  // Stations spanning the WHOLE stage, not 32 m of it. The old set was
+  // [-16, -8, 0, 8, 16] — five points across 32 m of a 113-312 m reef, i.e.
+  // 10-28% of it, all clustered mid-window. A fit that narrow can hit its alpha
+  // target dead on and still let the break line's bearing cross the crest
+  // bearing out on a flank it never sampled, which is a peel that reverses
+  // direction: the A-frame measured on 5 of 6 spots (MODEL.md 4.5).
+  const xs = [];
+  {
+    const a = reefWin[0] + 10, b = reefWin[3] - 10, n = 9;
+    for (let i = 0; i < n; i++) xs.push(a + (b - a) * i / (n - 1));
+  }
+  const xMean = xs.reduce((q, v) => q + v, 0) / xs.length;
   for (let it = 1; it <= REEF_FIT_MAX_ITER; it++) {
     iterations = it;
     reefFn = makeReefFn(beta, targetEl, zRef, seed, reefWin);
     const elevAt = (x, z) => { const em = rawAt(x, z); return em + reefFn(x, z, em); };
     let sxz = 0, sxx = 0;
+    const zbs = [];
     for (const x of xs) {
       const zb = marchBreakFn(elevAt, x, card.H0, card.T);
-      sxz += x * zb; sxx += x * x;           // xs are zero-mean, so this IS the LSQ slope
+      zbs.push(zb);
+      const dx = x - xMean;                  // stations are no longer zero-mean
+      sxz += dx * zb; sxx += dx * dx;
     }
-    derived = Math.atan(Math.abs(sxz / sxx)) * 180 / Math.PI;
+    // DIRECTION (MODEL.md 4.5: authorship owns it, the derivation must respect
+    // it). The mean slope is taken |absolute| below, which is exactly where the
+    // sign — the peel direction — used to be discarded. Keep it, and check that
+    // the LOCAL slope holds that same sign at every station: one sign means one
+    // crossing means one peel. A sign change is a line whose bearing sweeps
+    // through the crest bearing, and that tears the wave into a left and a
+    // right at a site that is a right.
+    const meanSlope = sxz / sxx;
+    const dir = Math.sign(meanSlope) || 1;
+    signViolations = 0;
+    for (let i = 1; i < zbs.length; i++) {
+      const local = (zbs[i] - zbs[i - 1]) / (xs[i] - xs[i - 1]);
+      if (Math.sign(local) !== dir) signViolations++;
+    }
+    derived = Math.atan(Math.abs(meanSlope)) * 180 / Math.PI;
     const resid = card.alphaDeg - derived;
     if (Math.abs(resid) <= REEF_FIT_TOL_DEG) break;
     if (it < REEF_FIT_MAX_ITER) {
@@ -243,6 +271,12 @@ export function reefFitFor(name) {
     fitDerivedDeg: derived,
     residualDeg: card.alphaDeg - derived,
     withinTol: Math.abs(card.alphaDeg - derived) <= 5,
+    // Carried, not hidden — same contract as withinTol. A fit that hits its
+    // alpha target while reversing direction somewhere on the stage has not
+    // succeeded, and the HUD must be able to say so.
+    signViolations,
+    directionOk: signViolations === 0,
+    stations: xs.length,
     iterations,
     targetEl, zRef, hbM: hb,
     reefAt: reefFn,
@@ -498,6 +532,9 @@ export function depthBreakOffset(spotName, x, breakLineZ, { H0, T, tide = 0, bed
 // answer is one-dimensional and only changes when the site, swell or tide does.
 const BREAK_N = 128;
 export const BREAK_Z_MIN = -400, BREAK_Z_MAX = 400;
+// Along-shore smoothing length for the break locus, metres — roughly a
+// wavelength, the scale below which a crest cannot resolve the seabed.
+const PEEL_SMOOTH_M = 90;
 let breakTex = null, breakKey = '', breakArr = new Float32Array(BREAK_N);
 
 function markBreak(spotName, x, opts) {
@@ -532,6 +569,71 @@ export function bakeBreakLine(spotName, xRange, opts) {
     const q = Math.round(u * 65535);
     rgba[i * 4] = (q >> 8) & 255; rgba[i * 4 + 1] = q & 255; rgba[i * 4 + 3] = 255;
   }
+  // ---------- DIRECTION: the declaration constrains the derivation ----------
+  // MODEL.md 4.5. The site is a right. Depth proposes where the wave breaks;
+  // it cannot propose which WAY the wave peels, because a measured seabed does
+  // not encode that and no bounded additive reef can make it. Measured: fitting
+  // alpha over the full stage instead of 32 m of it made the A-frame count
+  // WORSE (9/18 -> 13/18), because the local slope of the depth locus wanders
+  // whatever the mean is fitted to.
+  //
+  // So constrain it, minimally. The breakpoint is the crest/line crossing, and
+  // along the line the crest label is (up to the positive factor k)
+  //     Q(x) = x*sin(phi) + (z_b(x) + coastCurve(x))*cos(phi)
+  // The crossing marches +x wherever dQ/dx > 0. Enforcing Q non-decreasing by a
+  // running max is the closest line to the depth-derived one that never
+  // reverses: it leaves every station where the raw locus already peels the
+  // right way untouched, and flattens only the reversals — into dQ/dx = 0,
+  // which is a CLOSEOUT section, not an invented wave. A point break that goes
+  // momentarily tangent closes out; it does not sprout a left.
+  //
+  // The cost, stated: at those stations the break line is no longer purely
+  // depth-derived. That is the rule working as intended, not a violation of it.
+  const peel = opts.peel || null;
+  if (peel) {
+    // Smooth the locus at the WAVE's scale before constraining it. A crest is
+    // ~60-100 m long; it cannot break at a 5 m wiggle in the DEM any more than
+    // it refracts off a pebble, so sub-wavelength structure in z_b is sampling
+    // noise, not bathymetry the wave can feel. Skipping this made the running
+    // max below eat the entire line — direction was satisfied and the peel was
+    // gone (measured: A-frames 0/18, but right-branch crests also 0.00, i.e. a
+    // closeout). The locus is reversal-dominated at small scale; the constraint
+    // has to act on the scale the wave actually resolves.
+    const half = Math.max(1, Math.round((PEEL_SMOOTH_M / 2) / ((x1 - x0) / (BREAK_N - 1))));
+    const sm = new Float32Array(BREAK_N);
+    for (let i = 0; i < BREAK_N; i++) {
+      let acc = 0, n = 0;
+      for (let j = i - half; j <= i + half; j++) {
+        const k = Math.min(Math.max(j, 0), BREAK_N - 1);
+        acc += breakArr[k]; n++;
+      }
+      sm[i] = acc / n;
+    }
+    for (let i = 0; i < BREAK_N; i++) {
+      breakArr[i] = sm[i];
+      const u2 = Math.min(Math.max((sm[i] - BREAK_Z_MIN) / (BREAK_Z_MAX - BREAK_Z_MIN), 0), 1);
+      const q2 = Math.round(u2 * 65535);
+      rgba[i * 4] = (q2 >> 8) & 255; rgba[i * 4 + 1] = q2 & 255;
+    }
+
+    const sp = Math.sin(peel.phiRad), cp = Math.cos(peel.phiRad);
+    const xAt = (i) => x0 + (x1 - x0) * (i / (BREAK_N - 1));
+    const qOf = (i, z) => xAt(i) * sp + (z + peel.curveAt(xAt(i))) * cp;
+    let qPrev = qOf(0, breakArr[0]);
+    for (let i = 1; i < BREAK_N; i++) {
+      const q = qOf(i, breakArr[i]);
+      if (q < qPrev) {
+        // flatten to the running max: solve Q = qPrev for z at this station
+        breakArr[i] = (qPrev - xAt(i) * sp) / cp - peel.curveAt(xAt(i));
+        const u2 = Math.min(Math.max((breakArr[i] - BREAK_Z_MIN) / (BREAK_Z_MAX - BREAK_Z_MIN), 0), 1);
+        const q2 = Math.round(u2 * 65535);
+        rgba[i * 4] = (q2 >> 8) & 255; rgba[i * 4 + 1] = q2 & 255;
+      } else {
+        qPrev = q;
+      }
+    }
+  }
+
   if (breakTex) breakTex.dispose();
   breakTex = new THREE.DataTexture(rgba, BREAK_N, 1, THREE.RGBAFormat);
   breakTex.magFilter = THREE.NearestFilter;   // lerp happens in the shader
