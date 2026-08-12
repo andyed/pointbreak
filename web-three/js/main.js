@@ -861,6 +861,16 @@ window.__pointbreak = {
   // and a right — an A-frame, arrived at geometrically without u_aframe ever
   // being set. This reports where the minimum sits so "one spot has a corner"
   // can be told apart from "the bake does this everywhere".
+  // The baked line itself plus its derived alpha, for headless measurement.
+  // Foam is a weak instrument; the LINE is the claim (audit 2026-08-11).
+  lineProbe: (step = 5) => {
+    if (!lastBaked) return null;
+    const out = [];
+    for (let x = lastBaked.x0; x <= lastBaked.x1; x += step)
+      out.push({ x, z: breakZAt(x, lastBaked.x0, lastBaked.x1),
+                 a: derivedAlphaDeg(x, lastBaked.x0, lastBaked.x1) });
+    return out;
+  },
   takeoffProfile: (step = 1) => {
     if (!lastBaked) return null;
     const P = modelP();

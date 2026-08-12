@@ -227,13 +227,28 @@ function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
     const s = x * cosB + (z - zRef) * sinB;    // along-strike coordinate, m
     const ridge = 1 - REEF_RIDGE_MOD
                 + 2 * REEF_RIDGE_MOD * ridgeNoise(s / REEF_RIDGE_WAVELENGTH, seed);
+    // CROSS-SHORE BOUND (2026-08-11 — the V fix, part 1). The strike line
+    // zc = zRef + tanB*(x - anchor) sweeps SEAWARD for x up-point of the
+    // anchor, and nothing used to stop it: 150 m up-point it sat ~200 m
+    // offshore in 6-7 m of water, where the capped lift could not reach the
+    // crest datum but still built a submerged BAR that trips H0*Ks >= gamma*h
+    // far seaward of the point. The bake then teleports 46-180 m between
+    // adjacent 4.7 m texels (measured per spot; the raw-DEM bake is smooth to
+    // 2.2 m), and that teleport is the A-frame V, the offshore break row, and
+    // the "light shaft" (the bar seen through the water). A shore-platform
+    // reef does not rise out of deep water: where the natural bed sits too far
+    // below the crest datum for the wedge to OWN the crest, the reef ends.
+    // Fade band 1.2 m — several times the 0.31-0.93 m DEM residual, per the
+    // ramp rule (no boundary on a ramp narrower than the error beneath it).
+    const bound = 1 - smoothstepJS(REEF_AMP_MAX, REEF_AMP_MAX + 1.2, targetEl - em);
+    if (bound <= 0) return 0;
     // lift toward the crest elevation, never more than the wedge amplitude,
     // tapered down-point by the nose. Every factor is non-negative and
-    // noseTaper >= 1 - 0.30 = 0.70, so the nose can only REDUCE lift: it cannot
-    // deepen a post, and it cannot push one above a ceiling the untapered path
-    // already respected.
+    // noseTaper >= 1 - 0.30 = 0.70, so the nose and the bound can only REDUCE
+    // lift: they cannot deepen a post, and cannot push one above a ceiling the
+    // unbounded path already respected.
     const lift = Math.min(Math.max(targetEl - em, 0), REEF_AMP_MAX)
-               * noseTaper(x) * flank * w * ridge;
+               * bound * noseTaper(x) * flank * w * ridge;
     return Math.max(Math.min(em + lift, REEF_CEIL_EL) - em, 0);
   };
 }
@@ -755,9 +770,32 @@ export function bakeBreakLine(spotName, xRange, opts) {
   const rgba = new Uint8Array(BREAK_N * 4);
   for (let i = 0; i < BREAK_N; i++) {
     const x = x0 + (x1 - x0) * (i / (BREAK_N - 1));
-    const z = markBreak(spotName, x, opts);
-    breakArr[i] = z;
-    const u = Math.min(Math.max((z - BREAK_Z_MIN) / (BREAK_Z_MAX - BREAK_Z_MIN), 0), 1);
+    breakArr[i] = markBreak(spotName, x, opts);
+  }
+  // ---------- SLEW LIMIT (2026-08-11 — the V fix, part 2) ----------
+  // Continuity is physics, not smoothing: a 60-100 m crest cannot break 150 m
+  // discontinuously between two stations 4.7 m apart. markBreak takes the
+  // seaward-most crossing, so wherever an outer patch trips the criterion the
+  // line TELEPORTS to it and back (measured 46-180 m single-texel jumps; the
+  // A-frame V is two zippers running off such a jump). Limit the step between
+  // adjacent texels to SLEW_M_PER_M — 2.0 m of z per m of x preserves any
+  // honest peel line up to atan(2.0) = 63 deg from shore-parallel, well above
+  // every alpha target (38-70 deg peel is measured against the CREST, whose
+  // line slope is far gentler), while capping teleports at ~9.5 m. Forward
+  // then backward pass, so the bound holds in both directions and neither
+  // stage end is privileged. Unlike the 90 m smoother (#smooth), slopes below
+  // the limit pass through UNTOUCHED — the ~5 m/step peel signal survives.
+  const SLEW_M_PER_M = 2.0;
+  {
+    const dxTex = (x1 - x0) / (BREAK_N - 1);
+    const maxStep = SLEW_M_PER_M * dxTex;
+    for (let i = 1; i < BREAK_N; i++)
+      breakArr[i] = Math.min(Math.max(breakArr[i], breakArr[i - 1] - maxStep), breakArr[i - 1] + maxStep);
+    for (let i = BREAK_N - 2; i >= 0; i--)
+      breakArr[i] = Math.min(Math.max(breakArr[i], breakArr[i + 1] - maxStep), breakArr[i + 1] + maxStep);
+  }
+  for (let i = 0; i < BREAK_N; i++) {
+    const u = Math.min(Math.max((breakArr[i] - BREAK_Z_MIN) / (BREAK_Z_MAX - BREAK_Z_MIN), 0), 1);
     const q = Math.round(u * 65535);
     rgba[i * 4] = (q >> 8) & 255; rgba[i * 4 + 1] = q & 255; rgba[i * 4 + 3] = 255;
   }
