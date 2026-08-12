@@ -90,9 +90,15 @@ No build step, plain ES modules:
 
 ```
 cd pointbreak
-python3 -m http.server 8000
-# http://localhost:8000/web-three/   (or /web/ for the raymarcher)
+python3 scripts/serve.py 8127
+# http://localhost:8127/web-three/   (or /web/ for the raymarcher)
 ```
+
+Use `scripts/serve.py`, not `python3 -m http.server`. The stdlib server sends no
+`Cache-Control`, so Chrome heuristically caches ES modules across reloads and
+you edit a file, reload, and see the old build — including import errors naming
+exports that are present on disk. `scripts/serve.py` is the same server with
+`no-store`.
 
 Keys: `1`–`7` sites, `V` camera (Free / Cliff / Drone / Follow), `S` surfer,
 `C` cross-section, `B` swap the seabed for its least-squares plane, `[` `]` tide,
