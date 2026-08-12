@@ -8,6 +8,7 @@
     "test": "node scripts/check-shader-literals.mjs && node --test tests/*.test.js",
     "build:depth": "python3 data/model/build_depth_patches.py",
     "check:depth": "python3 data/model/build_depth_patches.py --check",
-    "check:shaders": "node scripts/check-shader-literals.mjs"
+    "check:shaders": "node scripts/check-shader-literals.mjs",
+    "check:swash": "node scripts/check_swash.mjs"
   }
 }
