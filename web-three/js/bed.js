@@ -227,10 +227,15 @@ export function reefFitFor(name) {
   // target dead on and still let the break line's bearing cross the crest
   // bearing out on a flank it never sampled, which is a peel that reverses
   // direction: the A-frame measured on 5 of 6 spots (MODEL.md 4.5).
+  // Stations. With smoothing off this is the original mid-window set, so the
+  // shipped path is unchanged; with it on the fit spans the whole stage,
+  // because a 32 m window cannot see a sign reversal out on a flank.
   const xs = [];
-  {
+  if (locusSmoothM > 0) {
     const a = reefWin[0] + 10, b = reefWin[3] - 10, n = 9;
     for (let i = 0; i < n; i++) xs.push(a + (b - a) * i / (n - 1));
+  } else {
+    xs.push(-16, -8, 0, 8, 16);
   }
   const xMean = xs.reduce((q, v) => q + v, 0) / xs.length;
   for (let it = 1; it <= REEF_FIT_MAX_ITER; it++) {
@@ -244,17 +249,22 @@ export function reefFitFor(name) {
     // wrong: with smoothing on and the fit still raw, derived alpha collapsed
     // 57 deg -> 16 deg, because the raw locus's alpha was carried by the very
     // wander the smoothing removes.
-    const dense = [];
-    for (let x = xs[0]; x <= xs[xs.length - 1] + 1e-6; x += FIT_DENSE_DX) dense.push(x);
-    const rawZ = dense.map((x) => marchBreakFn(elevAt, x, card.H0, card.T));
-    const halfF = Math.max(1, Math.round((PEEL_SMOOTH_M / 2) / FIT_DENSE_DX));
-    const smZ = rawZ.map((_, i) => {
-      let acc = 0, n = 0;
-      for (let j = i - halfF; j <= i + halfF; j++) {
-        acc += rawZ[Math.min(Math.max(j, 0), rawZ.length - 1)]; n++;
-      }
-      return acc / n;
-    });
+    let dense = xs, smZ;
+    if (locusSmoothM > 0) {
+      dense = [];
+      for (let x = xs[0]; x <= xs[xs.length - 1] + 1e-6; x += FIT_DENSE_DX) dense.push(x);
+      const rawZ = dense.map((x) => marchBreakFn(elevAt, x, card.H0, card.T));
+      const halfF = Math.max(1, Math.round((locusSmoothM / 2) / FIT_DENSE_DX));
+      smZ = rawZ.map((_, i) => {
+        let acc = 0, n = 0;
+        for (let j = i - halfF; j <= i + halfF; j++) {
+          acc += rawZ[Math.min(Math.max(j, 0), rawZ.length - 1)]; n++;
+        }
+        return acc / n;
+      });
+    } else {
+      smZ = dense.map((x) => marchBreakFn(elevAt, x, card.H0, card.T));
+    }
     const dMean = dense.reduce((q, v) => q + v, 0) / dense.length;
     let sxz = 0, sxx = 0;
     for (let i = 0; i < dense.length; i++) {
@@ -262,7 +272,6 @@ export function reefFitFor(name) {
       sxz += dx * smZ[i]; sxx += dx * dx;
     }
     const zbs = smZ;
-    xs.length = 0; for (const x of dense) xs.push(x);
     // DIRECTION (MODEL.md 4.5: authorship owns it, the derivation must respect
     // it). The mean slope is taken |absolute| below, which is exactly where the
     // sign — the peel direction — used to be discarded. Keep it, and check that
@@ -555,6 +564,17 @@ export const BREAK_Z_MIN = -400, BREAK_Z_MAX = 400;
 // Along-shore smoothing length for the break locus, metres — roughly a
 // wavelength, the scale below which a crest cannot resolve the seabed.
 export const PEEL_SMOOTH_M = 90;
+// Active locus smoothing length, metres. ONE setting for both the reef fit and
+// the bake: fitting at one smoothing length while rendering at another is the
+// authority split this whole file has been chasing all day, and it bit here —
+// leaving the fit unconditionally smoothed while the renderer defaulted to raw
+// scattered derived alpha to 7-79 deg against 38-66 deg targets. main.js sets
+// it from the #smooth flag; 0 is the shipped default and reproduces the
+// original narrow fit exactly.
+let locusSmoothM = 0;
+export function setLocusSmoothing(m) {
+  if (m !== locusSmoothM) { locusSmoothM = m; fitCache.clear(); breakKey = ''; }
+}
 // Shore-normal march step for the break criterion, metres. The crossing is
 // interpolated between steps, so this sets cost, not precision.
 const MARCH_DZ = 2;

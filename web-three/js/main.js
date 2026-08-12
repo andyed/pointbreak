@@ -21,7 +21,7 @@ import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
-         wavelengthAtStation, psiAt, PEEL_SMOOTH_M } from './bed.js';
+         wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -787,7 +787,9 @@ function applyHashParams() {
   }
   if (h.has('psi')) psiEnabled = h.get('psi') === '1';
   if (h.has('peeldir')) peelDirEnabled = h.get('peeldir') === '1';
-  if (h.has('smooth')) smoothEnabled = h.get('smooth') === '1'; // M6p3 shoaling wavelength (default OFF; water only)
+  if (h.has('smooth')) smoothEnabled = h.get('smooth') === '1';
+  // ONE smoothing length for the fit and the bake — see bed.js setLocusSmoothing.
+  setLocusSmoothing(smoothEnabled ? PEEL_SMOOTH_M : 0); // M6p3 shoaling wavelength (default OFF; water only)
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
   uniforms.u_breakShape.value = structuralBreaker;
