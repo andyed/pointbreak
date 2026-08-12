@@ -18,7 +18,7 @@ Usage:
   python3 scripts/build_site.py                       # default target
   python3 scripts/build_site.py --out <dir>
 """
-import argparse, shutil, sys
+import argparse, re, shutil, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +41,7 @@ ITEMS = [
     ('web-three/vendor',               'sim/web-three/vendor'),
     ('web/js/params.js',               'sim/web/js/params.js'),
     ('web/js/model-glsl.js',           'sim/web/js/model-glsl.js'),
+    ('web/js/cdip.js',                 'sim/web/js/cdip.js'),
     ('data/model/pp_geo_profiles.js',  'sim/data/model/pp_geo_profiles.js'),
     ('data/model/pp_depth_patches.js', 'sim/data/model/pp_depth_patches.js'),
 ]
@@ -49,6 +50,11 @@ ITEMS = [
 # published page embeds the live app instead.
 EXCLUDE_SUFFIX = ('-render.png', 'index-desktop.png', 'index-mobile.png')
 EXCLUDE_NAMES = {'render_check.mjs'}
+
+# Static/dynamic relative ES-module imports. Bare imports such as `three` are
+# supplied by the page's import map and deliberately do not participate.
+LOCAL_IMPORT = re.compile(
+    r'''\b(?:from|import)\s*(?:\(\s*)?['"](\.{1,2}/[^'"]+)['"]''')
 
 
 def copy(src: Path, dst: Path):
@@ -59,6 +65,18 @@ def copy(src: Path, dst: Path):
         shutil.copytree(src, dst)
     else:
         shutil.copy2(src, dst)
+
+
+def missing_local_imports(out: Path):
+    """Return relative module imports that the assembled bundle cannot load."""
+    missing = []
+    for module in out.rglob('*.js'):
+        text = module.read_text(encoding='utf-8')
+        for spec in LOCAL_IMPORT.findall(text):
+            target = (module.parent / spec).resolve()
+            if not target.is_relative_to(out) or not target.is_file():
+                missing.append((module.relative_to(out), spec))
+    return missing
 
 
 def main():
@@ -81,6 +99,13 @@ def main():
     for p in out.rglob('*'):
         if p.is_file() and (p.name in EXCLUDE_NAMES or p.name.endswith(EXCLUDE_SUFFIX)):
             p.unlink(); removed += 1
+
+    missing_imports = missing_local_imports(out)
+    if missing_imports:
+        print('MISSING local module imports:')
+        for module, spec in missing_imports:
+            print(f'  {module}: {spec}')
+        return 1
 
     files = [p for p in out.rglob('*') if p.is_file()]
     total = sum(p.stat().st_size for p in files)
