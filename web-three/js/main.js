@@ -21,7 +21,8 @@ import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
-         wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing } from './bed.js';
+         wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
+         setReefNose, REEF_NOSE_GRAD_TUNED } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -789,7 +790,10 @@ function applyHashParams() {
   if (h.has('peeldir')) peelDirEnabled = h.get('peeldir') === '1';
   if (h.has('smooth')) smoothEnabled = h.get('smooth') === '1';
   // ONE smoothing length for the fit and the bake — see bed.js setLocusSmoothing.
-  setLocusSmoothing(smoothEnabled ? PEEL_SMOOTH_M : 0); // M6p3 shoaling wavelength (default OFF; water only)
+  setLocusSmoothing(smoothEnabled ? PEEL_SMOOTH_M : 0);
+  // M5 nose (#nose=1). Works on the two narrow stages, flattens the four wide
+  // ones — see WEB_THREE_SPEC. Default off until that is understood.
+  if (h.get('nose') === '1') setReefNose(REEF_NOSE_GRAD_TUNED); // M6p3 shoaling wavelength (default OFF; water only)
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
   uniforms.u_breakShape.value = structuralBreaker;

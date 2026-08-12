@@ -72,6 +72,15 @@ const REEF_FLANK_W = 45;      // m cross-strike feather half-width (smoothstep, 
 const REEF_RIDGE_WAVELENGTH = 50;  // m along-strike ridge spacing (their "sections")
 const REEF_RIDGE_MOD = 0.15;  // fractional amplitude modulation from the ridges
 const REEF_ANCHOR_X = 24;     // m: crest line meets the natural crest-depth contour here
+// Down-point deepening of the reef crest, metres per metre — the nose. Sets how
+// strongly the reef, rather than the DEM's shallowest accident, decides where
+// the wave breaks first. Calibrated on Second Peak (1.5 m over its 194 m stage).
+const REEF_NOSE_GRAD_DEFAULT = 0.0;   // OFF by default — see the note below
+let REEF_NOSE_GRAD = REEF_NOSE_GRAD_DEFAULT;
+export const REEF_NOSE_GRAD_TUNED = 0.0077;
+export function setReefNose(grad) {
+  if (grad !== REEF_NOSE_GRAD) { REEF_NOSE_GRAD = grad; fitCache.clear(); breakKey = ''; }
+}
 const REEF_FIT_TOL_DEG = 1.0;
 const REEF_FIT_MAX_ITER = 14; // secant evaluations; load-time only, so cheap
 
@@ -140,6 +149,28 @@ function reefWinFor(spotName) {
 function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
   const bRad = betaDeg * Math.PI / 180;
   const tanB = Math.tan(bRad), cosB = Math.cos(bRad), sinB = Math.sin(bRad);
+  // ---------- the nose: a crest that DEEPENS down-point ----------
+  // Mead & Black's focus/pinnacle, the component a tilted plane cannot express
+  // (SURF_SCIENCE_REFS 2.2). Until now the wedge lifted the bed toward ONE
+  // crest elevation along its whole length, so the break criterion was met at
+  // the same depth everywhere on it and the seaward-most crossing — which is
+  // what markBreak returns — went to whichever natural shallow patch happened
+  // to sit furthest out. The reef never owned the line; the DEM noise did, and
+  // that is the 22-70 m locus wander behind the A-frame, the alpha collapse
+  // under smoothing, and the 43 deg alpha swing for 0.3 m of swell.
+  //
+  // A real point is shallowest at its apex and falls away down-point. Tilting
+  // the crest elevation the same way makes the wave break FIRST at the top of
+  // the point and progressively later down it — one takeoff, one direction, and
+  // a locus whose position is set by a gradient the reef owns instead of by
+  // whichever pebble is shallowest.
+  // A GRADIENT, not a total drop: as a fixed drop over each stage's own span it
+  // gave three different physical steepnesses (0.48-1.3 m per 100 m across a
+  // 113-312 m spread) and worked on the two narrow stages while flattening the
+  // four wide ones to ~2 deg.
+  const noseX0 = reefWin[0], noseSpan = Math.max(reefWin[3] - reefWin[0], 1);
+  const crestElAt = (x) =>
+    targetEl - REEF_NOSE_GRAD * Math.min(Math.max(x - noseX0, 0), noseSpan);
   return (x, z, em) => {
     if (em >= REEF_CEIL_EL) return 0;
     // MODEL-TWIN of the GLSL reefWindow, per spot: the synthetic reef must be
@@ -160,7 +191,7 @@ function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
     const ridge = 1 - REEF_RIDGE_MOD
                 + 2 * REEF_RIDGE_MOD * ridgeNoise(s / REEF_RIDGE_WAVELENGTH, seed);
     // lift toward the crest elevation, never more than the wedge amplitude
-    const lift = Math.min(Math.max(targetEl - em, 0), REEF_AMP_MAX) * flank * w * ridge;
+    const lift = Math.min(Math.max(crestElAt(x) - em, 0), REEF_AMP_MAX) * flank * w * ridge;
     return Math.max(Math.min(em + lift, REEF_CEIL_EL) - em, 0);
   };
 }

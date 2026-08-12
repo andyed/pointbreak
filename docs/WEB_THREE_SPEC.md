@@ -838,3 +838,51 @@ now sharp and already scored by `scripts/measure_takeoff.mjs` plus the α
 readout: **A-frames at 0, right branch above 1.5 crests, and derived α within
 tolerance of target — all three at once, with `#smooth=1` on.** No
 configuration tried so far achieves two of them together.
+
+### The nose, first build (2026-08-11) — `#nose=1`, default off
+
+Mead & Black's *focus*/*pinnacle*: the component a tilted plane cannot express.
+Built as the simplest form that could work — the reef crest **deepens
+down-point** instead of holding one elevation along its whole length.
+
+The mechanism it targets: `markBreak` returns the **seaward-most** crossing, and
+a wedge lifted toward a single crest elevation meets the break criterion at the
+same depth everywhere along itself. So the crossing went to whichever natural
+shallow patch happened to sit furthest out — the reef never owned the line, the
+DEM's accidents did. That is the 22–70 m locus wander behind all three symptoms
+(the A-frame, α collapsing under smoothing, the 43° α swing for 0.3 m of swell).
+A real point is shallowest at its apex and falls away down-point; tilting the
+crest the same way makes the wave break first at the top and progressively later
+down it.
+
+Derived α at card conditions, target → derived:
+
+| spot | stage span | no nose | nose |
+|---|---|---|---|
+| First Peak | 113 m | 50 → 50 | **50 → 50** |
+| Second Peak | 194 m | 58 → 55 | **58 → 59** |
+| Sewers | 277 m | 38 → 38 | 38 → 3 |
+| The Hook | 289 m | 48 → 47 | 48 → 3 |
+| Shark's Cove | 304 m | 66 → 66 | 66 → 1 |
+| 38th | 312 m | 62 → 61 | 62 → 2 |
+
+**It works, and only on the narrow stages.** Second Peak is the best fit that
+spot has ever had, and by a mechanism rather than by noise. The split is by
+stage width, not by gradient magnitude — a fixed total drop and a fixed gradient
+both produce it, so tuning the constant is not the answer and three passes at it
+was already one too many.
+
+**Likely cause, stated as unconfirmed:** the deepened crest eventually falls
+below the natural bed, at which point `lift = max(crestEl − em, 0)` is zero and
+the reef simply stops existing down-point. Over a 300 m stage the drop reaches
+~2.3 m against a reef capped at 3.2 m of relief, so the wide stages would lose
+their reef over the down-point half and the α fit would be averaging a real
+tilt up-point against a flat, noisy remainder. Check before building further:
+sample `lift` along the crest line on 38th and see where it goes to zero.
+
+If that is it, the fix is not a smaller gradient — it is deepening relative to
+the **natural bed** rather than to a fixed datum, so the nose keeps a constant
+clearance instead of diving through the floor.
+
+Ships behind `#nose=1`, default off. Four A/B flags now: `#psi`, `#smooth`,
+`#peeldir`, `#nose`.
