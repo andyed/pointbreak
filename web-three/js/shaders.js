@@ -135,6 +135,14 @@ float kelpMask(vec2 xz, float depthM){
   // for a fractional cross-fade.
   float scour = smoothstep(1.2, 3.4, depthM);           // dies on the inner bar
   float outer = 1.0 - smoothstep(5.0, 8.5, depthM);     // authored reef edge
+  // Early-out BEFORE the noise (perf, 2026-08-12). The gates above are pure
+  // arithmetic; the three octaves below are the expensive part, and outside the
+  // 1.2-8.5 m depth band their result is multiplied by zero. That band is a
+  // minority of any frame — deep water, dry land and every synthetic preset
+  // (depthM = 99) fall outside it — so this skips 3 vnoise2 per fragment on
+  // most of the screen, in BOTH stages (GRID_VERT calls this too). Bit-exact:
+  // the branch returns the value the full path would have produced.
+  if (scour * outer <= 0.0) return 0.0;
   // Patchy, never a sheet: the ortho shows clumps tens of metres across with
   // open lanes between them. Three octaves — ~50 m blobs carry the shape, ~16 m
   // roughens them, and the ~5 m octave sits BELOW the 7 m DEM post so the post

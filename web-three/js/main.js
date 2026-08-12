@@ -32,7 +32,30 @@ import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../
 // (zipper peels +x), z shoreward. Centered on the break at the origin, biased
 // +10 m shoreward to match web/'s drone framing (z = -uv.y*170 + 10).
 const STAGE_W = 600, STAGE_D = 500, STAGE_Z0 = 10;
-const SEG_X = 512, SEG_Z = 384;
+// ---------- quality tiers ----------
+// MEASURED 2026-08-12 (GPU timer queries, not wall clock — wall clock is
+// rAF-capped on a fast machine and reports 8.3 ms for every configuration):
+// GPU time scales LINEARLY with water-grid triangles — full 4.37 ms, half
+// 2.00, quarter 0.90 — while 4x the pixels cost only 1.57x. The seabed mesh is
+// free (0.98 vs 0.90 with it hidden). So this app is vertex-bound, not
+// fill-bound, and the naive fallback (drop the resolution) would buy almost
+// nothing: grid density is the lever. Tiers halve triangles roughly 2x a step.
+const QUALITY_TIERS = [
+  { name: 'high',   segX: 512, segZ: 384 },
+  { name: 'medium', segX: 362, segZ: 272 },
+  { name: 'low',    segX: 256, segZ: 192 },
+  { name: 'potato', segX: 181, segZ: 136 },
+];
+let qualityIdx = 0;          // set from #q= below, else auto-tuned at runtime
+let qualityLocked = false;   // #q= pins the tier and disables auto-fallback
+let SEG_X = QUALITY_TIERS[0].segX, SEG_Z = QUALITY_TIERS[0].segZ;
+{   // parse #q= before the geometry is built; full hash parsing happens later
+  const q = new URLSearchParams(location.hash.replace(/^#/, '')).get('q');
+  if (q) {
+    const i = QUALITY_TIERS.findIndex((t) => t.name === q.toLowerCase());
+    if (i >= 0) { qualityIdx = i; qualityLocked = true; SEG_X = QUALITY_TIERS[i].segX; SEG_Z = QUALITY_TIERS[i].segZ; }
+  }
+}
 
 const canvas = document.getElementById('gl');
 let renderer;
@@ -74,10 +97,6 @@ let driftLeg = 0;            // last drift interval acted on (floor(sim/period))
 // PlaneGeometry is authored in XY; rotate onto XZ (y up) then shift so
 // position.xz is the model coordinate directly — the vertex shader displaces
 // y and never needs a separate model transform to stay in sync with web/.
-const geo = new THREE.PlaneGeometry(STAGE_W, STAGE_D, SEG_X, SEG_Z);
-geo.rotateX(-Math.PI / 2);
-geo.translate(0, 0, STAGE_Z0);
-
 // Far skirt (spec Shading 5: "plane extends past fog distance"): the outer
 // 20% of grid parameter space is stretched from the stage edge out to
 // FAR_EXTENT, C1-continuous at the core boundary (linear slope flows into a
@@ -92,14 +111,23 @@ function stretchAxis(v, half) {
   const A = (FAR_EXTENT - half - slope * (1 - CORE)) / ((1 - CORE) * (1 - CORE));
   return s * (half + slope * m + A * m * m);
 }
-{
-  const pos = geo.attributes.position;
+// Factored so a quality change can rebuild the grid without duplicating the
+// skirt maths (which must stay identical across tiers or the horizon moves).
+function makeWaterGeometry(segX, segZ) {
+  const g = new THREE.PlaneGeometry(STAGE_W, STAGE_D, segX, segZ);
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, 0, STAGE_Z0);
+  const pos = g.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     pos.setX(i, stretchAxis(pos.getX(i), STAGE_W / 2));
     pos.setZ(i, STAGE_Z0 + stretchAxis(pos.getZ(i) - STAGE_Z0, STAGE_D / 2));
   }
-  geo.computeBoundingSphere();
+  g.computeBoundingSphere();
+  return g;
 }
+// Built here, not above: makeWaterGeometry is hoisted but CORE/FAR_EXTENT are
+// `const` and would be in the temporal dead zone at an earlier call site.
+let geo = makeWaterGeometry(SEG_X, SEG_Z);
 
 const uniforms = {
   u_time:     { value: 0 },
@@ -152,7 +180,49 @@ const mat = new THREE.ShaderMaterial({
   uniforms,
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
-scene.add(new THREE.Mesh(geo, mat));
+const waterMesh = new THREE.Mesh(geo, mat);
+scene.add(waterMesh);
+
+// ---------- adaptive quality (auto-fallback) ----------
+// Reported 2026-08-12: slow on a mid-end Windows box. We cannot profile that
+// machine, and the local numbers are useless for it (an M3 Max is rAF-capped),
+// so the honest fix is to MEASURE ON THE USER'S MACHINE and step down. GPU
+// timing showed cost is ~linear in water-grid triangles, so a tier step (~2x
+// fewer triangles) is worth roughly 2x — dropping the render resolution would
+// not be, which is why this scales geometry rather than pixels.
+// Rate-independent and sim-independent: it watches real frame time only.
+const QUALITY_TARGET_MS = 22;    // ~45 fps; below this we are dropping frames
+const QUALITY_WARMUP_FRAMES = 60;   // ignore shader compile + first-bake spikes
+const QUALITY_WINDOW = 90;
+let qFrames = [], qWarmup = 0, qSettled = false;
+function rebuildWaterGeometry() {
+  const t = QUALITY_TIERS[qualityIdx];
+  SEG_X = t.segX; SEG_Z = t.segZ;
+  const old = waterMesh.geometry;
+  waterMesh.geometry = makeWaterGeometry(SEG_X, SEG_Z);
+  geo = waterMesh.geometry;
+  old.dispose();
+  // The FD normal step is one CORE cell, so it MUST follow the tier or the
+  // lighting changes with quality (normals sampled at the wrong scale).
+  uniforms.u_cell.value.set(STAGE_W / (SEG_X * CORE), STAGE_D / (SEG_Z * CORE));
+  refreshHUD();
+}
+function considerQuality(dtMs) {
+  if (qualityLocked || qSettled) return;
+  if (qWarmup < QUALITY_WARMUP_FRAMES) { qWarmup++; return; }
+  qFrames.push(dtMs);
+  if (qFrames.length < QUALITY_WINDOW) return;
+  qFrames.sort((a, b) => a - b);
+  const median = qFrames[Math.floor(qFrames.length / 2)];
+  qFrames = [];
+  if (median > QUALITY_TARGET_MS && qualityIdx < QUALITY_TIERS.length - 1) {
+    qualityIdx++;
+    rebuildWaterGeometry();
+    qWarmup = 0;               // re-warm before judging the new tier
+  } else {
+    qSettled = true;           // fast enough (or already at the floor): stop
+  }
+}
 
 // ---------- airborne impact whitewater ----------
 // Deterministic stations/seeds keep A/B captures reproducible. This is a
@@ -738,8 +808,10 @@ function frame(now) {
   // Clamp tab-switch jumps; floor at 0 because the FIRST rAF timestamp can
   // precede the module-eval performance.now() that seeded `last` (Chromium
   // hands the frame's begin time), and a negative dt walked simTime below 0.
+  const dtMs = now - last;
   const dt = Math.min(Math.max((now - last) / 1000, 0), 0.1);
   last = now;
+  if (Number.isFinite(dtMs) && dtMs > 0) considerQuality(dtMs);
   if (!state.paused && Number.isFinite(dt)) simTime += dt * state.speed;
 
   // Conditions drift: one hard switch to the next surf-worthy day at each
