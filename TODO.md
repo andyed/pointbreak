@@ -16,7 +16,95 @@ clock fake waves instantly) but honesty items that don't change the picture
 drop. Supersedes the 2026-08-09 surfer mission: the rider is garnish; the
 wave is the show.
 
-Priority order (STATUS 2026-08-11, after the workflow sprint 6709530):
+## PLAN (2026-08-11 evening, post external-validity audit — supersedes the
+## priority list below, which is kept for landed-status history)
+Source: docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md. Decisions by Andy
+2026-08-11: CPU twin ABANDONED for now (no parity work); direction α-split
+DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
+
+### Track 1 — the reef owns the break line (blocks Tracks 3 and 5)
+- [ ] 1a. `lift` probe along 38th's crest line — confirm the nose dives below
+      the natural bed (queued from last session; first move)
+- [ ] 1b. Nose v2: deepen relative to the BED, not the datum — the one change
+      that could hit all three of: A-frames→0, peel ≥1.5 crests, α on target
+- [ ] 1c. Judge the FLAG ENSEMBLE (#psi + #smooth + #peeldir + nose-v2), not
+      flags alone — each fixes a different §4.5 defect, each fails alone; the
+      candidate shipping default is a combination
+- [ ] 1d. M6p3 steps 3–4 (sound onto Ψ, flip default) ride with the ensemble
+- Acceptance is now visual AND measured: drone capture shows a single-takeoff
+  zipper; α HUD swing < ~5° for ±0.3 m H₀; spots distinguishable by their
+  SURF (pairwise-RMSE instrument from the audit), not just coastline.
+
+### Track 1b — scene identity (PROMOTED; parallel, independent of 1)
+- [ ] Headland: the ~110° corner cannot appear in the per-spot re-centered
+      coastline — build the real shoreline from data/osm (audit: no frame
+      reads as Pleasure Point at any altitude)
+- [ ] Kelp wedge: DARK, tracking the reef (sim currently paints the reef
+      tongue bright — value polarity inverted vs the NAIP ortho)
+- [ ] Crowd scatter (sitting riders bobbing; near-free realism + rider scale
+      calibration per VISUAL_GROUND_TRUTH) and cliff riprap/swash/houses
+- [ ] Hunt the vertical bake seam + fixed light wedge (cause unidentified;
+      provably NOT the Ψ bake — it was off in every audit capture)
+
+### Track 2 — CPU twin: ABANDONED for now (Andy, 2026-08-11)
+No parity port. Consequences to carry honestly:
+- [ ] rideMetric DEPRECATED as an acceptance instrument (it scores the
+      pre-depth twin; the 0.81–0.87 ratios are self-referential). Acceptance
+      moves to capture-based instruments (Track 6).
+- [ ] Rider stays garnish behind its toggle; known to stand off the drawn
+      surface under #m4 default — do not tune rider items until/unless the
+      twin returns
+- [ ] sound.js keyed to the authored line (audio ~7–20 s late vs drawn crash,
+      replica-derived estimate) — accept for now; revisit with a GPU-side
+      break signal, not a twin repair
+- [ ] Camera aim via authored breakLineJS (5–9° error) — cheap partial: aim
+      cameras off the BAKED emergent line data (CPU-side bake already exists)
+
+### Track 3 — direction becomes a condition (doc NOW, wire AFTER Track 1)
+- [ ] 3a. MODEL.md §2.4/§4.5 amendment NOW: split α into site character
+      (authorship) vs incident swell direction (ocean state); per-spot
+      compass→contour constants from PP_MAP_GEOMETRY tangent tables.
+      Direction MODULATES the peel; the reef owns spot identity.
+- [ ] 3b. Mechanical hygiene (can land with the doc): bakeBreakLine cache key
+      gains direction (latent stale-bake bug); #swell= dead knob wired or
+      deleted; applyOcean carries `dp` into state (today the HUD announces a
+      direction the model discards)
+- [ ] 3c. Wiring (gated on Track 1): SC116 incident band ±15–30°, seasonal
+      (winter wrapped-NW 203–209° vs summer direct-S ~191°) and
+      period-structured (windswell ~215° vs groundswell ~192°); condition-day
+      bundles gain a direction field; drift samples the seasonal distribution.
+      Calibration set: the 16-month CDIP pull (audit doc, THREDDS recipes).
+
+### Track 4 — conditions truthfulness
+- [ ] 4a. Tide polarity ROOT-CAUSE first: breaking intensity currently
+      INVERTS with tide (low glassy, high active). Wiring live tide before
+      this is anti-validity.
+- [ ] 4b. Wind as data (chop scalar + drift direction are compile-time now);
+      sky state (sun visibility → glitter amplitude; marine layer default)
+- [ ] 4c. Decide the live clamps (Hs 3.0 m / Tp 18 s) — surface or raise
+
+### Track 5 — the reads (after Track 1 geometry)
+- [ ] Foam first — the largest water-level gap: attachment to crests,
+      brightness step (~20 values vs ~130 in photos), aging texture
+      (chunky→lace→gray), trailing persistence
+- [ ] Face darkening AFTER #psi lands (tuning fresnel against under-steepened
+      geometry bakes in a compensation)
+
+### Track 6 — instrumentation (cheap; start anytime — now the acceptance path
+### since the twin instruments are deprecated)
+- [ ] Temporal audit harness: N-frame captures → zipper speed vs Vp=c/sin α,
+      set cadence (is the 3.4× group-speed error visible?), foam advection.
+      The audit's biggest blind spot: every visual claim was one frozen frame.
+- [ ] Absolute scale from pixels: crest spacing in a drone frame vs
+      dispersion — confirms LAM shoaling with no replica involved
+- [ ] Constant dedup: γ (5 files) and LAM (3 files) to shared constants
+- [ ] Audit the two unaudited surfaces: web/ raymarch build + the DEPLOYED
+      essay figures (generated by the indicted default config)
+- Phase 3 FIRST VALIDATION PASS below remains the project's largest honesty
+  gap; the temporal harness is its prerequisite instrument.
+
+Priority order (STATUS 2026-08-11, after the workflow sprint 6709530 —
+superseded by the PLAN above, kept for landed-status history):
 0. [LANDED 2026-08-11 — `setupLiftM()`/`setupPeakM()`/`wetSand()` in
    web/js/model-glsl.js: lagged asymmetric set envelope, 0.3*H0 peak, confined
    shoreward of the 2 m contour so the lineup and break line never feel it,
