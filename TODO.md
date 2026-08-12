@@ -115,6 +115,13 @@ No parity port. Consequences to carry honestly:
       indicted config (m4Enabled=false, 2026-08-10 build) so its figures stand
 - Phase 3 FIRST VALIDATION PASS below remains the project's largest honesty
   gap; the temporal harness is its prerequisite instrument.
+- [x] Validation METHOD written up 2026-08-12: `docs/research/VALIDATION_PLAN.md`
+      (observables, source ranking, pre-registration, how to read the outcome)
+      and `scripts/measure_cam.py` (the observation-side instrument, with a
+      motion gate). Conditions half is free — SC116 hindcast, 221k hourly
+      records back to 2000. Still UNRUN: no residual measured against a real day.
+- [x] Method lessons collected: `docs/research/MEASUREMENT_LESSONS.md` — read
+      before trusting any measurement in this repo.
 
 Priority order (STATUS 2026-08-11, after the workflow sprint 6709530 —
 superseded by the PLAN above, kept for landed-status history):

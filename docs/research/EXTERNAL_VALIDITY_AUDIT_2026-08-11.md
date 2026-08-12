@@ -6,6 +6,10 @@ evening after the ROOT DEFECT was identified. Trigger: perceived external
 validity had fallen, with the hypothesis that the model is missing
 **conditions-dependent swell direction**.
 
+> **SEE ALSO** `MEASUREMENT_LESSONS.md` (why several of this document's
+> conclusions were wrong in a repeatable way) and `VALIDATION_PLAN.md` (the
+> comparison-with-observation this audit could not perform).
+>
 > **PARTLY SUPERSEDED same day** by `ROUND2_FINDINGS_2026-08-11.md`. Four
 > conclusions below are REFUTED by measurement: the inverted tide response
 > (item 5 — the depth path is correct; the defect is in the whitewater channel,
