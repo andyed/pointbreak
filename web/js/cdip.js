@@ -63,11 +63,21 @@ export function cachedOcean() {
   } catch (_) { return null; }
 }
 
-// Map buoy/model reality into model-card parameters. Direction is displayed but
-// not applied — the peel geometry is a property of the shelf, not the swell.
+// Map buoy/model reality into model-card parameters. Direction is OBSERVED,
+// CARRIED, and NOT YET APPLIED — see Track 3 in TODO.md and the "Direction in
+// the code" section of docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md.
+// (The older claim here — that peel geometry is a property of the shelf, not
+// the swell — is now qualified: the reef owns spot identity, but a ~15–30°
+// seasonally and period-structured incident band modulates the peel. Wiring it
+// is gated on the reef owning the break line, Track 1.)
 export function applyOcean(state, o) {
   state.H0 = Math.min(3.0, Math.max(0.4, o.hs));
   state.T = Math.min(18, Math.max(8, o.tp));
+  // INERT field: nothing reads this yet. It exists so the observation survives
+  // to the point where Track 3c can wire it, instead of being dropped here
+  // while describeOcean() prints "from N°" in the HUD. Do not make it drive
+  // rendering without the MODEL.md alpha split (Track 3a).
+  state.swellDpObserved = (o.dp != null && Number.isFinite(o.dp)) ? o.dp : null;
   state.preset = null; // live conditions, not a named preset
 }
 

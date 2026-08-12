@@ -69,6 +69,88 @@ vec2 detailGrad(vec2 p, float t){
 }
 `;
 
+// ---------- kelp canopy ----------
+// VISUAL_GROUND_TRUTH.md item 5 names kelp as a water-level cue and it was
+// entirely absent; worse, the polarity was INVERTED. The bottom-showing-through
+// term below paints the shallow reef tongue bright sandy-teal, while the NAIP
+// ortho (references/sat_usgs_z16_pleasurepoint.jpg, USGS/NAIP, public domain)
+// shows the reef at Pleasure Point as a near-black olive WEDGE running seaward
+// from the point. Inverted value polarity is an instant-fake tell at thumbnail
+// size, so this is the shading fix, not decoration.
+//
+// TUNED AGAINST THE ORTHO, not invented. Patch means sampled off that image:
+// canopy core RGB (42, 56, 63) against adjacent open water (126, 150, 149) —
+// a per-channel ratio of (0.34, 0.37, 0.42), i.e. the canopy sits at roughly
+// four tenths of open water and kills red hardest, so it reads cold and dark
+// rather than merely dimmer. That RATIO is the acceptance target for the
+// colour code in GRID_FRAG; the constants there were solved to hit it.
+//
+// WHERE it grows. DEPTH is the only gate, and that is a deliberate choice made
+// against two rejected alternatives, both measured first with a debug pass that
+// wrote the candidate gates to RGB (kelpdbg/drone_secondpeak.png, session
+// scratchpad):
+//   * reefWindow(x) — REJECTED. It is the authored finite-reef ENVELOPE around
+//     one surf node, not the reef's footprint: on Second Peak its plateau plus
+//     feathers span ~150 m of a ~600 m-wide drone frame, so gating on it
+//     confined the whole canopy to a vertical strip about a quarter of the
+//     frame wide. The mudstone platform at Pleasure Point runs the length of
+//     the point; the surf node is a feature ON it, not its extent.
+//   * breakLine(x) as the scour edge — REJECTED. Physically it is the right
+//     rule (holdfasts do not survive the breaking zone) but the break line is
+//     currently DEM noise (the ROOT DEFECT), and in the debug pass it sat ~90 m
+//     seaward of the visible whitewater. Hanging a hard, high-contrast shading
+//     boundary on it would import that noise straight into the value structure
+//     and leave a bright gap band between the kelp and the foam. Depth is the
+//     physical scour variable anyway — orbital velocity at the bed — and it
+//     comes from the bathymetry directly, not from the broken derivation.
+//
+// So, on depth alone, with the ortho setting both edges:
+//   * inner 1.2 -> 3.4 m: the canopy dies on the inner bar. At Pleasure Point
+//     kelp grows right through the outer lineup — the ortho shows it reaching
+//     the whitewater fringe — so it must cover the ~2.2 m reef flat, and it
+//     does, at about half density, thickening seaward.
+//   * outer 5.0 -> 8.5 m: AUTHORED (MODEL.md 4.5 — physics owns the field,
+//     authorship owns the character). The real limit is light (~20 m), but this
+//     stage's bathymetry tops out near 8 m, so a 20 m limit would never land in
+//     frame. Thinning where the mapped reef gives way puts the seaward edge
+//     ~200 m out, where the ortho puts it. Nothing in the wave field reads
+//     this: it is a shading mask, downstream of everything.
+//
+// RAMP WIDTHS ARE NOT TASTE. A first cut used 1.0 m and 2.0 m ramps and the
+// canopy edge came back visibly BLOCKY (kelp/drone_secondpeak.png, first
+// iteration): the DEM residual is 0.31-0.93 m, so a 1 m ramp puts the mask's
+// own contour inside the noise band and the 7 m posts draw themselves. Both
+// ramps are now 2.2-3.5 m — several times the residual — and the clump noise
+// carries the edge structure instead, which is also what actually breaks the
+// boundary up in the ortho. Same lesson as the ROOT DEFECT, one layer up: do
+// not put a high-contrast boundary on a quantity whose ramp is narrower than
+// the error in the field under it.
+//
+// Anchored, so the noise is static in world space: holdfasts do not advect.
+// Requires MODEL_GLSL spliced first (vnoise2, waterDepthM, u_depthMix).
+const KELP_GLSL = `
+float kelpMask(vec2 xz, float depthM){
+  // depthM is 99 where a preset has no bathymetry behind it, so the outer gate
+  // alone switches the whole canopy off there; u_depthMix is belt-and-braces
+  // for a fractional cross-fade.
+  float scour = smoothstep(1.2, 3.4, depthM);           // dies on the inner bar
+  float outer = 1.0 - smoothstep(5.0, 8.5, depthM);     // authored reef edge
+  // Patchy, never a sheet: the ortho shows clumps tens of metres across with
+  // open lanes between them. Three octaves — ~50 m blobs carry the shape, ~16 m
+  // roughens them, and the ~5 m octave sits BELOW the 7 m DEM post so the post
+  // grid can never be the finest structure in the mask.
+  float p = vnoise2(xz*0.020 + vec2(11.3, -4.1))*0.56
+          + vnoise2(xz*0.062 - vec2( 3.7,  8.9))*0.30
+          + vnoise2(xz*0.190 + vec2(21.7,  5.3))*0.14;
+  // NOTE: not named "patch" — that is a reserved word in GLSL ES 3.0
+  // (tessellation), and three.js's WebGL2 prefix makes this file ES 3.0.
+  float clump = smoothstep(0.24, 0.64, p);
+  float k = scour * outer * clump * clamp(u_depthMix, 0.0, 1.0);
+  if (!(k == k)) k = 0.0;   // NaN guard (house rule)
+  return clamp(k, 0.0, 1.0);
+}
+`;
+
 // ---------- marine-layer sky ----------
 // Ported from web/'s skyColor() so both renderers share the palette. Noise is
 // self-contained (renamed sky*) because the sky-dome material does NOT splice
@@ -105,6 +187,7 @@ uniform vec2  u_cell;   // core grid cell size in metres (x, z) — normal FD st
 ${VARYINGS}
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
+${KELP_GLSL}
 
 // stage rect for the far fade — mirrors STAGE_* in main.js
 const vec2 STAGE_HALF   = vec2(300.0, 250.0);
@@ -303,13 +386,23 @@ void main() {
   vec2 boilPos = vec2(-22.0, -coastCurve(-22.0) - 8.0);   // matches ocean()'s boil
   float boil = exp(-dot(xz - boilPos, xz - boilPos)/(2.0*5.5*5.5));
 
+  // kelp slick — same damping mechanism as the boil dome, one stop weaker.
+  // A canopy is a viscous surface load: it flattens the short ripple it floats
+  // in without stopping the swell underneath, which is why kelp beds read as
+  // smooth dark patches in every aerial of this coast (VISUAL_GROUND_TRUTH.md
+  // item 5). Not passed down as a varying: the fragment recomputes it, because
+  // the mask carries a ~16 m noise octave that grid-rate interpolation of a
+  // varying would smear into a wash.
+  float kelp = kelpMask(xz, mix(99.0, waterDepthM(xz), u_depthMix));
+
   // fine displacement octaves at reduced amplitude (spec: "full detail lives
   // in normals"); damped in foam and over the boil, matching the fragment.
   // Sampled at the DISPLACED xz so the vertex bump and the fragment's
   // detailGrad (which reads vWorldPos.xz) stay the same field.
   float fade = farFadeAt(xz);
   float vAmp = 0.16 * (0.5 + 0.5*u_chop)
-             * (1.0 - 0.85*clamp(foam, 0.0, 1.0)) * (1.0 - 0.9*boil);
+             * (1.0 - 0.85*clamp(foam, 0.0, 1.0)) * (1.0 - 0.9*boil)
+             * (1.0 - 0.55*kelp);
   P.y += detailH(P.xz, u_time) * vAmp * fade * (1.0 - land);  // sand doesn't ripple
 
   vWorldPos = P;
@@ -331,6 +424,7 @@ ${VARYINGS}
 ${MODEL_GLSL}
 ${SKY_GLSL}
 ${DETAIL_GLSL}
+${KELP_GLSL}
 
 // fog density paired with the grid's ~4 km skirt (main.js FAR_EXTENT): the
 // plane outlives the fog, so the horizon is a fade, never a geometry seam.
@@ -476,7 +570,13 @@ void main() {
   // #3) — fade the perturbation with distance and hand its variance to a
   // wider specular lobe below (LEAN-style transfer).
   float detailVis = exp(-dist * 0.003);
-  float damp = (1.0 - 0.85*foamM) * (1.0 - 0.9*boil);
+  // kelp damps ripple the same way the boil dome does, one stop weaker — see
+  // the vertex stage, which flattens the matching displacement octaves. Both
+  // stages must agree or the geometry and the normals describe two surfaces.
+  // Computed once here and reused by the colour code below, so the mask costs
+  // nothing beyond the vDepth varying the vertex stage already interpolates.
+  float kelpM  = kelpMask(xz, vDepth);
+  float damp = (1.0 - 0.85*foamM) * (1.0 - 0.9*boil) * (1.0 - 0.55*kelpM);
   vec2 g = detailGrad(xz, t) * (0.55 + 0.55*u_chop) * damp * detailVis;
   // M2's folded lip shows its underside (material is DoubleSide); flip the
   // geometric normal for back faces so the curl shades as a surface, not a hole
@@ -514,11 +614,36 @@ void main() {
   // 10 m, and Monterey Bay is kelp-and-plankton turbid. Tripling it puts the
   // bottom out of sight by ~6 m, which is what makes the shallow reef read as
   // a bright shape against dark water instead of an even wash.
+  //
+  // KELP (polarity fix, 2026-08-11): with sand as the only bottom albedo this
+  // term is what painted the shallow reef BRIGHT — the exact inverse of the
+  // NAIP ortho, where the reef is the darkest water in frame. The canopy is
+  // handled as what it physically is, in two coupled places rather than as a
+  // paint-over:
+  //   1. it REPLACES the bottom. Macrocystis blades reflect a few percent,
+  //      greenest in the green band, against sand's ~50%, so the shallow
+  //      return that made the tongue glow simply stops arriving.
+  //   2. it SHADES THE COLUMN. The canopy floats in the upper metres and eats
+  //      the volume backscatter that lights open water, which is why the bed
+  //      reads darker than the water beside it and not merely un-bright.
+  // The transmission and the blade albedo were solved together against the
+  // ortho ratio quoted at KELP_GLSL: over the 2.2 m reef flat they land the
+  // canopy at (0.40, 0.37, 0.38) of the un-kelped water versus the measured
+  // (0.34, 0.37, 0.42). The deliberate departure is red — held a little high,
+  // blue a little low, because this palette's DEEP water is blue-slate and a
+  // neutral darkening would have left the canopy and the deep water the same
+  // colour AND the same value, so the wedge would not read as a shape. The
+  // olive lift below is what separates them by hue at matched value; kelp
+  // canopy is genuinely brown-olive, so the departure buys the read honestly.
+  float kelp = kelpM * (1.0 - 0.85*foamM);   // whitewater hides the bed
   vec3 kExt = vec3(0.45, 0.20, 0.16);
   float pathM = max(vDepth, 0.0) * 2.0;             // down and back up
-  vec3 bottomLit = vec3(0.60, 0.53, 0.41) * (0.35 + 0.45*clamp(dot(Ng, sunDir), 0.0, 1.0));
+  vec3 bedAlb = mix(vec3(0.60, 0.53, 0.41), vec3(0.035, 0.062, 0.048), kelp);
+  vec3 bottomLit = bedAlb * (0.35 + 0.45*clamp(dot(Ng, sunDir), 0.0, 1.0));
   vec3 through = bottomLit * exp(-kExt * pathM);
   base = mix(base, base + through, u_depthMix * (1.0 - 0.85*foamM));
+  base *= mix(vec3(1.0), vec3(0.44, 0.52, 0.58), kelp);
+  base += vec3(0.018, 0.026, 0.012) * kelp;   // olive canopy near the surface
 
   float lam = clamp(dot(N, sunDir), 0.0, 1.0);
   base *= 0.62 + 0.50*lam;   // gentle slope shading so faces still read

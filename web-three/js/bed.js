@@ -72,14 +72,48 @@ const REEF_FLANK_W = 45;      // m cross-strike feather half-width (smoothstep, 
 const REEF_RIDGE_WAVELENGTH = 50;  // m along-strike ridge spacing (their "sections")
 const REEF_RIDGE_MOD = 0.15;  // fractional amplitude modulation from the ridges
 const REEF_ANCHOR_X = 24;     // m: crest line meets the natural crest-depth contour here
-// Down-point deepening of the reef crest, metres per metre — the nose. Sets how
-// strongly the reef, rather than the DEM's shallowest accident, decides where
-// the wave breaks first. Calibrated on Second Peak (1.5 m over its 194 m stage).
-const REEF_NOSE_GRAD_DEFAULT = 0.0;   // OFF by default — see the note below
-let REEF_NOSE_GRAD = REEF_NOSE_GRAD_DEFAULT;
-export const REEF_NOSE_GRAD_TUNED = 0.0077;
-export function setReefNose(grad) {
-  if (grad !== REEF_NOSE_GRAD) { REEF_NOSE_GRAD = grad; fitCache.clear(); breakKey = ''; }
+// Down-point deepening of the reef — the nose, v2. DIMENSIONLESS: the fraction
+// of the LOCAL available relief (crest datum minus natural bed) that the reef
+// gives up by the down-point end of the stage. v1 was a gradient in m/m applied
+// to the crest ELEVATION; that made the nose's total drop a function of where
+// each spot's stage happened to sit in world x (reefWin[0] spans -201 m to
+// -57 m), so by the fit window at x=0 it had spent 0.44 m at Second Peak and
+// 1.55 m at Sewer Peak. On the four wide stages that drop pushed the crest
+// datum BELOW the natural bed inside the fit window, lift went to 0 at every
+// fit station, the break line reverted to the raw DEM march and derived alpha
+// collapsed to 0.97-2.65 deg. See docs/research/EXTERNAL_VALIDITY_AUDIT.
+//
+// v2 keeps the crest anchored at targetEl and tapers the AMPLITUDE instead, on
+// the stage's own normalized coordinate. The reef therefore always lifts toward
+// (1 - FRAC·s) of the way from the local bed up to the crest datum: it deepens
+// relative to the NATURAL BED, never toward a fixed datum that the bed can
+// out-climb, so the wedge keeps authority over the break line to the end of the
+// stage no matter how wide the stage is.
+// NOT a bed-relative crest ELEVATION (lift = RHO·h_nat): that preserves the
+// natural isobath shape, and the wedge's whole alpha authority comes from
+// imposing an ABSOLUTE crest elevation that cuts across the measured contours.
+// Measured: beta saturates at the 80 deg clamp and alpha misses by 15-35 deg.
+const REEF_NOSE_FRAC_DEFAULT = 0.0;   // OFF by default — #nose=1 turns it on
+const REEF_NOSE_FRAC_MAX = 0.30;      // last value where all six spots stay in the +-5 deg band
+let REEF_NOSE_FRAC = REEF_NOSE_FRAC_DEFAULT;
+export const REEF_NOSE_FRAC_TUNED = 0.25;
+export function setReefNose(frac) {
+  const f = Math.min(Math.max(frac || 0, 0), REEF_NOSE_FRAC_MAX);
+  if (f !== REEF_NOSE_FRAC) { REEF_NOSE_FRAC = f; invalidateReef(); }
+}
+// Every cache downstream of the reef fit, not just the fit itself. The reefed
+// composite grid is memoised three more times (u16Cache -> texCache/cpuCache),
+// and none of those keys carry the nose setting, so clearing only fitCache
+// leaves the GPU texture and the CPU twin built from the PREVIOUS nose. Inert
+// today because the hash is parsed once before the first bake, but it is the
+// same latent stale-bake class as the bakeBreakLine key, and a probe that
+// sweeps the nose in one process hits it immediately.
+function invalidateReef() {
+  fitCache.clear();
+  breakKey = '';
+  for (const c of [u16Cache, texCache, cpuCache]) {
+    for (const k of [...c.keys()]) if (k.endsWith('|reef')) c.delete(k);
+  }
 }
 const REEF_FIT_TOL_DEG = 1.0;
 const REEF_FIT_MAX_ITER = 14; // secant evaluations; load-time only, so cheap
@@ -159,18 +193,21 @@ function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
   // that is the 22-70 m locus wander behind the A-frame, the alpha collapse
   // under smoothing, and the 43 deg alpha swing for 0.3 m of swell.
   //
-  // A real point is shallowest at its apex and falls away down-point. Tilting
-  // the crest elevation the same way makes the wave break FIRST at the top of
-  // the point and progressively later down it — one takeoff, one direction, and
-  // a locus whose position is set by a gradient the reef owns instead of by
+  // A real point is shallowest at its apex and falls away down-point. Giving
+  // the reef the same profile makes the wave break FIRST at the top of the
+  // point and progressively later down it — one takeoff, one direction, and a
+  // locus whose position is set by something the reef owns instead of by
   // whichever pebble is shallowest.
-  // A GRADIENT, not a total drop: as a fixed drop over each stage's own span it
-  // gave three different physical steepnesses (0.48-1.3 m per 100 m across a
-  // 113-312 m spread) and worked on the two narrow stages while flattening the
-  // four wide ones to ~2 deg.
+  // v2 (see REEF_NOSE_FRAC above): the taper is on the UPLIFT AMPLITUDE and on
+  // the stage's own normalized coordinate, so a wide stage gets the same shape
+  // as a narrow one and the crest can never dive under the bed. Two earlier
+  // formulations are ruled out by measurement: a fixed total drop per stage
+  // (three different physical steepnesses, 0.48-1.3 m/100 m over a 113-312 m
+  // spread) and a fixed gradient in m/m (v1 — flattened the four wide stages to
+  // ~2 deg because its drop is measured in world x, not in stage fraction).
   const noseX0 = reefWin[0], noseSpan = Math.max(reefWin[3] - reefWin[0], 1);
-  const crestElAt = (x) =>
-    targetEl - REEF_NOSE_GRAD * Math.min(Math.max(x - noseX0, 0), noseSpan);
+  const noseTaper = (x) =>
+    1 - REEF_NOSE_FRAC * Math.min(Math.max((x - noseX0) / noseSpan, 0), 1);
   return (x, z, em) => {
     if (em >= REEF_CEIL_EL) return 0;
     // MODEL-TWIN of the GLSL reefWindow, per spot: the synthetic reef must be
@@ -190,8 +227,13 @@ function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
     const s = x * cosB + (z - zRef) * sinB;    // along-strike coordinate, m
     const ridge = 1 - REEF_RIDGE_MOD
                 + 2 * REEF_RIDGE_MOD * ridgeNoise(s / REEF_RIDGE_WAVELENGTH, seed);
-    // lift toward the crest elevation, never more than the wedge amplitude
-    const lift = Math.min(Math.max(crestElAt(x) - em, 0), REEF_AMP_MAX) * flank * w * ridge;
+    // lift toward the crest elevation, never more than the wedge amplitude,
+    // tapered down-point by the nose. Every factor is non-negative and
+    // noseTaper >= 1 - 0.30 = 0.70, so the nose can only REDUCE lift: it cannot
+    // deepen a post, and it cannot push one above a ceiling the untapered path
+    // already respected.
+    const lift = Math.min(Math.max(targetEl - em, 0), REEF_AMP_MAX)
+               * noseTaper(x) * flank * w * ridge;
     return Math.max(Math.min(em + lift, REEF_CEIL_EL) - em, 0);
   };
 }
@@ -653,7 +695,10 @@ export const PEEL_SMOOTH_M = 90;
 // original narrow fit exactly.
 let locusSmoothM = 0;
 export function setLocusSmoothing(m) {
-  if (m !== locusSmoothM) { locusSmoothM = m; fitCache.clear(); breakKey = ''; }
+  // Same invalidation as the nose: the smoothing length changes the FIT, and
+  // the fitted reef is baked into u16Cache/texCache/cpuCache under keys that do
+  // not carry it.
+  if (m !== locusSmoothM) { locusSmoothM = m; invalidateReef(); }
 }
 // Shore-normal march step for the break criterion, metres. The crossing is
 // interpolated between steps, so this sets cost, not precision.
@@ -699,7 +744,12 @@ function markBreak(spotName, x, opts) {
 export function bakeBreakLine(spotName, xRange, opts) {
   if (!spotName) return null;
   const [x0, x1] = xRange;
-  const key = [spotName, x0, x1, opts.H0, opts.T, opts.tide, opts.bedShape].join('|');
+  // Direction belongs in the key: the peel constraint below consumes
+  // opts.peel.phiRad, so two bakes that differ only in direction are two
+  // different lines. Same style as bakeRefraction's key (swellDeg member).
+  // `null` when peeldir is off, which is its own distinct cache state.
+  const peelPhi = opts.peel ? opts.peel.phiRad : null;
+  const key = [spotName, x0, x1, opts.H0, opts.T, opts.tide, opts.bedShape, peelPhi].join('|');
   if (breakTex && key === breakKey) return { texture: breakTex, x0, x1 };
 
   const rgba = new Uint8Array(BREAK_N * 4);

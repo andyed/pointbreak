@@ -22,7 +22,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
-         setReefNose, REEF_NOSE_GRAD_TUNED } from './bed.js';
+         setReefNose, REEF_NOSE_FRAC_TUNED } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -791,13 +791,27 @@ function applyHashParams() {
   if (h.has('smooth')) smoothEnabled = h.get('smooth') === '1';
   // ONE smoothing length for the fit and the bake — see bed.js setLocusSmoothing.
   setLocusSmoothing(smoothEnabled ? PEEL_SMOOTH_M : 0);
-  // M5 nose (#nose=1). Works on the two narrow stages, flattens the four wide
-  // ones — see WEB_THREE_SPEC. Default off until that is understood.
-  if (h.get('nose') === '1') setReefNose(REEF_NOSE_GRAD_TUNED); // M6p3 shoaling wavelength (default OFF; water only)
+  // M5 nose, v2 (#nose=1): a down-point taper on the uplift AMPLITUDE, in stage
+  // fraction, so it no longer flattens the wide stages the way the v1 gradient
+  // did (bed.js REEF_NOSE_FRAC). Still default OFF — the fit is on target on all
+  // six spots but the visible-crest consequence is unproven. `#nose=<f>` takes
+  // an explicit fraction (clamped to [0, 0.30] by setReefNose) for tuning.
+  if (h.has('nose')) {
+    const nv = h.get('nose');
+    const f = nv === '1' ? REEF_NOSE_FRAC_TUNED : parseFloat(nv);
+    if (Number.isFinite(f)) setReefNose(f);
+  }
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
   uniforms.u_breakShape.value = structuralBreaker;
-  if (h.has('swell')) state.swellDeg = Math.min(Math.max(parseFloat(h.get('swell')) || 50, 0), 85);
+  // #swell= REMOVED 2026-08-11. It wrote state.swellDeg, which nothing read:
+  // the refraction bake takes `swellDeg: state.alpha` (see the bakeRefraction
+  // call above), and alpha is authored per spot in params.js. The knob looked
+  // wired and was not. Do NOT re-add it as a bare hash param — alpha is
+  // semantically overloaded (site character AND incident swell direction), so
+  // a real direction knob needs the MODEL.md §2.4/§4.5 variable split first.
+  // See docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md ("Direction in the
+  // code") and TODO.md Track 3a (doc) / 3c (wiring, gated on Track 1).
   if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
   const camName = (h.get('cam') || '').toLowerCase();
   const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);

@@ -6,6 +6,16 @@ evening after the ROOT DEFECT was identified. Trigger: perceived external
 validity had fallen, with the hypothesis that the model is missing
 **conditions-dependent swell direction**.
 
+> **PARTLY SUPERSEDED same day** by `ROUND2_FINDINGS_2026-08-11.md`. Four
+> conclusions below are REFUTED by measurement: the inverted tide response
+> (item 5 — the depth path is correct; the defect is in the whitewater channel,
+> and the graded frame was a lull at both tides), the ~200° shore normal (real
+> normals are 126–151°, so incidence is +42…+70° off normal, not −12…+21°), the
+> headland premise (the coastline is DEM-derived and the corner is already in
+> the data — it is a camera framing defect), and the worry about published
+> essay figures (the deployed build predates the indicted config). Read that
+> doc alongside this one.
+
 ## Provenance and limits — read first
 
 - Every visual claim below comes from **one frozen frame** (`sim=42`, 1280×720,

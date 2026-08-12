@@ -341,9 +341,17 @@ with m > 0, plus an `abs()` fold for the A-frame — and a left was inexpressibl
 It is now the sign of φ. No preset ships one (Santa Cruz is a right-hand town)
 and no control exposes it, so `swellPhi()` still clamps positive; making a left
 reachable is a sign-preserving clamp and a slider range, deliberately not taken
-here.
+here. (§2.6.4 revises the clamp itself: once direction is an observed
+condition, a derivation that returns a left has to be *rejected* by name, not
+silently clamped into a near-closeout.)
 
 ### 2.4 Refraction: α becomes the deep-water direction (2026-08-10)
+
+*Reference depth superseded by §2.6 (2026-08-11): the deep-water angle is not
+recoverable at Pleasure Point, and the model's direction input should be the
+nearshore observation. The finding below — that refraction forgets the
+deep-water angle — stands and is what forces that change. Nothing in the code
+has moved; §2.6 is documentation only.*
 
 §2.3 gave the swell an angle but held it CONSTANT, so crests stayed 58° oblique
 all the way to the beach and read as "sideways". Real crests turn to follow the
@@ -375,6 +383,12 @@ deep-water angle: 38° and 70° arrive within a degree of each other, so the
 seven-spot taxonomy of §3 and §4 no longer differentiates — Sewers and Sharks
 are now the same wave. And a ~9° peel angle is a closeout, so V_p runs 38–50 m/s
 (85–110 mph) and no one is riding it.
+
+(Both rows of that table are computed from the *deep-water* reference. Under
+§2.6's nearshore reference the same Snell step runs 15 m → break with a ratio
+of ~0.26–0.45 rather than ~0.23, giving φ_b = 10–20° instead of ~9°. That is
+still not a peel — the point of §2.6 is that φ_b is not where the peel angle
+comes from at all; the reef's bearing is.)
 
 That is not a defect in the refraction. It is the honest result of straight,
 shore-parallel contours: with those, refraction guarantees a near-closeout.
@@ -436,18 +450,398 @@ Implementation (`setupLiftM` in the shared GLSL):
   (0.1–1.7 rad, base ≈ 24 s of the cycle), is largest on the falling limb
   (the level holds high after the set peaks) and smallest on the rising limb
   (the next set's surge arrives fast). Everything is a closed form in `u_time`.
-- **Scale** — `0.2·H₀·envS`. Depth-limited breaking makes H₀ the
-  breaking-height scale (H_break = γ·h_b with h_b = H₀/γ), so this is
-  0.2·H_break, inside the observed band — and bigger days pull back further,
-  another emergent size cue.
-- **Confinement** — faded in below ~2 m of still-water depth (full strength
-  under ~0.7 m), so the lineup, the break line and the takeoff never feel it.
-  Gated by `u_depthMix`: synthetic presets have no measured shoreline to move.
+- **Scale** — `0.3·H₀·envS` (`setupPeakM()`, `model-glsl.js:452`).
+  Depth-limited breaking makes H₀ the breaking-height scale (H_break = γ·h_b
+  with h_b = H₀/γ), so this is 0.3·H_break — the **top** of the observed
+  0.15–0.3·H_break band — and bigger days pull back further, another emergent
+  size cue. *Corrected 2026-08-11: this section quoted 0.2 while the code was
+  raised to 0.3 the same day, because the ~8 m waterline breathe read as too
+  subtle at drone distance. The code is what shipped; the doc was the drift.
+  Sitting at the top of the band is a deliberate authorship choice inside a
+  physics-owned range, not a licence to leave it.*
+- **Confinement** — faded in below 2 m of still-water depth, full strength
+  under **1.2 m** (`smoothstep(1.2, 2.0, waterDepthM)`, `model-glsl.js:468`),
+  so the lineup, the break line and the takeoff never feel it. Gated by
+  `u_depthMix`: synthetic presets have no measured shoreline to move.
+  *Corrected 2026-08-11: the doc quoted a 0.7 m inner edge; the code was
+  steepened to 1.2 m with the scale change above, so the whole inner sheet
+  rides the full lift. The 2 m outer edge is unchanged and is the load-bearing
+  one.*
 - **Emergent waterline** — the lift is added both to the *depth* the physics
   sees (shoaling, `Hlim`, the shore-fade, so broken waves run farther in
   during a set) and to the *surface height* itself. The renderers already
   take `max(bed, water)`, so the shoreline advances and retreats for free —
   no repainted texture, no second waterline.
+
+### 2.6 Direction is a condition, not a character (2026-08-11)
+
+> **STATUS: DOCUMENTED, NOT WIRED.** Nothing in this section runs. The runtime
+> still does exactly what §2.3/§2.4 describe: one authored per-spot `alpha`
+> serves as the swell incidence, no observed direction reaches any uniform, and
+> `applyOcean` carries CDIP's `waveDp` into an inert state field
+> (`state.swellDpObserved`, `web/js/cdip.js:80`) that no consumer reads. **The gate is Track 1 — the
+> reef owning the break line.** Until the break line stops being DEM noise, a
+> 4–8° direction signal cannot be observed on screen, let alone validated; see
+> §2.6.5. Do not wire any of this early, and do not read the tables below as
+> descriptions of the build.
+
+§2.4 made α the deep-water swell direction. §4.5 made α authorship-owned. Both
+cannot hold. A swell direction is something the ocean does on a given morning,
+and Sewers and Private's — 1.6 km apart on the same point — face the same
+physical swell; but the bank authors 38° at Sewers and 70° at Private's
+(`web/js/params.js:61-67`). One symbol is carrying a site's identity and an
+hour's weather at once. That is the §4.5 failure mode exactly: two sources of
+truth for one quantity, with no rule for which wins.
+
+The fix is to name two quantities and give each an owner.
+
+#### 2.6.1 The two quantities
+
+**`B_spot` — break-line bearing. SITE CHARACTER. Authored, one constant per
+spot, never varies with conditions.** The compass bearing of the spot's break
+line, positive down-point (toward Capitola). It is where the peel angle comes
+from: the reef's obliquity to the arriving crest. §4.5 already assigns break
+*location* to physics and peel *direction* to authorship; `B_spot` is the
+declaration where those two meet.
+
+**`D_p` — incident swell direction. OCEAN STATE. Observed, varies hour to
+hour.** The compass bearing the swell arrives *from*, at the nearshore
+reference contour, as reported by CDIP MOP SC116 (`waveDp`). It joins H₀, T,
+tide and chop in the conditions bundle (§4.5, "swell conditions"). It is not a
+character knob and no preset may author it as one; a preset may carry a
+*reference* `D_p` the way it carries a reference H₀.
+
+Both are compass bearings, so both are checkable against a map. Neither is α.
+α survives as a **derived diagnostic** — the realized peel angle, reported by
+the HUD and by the acceptance tests, owned by nobody, authored nowhere.
+`α_target` stays in the preset bank as the §4.5 declaration: the peel angle the
+site should produce under reference conditions. It constrains the derivation
+and is never fed into the phase.
+
+#### 2.6.2 How they compose
+
+Three rules, in force order.
+
+1. **The reef owns spot identity.** What makes Sewers Sewers is `B_spot` and
+   the reef depth under it, not the swell. A direction change must not be able
+   to turn one spot into another. Operationally: over the whole SC116 operating
+   band (§2.6.4) the derived α at any two spots must stay separated by more
+   than each spot's own band-induced swing. That is a test, not an assumption,
+   and it cannot be run until `B_spot` is real (§2.6.3).
+
+2. **Direction modulates, it does not constitute.** `D_p` enters twice:
+
+   - *Peel*, through the crest bearing at the break — **4–8° across the 90%
+     band** (§2.6.3, measured; the range is the N_ref uncertainty, not spread
+     between spots). Second-order in size, but real, monotone, and ~1.5–2×
+     the peel's sensitivity to a ±0.3 m change in H₀, which is the argument
+     for wiring it at all.
+   - *Exposure*, through the cross-shore energy-flux factor `cos φ`. This is
+     the first-order channel: over the same band `cos φ` falls by about half
+     (0.74 → 0.34 at N_ref = 146°, a 54% drop; 0.81 → 0.44, 46%, at
+     N_ref = 152°), and it is what makes a winter wrapped-NW
+     day and a summer direct-S day different sizes at the same H₀.
+     `research/PP_MAP_GEOMETRY.md:47-53` already proposed this split —
+     `alpha(u) = f(swell_dir − coast_tangent(u))` **and**
+     `H_eff(u) = H₀·shelter(u, swell_dir)`, two separate fields. This section
+     defines the first only. The second is larger and u-dependent (the apex
+     shadow that shelters the down-point spots) and `cos φ` does not contain
+     it; it is not specified here.
+
+3. **The declaration constrains the derivation, never the reverse** (§4.5).
+   If the derived α misses `α_target` under reference conditions, the reef is
+   wrong — deepen it, re-fit it, move it. Nudging `D_p` to hit an authored
+   number is forbidden: it would put site character back inside ocean state,
+   which is the defect this section exists to remove. Same for handedness: the
+   site is declared a right, so a derivation that returns a left over the
+   operating band is an invalid derivation, not a wave.
+
+#### 2.6.3 The compass-to-contour-frame conversion
+
+Two constants and one Snell step. Per-spot in the break-line bearing, **global**
+in the direction reference — and that asymmetry is the mechanism of the point:
+
+> The shoreline tangent swings ~110° along the point (`PP_MAP_GEOMETRY.md`
+> finding 1). The offshore depth contours do not: walked down the NCEI DEM from
+> each canon spot, the seaward normal at the 10 m contour is **144.9–148.9° at
+> six of seven spots**. The swell arrives at every spot with nearly the same
+> crest bearing, and the spots differ because the *land* turns underneath it.
+> A global constant is wrong for `B_spot` and right for the direction
+> reference.
+
+    φ_ref = wrap180(D_p − N_ref)                    // incidence at the reference contour
+    φ_b   = asin( sin(φ_ref) · c(h_b) / c(h_ref) )  // Snell, reference depth -> breaking depth
+    crest = N_ref + φ_b + 90                        // bearing of the crest line
+    α     = wrap90(crest − B_spot)                  // realized peel angle; sign = handedness
+
+Sign convention matches §2.3: positive φ = arriving from up-coast (the apex
+side), the zipper runs +x, the wave is a right. At Pleasure Point the outward
+normal points ~SE and the swell band is ~SSW, so `D_p − N_ref > 0` and the
+convention returns a right without being told to — which is the check that the
+frame is the right way round.
+
+`c` comes from `dispersion.js`, not a constant: `c(h_ref = 15 m)` is
+11.36–11.68 m/s over the bank's T = 12–15 s, so it must be evaluated per T.
+
+**`N_ref` — the direction reference. Provisional: 146°, uncertainty ±6°, and
+the reference depth is an OPEN question.** Measured this session on
+`data/bathy/pp_bathy.json` (boxcar ±4 posts, seaward normal = bearing of −∇z,
+contour walked in 5 m steps down the smoothed gradient):
+
+| estimator | seaward normal | note |
+|---|---|---|
+| contour walk from the canon spots, h = 10 m | **144.9–148.9°** (6 of 7) | 400–650 m offshore; the solid one |
+| same, h = 5 m | 132–138° (6 of 7) | Private's is a 114° outlier |
+| DEM gradient at SC116's own location, ±3…±24 posts | 126–149° | scale-dependent |
+| same walk, h = 15 m | 152.4°, 172.8°, 178.4° (3 of 7 reachable) | see caveat |
+| OSM cliff normal, canon spots | 115–169° | the land, not the floor |
+| OSM cliff normal, apex sector (Sewers ±50 m, Suicide's) | 182°, 205° | the corner |
+
+*Caveat, and it is not small.* SC116 sits on the −15 m contour, but the DEM's
+seaward edge is y = −682 m and the 15 m contour lies at or beyond it for the
+up-point spots: the walks from Sewers, First Peak, Second Peak and the Hook all
+terminate on the grid boundary at −6.5…−14.6 m without reaching 15 m. The three
+that do reach it do so 1.1–1.5 km down-point in the grid corner, where the
+readings (152–178°) are edge-affected and disagree with each other. **So the
+model's own substrate cannot presently measure the 15 m normal at the reef.**
+`N_ref = 146°` is the 10 m figure used as a stand-in for the 15 m one. Closing
+that gap needs either a wider DEM subset or Track 1's emergent contour.
+
+**`B_spot` — provisional, and not yet fit to wire.** Total-least-squares
+principal-axis fits to `data/osm/pp_geometry.json` (288-vertex OSM coastline,
+median vertex spacing 14 m) over ±50 / ±100 / ±200 m of arclength around each
+spot; bearing = (90 − θ_CCW-from-E) because `data/osm/process.py:56-61`
+measures tangents CCW from east. A chord estimator over the same windows agrees
+with the TLS column to within ~2°, so the numbers below are internally
+consistent — but a second, independently written TLS implementation run this
+round produced ±100 m values differing by up to 14° (38th 55.2 vs 47.3,
+Shark's Cove 25.3 vs 11.2). Treat the column as one estimator's answer, not as
+the measurement:
+
+| spot | u (m) | published ±3-vtx tangent as a bearing | TLS ±50 m | ±100 m | ±200 m | status |
+|---|---:|---:|---:|---:|---:|---|
+| Sewer Peak | 402 | 97.1 | 92.4 | 78.8 | 70.3 | **OPEN — unusable** |
+| First Peak | 554 | 32.7 | 30.4 | 36.4 | 43.0 | provisional |
+| Second Peak | 668 | 42.6 | 38.2 | 39.0 | 38.5 | provisional, tightest |
+| 38th (Jack's) | 981 | 57.2 | 41.9 | 47.3 | 56.4 | provisional, wide |
+| The Hook | 1331 | 45.2 | 36.3 | 45.4 | 51.6 | provisional, wide |
+| Shark's Cove | 1598 | 34.9 | 358.9 | 11.2 | 28.8 | **OPEN — degenerate at ±50 m** |
+| Private's | 1977 | 33.5 | 45.9 | 29.3 | 32.8 | provisional (synthetic stage) |
+
+The spread across window scales is 0.8° at Second Peak, 12.6° at First Peak and
+14–30° at the other five — i.e. **at six of seven spots the uncertainty on
+`B_spot` is comparable to or larger than the entire 4–8° signal `D_p` carries.**
+Since α is `crest − B_spot`, that uncertainty passes straight through: the two
+candidate constants for Shark's Cove give derived α of 58° and 34° at the same
+median direction, which is the difference between two different waves.
+
+Sewer Peak is the worst case and is instructive. It sits in the apex corner
+where the coast turns ~55° within 150 m of arc, and the candidates disagree
+about *what kind of wave it is*: the published ±3-vertex tangent (97.1°) makes
+Sewers a **left** at every direction in the band (α = −24…−16°), and the ±100 m
+fit (78.8°) makes it a left at the median that only turns right above
+D_p ≈ 205°, near the top of the band. Sewer Peak is a right. The cliff line
+cannot supply this constant.
+
+**So the cliff tangent is a scaffold, not the answer.** `B_spot` has to be read
+off the emergent break line once Track 1 produces one, with the OSM value
+demoted to a cross-check. Anyone quoting the table above outside this section
+will over-trust it.
+
+**What the conversion predicts that does *not* depend on `B_spot`.** The band
+swing and the height sensitivity are both properties of φ_b alone, so they
+survive the `B_spot` uncertainty and are the quotable part (`N_ref = 146°`,
+each preset's own T and H₀ from `params.js:61-67`, γ = 0.78):
+
+| preset | φ_b @ D_p 188° | @ 194° (median) | @ 216° | band swing | swing for ±0.3 m H₀ | direction : height |
+|---|---:|---:|---:|---:|---:|---:|
+| Sewers | 17.5 | 19.6 | 25.0 | 7.5 | 2.8 | 2.7× |
+| First Peak | 15.9 | 17.8 | 22.7 | 6.7 | 3.1 | 2.2× |
+| Second Peak | 14.5 | 16.2 | 20.6 | 6.1 | 3.3 | 1.8× |
+| Jack's (38th) | 12.5 | 13.9 | 17.7 | 5.2 | 3.9 | 1.3× |
+| The Hook | 14.6 | 16.3 | 20.8 | 6.2 | 3.4 | 1.8× |
+| Sharks | 11.9 | 13.3 | 16.9 | 4.9 | 4.1 | 1.2× |
+| Privates | 10.1 | 11.2 | 14.2 | 4.1 | 5.0 | 0.8× |
+
+Because α is a difference of bearings, the α swing equals the φ_b swing exactly;
+`B_spot` sets the offset, not the sensitivity. At N_ref = 140° the band swings
+3.5–6.4°; at 152° it swings 4.7–8.5°. **4–8° is the honest figure**, and it is
+1.5–2× the peel's response to the ±0.3 m H₀ step the audit captures use —
+except at Privates, where the ratio inverts (0.8×). That is a known consequence
+of Privates' 16.5 m RMS contour fit on a synthetic stage, not a reason to relax
+anything.
+
+Absolute derived α values are deliberately **not** tabulated here. They are
+`crest − B_spot`, and `B_spot` is not yet a number the repo can defend.
+
+#### 2.6.4 Invariants
+
+These survive the change or the change is wrong.
+
+1. **Handedness.** Santa Cruz is a right-hand town. §2.3 made handedness the
+   sign of φ rather than a hardcoded `+x` branch; §4.5 makes peel direction
+   authorship-owned. So: for every canon spot, over the full operating band,
+   derived α must stay positive with margin — and a spot whose candidate
+   `B_spot` values disagree about its handedness (Sewers, above) is rejected
+   before anything renders. The current implementation enforces handedness by
+   clamping instead: `clamp(asin(...), 0.04, 1.45)` in `swellPhi()`
+   (`web/js/model-glsl.js:186-192`, mirrored in `web-three/js/model-js.js`).
+   A clamp turns a left into a near-closeout silently. Under the split it has
+   to become a rejection at bake time naming the spot, not a clamp in the hot
+   path.
+
+2. **|α| becomes genuinely conditions-dependent.** Today it is not: α changes
+   only with `spotName`. After the split ∂φ_ref/∂D_p = 1 exactly, and derived α
+   must move monotonically with D_p at every spot, more southerly → larger α →
+   mellower. Target **4–8° across the 90% band**. A wired path producing 0° of
+   swing is not wired; one producing 40° is the root defect wearing a new hat.
+
+3. **The 43° swing must not come back.** `scripts/capture_audit_matrix.mjs:28`
+   labels the H₀ 1.5→1.8 m pair "the 43-degree alpha swing pair". No derivation
+   for that number exists anywhere in the repo, and it is the root defect's
+   signature: the break criterion is met at the same depth along the whole
+   reef, so the crossing lands on whichever natural shallow patch is furthest
+   seaward and hops 22–70 m against a ~5 m peel signal. The physically
+   justified response to that same 0.3 m step is **1.6°** at Second Peak
+   (φ_b 16.2° → 17.8° at the median direction), and
+   ≤5.0° for a full ±0.3 m swing at any spot. Acceptance, matching TODO Track
+   1: **α swing < 5° for ±0.3 m H₀**, *and* smaller than the same spot's
+   direction-band swing.
+
+4. **No new authority.** `D_p` may not enter the break-location solve, the
+   depth gate, or `VIS`. It enters the phase (`rayS`) and the refraction bake,
+   and nothing else. Break location stays physics-owned (§4.5).
+
+#### 2.6.5 The SC116 band, and what it is referenced to
+
+From the 16-month MOP nowcast pull (`SC116_nowcast.nc`, 11,953 hourly records;
+audit, "What the ocean actually does" — not recomputed here):
+
+| quantity | value |
+|---|---|
+| operating band (p1–p99) | D_p 187–221° |
+| 90% of hours | 188–216° |
+| median | 194° |
+| winter (Dec–Feb) monthly medians | 203–209° — NW groundswell wrapped into the bay |
+| summer (Jun–Aug) monthly medians | ~191° — direct S |
+| windswell, T_p 8–12 s | ~215° |
+| groundswell, T_p 16–25 s | ~192° |
+
+`waveDp` is a true bearing, so the band needs no shore normal to be quoted. A
+normal is needed only to turn it into an *incidence* — which is where the
+audit's own flag matters.
+
+**The audit's "~200° shore normal" — which the audit itself flagged UNVERIFIED
+(`research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md:50-52`) — is not the reef's
+normal, and the incidence range derived from it is wrong.** It traces to
+`research/CDIP_LIVE_DATA.md:95` — "shore normal 200°-ish", hedged, taken from
+CDIP's MOP transect definitions, i.e. CDIP's own backbone normal rather than a
+measurement in this model's frame. Nothing at the reef is near it: every
+estimator in §2.6.3 lands 115–169°, and the only readings that approach 200°
+are the OSM cliff normals in the apex sector (182°, 205°) — consistent with
+SC116's transect landing at u ≈ 440 m, in the corner between Sewer Peak and
+First Peak. So 200° is plausibly right *for CDIP's own definition at the apex*
+and wrong for every spot the model draws.
+
+Two corrections follow. Both belong in the research docs, which this section
+does not own:
+
+- **Incidence at the reef is +42…+70° off normal**, not the audit's
+  "−12°…+21°". Median D_p 194° against N_ref 146° is +48°. Pleasure Point is a
+  near-grazing point break; that is why it peels.
+- **SC116 is ~1050 m offshore, not ~150 m.** Measured: SC116 (36.94873 N,
+  121.96333 W, from `CDIP_LIVE_DATA.md:95`) projects to x = 1145, y = −597 in
+  the stage frame, DEM elevation −14.68 m, nearest OSM coastline vertex 1048 m
+  away. The "−15 m" checks out; the "~150 m" does not, and it appears twice
+  (`CDIP_LIVE_DATA.md:95`, `PP_SWELL_CLIMATOLOGY.md:140`). It matters because
+  it means there is a kilometre of refraction between the observation and the
+  break — the interval the Snell step in §2.6.3 stands in for.
+
+The band is a single-partition peak. Real combo days superpose S and NW trains
+and one `D_p` cannot represent them; the model has one monochromatic carrier,
+so that limitation is structural and out of scope here.
+
+#### 2.6.6 Why this is not wired, and what has to be true first
+
+**Preconditions.**
+
+1. **Track 1 complete: the reef owns the break line.** Non-negotiable, and the
+   reason this section is prose and not code. The rendered peel angle is
+   currently DEM noise — on a 1:75 bed the 0.31–0.93 m DEM residual displaces
+   the break crossing 22–70 m against a ~5 m peel signal. The whole signal
+   defined here is 4–8°. Wiring it into that channel writes a signal under
+   10× its own noise, and the wiring would read as a no-op — which is worse
+   than not wiring, because it gets recorded as "direction, landed".
+2. **`B_spot` from the reef contour, not the cliff** (§2.6.3). Six of seven
+   spots currently carry as much or more uncertainty in `B_spot` than the whole
+   signal, and one of them (Sewers) cannot even agree on its handedness.
+3. **`N_ref` pinned at the reference depth**, from the same contour Track 1
+   produces. The 10 m stand-in carries ±6° of estimator spread — 21% of the
+   direction band — and the 15 m contour is off the edge of the committed DEM.
+4. **The reference depth changes from deep water to the nearshore contour.**
+   This is a §2.4 amendment, not an implementation detail — see below.
+
+**Mechanical hygiene: already landed 2026-08-11**, verified at file:line, so
+these are no longer preconditions — `bakeBreakLine`'s cache key now carries the
+peel direction (`web-three/js/bed.js:702-707`); the `#swell=` dead knob was
+removed rather than half-wired (`web-three/js/main.js:800-807`); and
+`applyOcean` now carries `o.dp` into `state.swellDpObserved` as an explicitly
+inert field (`web/js/cdip.js:73-81`), with the old doctrine comment — "peel
+geometry is a property of the shelf, not the swell" — rewritten to point here.
+
+**Failure modes if wired early, in ascending severity.**
+
+*Invisible.* Covered above: a 4–8° signal under a 22–70 m displacement changes
+nothing observable, and the audit's finding — direction is real but
+second-order behind the root defect — gets re-buried under a green checkbox.
+
+*Double refraction.* `swellPhi()` refracts from **deep water** —
+`c0 = G*u_T/(2*PI)`, `web/js/model-glsl.js:189`. Feeding SC116's `D_p` into `u_alpha`
+unchanged would apply the reference→break Snell step to an angle that has
+already been refracted from deep water to 15 m. At Second Peak that turns the
+correct φ_b = 16.2° into ~8.5°, and the derived α with it — an error larger
+than the entire 6.1° signal being wired. `alongshoreKappa`
+(`web-three/js/dispersion.js:63-65`) has the same deep-water assumption, using
+`(ω²/g)·sin(swellDeg)` — a deep-water k₀ — as the conserved alongshore
+wavenumber.
+
+*The deep-water reference is not merely imprecise; it is unreachable.* Snell
+turns crests toward the normal, so |φ| shrinks with depth and the conserved
+alongshore wavenumber κ = k₀·sin(φ_deep) can never exceed k₀. The measured
+nearshore incidence needs more than that:
+
+| preset | φ_b required at D_p 194° | φ_b ceiling reachable from deep water | sin(φ_deep) that would be needed |
+|---|---:|---:|---:|
+| Sewers | 19.6° | 12.9° | 1.49 |
+| First Peak | 17.8° | 12.5° | 1.40 |
+| Second Peak | 16.2° | 11.4° | 1.40 |
+| Jack's | 13.9° | 10.5° | 1.31 |
+| The Hook | 16.3° | 12.3° | 1.31 |
+| Sharks | 13.3° | 10.0° | 1.31 |
+| Privates | 11.2° | 9.0° | 1.23 |
+
+(Ceiling = `asin(sin(1.45 rad)·c_b/c₀)`, i.e. the existing clamp at its
+maximum.) No deep-water angle produces Pleasure Point's observed nearshore
+incidence over parallel contours, because the funneling is done by Monterey
+Bay's 2-D refraction and shadowing, not by PP's local contours. The audit
+measured the same thing independently: deep-water D_p spans ~100°, nearshore
+~30°, matched-hour regression slope 0.067 with r = 0.18. The deep angle is
+neither observable from the break nor recoverable by inversion.
+
+*How robust is that?* `sin(φ_deep) > 1` holds for every preset as long as
+N_ref < ~157° (and < ~164° at Sewers). Every well-resolved estimator in §2.6.3
+lands 126–152°, so the conclusion holds — **but** the 15 m readings that ran
+into the DEM's edge reached 172–178°, and if the true 15 m normal at the reef
+were above ~157° the argument would fail. Nothing in the repo currently
+resolves that. Treat "deep water is unreachable" as **strongly supported, not
+closed**, and re-test it against Track 1's contour.
+
+So the state variable should be the nearshore observation, and the only Snell
+chain the model should run is reference contour → breaking depth. §2.4's "**α
+is now the deep-water swell direction**" is superseded on that point. §2.4's
+*finding* is untouched and is strengthened: refraction forgets the deep-water
+angle, and the measurement above says it forgets it so completely that deep
+water cannot be the input.
 
 ## 3. The Pleasure Point model card
 
@@ -455,13 +849,15 @@ Canonical parameter values (the reference instance):
 
 | parameter | symbol | value | note |
 |---|---|---|---|
-| swell direction | θ_s | 290–300° (NW) | winter/fall groundswell |
+| deep-water swell direction | θ_s | 290–300° (NW) | winter/fall groundswell. **Not a model input**: §2.3 records that θ_s never reached a uniform, and §2.6 shows the deep angle is not recoverable at the break — so it should not become one. |
+| incident swell direction | D_p | 188–216°, median 194° | at the nearshore contour, CDIP MOP SC116. **Ocean state, not character** (§2.6). DOCUMENTED, NOT WIRED. |
+| break-line bearing | B_spot | provisional, ~25–80° per spot | **site character**, authored, one per spot (§2.6.3). Not yet defensible — gated on Track 1. |
 | peak period | T | 12–15 s | narrow-band |
 | deep-water height | H₀ | 1–2.5 m | head-high days |
 | spectral bandwidth | Δf | ~0.006 Hz | sets of ~5–7 |
 | shelf slope | s | ~1:50 | gentle mudstone |
 | shelf tilt vs swell | θ | 30–45° | the master knob |
-| peel angle | α | 55–65° | derived; "peels wonderfully" |
+| peel angle | α / α_target | 55–65° | α_target is the declaration; α is derived and reported (§2.6.1) |
 | along-shelf gradient | dα/ds | slight decrease | wave speeds up down the line (toward First Peak character) |
 | section noise | σ_h | low | occasional fast sections, rare closeouts |
 | Iribarren | ξ | ~0.5–0.8 | plunging-ish but forgiving |
@@ -499,6 +895,7 @@ all measured:
 | reef extent | hard-coded `(-110, -35, 215, 290)` | each spot's OSM bounds | one manufactured shelf edge at the same world x on all six spots |
 | peel direction | rider restricted to the `+x` branch | break field, no handedness | an A-frame at a point break; 8 of 18 preset × H₀ combos |
 | dispersion relation | "Guo (2002)" in the comment | a different formula in the code | 4.98% max error against a claimed ~1% |
+| **swell direction α** | site character, authored per spot (`params.js`) | ocean state, the deep-water direction (§2.4) | 38° at Sewers and 70° at Private's for spots facing the same physical swell; a live `waveDp` with nowhere to go. Split in §2.6 (documented, not wired). |
 
 A model may be a caricature. It may be a simulation. It may not be **both about
 the same quantity**, because then no disagreement is resolvable and every fix
@@ -517,10 +914,16 @@ declaration constrains the derivation — never the reverse.**
 | break *location* z_b(x) | **physics** — the `H₀K_s ≥ γh` locus over measured bathymetry | be constrained (see below), never overridden |
 | surface height under the rider | **physics** — one evaluation, shared | the CPU twin must *be* that evaluation, not a second model |
 | **peel direction** | **authorship** — the site is a right | the derivation must return only lines consistent with it |
-| **peel angle α** | **authorship** — the preset target | the fit reports its residual honestly and is rejected if it violates direction |
+| **peel angle α** | **physics, as a derived diagnostic** — a consequence of `B_spot`, `D_p` and Snell; nobody authors it directly (§2.6.1) | `α_target` in the bank is the declaration it is measured against; the fit reports its residual honestly and is rejected if it violates direction |
+| **break-line bearing `B_spot`** | **authorship** — the reef's obliquity, one constant per spot (§2.6.1) | physics supplies the contour it is read off; provisional today, gated on Track 1 |
 | spot identity, stage extent | **authorship** — OSM canon | supplies the numbers, does not pick the spots |
-| swell conditions (H₀, T, tide, chop) | **authorship** — the bank, or CDIP live | — |
+| swell conditions (H₀, T, tide, chop, incident direction `D_p`) | **authorship** — the bank, or CDIP live | `D_p` is observed ocean state and may never carry site character (§2.6.2 rule 1). Documented, not wired. |
 | visual exaggeration `VIS` | **authorship** | must never enter a physical threshold |
+
+*Three of those rows (α, `B_spot`, `D_p`) describe the arbitration §2.6 settles
+on paper. **The runtime has not moved**: it still authors α per spot and reads
+no observed direction. The table is the declaration; closing the gap is Track 1
+then Track 3c.*
 
 ### What follows immediately
 
@@ -569,8 +972,12 @@ declaration constrains the derivation — never the reverse.**
 ## 6. Hooks
 
 - **Live data ("today's ocean")** — CDIP directional spectra near Monterey Bay can
-  supply T, H₀, θ_s, Δf in real time, so the model peels at the same period and
-  heaviness as the wave outside. See `research/CDIP_LIVE_DATA.md`.
+  supply T, H₀, D_p, Δf in real time, so the model peels at the same period and
+  heaviness as the wave outside. The named source for direction is the **MOP
+  SC116 nowcast** (nearshore, ~1 km off the break at −15 m), not the deep-water
+  buoy: §2.6 shows the deep angle is not recoverable at the break. Today T and
+  H₀ are applied and `D_p` is carried inert (`web/js/cdip.js:73-81`); wiring it
+  is gated on Track 1. See `research/CDIP_LIVE_DATA.md`.
 - **Musical mapping** (for the eventual Psychodeli port) — the ride is a *phrase*
   (moving locus of intensity), a barrel section is a sustained intense passage, a
   closeout is a phrase-ending drop, set/lull structure is song-section structure,
