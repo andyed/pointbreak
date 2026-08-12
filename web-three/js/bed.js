@@ -755,6 +755,30 @@ function markBreak(spotName, x, opts) {
   return last === null ? z0 : last;
 }
 
+// ALL upward crossings of the criterion at a station, interpolated, seaward to
+// shoreward — plus the deepest march point as a fallback for stations where
+// nothing breaks (lull at this H0, or beach). markBreak above keeps the old
+// contract (seaward-most only) for the plane/measured A-B beds.
+function markBreakCrossings(spotName, x, opts) {
+  const { H0, T, tide, bedShape } = opts;
+  const cg0 = G * T / (4 * Math.PI);
+  const wl = MSL_ABOVE_NAVD88 + tide;
+  const { z0, z1 } = PP_DEPTH_DATA.grid;
+  const crossings = [];
+  let last = null, fLast = null;
+  for (let z = z0; z <= z1; z += MARCH_DZ) {
+    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, H0, cg0);
+    if (f === null) break;
+    if (f >= 0 && fLast !== null && fLast < 0) {
+      crossings.push(last + (z - last) * (-fLast) / Math.max(f - fLast, 1e-9));
+    } else if (f >= 0 && fLast === null) {
+      crossings.push(z);                            // breaking from the first step
+    }
+    last = z; fLast = f;
+  }
+  return { crossings, fallback: last === null ? z0 : last };
+}
+
 // Returns { texture, x0, x1 } or null when the site has no bathymetry.
 export function bakeBreakLine(spotName, xRange, opts) {
   if (!spotName) return null;
@@ -768,9 +792,38 @@ export function bakeBreakLine(spotName, xRange, opts) {
   if (breakTex && key === breakKey) return { texture: breakTex, x0, x1 };
 
   const rgba = new Uint8Array(BREAK_N * 4);
-  for (let i = 0; i < BREAK_N; i++) {
-    const x = x0 + (x1 - x0) * (i / (BREAK_N - 1));
-    breakArr[i] = markBreak(spotName, x, opts);
+  const xAtI = (i) => x0 + (x1 - x0) * (i / (BREAK_N - 1));
+  // ---------- BRANCH FOLLOWING (2026-08-11 — the V fix, part 3) ----------
+  // The criterion can have several crossings per station, and the seaward-most
+  // rule hands the line to whichever outer patch clears it — measured at
+  // Sharks as a 100 m seaward V mid-stage that the slew limit could only turn
+  // into rate-limited ramps (branch selection is not a continuity problem).
+  // With the synthetic reef active, the DECLARATION picks the branch at one
+  // anchor station — the crossing nearest the fitted wedge crest — and
+  // continuity, which is a property of a real crest, propagates the choice
+  // outward. Physics still proposes every crossing; authorship only chooses
+  // among them at a single point (MODEL.md 4.5). Plane/measured beds keep the
+  // seaward-most rule: they are the no-reef controls, and changing their
+  // semantics would blunt the A/B.
+  const fit = opts.bedShape === 0 ? reefFitFor(spotName) : null;
+  if (fit) {
+    const all = [];
+    for (let i = 0; i < BREAK_N; i++) all.push(markBreakCrossings(spotName, xAtI(i), opts));
+    const tanB = Math.tan(fit.betaDeg * Math.PI / 180);
+    const zcAt = (x) => fit.zRef + tanB * (x - 24);   // REEF_ANCHOR_X
+    // anchor: the station nearest the wedge anchor that has any crossing
+    let i0 = Math.round(((24 - x0) / (x1 - x0)) * (BREAK_N - 1));
+    i0 = Math.min(Math.max(i0, 0), BREAK_N - 1);
+    for (let d = 0; d < BREAK_N && !all[i0].crossings.length; d++)
+      i0 = Math.min(Math.max(i0 + (d % 2 ? d : -d), 0), BREAK_N - 1);
+    const nearest = (cands, ref) => cands.reduce((b, z) => Math.abs(z - ref) < Math.abs(b - ref) ? z : b);
+    breakArr[i0] = all[i0].crossings.length ? nearest(all[i0].crossings, zcAt(xAtI(i0))) : all[i0].fallback;
+    for (let i = i0 + 1; i < BREAK_N; i++)
+      breakArr[i] = all[i].crossings.length ? nearest(all[i].crossings, breakArr[i - 1]) : breakArr[i - 1];
+    for (let i = i0 - 1; i >= 0; i--)
+      breakArr[i] = all[i].crossings.length ? nearest(all[i].crossings, breakArr[i + 1]) : breakArr[i + 1];
+  } else {
+    for (let i = 0; i < BREAK_N; i++) breakArr[i] = markBreak(spotName, xAtI(i), opts);
   }
   // ---------- SLEW LIMIT (2026-08-11 — the V fix, part 2) ----------
   // Continuity is physics, not smoothing: a 60-100 m crest cannot break 150 m
@@ -778,14 +831,16 @@ export function bakeBreakLine(spotName, xRange, opts) {
   // seaward-most crossing, so wherever an outer patch trips the criterion the
   // line TELEPORTS to it and back (measured 46-180 m single-texel jumps; the
   // A-frame V is two zippers running off such a jump). Limit the step between
-  // adjacent texels to SLEW_M_PER_M — 2.0 m of z per m of x preserves any
-  // honest peel line up to atan(2.0) = 63 deg from shore-parallel, well above
-  // every alpha target (38-70 deg peel is measured against the CREST, whose
-  // line slope is far gentler), while capping teleports at ~9.5 m. Forward
-  // then backward pass, so the bound holds in both directions and neither
-  // stage end is privileged. Unlike the 90 m smoother (#smooth), slopes below
-  // the limit pass through UNTOUCHED — the ~5 m/step peel signal survives.
-  const SLEW_M_PER_M = 2.0;
+  // adjacent texels to SLEW_M_PER_M. 3.0 m of z per m of x preserves any
+  // honest line up to atan(3.0) = 71.6 deg — above the steepest alpha target
+  // (Privates, 70; the first cut used 2.0 and clamped Sharks' 66 deg line to
+  // 63.4, which is how "well above every target" got falsified by its own
+  // measurement) — while still capping teleports at ~14 m against the 46-180 m
+  // they were. Forward then backward pass, so the bound holds in both
+  // directions and neither stage end is privileged. Unlike the 90 m smoother
+  // (#smooth), slopes below the limit pass through UNTOUCHED — the ~5 m/step
+  // peel signal survives.
+  const SLEW_M_PER_M = 3.0;
   {
     const dxTex = (x1 - x0) / (BREAK_N - 1);
     const maxStep = SLEW_M_PER_M * dxTex;
