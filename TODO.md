@@ -34,6 +34,12 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
 - Acceptance is now visual AND measured: drone capture shows a single-takeoff
   zipper; α HUD swing < ~5° for ±0.3 m H₀; spots distinguishable by their
   SURF (pairwise-RMSE instrument from the audit), not just coastline.
+- **DECIDED 2026-08-11 (Andy): Sewer Peak's A-frame is canon-true** — the
+  guides call it a bowly A-frame with rideable lefts. "A-frames = 0" applies
+  to every OTHER preset; at Sewers an interior takeoff with leftCrests ≥ 1 is
+  correct behaviour, not the defect. (V-fix status: teleports 46–180 m → 9.4 m,
+  α on target 4/6 unsmoothed — commit db61da0. Residual: sharks α collapse,
+  thehook spurious A-frame, firstpeak α ~10° low.)
 
 ### Track 1b — scene identity (PROMOTED; parallel, independent of 1)
 - [ ] Headland: the ~110° corner cannot appear in the per-spot re-centered
