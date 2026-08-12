@@ -22,7 +22,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
-         setReefNose, REEF_NOSE_FRAC_TUNED } from './bed.js';
+         setReefNose, REEF_NOSE_FRAC_TUNED, bedElevBlended } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -56,6 +56,7 @@ const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 5000);
 
 const state = makeState();
 let structuralBreaker = 1;   // shipped path; #shape=legacy is the reversible A/B
+let noclipEnabled = false;   // #noclip=1: disable the world-collision clamp
 
 // ---------- conditions bank (screensaver "good day" curator) ----------
 // A named condition-day rides on top of the site preset: it swaps the OCEAN
@@ -140,6 +141,8 @@ const uniforms = {
   u_refrZ:      { value: new THREE.Vector2(REFR_ZC_MIN, REFR_ZC_MAX) },
   u_refrPsi:    { value: new THREE.Vector2(0, 1) },
   u_refrKappa:  { value: 0 },
+  // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
+  u_matte:      { value: 1 },
 };
 applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
@@ -891,6 +894,26 @@ function frame(now) {
   // would undo the follow/tour track (enabled=false only blocks input, not
   // update)
   if (!following && !touring) controls.update();
+  // ---------- world-collision clamp (#noclip=1 disables) ----------
+  // Going under WATER is a feature (Snell's window pass); going under the BED
+  // or out into the skirt void is not. Eased, not snapped, so a clamped drag
+  // never jolts; runs after controls/tour/follow so it is the last word on
+  // the eye each frame. Target is clamped too — a target buried under the
+  // terrain is what makes orbits go feral.
+  if (!noclipEnabled) {
+    const clampEye = (v, isTarget) => {
+      // stay inside the neighborhood the model claims (stage + margin);
+      // beyond it there is only skirt and, past 4 km, the void under it
+      v.x = Math.min(Math.max(v.x, -1200), 1200);
+      v.z = Math.min(Math.max(v.z, -1000), 1000);
+      if (!isTarget) v.y = Math.min(v.y, 900);
+      const floorY = bedElevBlended(state.geoSpot, v.x, v.z, state.bedShape || 0)
+                   + (isTarget ? 0.0 : 0.4);
+      if (v.y < floorY) v.y += (floorY - v.y) * 0.5;   // ease up, half-life ~1 frame
+    };
+    clampEye(camera.position, false);
+    if (!following && !touring) clampEye(controls.target, true);
+  }
   skyMesh.position.copy(camera.position);   // keep the dome centered on the eye
   
   if (!state.paused) {
@@ -973,6 +996,10 @@ function applyHashParams() {
   // See docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md ("Direction in the
   // code") and TODO.md Track 3a (doc) / 3c (wiring, gated on Track 1).
   if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
+  // modeled-domain matte defaults ON; #matte=0 is the A/B revert
+  if (h.get('matte') === '0') uniforms.u_matte.value = 0;
+  // world-collision clamp defaults ON; #noclip=1 restores x-ray debugging
+  if (h.get('noclip') === '1') noclipEnabled = true;
   const camName = (h.get('cam') || '').toLowerCase();
   const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);
   // Tour is the screensaver: chrome defaults OFF unless the hash asks for it.

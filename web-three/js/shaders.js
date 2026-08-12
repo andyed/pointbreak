@@ -432,8 +432,30 @@ ${KELP_GLSL}
 // their whole length through it, but the drone's near-vertical rays only
 // cross HAZE_H metres of haze — without this the top-down view greys out.
 uniform float u_camUnder;   // 1 when the eye is below the water surface
+uniform float u_matte;      // 1 = matte the unmodeled world (#matte=0 reverts)
 const float FOG_DENSITY = 0.0011;
 const float HAZE_H      = 70.0;
+
+// ---- modeled-domain provenance ----
+// 1 where the model has authority, ramping to 0 where it does not: outside
+// the stage rect (constants mirror STAGE_* in main.js and GRID_VERT), and —
+// when a measured bed drives the water — outside the NCEI patch, whose edge
+// is an extrapolation ramp, not data (BED_VERT flags the same boundary).
+// The audit's instant-fake tells (far-field silvering, edge-of-bake junk, the
+// featureless land blob) all live out there: the render should stop CLAIMING
+// that region rather than keep dressing it. Ramps are hundreds of metres —
+// this is a fade of assertion, not a drawn border.
+float provenanceAt(vec2 xz){
+  const vec2 STAGE_HALF   = vec2(300.0, 250.0);
+  const vec2 STAGE_CENTER = vec2(0.0, 10.0);
+  vec2 dOut = max(abs(xz - STAGE_CENTER) - STAGE_HALF, vec2(0.0));
+  float prov = 1.0 - smoothstep(0.0, 250.0, length(dOut));
+  if (u_depthMix > 0.5) {
+    vec2 dBed = max(max(u_bedRect.xy + 25.0 - xz, xz - (u_bedRect.zw - 25.0)), vec2(0.0));
+    prov = min(prov, 1.0 - smoothstep(0.0, 180.0, length(dBed)));
+  }
+  return mix(1.0, prov, clamp(u_matte, 0.0, 1.0));
+}
 
 // foam microstructure: rougher, higher-frequency than the water detail — foam
 // is IN the surface (perturbs normals, receives sun), not painted on it
@@ -731,6 +753,17 @@ void main() {
   // partial landF fragments are the widened shoreline crossing. Pre-fog on
   // both sides so the haze applies once to the mixed result.
   col = mix(col, landCol, landF);
+
+  // ---- 4.6 modeled-domain matte ----
+  // Pre-fog, same rule as the land blend: haze applies once to the matted
+  // result. Structure stays visible but stops asserting — desaturated toward
+  // a marine grey so the fade reads as atmosphere, not as a broken region.
+  float prov = provenanceAt(xz);
+  if (prov < 1.0) {
+    float luma = dot(col, vec3(0.299, 0.587, 0.114));
+    vec3 matte = mix(vec3(luma), vec3(0.55, 0.60, 0.61), 0.4);
+    col = mix(matte, col, mix(0.22, 1.0, prov));
+  }
 
   // ---- 5. aerial perspective ----
   // fog toward the same procedural sky the dome draws, evaluated along the
