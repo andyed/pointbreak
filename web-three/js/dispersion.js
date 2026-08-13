@@ -177,3 +177,17 @@ export function steepnessAt(H0, T, h, frozenL = null) {
   const L = frozenL === null ? wavelengthAt(omega, h) : frozenL;
   return heightAt(H0, T, h) / L;
 }
+
+// ---------- sheltering (H_eff, MODEL.md 2.6.7) ----------
+// GLSL twin: SHELTER_X0 / SHELTER_L / shelterAt in model-glsl.js — keep
+// numerically identical, or the baked break line and the drawn wave field
+// disagree about where breaking happens. Calibration: log-linear fit of the
+// card bank's H0 gradient over the canon span (Sewers 2.2 m at u=402 ->
+// Private's 0.7 m at u=1977, r^2 = 0.81, PP_MAP_GEOMETRY). 1.0 at the reef
+// anchor, so the card H0 stays the wave at the takeoff. Direction-frozen at
+// the SC116 reference; L becomes L(D_p) when direction wires.
+export const SHELTER_X0 = 24;    // m, reef anchor
+export const SHELTER_L = 1675;   // m, apex-shadow e-fold at reference D_p
+export function shelterFactor(x) {
+  return Math.min(Math.max(Math.exp(-(x - SHELTER_X0) / SHELTER_L), 0.6), 1.25);
+}

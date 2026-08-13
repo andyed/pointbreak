@@ -19,7 +19,7 @@ import { PRESETS, reefWindowKnots } from '../../web/js/params.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 import {
   alongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,
-  incidenceAt as dispIncidenceAt, GAMMA, G,
+  incidenceAt as dispIncidenceAt, GAMMA, G, shelterFactor,
 } from './dispersion.js';
 
 // 1x1 stand-in so the sampler is always bound. Presets with no bathymetry run
@@ -95,6 +95,17 @@ export function setReefFlank(m) {
   if (v !== REEF_FLANK_W) { REEF_FLANK_W = v; invalidateReef(); }
 }
 export function getReefShape() { return { amp: REEF_AMP_MAX, flank: REEF_FLANK_W }; }
+// H_eff sheltering in the BAKE (GLSL twin gates itself via u_shelterMix).
+// Toggling reshapes every baked line and every fit, so it invalidates like a
+// reef-shape change. `#shelter=0` is the A/B escape.
+let SHELTER_ON = true;
+export function setShelter(on) {
+  const v = !!on;
+  if (v !== SHELTER_ON) { SHELTER_ON = v; invalidateReef(); }
+}
+export function getShelter() { return SHELTER_ON; }
+// Effective deep-water height at station x — the one number sheltering changes.
+function effH0(H0, x) { return SHELTER_ON ? H0 * shelterFactor(x) : H0; }
 const REEF_RIDGE_WAVELENGTH = 50;  // m along-strike ridge spacing (their "sections")
 const REEF_RIDGE_MOD = 0.15;  // fractional amplitude modulation from the ridges
 const REEF_ANCHOR_X = 24;     // m: crest line meets the natural crest-depth contour here
@@ -293,7 +304,7 @@ function marchBreakFn(elevAt, x, H0, T) {
   const { z0, z1 } = PP_DEPTH_DATA.grid;
   let last = null, fLast = null;
   for (let z = z0; z <= z1; z += MARCH_DZ) {
-    const f = breakExcess(elevAt(x, z), wl, H0, cg0);
+    const f = breakExcess(elevAt(x, z), wl, effH0(H0, x), cg0);
     if (f === null) break;
     if (f >= 0) {
       if (last === null || fLast === null) return z;
@@ -770,7 +781,7 @@ function markBreak(spotName, x, opts) {
   const { z0, z1 } = PP_DEPTH_DATA.grid;
   let last = null, fLast = null;
   for (let z = z0; z <= z1; z += MARCH_DZ) {
-    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, H0, cg0);
+    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), cg0);
     if (f === null) break;                          // hit the beach; stop
     if (f >= 0) {
       // INTERPOLATE the crossing. Returning the march step quantized the break
@@ -798,7 +809,7 @@ function markBreakCrossings(spotName, x, opts) {
   const crossings = [];
   let last = null, fLast = null;
   for (let z = z0; z <= z1; z += MARCH_DZ) {
-    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, H0, cg0);
+    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), cg0);
     if (f === null) break;
     if (f >= 0 && fLast !== null && fLast < 0) {
       crossings.push(last + (z - last) * (-fLast) / Math.max(f - fLast, 1e-9));
@@ -819,7 +830,8 @@ export function bakeBreakLine(spotName, xRange, opts) {
   // different lines. Same style as bakeRefraction's key (swellDeg member).
   // `null` when peeldir is off, which is its own distinct cache state.
   const peelPhi = opts.peel ? opts.peel.phiRad : null;
-  const key = [spotName, x0, x1, opts.H0, opts.T, opts.tide, opts.bedShape, peelPhi].join('|');
+  const key = [spotName, x0, x1, opts.H0, opts.T, opts.tide, opts.bedShape, peelPhi,
+               SHELTER_ON ? 'shel' : 'flat'].join('|');
   if (breakTex && key === breakKey) return { texture: breakTex, x0, x1 };
 
   const rgba = new Uint8Array(BREAK_N * 4);

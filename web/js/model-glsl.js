@@ -84,6 +84,7 @@ uniform vec4 u_surferPos;
 // crests. That is expected and is why this is off by default (#psi=1 to try).
 uniform sampler2D u_refrTex;
 uniform float u_psiMix;     // 0 = frozen-LAM plane wave, 1 = baked Psi
+uniform float u_shelterMix; // 1 = H_eff sheltering field, 0 = flat H0 (#shelter=0)
 uniform vec2 u_refrZ;       // contour-z range the table spans
 uniform vec2 u_refrPsi;     // decode window for Psi, radians
 uniform float u_refrKappa;  // alongshore wavenumber, rad/m (Snell invariant)
@@ -108,6 +109,20 @@ const float CRASH_PEAK_S = 0.42;
 const float CRASH_SIGMA_S = 0.20;
 const float BORE_FADE_START_S = 2.60;
 const float BORE_END_S = 3.80;
+// ---- sheltering (H_eff, MODEL.md 2.6.7) ----
+// Energy decay as swell refracts around the apex: down-point (+x) the wave is
+// SMALLER AND WEAKER, which is what the golden-rule "mellow" actually is now
+// that alpha no longer fakes it (the 2026-08-13 retarget). Calibrated by
+// log-linear fit of the card bank's own H0 gradient over the canon span
+// (2.2 m at Sewers u=402 -> 0.7 m at Private's u=1977, r^2 = 0.81): the seven
+// card H0s ARE the guides' sheltering gradient sampled at the spots, so the
+// card value stays true at the takeoff anchor and the field carries the decay
+// across the stage. Direction-frozen at the SC116 reference like everything
+// else (L becomes L(D_p) when direction wires — W wrap shortens it, S swell
+// lengthens it; MODEL.md 2.6.2 rule 2). JS twin: SHELTER_* in dispersion.js —
+// keep numerically identical.
+const float SHELTER_X0 = 24.0;   // m, reef anchor: where the card H0 is true
+const float SHELTER_L  = 1675.0; // m, e-fold of the apex shadow at reference D_p
 
 // ---------- hash / noise ----------
 float hash11(float p){ p = fract(p*0.1031); p *= p+33.33; return fract((p+p)*p); }
@@ -200,6 +215,20 @@ float swellPhi(){
 // Every geometric term below is a function of it, so the crest, the break line
 // and the amplitude envelope share one frame instead of three.
 float contourZ(vec2 xz){ return xz.y + coastCurve(xz.x); }
+
+// H_eff(x)/H0: the sheltering factor (constants and rationale at SHELTER_*).
+// Exponential in stage x, 1.0 at the reef anchor so the card H0 keeps meaning
+// "the wave at the takeoff". Clamped as a guard for stages wider than the
+// calibration span; on the current ~[-110, 290] m stages the clamp never
+// binds (0.85..1.08). Gated by u_depthMix (the synthetic stage has no apex to
+// hide behind) and by u_shelterMix for the #shelter=0 A/B. Unset uniforms
+// read 0.0, so any consumer that never wires u_shelterMix gets flat H0.
+// BAKE TWIN: bed.js shelterFactor() — same constants, same clamp, or the
+// break line and the wave field disagree about where breaking happens.
+float shelterAt(float x){
+  float s = clamp(exp(-(x - SHELTER_X0)/SHELTER_L), 0.6, 1.25);
+  return mix(1.0, s, u_depthMix*u_shelterMix);
+}
 
 // Realized peel angle at station x -- what a surfer would measure, in radians.
 // The contour shear maps break line and crest to different slopes in world
@@ -572,7 +601,9 @@ vec4 breakerLifecycleAtX(float x, float t){
   // envelope-gated only — no H0 term, so a 2.5 m day crashed exactly as hard
   // as a 0.7 m day. Same H0/1.5 calibration as ocean()'s sizeFoam: factor is
   // exactly 1.0 at the 1.5 m model-card day, so 1.5 m presets are unchanged.
-  float sizeAmp = mix(1.0, clamp(u_H0/1.5, 0.55, 1.6), u_depthMix);
+  // Sheltered height here too: a down-point crash on a sheltered wave is a
+  // smaller crash. shelterAt already carries the depthMix/shelterMix gates.
+  float sizeAmp = mix(1.0, clamp(u_H0*shelterAt(x)/1.5, 0.55, 1.6), u_depthMix);
   float impact = activity*impactAge*(0.18 + 0.82*plunge)*sizeAmp;
   float bore = activity*boreAge*(0.72 + 0.28*(1.0 - plunge))*sizeAmp;
   return vec4(age, frontZ, impact, bore);
@@ -610,13 +641,20 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float growSyn = 1.0 + 0.85*exp(-max(d,0.0)/90.0)*reef;
   float cg0     = G*u_T/(4.0*PI);          // deep-water group speed, gT/4pi
   float Ks      = clamp(sqrt(cg0/sqrt(G*dep)), 0.7, 2.6);
-  float Hsh     = u_H0 * Ks;               // shoaled height if it never broke
+  // H_eff, not H0, from here down: sheltering is part of the arriving wave,
+  // so it feeds shoaling, the breaking gate AND the drawn amplitude — a wave
+  // that is smaller down-point must also break later there, or the line and
+  // the height field tell different stories. swellPhi()/setup stay on u_H0:
+  // the crest field is a plane wave by construction and the setup is a
+  // stage-mean term.
+  float Heff    = u_H0 * shelterAt(x);
+  float Hsh     = Heff * Ks;               // shoaled height if it never broke
   float Hlim    = GAMMA * dep;             // most height this depth can carry
   // Depth-limited breaking: past the limit a wave is a bore whose height is
   // set by the water it is in, not by the swell that made it. Without this cap
   // Green's law keeps growing the wave across the whole inner shelf and the
   // stage reads as one undifferentiated foam field instead of a peeling wave.
-  float growGeo = min(Hsh, Hlim) / max(u_H0, 0.05);
+  float growGeo = min(Hsh, Hlim) / max(Heff, 0.05);
   float grow    = mix(growSyn, growGeo, u_depthMix);
 
   // ---- breaking ----
@@ -675,7 +713,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float env    = setEnv(rayS(xz), t);
   float env2   = env*env;                  // lulls really disappear
   float q      = 1.6 + 3.2*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
-  float amp    = 0.5*u_H0 * grow * decay * env * shoreFade;
+  float amp    = 0.5*Heff * grow * decay * env * shoreFade;
   float h      = amp * crestShape(-theta, q) * 2.0;
 
   // The mean-surface tilt itself: raise the water by the setup so the
@@ -737,11 +775,12 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // H0-free foam terms (legacy path + aftermath residue) with swell height;
   // the structural bands get the identical factor via sizeAmp inside
   // breakerLifecycleAtX, so it must NOT be applied to them a second time (see
-  // the foam mix below). CALIBRATION CONTRACT: at the H0 = 1.5 m model-card
-  // day clamp(1.5/1.5, ...) == 1.0 and mix(1.0, 1.0, m) == 1.0, so every
-  // preset at 1.5 m renders bit-identically. Gated by u_depthMix like the
+  // the foam mix below). CALIBRATION CONTRACT (amended for H_eff): at the
+  // H0 = 1.5 m model-card day the factor is exactly 1.0 AT THE REEF ANCHOR
+  // (shelterAt(SHELTER_X0) == 1); away from the anchor it carries the same
+  // sheltering gradient as the wave it foams on. Gated by u_depthMix like the
   // other size routes (synthetic presets untouched).
-  float sizeFoam = mix(1.0, clamp(u_H0/1.5, 0.55, 1.6), u_depthMix);
+  float sizeFoam = mix(1.0, clamp(u_H0*shelterAt(x)/1.5, 0.55, 1.6), u_depthMix);
 
   // Legacy whitewater: broken into shore-normal streaks (never a solid sheet).
   float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.16, z*0.028) + vec2(1.7, t*0.015));

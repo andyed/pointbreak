@@ -42,7 +42,8 @@ it can be measured across a range; it defaults to the shipped value.
 | `peeldir` | `1` | off | feature flag: direction-monotonicity constraint on the break line | feature flag |
 | `nose` | `1` or a float, clamped [0, 1.0] | off | feature flag: reef nose v2 — down-point taper of the uplift amplitude in stage fraction; `1` = the tuned 0.25, a float tunes it directly. Swept to the definitional bound 2026-08-13: the taper mechanism is EXHAUSTED, no fraction passes | feature flag |
 | `reefamp` | float m, clamped [0.5, 12] | `3.2` | sweep knob: M5 wedge max uplift (`REEF_AMP_MAX`). Appears twice in the wedge — the lift clamp AND `bound`, where the reef ceases to exist — so it also sets how far seaward the reef reaches. Measured to SATURATE by ~5 m | sweep knob |
-| `reefflank` | float m, clamped [14, 300] | `45` | sweep knob: wedge cross-strike feather half-width (`REEF_FLANK_W`). The effective lever on stage-median α — 45→80 nearly halves mean \|Δα\|; 120+ is worse (shelf, not reef) | sweep knob |
+| `reefflank` | float m, clamped [14, 300] | `80` | sweep knob: wedge cross-strike feather half-width (`REEF_FLANK_W`). The effective lever on stage-median α — 45→80 nearly halves mean \|Δα\| (adopted 2026-08-13 with the retarget); 120+ is worse (shelf, not reef) | sweep knob |
+| `shelter` | `0` | on | A/B revert: `H_eff` sheltering field (MODEL.md §2.6.7) — smaller/weaker waves down-point, bake AND drawn field together. `0` = flat H₀ | A/B revert |
 
 **Removed:** `#swell=` (2026-08-11). It wrote `state.swellDeg`, which nothing
 read — the refraction bake takes `swellDeg: state.alpha` — so the knob looked

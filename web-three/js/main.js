@@ -23,7 +23,8 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
          setReefNose, REEF_NOSE_FRAC_TUNED, bedElevBlended,
-         setReefAmp, setReefFlank, getReefShape, reefAudit } from './bed.js';
+         setReefAmp, setReefFlank, getReefShape, reefAudit,
+         setShelter, getShelter } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -167,6 +168,7 @@ const uniforms = {
   // M6 part 3 (staged, water only — see the spec). Off unless #psi=1.
   u_refrTex:    { value: EMPTY_BED },
   u_psiMix:     { value: 0 },
+  u_shelterMix: { value: 1 },  // H_eff sheltering field; #shelter=0 reverts to flat H0
   u_refrZ:      { value: new THREE.Vector2(REFR_ZC_MIN, REFR_ZC_MAX) },
   u_refrPsi:    { value: new THREE.Vector2(0, 1) },
   u_refrKappa:  { value: 0 },
@@ -1106,9 +1108,17 @@ function applyHashParams() {
   // another — the authority split this repo keeps re-finding. The module-level
   // applyBed at load time has already run with the defaults, so the shape also
   // gets an explicit rebuild below.
-  const shapeChanged = h.has('reefamp') || h.has('reefflank');
+  const shapeChanged = h.has('reefamp') || h.has('reefflank') || h.has('shelter');
   if (h.has('reefamp')) setReefAmp(parseFloat(h.get('reefamp')));
   if (h.has('reefflank')) setReefFlank(parseFloat(h.get('reefflank')));
+  // `#shelter=0` A/B: flat H0 in BOTH the bake (setShelter, cache-invalidating
+  // like a reef-shape change) and the drawn field (u_shelterMix) — the two
+  // must flip together or line and water disagree about where breaking is.
+  if (h.has('shelter')) {
+    const on = h.get('shelter') !== '0';
+    setShelter(on);
+    uniforms.u_shelterMix.value = on ? 1 : 0;
+  }
   const p = h.get('preset');
   if (p && PRESETS[p]) applyPreset(state, p);
   // No preset in the hash means applyPreset never re-ran applyBed, so the bed

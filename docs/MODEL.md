@@ -546,7 +546,7 @@ Three rules, in force order.
      `H_eff(u) = H₀·shelter(u, swell_dir)`, two separate fields. This section
      defines the first only. The second is larger and u-dependent (the apex
      shadow that shelters the down-point spots) and `cos φ` does not contain
-     it; it is not specified here.
+     it; it is specified in §2.6.7 (implemented 2026-08-13).
 
 3. **The declaration constrains the derivation, never the reverse** (§4.5).
    If the derived α misses `α_target` under reference conditions, the reef is
@@ -842,6 +842,53 @@ is now the deep-water swell direction**" is superseded on that point. §2.4's
 *finding* is untouched and is strengthened: refraction forgets the deep-water
 angle, and the measurement above says it forgets it so completely that deep
 water cannot be the input.
+
+#### 2.6.7 The sheltering field `H_eff` (IMPLEMENTED 2026-08-13)
+
+§2.6.2 rule 2 named the exposure channel and declined to specify it. This
+section specifies what landed, because the 2026-08-13 retarget forced the
+issue: once α stopped faking the golden-rule gradient (the Snell ceiling makes
+the small down-point spots the LOW-α ones — `tests/peel-ceiling.test.js`),
+"mellow" had to move to the channel it actually lives in, or the bank would
+have carried no down-point character at all. Mellow is **smaller and weaker**,
+not slower-peeling.
+
+    H_eff(x) = H₀ · shelter(x)
+    shelter(x) = clamp( exp(−(x − x₀)/L), 0.6, 1.25 )
+
+with `x₀ = 24 m` (the reef anchor — the card H₀ keeps meaning "the wave at
+the takeoff") and `L = 1675 m` at the reference direction.
+
+**Calibration.** The seven card H₀s are the guides' sheltering gradient
+sampled at the spots — Sewers 2.2 m at u = 402 down to Private's 0.7 m at
+u = 1977. A log-linear fit over that span gives L = 1675 m with r² = 0.81
+(the residual is real per-spot character: The Hook's +33% is the swell magnet
+the guides describe, and it stays in its card). So the field does not replace
+the cards, it makes them commensurable: each card H₀ is now one sample of one
+decaying swell rather than seven disconnected constants.
+
+**What it feeds.** Everything the arriving wave feeds, or line and field
+disagree: shoaling (`Hsh = H_eff·Ks`), the breaking gate, the drawn amplitude,
+crash/foam size — and the **bake**: `markBreak`/`marchBreakFn` march with
+`H_eff(x)`, so smaller down-point waves genuinely break shallower and later
+(dh_b/dx ≈ h_b/L, which on a 1:75 bed contributes a shoreward line drift
+down-point — the activation/interior-takeoff behaviour §2.6.2's apex-shadow
+prose predicted). The fit runs against the sheltered march, so β absorbs the
+drift and the declaration still constrains the derivation (§4.5). `swellPhi()`
+and the setup term stay on H₀: the crest field is a plane wave by
+construction and setup is a stage-mean.
+
+**Direction.** Frozen at the SC116 reference like every direction quantity
+(§2.6.6 preconditions unchanged). When direction wires, L becomes L(D_p): a
+wrapped W swell shortens it (strong gradient, biggest at the top), a direct S
+swell lengthens it toward ∞ (the "smorgasbord"). The single-parameter form is
+deliberate — one lever, already calibrated, and the direction dependence
+arrives as a modulation of the same lever rather than a second mechanism.
+
+**Escape.** `#shelter=0` reverts bake and field together (one flag, both
+sides — flipping one alone is the CPU/GPU twin drift this repo keeps
+re-finding). GLSL: `shelterAt` in `model-glsl.js`; JS: `shelterFactor` in
+`dispersion.js`; the constants are mirrored and must stay identical.
 
 ## 3. The Pleasure Point model card
 
