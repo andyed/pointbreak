@@ -25,3 +25,9 @@ node_modules/
 .deploy/
 scratch/
 *.local
+
+# Private working notes — outreach drafts, contact strategy, anything naming
+# real people or unsent correspondence. This repo is public; nothing in here
+# ships. Kept as a directory rather than loose files so there is one place to
+# check before staging.
+docs/drafts/
