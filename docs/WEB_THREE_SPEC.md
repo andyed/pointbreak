@@ -991,3 +991,47 @@ candidate for deletion, not for a default. M6p3 steps 3–4 no longer "ride with
 the ensemble" — a `#psi` default flip must be judged on its own merits, noting
 psi raises spurious A-frames 3 → 5 by fitting more (shorter, correct) crests
 onto branches the takeoff instrument then counts as rideable.
+
+### The nose, swept to its bound (2026-08-13) — the taper is exhausted
+
+1c' asked whether *any* nose fraction can own the line, since the tuned 0.25
+sat under a 0.30 tuning clamp. The clamp is raised to the definitional bound
+(`REEF_NOSE_FRAC_MAX = 1.0` — all relief spent by the stage end; the shipping
+default stays 0.25) and `scripts/measure_nose_sweep.mjs` sweeps
+f ∈ {0, 0.25, 0.4, 0.55, 0.7, 0.85, 1.0}, each fraction bare and under
+`#smooth=1` — the acceptance condition, where the noise-peel is gone and only
+reef authority remains. Instrument gotcha caught on the first run: `#nose=1`
+is the tuned-shorthand in the hash parser, so the f=1.0 cells silently
+re-measured 0.25 (bit-identical rows were the tell); the script now emits
+decimals.
+
+| f | bare mean \|Δα\| | smooth mean \|Δα\| |
+|---|---|---|
+| 0 | 4.3° | 28.2° |
+| 0.25 | 5.5° | 26.7° |
+| 0.4 | 6.0° | 33.0° |
+| 0.55 | 8.3° | 35.3° |
+| 0.7 | 12.0° | 35.0° |
+| 0.85 | 11.6° | 37.8° |
+| 1.0 | 16.9° | **48.9°** |
+
+**No fraction passes the triple on more than 1/6 spots in either mode.** Under
+smoothing the sweep is monotone-worse past 0.4 and ends at α ≈ 0–8° everywhere
+at f=1.0: the nose is a *taper* — it can only remove relief down-point — so
+turning it up starves the very authority smoothing demands. Bare, the fit
+holds to ~0.4 and then breaks spot by spot (Jack's 62 → 30 at 0.55, 24 at
+0.7). One secondary note for the Sharks residual: bare f=0.55 is the only
+configuration measured that *improves* Sharks (48.5 → 55 vs 66) and cuts
+spurious A-frames to 1, but it buys that by breaking Jack's.
+
+**Verdict: the nose mechanism is exhausted.** An amplitude taper on a planar
+wedge cannot produce a sustained oblique locus that survives wave-scale
+smoothing at any strength. 1c' narrows to two options: (a) revisit
+`REEF_AMP_MAX` — the 3.2 m Mead & Black relief band is what the ~0.9 m DEM
+residual on a 1:75 slope out-shouts, so reef authority under smoothing needs
+either more amplitude or a different shape; or (b) accept the noise-peel
+(which hits α targets 4/6 unsmoothed) and treat its real defects directly —
+locus hysteresis across H₀ rebakes for the 10.5–56.9° swing, plus the
+per-spot A-frame residuals. (b) is the screensaver-mission read: the noise
+IS this DEM's actual small-scale structure; its sin is instability, not
+wrongness.

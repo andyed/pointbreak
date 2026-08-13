@@ -1136,7 +1136,8 @@ function applyHashParams() {
   // fraction, so it no longer flattens the wide stages the way the v1 gradient
   // did (bed.js REEF_NOSE_FRAC). Still default OFF — the fit is on target on all
   // six spots but the visible-crest consequence is unproven. `#nose=<f>` takes
-  // an explicit fraction (clamped to [0, 0.30] by setReefNose) for tuning.
+  // an explicit fraction (clamped to [0, 1] by setReefNose — the definitional
+  // bound; see REEF_NOSE_FRAC_MAX in bed.js) for tuning.
   if (h.has('nose')) {
     const nv = h.get('nose');
     const f = nv === '1' ? REEF_NOSE_FRAC_TUNED : parseFloat(nv);

@@ -43,11 +43,21 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       (10.5–56.9°; Sharks 48.5°→3.2° for −0.3 m). The reef still doesn't own
       the line, now bounded two ways: it must survive wave-scale smoothing,
       and the nose can't supply that (clamped ≤0.30, near-inert at 0.25).
-- [ ] 1c'. NEXT STRUCTURAL MOVE (decision needed): a reef component strong
-      enough to own the locus under #smooth — options: raise the nose clamp
-      and sweep #nose=<f> with measure_ensemble, revisit the relief cap, or
-      accept noise-peel + treat the H₀ swing with locus hysteresis on H₀
-      rebakes. Sharks residual (48.5 vs 66) rides with whichever is chosen.
+- [x] 1c'-a. Nose-clamp sweep DONE 2026-08-13 (spec "The nose, swept to its
+      bound"; scripts/measure_nose_sweep.mjs). Clamp raised to the
+      definitional 1.0; f ∈ {0…1.0} bare + under #smooth. NO fraction passes
+      >1/6 in either mode; under smoothing monotone-worse past 0.4, f=1.0 =
+      48.9° mean |Δα| (a spent reef owns nothing). The taper mechanism is
+      EXHAUSTED — it can only remove relief, smoothing demands added oblique
+      structure. Curiosity: bare f=0.55 is the only measured config improving
+      Sharks (48.5→55 vs 66, spurious A-frames→1) but it breaks Jack's (→30).
+- [ ] 1c'-b. STRUCTURAL DECISION (Andy), now two options: (a) revisit
+      REEF_AMP_MAX 3.2 m / wedge shape so reef authority survives #smooth, or
+      (b) accept the noise-peel (α on target 4/6 unsmoothed) and fix its real
+      defects — locus hysteresis across H₀ rebakes (the 10.5–56.9° swing) +
+      per-spot A-frame residuals. (b) is the screensaver-mission read: the
+      noise is this DEM's actual structure; its sin is instability.
+      Sharks residual (48.5 vs 66) rides with whichever is chosen.
 - [ ] 1d. M6p3 steps 3–4 (sound onto Ψ, flip default) NO LONGER ride with the
       ensemble — judge a #psi-only default flip on its own merits (it holds α
       at 4.3° mean but raises spurious A-frames 3→5; steps 2–3 still open)

@@ -96,7 +96,12 @@ const REEF_ANCHOR_X = 24;     // m: crest line meets the natural crest-depth con
 // imposing an ABSOLUTE crest elevation that cuts across the measured contours.
 // Measured: beta saturates at the 80 deg clamp and alpha misses by 15-35 deg.
 const REEF_NOSE_FRAC_DEFAULT = 0.0;   // OFF by default — #nose=1 turns it on
-const REEF_NOSE_FRAC_MAX = 0.30;      // last value where all six spots stay in the +-5 deg band
+// 1.0 is the definitional bound (the reef gives up ALL its relief by the stage
+// end); raised from 0.30 for the 1c' sweep. 0.30 was the last value where all
+// six spots stayed in the +-5 deg band UNSMOOTHED — the sweep's question is
+// whether any fraction holds the line under #smooth=1, where the noise-peel is
+// gone and only reef authority remains. The tuned default stays 0.25.
+const REEF_NOSE_FRAC_MAX = 1.0;
 let REEF_NOSE_FRAC = REEF_NOSE_FRAC_DEFAULT;
 export const REEF_NOSE_FRAC_TUNED = 0.25;
 export function setReefNose(frac) {
