@@ -808,7 +808,14 @@ depth and exposure.</desc>
       Across the seven sites the model runs peel angles from
       &alpha; = 70&deg; at the sheltered end to 38&deg; at the apex: a
       feathering shoulder at one end, a hollow and heavily sectioned lip at
-      the other. That range was not tuned frame by frame.
+      the other. That range was not tuned frame by frame &mdash; but it
+      should be read with a disclosure. The angles came from translating
+      surf-guide language (&ldquo;mellow&rdquo;, &ldquo;softer-breaking&rdquo;,
+      &ldquo;longboard-favored&rdquo;) into degrees, because no one has ever
+      published a measured peel angle for this coastline &mdash; or, it turns
+      out, for any Santa Cruz break. Checked against the refraction physics
+      the model itself implements, five of these seven numbers are too high
+      to be real. Section 06 walks through both halves of that sentence.
     </p>
     <p class="prose">
       Six of the seven run on surveyed NCEI bathymetry through their OSM surf
@@ -1151,14 +1158,21 @@ depth and exposure.</desc>
     <h3 class="sub">Known limitations</h3>
     <ul class="limits">
       <li><strong>Not validated.</strong> No comparison against measured wave
-        heights, breaking positions, or imagery of this break has been made.</li>
+        heights, breaking positions, or imagery of this break has been made
+        &mdash; and section 06 explains why the usual reference data does not
+        exist to compare against.</li>
       <li><strong>Six of seven sites are mapped.</strong> Sewers, First Peak,
         Second Peak, Jack's (38th), The Hook and Sharks use surveyed profiles.
         Private's runs on a synthetic seabed because its coastline defeats the
         contour fit; it is labelled as such in the app.</li>
-      <li><strong>The break line is authored, not derived.</strong> Peel angle
-        is still an input. A break line that emerges from the angle between
-        the swell and the measured contour is the next step.</li>
+      <li><strong>The break line is derived; the peel-angle targets are not.</strong>
+        Since this page first went up, the break line became emergent &mdash;
+        the locus where shoaled height first exceeds the depth limit,
+        computed over the measured bed &mdash; and single-step refraction
+        landed with it. But each site&rsquo;s synthetic reef is still fitted
+        toward an authored target angle, and those targets came from surf
+        guides, not measurements. Five of seven exceed a physical bound
+        (section 06).</li>
       <li><strong>Tidal datum is approximate.</strong> Depths are NAVD88; the
         conversion to local sea level (0.905 m) comes from NOAA station 9413450
         at Monterey, about 40 km away, because the Santa Cruz gauge publishes
@@ -1175,12 +1189,112 @@ depth and exposure.</desc>
     </p>
   </section>
 
+  <section class="essay-part">
+    <h2><span class="num">06</span> The numbers nobody has measured</h2>
+    <p class="prose">
+      The single most important parameter in this model is the peel angle
+      &alpha; &mdash; the angle between the breaking edge and the unbroken
+      crest, the thing that separates a peeling wave from a closeout. It has
+      a sixty-year-old formalism (Walker&rsquo;s 1974 Look Laboratory work in
+      Hawaii defined it, and put the surfable floor near 30&deg;). What it
+      does not have is data. A 2026 literature search, run for this page,
+      found <strong>no published measured peel angle for Pleasure Point,
+      Steamer Lane, or any Santa Cruz break</strong> &mdash; not in journals,
+      not in theses, not in agency grey literature.
+    </p>
+    <p class="prose">
+      The gap is not for lack of looking at this coastline. The USGS survey
+      this page&rsquo;s bathymetry comes from
+      (<a href="https://pubs.usgs.gov/of/2007/1270/" target="_blank" rel="noopener">Open-File
+      Report 2007-1270</a>) ran a shore camera over this exact reef for a
+      year under a task named &ldquo;Spatial and Temporal Variation in
+      Breaking Wave Patterns&rdquo; &mdash; and never computed a break-line
+      orientation. The
+      <a href="https://www.savethewaves.org/wp-content/uploads/2025/09/Climate-Vulnerability-of-Californias-Natural-Surfing-Capital_2025_SaveTheWavesCoalition.pdf" target="_blank" rel="noopener">2025
+      Save The Waves climate-vulnerability study</a> of 31 Santa Cruz breaks
+      mentions peel angle exactly once: as a line item in a recommended
+      template for future assessments. The California Coastal Commission&rsquo;s
+      permit conditions for the Pleasure Point seawall require permanent
+      monitoring of &ldquo;wave break character&rdquo; &mdash; a term the
+      findings never define. The wave every local can describe has never
+      been measured in the one unit that describes it.
+    </p>
+    <p class="prose">
+      For point breaks anywhere, the published record is one wave. At Raglan,
+      New Zealand, Scarfe digitised a single ride from rectified video frames
+      and got &alpha; = 0, 48, 50, 69, 22, 69, 45, 30&deg; at one-second
+      intervals (<a href="https://bioone.org/journals/journal-of-coastal-research/volume-2009/issue-253/07-0958.1/Research-Based-Surfing-Literature-for-Coastal-Management-and-the-Science/10.2112/07-0958.1.full" target="_blank" rel="noopener">Scarfe,
+      Healy &amp; Rennie 2009</a>). Read the shape of that series: the wave
+      swings through the entire range this page assigns to seven different
+      breaks &mdash; within eight seconds of one ride. The 69&deg; readings
+      are the escape sections that let the surfer out of a barrelling
+      closeout, alternating with 22&ndash;30&deg; runs. A peel angle is not
+      one number per break; it is a distribution, and nobody has published
+      the distribution for anywhere in California.
+    </p>
+    <p class="prose">
+      Against that near-empty record, the guides were this page&rsquo;s
+      source: &ldquo;mellow&rdquo;, &ldquo;softer-breaking&rdquo;,
+      &ldquo;longboard-favored&rdquo; became 58&ndash;70&deg; at the
+      down-point spots. The physics disagrees, and it disagrees with a
+      closed form. As waves shoal, refraction turns their crests parallel to
+      the depth contours; on a planar reef the peel angle <em>is</em> the
+      incidence angle at breaking, so Snell&rsquo;s law bounds it:
+      <span class="mono">sin&nbsp;&alpha;<sub>max</sub> = c<sub>b</sub>/c<sub>s</sub></span>
+      &mdash; the ratio of wave speed at breaking to wave speed where
+      refraction begins
+      (<a href="https://repository.tudelft.nl/record/uuid:75b15cd7-08a1-48e5-8fc9-337f184ae318" target="_blank" rel="noopener">Henriquez
+      2004</a>, TU Delft). No reef dimension appears in that bound. Making
+      the reef bigger makes it <em>worse</em>: a deeper wedge gives
+      refraction more room to work, which is why reef designers rotate
+      larger reefs further off the swell rather than building them steeper
+      (<a href="https://researchcommons.waikato.ac.nz/handle/10289/13967" target="_blank" rel="noopener">Mead
+      2001</a>). Run on this model&rsquo;s own dispersion code at each
+      site&rsquo;s own breaking depth, the bound lands at roughly
+      35&ndash;54&deg; across the mapped spots &mdash; and five of the seven
+      authored targets sit above it. The two that clear it, Sewers (38&deg;)
+      and First Peak (50&deg;), are exactly the two the simulation
+      reproduces on target.
+    </p>
+    <p class="prose">
+      This also resolves what the guides meant. Smaller waves break in
+      shallower water, refract longer, and end up with a <em>lower</em>
+      peel-angle ceiling &mdash; at Raglan the same reef bends 1&nbsp;m waves
+      40&deg; and 4&nbsp;m waves only 15&deg;. So the sheltered down-point
+      spots, which receive the smallest swell, are precisely where physics
+      forbids the high angles this page asked of them. The mellowness locals
+      describe is real, but it is <em>sheltering</em> &mdash; smaller,
+      weaker waves as the point&rsquo;s corner shadows the swell &mdash; not
+      a slower-hinging peel. The model currently encodes that mellowness in
+      the wrong variable, and fixing it (lower angles, with an explicit
+      sheltering field carrying the character instead) is open work in the
+      repository&rsquo;s TODO.
+    </p>
+    <p class="prose">
+      The measurement itself is now tractable, which is the invitation this
+      section ends on. Two published methods extract peel angles from
+      exactly the kind of imagery that already exists for this break:
+      wave-peel tracking from camera frames
+      (<a href="https://doi.org/10.3390/rs13173372" target="_blank" rel="noopener">Thompson,
+      Zelich, Watterson &amp; Baldock 2021</a>) and a neural-network
+      detector that has logged ~1.6&nbsp;million breakpoint-and-crest pairs
+      at Manu Bay
+      (<a href="https://icce-ojs-tamu.tdl.org/icce/article/view/12664" target="_blank" rel="noopener">Atkin,
+      McIntosh &amp; Bryan 2022</a>). The USGS archive pairs a year of
+      Pleasure Point shore-camera imagery with surveyed bathymetry &mdash;
+      the raw material for the first measured peel angle in Santa Cruz is
+      sitting in public archives. Until someone runs it, every &alpha; on
+      this page is a hypothesis, and is labelled as one.
+    </p>
+  </section>
+
   </main>
 
   <footer>
     <div class="credit-row"><span class="credit-label">Coastline &amp; spot data:</span> <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, ODbL.</div>
     <div class="credit-row"><span class="credit-label">Bathymetry:</span> NOAA National Centers for Environmental Information (NCEI), 1/3 arc-second coastal DEM.</div>
     <div class="credit-row"><span class="credit-label">Ground-truth guides:</span> <a href="https://www.surfer.com/culture/a-visitors-guide-to-longboarding-pleasure-point" target="_blank" rel="noopener">Surfer.com, &ldquo;A Visitor's Guide to Longboarding Pleasure Point&rdquo;</a> &middot; <a href="https://sunnycalifornia.com/blogs/news/beginners-guide-surfing-pleasure-point" target="_blank" rel="noopener">Sunny California, &ldquo;A Beginner's Guide to Surfing Pleasure Point&rdquo;</a>.</div>
+    <div class="credit-row"><span class="credit-label">Surf science:</span> Walker (1974, Look Laboratory TR-30) &middot; Hutt, Black &amp; Mead (2001, <em>JCR</em> SI&nbsp;29) &middot; Mead (2001, PhD, Waikato) &middot; Henriquez (2004, MSc, TU Delft) &middot; Scarfe, Healy &amp; Rennie (2009, <em>JCR</em> 25(3)) &middot; Thompson et al. (2021, <em>Remote Sensing</em> 13:3372) &middot; Atkin, McIntosh &amp; Bryan (2022, ICCE). Full citations, verbatim-checked quotes and the search record: <span class="mono">docs/research/SURF_SCIENCE_REFS.md</span> in the repository.</div>
     <div class="credit-row"><span class="credit-label">Licence:</span> Code, writing and figures MIT; OpenStreetMap-derived data ODbL 1.0; NOAA NCEI bathymetry public domain. Source and the full breakdown in the <span class="mono">pointbreak</span> repository.</div>
     <div class="credit-row"><span class="credit-label">Renders:</span> the pointbreak wave-model renderer, preset bank as of 2026-08-09.</div>
     <div class="colophon"><a href="https://mindbendingpixels.com/">Mind Bending Pixels</a> &middot; an adventure in experiential science</div>

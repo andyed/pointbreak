@@ -39,17 +39,31 @@ This is the part worth reading before trusting anything it shows.
 - **No fluid solver.** No Navier–Stokes, no Boussinesq, no shallow-water
   equations integrated. Nothing here conserves mass or momentum. It is a
   kinematic construction that produces wave-shaped motion.
-- **No refraction.** Swell direction does not bend around the point. The
-  coastline's turn is *measured* and shapes the break line, but the model never
-  computes how an incoming swell would actually wrap. This is the largest gap
-  between the model and the physics it gestures at.
-- **The break line is authored.** Peel angle α is an input, not a result. In a
-  physical model it would fall out of the angle between the swell and the
-  measured contour.
+- **Refraction is single-step Snell**, `sin φ_b = sin α · c_b/c₀`, not a ray
+  trace: the crest field stays a plane wave so the zipper keeps its closed
+  form. A depth-varying phase field (the eikonal Ψ bake) exists behind
+  `#psi=1`, default off.
+- **Peel angle is still authored per spot, and the authored numbers are the
+  model's weakest input.** The break *line* is now emergent — the
+  `H₀Ks ≥ γh` locus over the measured bed, default on — but each site's
+  synthetic reef is fitted toward a target α that came from reading surf
+  guides, not from any measurement. Checked against the refraction bound
+  `sin α_max = c_b/c_s` (Henriquez 2004; `tests/peel-ceiling.test.js` runs it
+  on this bank), **five of the seven authored targets exceed what this shelf
+  can physically deliver at those spots' own breaking depths.** See
+  `docs/research/SURF_SCIENCE_REFS.md` §2.3.2.
 - **No currents, wind forcing, wave–wave interaction, swash or backwash.**
-- **No validation.** Nothing has been compared against measured wave heights,
-  breaking positions, or imagery of this break. It has not been shown to a
-  local. "Looks plausible" is the entire claim.
+  (Wave setup/setdown — the set-driven shoreline breathe — is modelled.)
+- **No validation, and none is currently possible from the literature.**
+  Nothing has been compared against measured wave heights, breaking positions,
+  or imagery of this break. Worse, as of a 2026-08-13 literature search there
+  is **no published measured peel angle for any Santa Cruz break** — the USGS
+  survey this project's bathymetry comes from (OFR 2007-1270) never computed
+  one, and the 2025 Save The Waves study of 31 Santa Cruz breaks lists peel
+  angle only as a template item for *future* assessments. The nearest thing to
+  ground truth anywhere is one per-wave series at Raglan, NZ (Scarfe 2008) and
+  one single-day estimate at an artificial reef (Cables, Perth, ~45°).
+  "Looks plausible" is the entire claim.
 - **Six of seven sites carry surveyed profiles.** Privates does not — its
   coastline defeats the cubic contour fit (16.5 m RMS), so it runs on a
   synthetic stage and says so in the app.
@@ -68,9 +82,14 @@ Do not use it for any decision about entering the water.
 
 Seven real Pleasure Point breaks, ordered apex → down-point, which is also the
 gradient locals describe (bigger and faster toward the corner): **Sewers, First
-Peak, Second Peak, Jack's (38th), The Hook, Sharks, Privates**. Peel angle rises
-and Iribarren falls along that order. The A-frame is a *parameter*, not a site —
-the wave that demonstrates it is on Santa Cruz's west side.
+Peak, Second Peak, Jack's (38th), The Hook, Sharks, Privates**. The preset bank
+encodes that gradient twice — H₀ falls and authored peel angle rises down-point
+— and the second half is now known to be misassigned: the measured coast
+tangent is roughly constant down-point and the refraction bound *falls* as
+waves get smaller, so the mellowing locals describe is sheltering (smaller,
+weaker waves), not a slower peel. Retargeting the bank is open work
+(`TODO.md` 1c'-c.7). The A-frame is a *parameter*, not a site — the wave that
+demonstrates it is on Santa Cruz's west side.
 
 ## Layout
 
@@ -121,10 +140,11 @@ npm run check:depth   # generated seabed patches match theirs
 lip, procedural surfer) plus the depth field described above. `web/` is the
 depth-free reference raymarcher and stays that way. TouchDesigner not started.
 
-Next, in rough order of how much they would change the model: an emergent break
-line (α from swell-vs-contour geometry rather than a knob), refraction, live
-CDIP direction, and a contour representation flexible enough for Privates. See
-`TODO.md`.
+The emergent break line and single-step refraction have since landed (default
+on for mapped spots). Next, in rough order of how much they would change the
+model: retargeting the authored peel angles inside the physics bound and
+moving "mellow" into a sheltering field `H_eff(u)`, live CDIP direction, and a
+contour representation flexible enough for Privates. See `TODO.md`.
 
 ## Related work
 
@@ -153,6 +173,28 @@ compose rather than compete, and the forcing side is better solved elsewhere:
 The academic prior art the model actually derives from (Walker's peel angle,
 Mead & Black's bathymetric components, Hutt's skill bands, Battjes' Iribarren
 thresholds, McCowan's breaker index) is cited in `docs/MODEL.md`.
+
+**On measurement**, the gap and the route to closing it
+(full citations and verbatim-checked quotes in
+`docs/research/SURF_SCIENCE_REFS.md` §2.3.1–2.3.2):
+
+- No peel angle has ever been measured at a Santa Cruz break. The only
+  published per-wave series at any point break is Raglan, NZ — α running
+  0→69° within one eight-second ride, non-closeout mean ≈ 48°
+  (Scarfe 2008 PhD, Waikato; Scarfe, Healy & Rennie 2009, *JCR* 25(3)).
+- The refraction ceiling on a planar reef component,
+  `sin α_max = c_b/c_s`, follows from Snell (Henriquez 2004, TU Delft MSc);
+  Mead (2001, PhD, Waikato) gives the mechanism — enlarging a
+  fixed-orientation wedge *increases* refraction before breaking and lowers
+  the peel. `tests/peel-ceiling.test.js` evaluates the bound on this model's
+  own dispersion code.
+- Two modern methods measure peel angle from camera imagery: Wave Peel
+  Tracking (Thompson, Zelich, Watterson & Baldock 2021, *Remote Sensing*
+  13(17):3372) and CNN breakpoint+crest detection (Atkin, McIntosh & Bryan,
+  ICCE 2022, ~1.6 M detections at Manu Bay). USGS OFR 2007-1270 already pairs
+  a year of Pleasure Point shore-camera imagery with surveyed bathymetry —
+  the raw material for the first measured peel angle here exists in public
+  archives.
 
 ## Licence
 
