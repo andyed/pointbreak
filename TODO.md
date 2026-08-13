@@ -51,13 +51,41 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       EXHAUSTED — it can only remove relief, smoothing demands added oblique
       structure. Curiosity: bare f=0.55 is the only measured config improving
       Sharks (48.5→55 vs 66, spurious A-frames→1) but it breaks Jack's (→30).
-- [ ] 1c'-b. STRUCTURAL DECISION (Andy), now two options: (a) revisit
-      REEF_AMP_MAX 3.2 m / wedge shape so reef authority survives #smooth, or
-      (b) accept the noise-peel (α on target 4/6 unsmoothed) and fix its real
-      defects — locus hysteresis across H₀ rebakes (the 10.5–56.9° swing) +
-      per-spot A-frame residuals. (b) is the screensaver-mission read: the
-      noise is this DEM's actual structure; its sin is instability.
-      Sharks residual (48.5 vs 66) rides with whichever is chosen.
+- [x] 1c'-b. Andy chose (b) 2026-08-13: accept the noise-peel, fix its real
+      defects. DIAGNOSED FIRST (spec "The H₀ swing, diagnosed" + "Where the
+      peel actually lives"; scripts/measure_h0_swing.mjs,
+      measure_alpha_profile.mjs) rather than patching, because a hysteresis
+      filter on the baked line is output repair and MEASUREMENT_LESSONS 8 says
+      that fails here. What the swing actually is:
+      • the acceptance instrument (α at x=0) overstates it 4–8× — stage-median
+        swing is 7.4° (Sharks) / 9.6° (Second Peak) vs 57.9° / 41.8° at the
+        station — and at Second Peak it moves the WRONG WAY (line 12.0→20.5°
+        as H₀ 1.2→1.8 while the station reads 66.8→27.4°)
+      • but it is real: 7.4–9.6° stage-wide still fails the <5° band
+      • genuine discrete branch flips exist at the LOW-H₀ tail only (Sharks
+        102.8 m / 87% of stations for a 0.05 m step at H₀ 0.85; Jack's 151.7 m
+        at 0.90)
+      • the peel is a sustained oblique run over ~40–100% of the stage (better
+        than §4.5's "crosses zero on the flanks"), but Second Peak / Jack's /
+        Sharks end in a DEAD DOWN-POINT THIRD reading 1–8°. As H₀ moves the run
+        slides and a fixed station crosses into that tail — that IS the swing.
+      • reporting correction: "α on target 4/6" describes the FIT WINDOW.
+        Stage-median α is 11° (Sharks) and ~17° (Second Peak) vs 66 / 58.
+- [ ] 1c'-c. DECISIONS this diagnosis forces (Andy), in dependency order:
+      1. ACCEPTANCE INSTRUMENT: retire α-at-x=0 as the criterion (it samples
+         the same neighbourhood the reef fit is tuned at — MEASUREMENT_LESSONS
+         4) and restate the <5° swing rule on stage-median α. Cheap, and
+         everything downstream is scored against it.
+      2. LOW-H₀ BRANCH FLIPS: prefer the DETERMINISTIC fix over hysteresis —
+         reject anchor crossings beyond a declared band of the wedge crest, so
+         a far interloper cannot win `nearest`. Hysteresis (seed the branch
+         from the previous bake) also works but makes the rendered line depend
+         on the HISTORY of H₀, breaking the repo's determinism property
+         (same spot+conditions ⇒ same wave, checksums match across loads).
+      3. DEAD DOWN-POINT THIRD: judgement, not measurement — real point breaks
+         shut down on the inside. If it stays, say so in MODEL.md; if not, it
+         is the next structural item and (a)'s REEF_AMP_MAX comes back.
+      Sharks residual (48.5 vs 66 at the station; 11° stage-median) rides here.
 - [ ] 1d. M6p3 steps 3–4 (sound onto Ψ, flip default) NO LONGER ride with the
       ensemble — judge a #psi-only default flip on its own merits (it holds α
       at 4.3° mean but raises spurious A-frames 3→5; steps 2–3 still open)

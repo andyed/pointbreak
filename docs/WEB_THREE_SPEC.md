@@ -1035,3 +1035,80 @@ locus hysteresis across H₀ rebakes for the 10.5–56.9° swing, plus the
 per-spot A-frame residuals. (b) is the screensaver-mission read: the noise
 IS this DEM's actual small-scale structure; its sin is instability, not
 wrongness.
+
+### The H₀ swing, diagnosed (2026-08-13) — mostly the ruler, partly the wave
+
+Option (b) — accept the noise-peel, fix its real defects — starts with the
+10.5–56.9° derived-α swing across H₀ ± 0.3 m. Before patching it, three
+candidate causes that want three different fixes: a discrete **branch flip** in
+the crossing selection, honest **smooth migration** of the locus, or a
+**diagnostic artifact** of reading a 3-texel local slope at one station.
+`scripts/measure_h0_swing.mjs` sweeps H₀ in 0.05 m steps and reports the whole
+locus — α at x = 0, α median over the stage, and the station-by-station move
+against the previous step.
+
+**Probe correction, recorded because it nearly produced a wrong conclusion.**
+The first version took its median over the entire ~600 m bake rather than the
+113–312 m rideable stage, and returned a line-wide swing of 1.7–3.4° — which
+would have said "the line is stable, only the ruler moves." That number was
+the flat, stable flanks outvoting the stage. Stage-restricted, the same sweep
+gives **7.4° (Sharks) and 9.6° (Second Peak)**. MEASUREMENT_LESSONS 2.
+
+| spot | α swing at x = 0 | α swing, stage median | max single-step locus move |
+|---|---|---|---|
+| Sharks | 57.9° | **7.4°** | 102.8 m at H₀ 0.85 (87% of stations moved > 5 m) |
+| Second Peak | 41.8° | **9.6°** | 15.7 m |
+| Jack's | 25.2° | — | 151.7 m at H₀ 0.90 (61% of stations) |
+| Sewers | 0.5° | — | 16.6 m |
+
+Three findings.
+
+**1. The acceptance instrument overstates the swing 4–8×, and at Second Peak
+it has the wrong sign.** As H₀ goes 1.2 → 1.8 m there, the stage median rises
+12.0° → 20.5° (the line gets *more* oblique) while α at x = 0 collapses
+66.8° → 27.4°. A station readout that moves opposite to the line it is
+sampling cannot be the acceptance criterion for "the wave's character is
+stable."
+
+**2. The swing is nevertheless real.** 7.4–9.6° stage-wide still fails the
+< 5° band. Smaller than recorded, not absent.
+
+**3. Genuine discrete flips exist, confined to the low-H₀ tail.** Sharks moves
+102.8 m — 87% of stations — for a 0.05 m step at H₀ 0.85, and reads α ≈ 4–5°
+(a closeout) below 0.80 against ≈ 11° above it. Jack's does the same at 0.90.
+These are branch flips in `markBreakCrossings`' candidate set, not migration.
+
+### Where the peel actually lives (2026-08-13)
+
+`scripts/measure_alpha_profile.mjs`, default ocean, unsmoothed, stage-restricted.
+Motivated by the above: the reef fit's station set (`xs = [-16, -8, 0, 8, 16]`)
+and the acceptance station (x = 0) are the same neighbourhood, so the
+instrument may be certifying the fit rather than the wave — MEASUREMENT_LESSONS
+4 in a new costume.
+
+| spot | target | stage | α in fit window | α outside it | decile medians across the stage |
+|---|---|---|---|---|---|
+| Sewers | 38 | 257 m | 38.7 | 38.8 | 15 15 25 71 67 38 39 39 44 49 |
+| First Peak | 50 | 113 m | 48.5 | 54.9 | 22 59 70 67 24 48 49 51 56 52 |
+| Second Peak | 58 | 194 m | 62.4 | **6.3** | 2 60 63 52 55 40 4 5 5 6 |
+| Jack's | 62 | 312 m | 61.1 | **11.4** | 1 1 71 59 61 54 44 6 1 8 |
+| The Hook | 48 | 288 m | 46.9 | 30.2 | 24 23 56 72 43 45 48 41 15 1 |
+| Sharks | 66 | 303 m | 56.1 | **9.6** | 11 7 60 65 62 53 11 0 4 8 |
+
+The peel is **not** a 32 m island — it is a sustained oblique run covering
+roughly 40–100% of the stage, which is better than §4.5's "crosses zero out on
+the flanks" implies. But on Second Peak, Jack's and Sharks the run ends in a
+**dead down-point third** that reads 1–8°, i.e. shore-parallel. Those are the
+same three spots with the worst H₀ swing, and the mechanism now joins up: as
+H₀ moves, the oblique run slides along the stage, so a fixed station crosses
+from the run into the dead tail and reads a 40–58° "swing" that the line as a
+whole never made.
+
+One consequence for how this repo reports itself: "α on target 4/6 unsmoothed"
+is a statement about the **fit window**, not about the wave. Stage-median α is
+11° at Sharks and ~17° at Second Peak against 66 and 58 targets. Both claims
+can be true at once; only the second one is what a surfer sees.
+
+Whether the dead down-point third is a defect or a true inside closeout is a
+judgement call, not a measurement — point breaks do shut down on the inside.
+It wants a decision before it wants code.

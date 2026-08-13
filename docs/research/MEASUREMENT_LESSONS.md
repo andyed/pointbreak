@@ -116,6 +116,20 @@ only leave-one-out reveals which member owns the ensemble's behaviour. And a
 config can pass a stability criterion by being uniformly dead — the full
 ensemble's 1–3° H₀ swing was the stability of a flat line, not of a wave.
 
+## 8c. A summary statistic needs its domain checked before its value is read
+
+Diagnosing the H₀ swing, the first instrument reported line-wide α as a median
+over the entire ~600 m break-line bake. It came back stable at 1.7–3.4°, which
+supported a clean conclusion: the line is fine, only the single-station ruler
+moves. The median was dominated by flank stations far outside the 113–312 m
+rideable stage, which are flat and stable whatever the surf does. Restricted to
+the stage, the same sweep gives 7.4–9.6° — still 4–8× smaller than the station
+reading, but a real failure of the < 5° band rather than a pass.
+
+The stable-looking number was true and vacuous. Before believing a summary,
+check what it is summarising over — especially when the domain is set by an
+implementation detail (here, a bake width) rather than by the question.
+
 ## 9. Parallel agents on shared files fail silently
 
 A workflow round left **two debug probes committed** — an early `return` that
