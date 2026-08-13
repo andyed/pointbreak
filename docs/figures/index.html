@@ -297,6 +297,20 @@
     margin: 0.8rem 0 0;
     font-weight: 500;
   }
+  /* A .fig-wrap breaks out of the prose column to full viewport width (the
+     calc(50% - 50vw) margins above), and .fig-frame re-centres the figure
+     inside it. The caption did not follow: capped at 68ch it stayed pinned to
+     the full-bleed element's LEFT edge, so the wider the window the further it
+     drifted from the figure it describes. Measured at a 2000px viewport: frame
+     centred at x=399, caption stranded at x=24 while the prose column above it
+     sat at x=644. Centre it so it returns to the text measure — which is what
+     the eye expects of a caption, and what every other block on the page does.
+     Only .fig-wrap captions are full-bleed; .sim-figure captions already sit
+     inside a normal-width container and must not be touched. */
+  figure.fig-wrap > figcaption {
+    margin-left: auto;
+    margin-right: auto;
+  }
   figcaption .cap-label {
     color: var(--mg-sand);
     font-weight: 700;
