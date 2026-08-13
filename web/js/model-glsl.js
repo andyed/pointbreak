@@ -298,11 +298,33 @@ float bedElevM(vec2 xz){
   // down (it had to, or the seabed mesh punched a hole in the far water), so
   // the two surfaces disagreed about the same ground. Ramping inside bedElevM
   // makes the land path, the waterline (max(bed, water)), waterDepthM and the
-  // seabed mesh agree by construction: outside the data the ground descends
-  // at 4.5 cm/m until it is under water and the coastline simply ends in the
-  // haze. Zero inside the patch, so nothing measured moves.
+  // seabed mesh agree by construction. Zero inside the patch, so nothing
+  // measured moves.
+  //
+  // DIRECTIONAL BY CONTENT (2026-08-12, the "why do we still have an island"
+  // report). The first ramp sank the ground in EVERY direction outside the
+  // patch, so inland and down-coast — where the real coast continues — the
+  // terrain dove below sea level and the whole landmass read as a finite
+  // island in mist. Sink only where the clamped EDGE elevation is already
+  // below water (ocean continuing seaward/alongshore); where the edge is land,
+  // HOLD its elevation — the coastal terrace continues, and the domain matte
+  // plus fog finish it as a hazy landmass rather than a shoreline that ends.
+  // The clamp plateau this re-admits was the old tableland bug only because
+  // the rectangular matte left it half-lit with a hard albedo edge; under the
+  // radial matte (provenanceAt) land fades to ZERO before the plateau's
+  // rectangle could read. The 1.5 m band straddling the waterline blends the
+  // two regimes so the rule itself draws no contour.
+  // ...and the HELD land relaxes toward a low coastal plain (wl + 2 m) over
+  // ~500 m rather than holding the rim's full height forever: a 15 m plateau
+  // meeting sunk ocean along the patch edge printed its silhouette as a
+  // straight haze wall (the diagonal seam in the down-coast view). A 2 m
+  // plain casts no silhouette the fog cannot swallow, and still reads as
+  // "the coast continues" rather than "the coast ends".
   vec2 dOut = max(max(u_bedRect.xy - xz, xz - u_bedRect.zw), vec2(0.0));
-  return e - 0.045 * length(dOut);
+  float dO = length(dOut);
+  float oceanic = 1.0 - smoothstep(u_waterLevel - 0.5, u_waterLevel + 1.0, e);
+  float landHold = mix(e, min(e, u_waterLevel + 2.0), smoothstep(60.0, 520.0, dO));
+  return mix(landHold, e - 0.045 * dO, oceanic);
 }
 
 // Still-water depth, metres. Zero on land — the shoreline is wherever this

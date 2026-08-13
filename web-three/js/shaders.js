@@ -608,6 +608,12 @@ void main() {
       // marine layer instead of a missing asset ("don't render what we don't
       // model; real layout covers the gaps" — Andy, 2026-08-12).
       landCol = mix(matteL, landCol, pow(provL, 1.8));
+      // FINISH the fade (island-fix follow-up): matteL preserves luminance, so
+      // far land still showed terrain grain as a textured grey plain, and the
+      // held-plateau silhouette printed a faint straight seam against the sky.
+      // Below prov 0.35 converge on one flat haze tone — texture, and with it
+      // every seam it could draw, ends before the geometry does.
+      landCol = mix(vec3(0.60, 0.63, 0.64), landCol, smoothstep(0.0, 0.35, provL));
     }
     float dyL = max(cameraPosition.y - vWorldPos.y, 0.0);
     float inLayerL = dyL > HAZE_H ? HAZE_H / dyL : 1.0;
@@ -839,6 +845,12 @@ void main() {
     float luma = dot(col, vec3(0.299, 0.587, 0.114));
     vec3 matte = mix(vec3(luma), vec3(0.55, 0.60, 0.61), 0.4);
     col = mix(matte, col, mix(0.22, 1.0, prov));
+    // Same hard finish as the land path, same constant. Without it, beyond
+    // the patch the rim's land/water boundary extrudes as a dead-straight
+    // shoreline where flat-toned land met fresnel-toned water — the diagonal
+    // seam in the down-coast view. Both sides of a boundary we do not model
+    // must converge on ONE tone; then no unmodeled edge can draw a line.
+    col = mix(vec3(0.60, 0.63, 0.64), col, smoothstep(0.0, 0.35, prov));
   }
 
   // ---- 5. aerial perspective ----
