@@ -153,12 +153,50 @@ What was wrong, and why it matters:
 
 ### 2.3.1 Measured peel angles at real point breaks — the evidence is one series
 
-Searched 2026-08-13. **No measured peel angle exists in the literature for Pleasure
-Point, Steamer Lane, or any Santa Cruz break** — a positively supported negative:
-Atkin, E.A., Reineman, D.R., Reiblich, J. & Revell, D.L. (2020), "Applicability of
-management guidelines for surfing resources in California", *Shore & Beach* 88(2),
-names Steamer Lane and argues California breaks still *lack* quantitative baselines,
-citing peel angle only as something baseline studies "are to establish".
+Searched 2026-08-13, two independent sweeps plus first-hand full-text greps of the
+primary PDFs. **No measured peel angle exists — peer-reviewed or grey — for Pleasure
+Point, Steamer Lane, The Hook, 38th, Sewer Peak, Cowell's, or any Santa Cruz break.**
+The negative is positively supported, not a failed search:
+
+- **Storlazzi et al. (2007), USGS OFR 2007-1270** — the Pleasure Point survey this
+  project already leans on (§4): **zero occurrences of "peel"**. It does contain a
+  14 m wave gauge and a shore camera under *"Subtask 2.2 — Spatial and Temporal
+  Variation in Breaking Wave Patterns"*, but reduces breaking to timex/variance
+  imagery; no break-line orientation is ever computed.
+- **Save The Waves / Integral / Black Surf Santa Cruz (2025)**, *Climate Vulnerability
+  of California's Natural Surfing Capital* (31 SC breaks): exactly one occurrence of
+  "peel" — the list item `m. Peel Angle` inside a *recommended contents template* for
+  future assessments. Not a value, not attached to a break.
+- **Atkin, Reineman, Reiblich & Revell (2020)**, *Shore & Beach* 88(2), names Steamer
+  Lane and argues California breaks still *lack* quantitative baselines, citing peel
+  angle only as something baseline studies "are to establish".
+- **California Coastal Commission (2008)**, Revised Findings A-3-SCO-07-015 (the
+  Pleasure Point seawall) imposes a permanent legal *Surf Monitoring* condition for
+  "wave breaking patterns" — specified only as "wave height, period and wave break
+  **character**". The one enforceable long-run Pleasure Point wave-monitoring mandate
+  has no geometric metric attached.
+- Tellingly, **Integral Consulting** advertises automated peel-angle extraction and
+  applied it at **Topanga Point** (Topanga Lagoon Restoration EIR, 2024 — modelled via
+  XBeach, not measured), and was a technical partner on the Santa Cruz study above,
+  yet did not apply it there. The firm with the capability, working on the relevant
+  study, left the gap open.
+
+Mead's own California leg (May/June 1998; Mead 2000 PhD, Waikato) surveyed El Capitan,
+Fort Point, Rincon Point, The Wedge and Ventura Point — meso-scale components plus
+*qualitative* descriptors only (Rincon: "low to moderate steepness, slow to moderate
+peel"), **no numeric peel-angle column for any break**. Fort Point, ~120 km north, is
+the nearest surveyed break to Santa Cruz. *(Break list is second-hand at moderate
+confidence; the "no numeric α" finding is consistent with both Scarfe reviews, which
+were verified directly.)*
+
+**The opening this leaves.** OFR 2007-1270 pairs a year of shore-camera
+time-exposure/variance imagery with surveyed Pleasure Point bathymetry — precisely the
+input class consumed by the Wave Peel Tracking method of Thompson, Zelich, Watterson &
+Baldock (2021), *Remote Sensing* 13(17):3372, and by the CNN breakpoint+crest detector
+of Atkin/McIntosh/Bryan (ICCE 2022). **Deriving the first measured peel angle at
+Pleasure Point from already-public data is a tractable piece of new work**, and it
+would settle the α-target question this model cannot settle internally. See TODO
+Phase 3.
 
 The one published per-wave series at a point break — Raglan "The Ledge", NZ, one ride,
 30 July 2001, α at 1 s intervals (Scarfe 2008 PhD, Univ. of Waikato, Table 2-3 p.44,
@@ -176,7 +214,17 @@ published α for a natural break shares this hybrid character.
 Read it for structure, not for a mean: **69° occurs twice in eight seconds, as the
 escape section that lets the surfer out of a barrelling closeout**, alternating with
 22–30° sections. Non-closeout mean ≈ 48°. **No point break is documented anywhere with
-a sustained mean α above 55°.** A much larger instrument-measured dataset exists — Manu
+a sustained mean α above 55°.**
+
+Two further calibration points, both modelled rather than instrument-measured:
+
+- **Bingin, Bali** — ~**35°** along the wedge, **40–55°** in the take-off zone
+  (Mead 2000 PhD, WBEND refraction model cross-checked against aerial photos). A
+  world-class Indonesian reef point sits in the 35–55° band.
+- **Scarfe, Healy & Rennie (2009)**'s only numeric α is a worked figure example at
+  **~52°**, which they gloss as "fast but surfable". Worth sitting with: the number
+  our bank assigns to Second Peak (58) is *above* the value the review literature
+  uses to illustrate a fast wave. A much larger instrument-measured dataset exists — Manu
 Bay, Raglan, ~1.6 M breakpoint+crest pairs, 2017–2020, the first work to detect both
 directly from imagery (Atkin, McIntosh & Bryan, ICCE 2022) — but it defers all numbers
 to Atkin (2021), Proc. 25th Australasian Coasts & Ports Conf., which is not obtainable

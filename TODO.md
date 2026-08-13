@@ -499,6 +499,21 @@ precedent) — do not decide now.
       from "looks plausible" to "agrees with something that isn't us on N
       days". Until this exists, every public artifact must keep saying
       unvalidated.
+- [ ] PEEL ANGLE FROM THE USGS SHORE CAMERA — new 2026-08-13, and the thing
+      that would settle 1c'-c.6. Literature search establishes there is NO
+      measured peel angle for ANY Santa Cruz break (SURF_SCIENCE_REFS 2.3.1,
+      verified by first-hand greps of OFR 2007-1270, the 2025 Save The Waves
+      study, and the CCC seawall findings). But USGS OFR 2007-1270 — already
+      this project's bathymetry source — pairs a YEAR of 5 Hz shore-camera
+      time-exposure/variance imagery with surveyed Pleasure Point bathymetry,
+      which is exactly the input class consumed by Wave Peel Tracking
+      (Thompson et al. 2021, Remote Sensing 13(17):3372) and by the CNN
+      breakpoint+crest detector (Atkin/McIntosh/Bryan, ICCE 2022). Deriving
+      the first measured α at Pleasure Point from already-public data is
+      tractable, is publishable in its own right, and is the only route that
+      settles whether the ≥58° targets or the wedge is wrong. Cheaper and
+      far more rigorous than the weekend drone footage, and it does not
+      depend on the surf being good.
 
 ## Someday
 - [ ] Web explainer essay (zipper math, interactive)
