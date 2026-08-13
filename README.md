@@ -58,10 +58,11 @@ This is the part worth reading before trusting anything it shows.
   Nothing has been compared against measured wave heights, breaking positions,
   or imagery of this break. Worse, as of a 2026-08-13 literature search there
   is **no published measured peel angle for any Santa Cruz break** — the USGS
-  survey this project's bathymetry comes from (OFR 2007-1270) never computed
-  one, and the 2025 Save The Waves study of 31 Santa Cruz breaks lists peel
-  angle only as a template item for *future* assessments. The nearest thing to
-  ground truth anywhere is one per-wave series at Raglan, NZ (Scarfe 2008) and
+  survey of this exact reef (OFR 2007-1270, whose camera ran for a year under a
+  task named "Spatial and Temporal Variation in Breaking Wave Patterns") never
+  computed one, and the 2025 Save The Waves study of 31 Santa Cruz breaks lists
+  peel angle only as a template item for *future* assessments. The nearest thing
+  to ground truth anywhere is one per-wave series at Raglan, NZ (Scarfe 2008) and
   one single-day estimate at an artificial reef (Cables, Perth, ~45°).
   "Looks plausible" is the entire claim.
 - **Six of seven sites carry surveyed profiles.** Privates does not — its
@@ -188,13 +189,30 @@ thresholds, McCowan's breaker index) is cited in `docs/MODEL.md`.
   fixed-orientation wedge *increases* refraction before breaking and lowers
   the peel. `tests/peel-ceiling.test.js` evaluates the bound on this model's
   own dispersion code.
+- The nearest engineering prior art is **modelled, not measured**: Integral
+  Consulting (2023), *Topanga Surf Quality Impact Assessment Report* (Appendix
+  B of M&N's *Shoreline Morphology Analyses*, Topanga Lagoon Restoration DEIR,
+  SCH 2022050478) — XBeach 2D nonhydrostatic, 5 ft grid, α extracted per
+  breaking wave over 35 min and reported as an alongshore profile. Validated
+  only qualitatively, against a surfer focus group. Its section-averaged α runs
+  **31–53° across twelve scenarios**, corroborating the Snell bound above and
+  sitting well below this model's authored 58–70° targets. See
+  `docs/research/TOPANGA_PEEL_ANGLE_2023.md`.
 - Two modern methods measure peel angle from camera imagery: Wave Peel
   Tracking (Thompson, Zelich, Watterson & Baldock 2021, *Remote Sensing*
   13(17):3372) and CNN breakpoint+crest detection (Atkin, McIntosh & Bryan,
-  ICCE 2022, ~1.6 M detections at Manu Bay). USGS OFR 2007-1270 already pairs
-  a year of Pleasure Point shore-camera imagery with surveyed bathymetry —
-  the raw material for the first measured peel angle here exists in public
-  archives.
+  ICCE 2022, ~1.6 M detections at Manu Bay). Both need a *frame sequence*.
+- USGS OFR 2007-1270 ran a camera on this reef for a year (2006–07) and holds
+  **30,317 8-megapixel stills** across five named Pleasure Point scenes plus
+  **12,744 timex/variance video averages**, alongside a 14 m AWAC and a
+  dedicated interferometric swath survey far finer than the 10 m DEM this
+  model uses. The video products are 10-minute *averages*, so they suit
+  breaking-position validation rather than peel angle; the **stills** are the
+  peel-angle route, since one rectified oblique frame shows both the
+  whitewater edge and the crest. The report is a description — its data files
+  are obtained by contacting the project chief at USGS Pacific Science Center,
+  not by download. Inventory and caveats: `docs/research/SURF_SCIENCE_REFS.md`
+  §2.3.1.
 
 ## Licence
 

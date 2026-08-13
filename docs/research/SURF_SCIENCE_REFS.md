@@ -175,11 +175,22 @@ The negative is positively supported, not a failed search:
   "wave breaking patterns" — specified only as "wave height, period and wave break
   **character**". The one enforceable long-run Pleasure Point wave-monitoring mandate
   has no geometric metric attached.
-- Tellingly, **Integral Consulting** advertises automated peel-angle extraction and
-  applied it at **Topanga Point** (Topanga Lagoon Restoration EIR, 2024 — modelled via
-  XBeach, not measured), and was a technical partner on the Santa Cruz study above,
-  yet did not apply it there. The firm with the capability, working on the relevant
-  study, left the gap open.
+- Tellingly, **Integral Consulting** advertises automated peel-angle extraction
+  ("Automated peel angle analysis from wave path extraction", integral-corp.com Surf
+  Science) and **did** apply it at **Topanga Point** — Integral Consulting Inc. (2023),
+  *Topanga Surf Quality Impact Assessment Report*, Nov 10 2023, Appendix B of M&N's
+  *Shoreline Morphology Analyses* in the Topanga Lagoon Restoration DEIR appendices
+  (SCH 2022050478). XBeach 2D nonhydrostatic, 5 ft grid, 35 min per scenario, α
+  computed for every breaking wave and reported as an alongshore profile. **Modelled,
+  and validated only qualitatively against a surfer focus group** — so it is not a
+  measured α and does not break the negative above. Full extraction, method, and the
+  section-averaged α table: [TOPANGA_PEEL_ANGLE_2023.md](TOPANGA_PEEL_ANGLE_2023.md).
+  The same firm was then a named technical partner on the Santa Cruz study above,
+  whose vulnerability metric is **surfability — "percentage of time with surfable
+  conditions in daylight hours"**, an availability scalar with no geometry in it, and
+  peel angle appears once as a line item in a template for *future* assessments. The
+  firm had the tool, had used it on a California point break two years earlier, and
+  worked the relevant study; the gap stayed open anyway.
 
 Mead's own California leg (May/June 1998; Mead 2000 PhD, Waikato) surveyed El Capitan,
 Fort Point, Rincon Point, The Wedge and Ventura Point — meso-scale components plus
@@ -189,14 +200,60 @@ the nearest surveyed break to Santa Cruz. *(Break list is second-hand at moderat
 confidence; the "no numeric α" finding is consistent with both Scarfe reviews, which
 were verified directly.)*
 
-**The opening this leaves.** OFR 2007-1270 pairs a year of shore-camera
-time-exposure/variance imagery with surveyed Pleasure Point bathymetry — precisely the
-input class consumed by the Wave Peel Tracking method of Thompson, Zelich, Watterson &
-Baldock (2021), *Remote Sensing* 13(17):3372, and by the CNN breakpoint+crest detector
-of Atkin/McIntosh/Bryan (ICCE 2022). **Deriving the first measured peel angle at
-Pleasure Point from already-public data is a tractable piece of new work**, and it
-would settle the α-target question this model cannot settle internally. See TODO
-Phase 3.
+**The opening this leaves — inventoried from the report itself, 2026-08-13.** An
+earlier draft of this section claimed OFR 2007-1270's imagery was "precisely the input
+class consumed by Wave Peel Tracking" and sat in "already-public archives". **Both
+halves were wrong**; the report was then read directly. What it actually holds, from
+its Table 2 and §Subtask 2.2:
+
+| product | count | scenes | what it is |
+|---|---|---|---|
+| digital stills, 8 MP | **30,317** | Hook, 38th, Jack's, PP 3rd peak, PP 1st peak (3,027 each), plus zooms, two composites, one panoramic | instantaneous frames |
+| video "time averages" | **12,744** | s5 PP 1st peak, s18 PP 3rd peak, s23 38th–Jack's, s32 Hook–38th | timex **and** variance, each from ~3,000 frames at 5 Hz over a **10-minute** window |
+
+Collected late spring 2006 → late spring 2007.
+
+**Why WPT is the wrong method here.** Wave Peel Tracking (Thompson, Zelich, Watterson &
+Baldock 2021) and the CNN breakpoint+crest detector (Atkin, McIntosh & Bryan, ICCE 2022)
+both consume a *frame sequence* — they track a breakpoint through time. The archived
+video products are 10-minute **averages**; the raw 5 Hz frames are not among the
+described products. A timex cannot yield a peel angle, because the peel is kinematic and
+the averaging has integrated it away.
+
+**What each product can actually deliver:**
+
+1. **Stills → peel angle, one frame at a time.** A rectified oblique still shows the
+   whitewater boundary *and* the unbroken crest simultaneously, and α is the angle
+   between them at the breakpoint — the original Walker/Palmer definition, measurable
+   without any time series. This is close to how Mead (2000) checked Bingin against
+   aerial photography. 3,027 stills at First Peak alone, and the same again at four
+   other named breaks. Rectification needs camera pose and ground control; the report's
+   own terrestrial and airborne lidar of the bluffs supplies the control points.
+2. **Timex + variance → mean breaking position**, which is what the model's
+   `H₀Ks ≥ γh` locus actually predicts. This is a *closer* match to what the model
+   computes than peel angle is, and it is the "compare breaking position against an
+   independent estimate" of TODO Phase 3. The report notes the variance images
+   delineate the surf zone even where sun angle defeats the timex (its Fig. 14).
+3. **AWAC in 14 m water → contemporaneous forcing.** Wave height, period and direction
+   every 20 min alongside the imagery, so frames can be binned by *measured* conditions.
+   That is the difference between a validation and an anecdote.
+4. **SEA SWATHplus 234 kHz interferometric swath bathymetry + lidar → the resolution
+   problem.** This model runs on the NOAA NCEI 1/3 arc-second DEM (~10 m posts), and
+   this project's own conclusion is that 10 m cannot resolve the 6° contour-to-crest
+   angle that sets the peel. A dedicated swath survey of this reef is far finer. It may
+   show that the reef the model cannot find is simply below the DEM's resolution.
+
+**The access caveat that governs all of it.** The OFR is a 23-page *description*. Its
+front matter reads: "For data files described in this report, please contact: Dr. Curt
+D. Storlazzi (Project Chief), USGS Pacific Science Center, 400 Natural Bridges Drive,
+Santa Cruz, CA 95060." The imagery was posted to the web live in 2006–07 for county
+agencies; that service is long gone. So this is **a data request to a USGS lab 3 km from
+the break**, not a download. Nothing here is blocked — but "already public" was wrong.
+
+One convenient alignment: the survey's vertical control came from NOAA CO-OPS tide
+station **9413450 (Monterey)** — the same station this model extrapolates its
+MSL − NAVD88 = 0.905 m datum from. Any comparison inherits one datum assumption rather
+than two.
 
 The one published per-wave series at a point break — Raglan "The Ledge", NZ, one ride,
 30 July 2001, α at 1 s intervals (Scarfe 2008 PhD, Univ. of Waikato, Table 2-3 p.44,
