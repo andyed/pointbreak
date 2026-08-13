@@ -33,10 +33,24 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       on five of six spots (|Δα| ≤ 1.3°) and makes Sharks WORSE (48.5 → 39.5
       vs 66 target). Not the one change that hits all three criteria; the
       sharks residual moves to 1c's ensemble judgement.
-- [ ] 1c. Judge the FLAG ENSEMBLE (#psi + #smooth + #peeldir + nose-v2), not
-      flags alone — each fixes a different §4.5 defect, each fails alone; the
-      candidate shipping default is a combination
-- [ ] 1d. M6p3 steps 3–4 (sound onto Ψ, flip default) ride with the ensemble
+- [x] 1c. Ensemble JUDGED 2026-08-13 — REJECTED (spec "The ensemble, judged";
+      instrument scripts/measure_ensemble.mjs). No combination passes the
+      triple on >1/6 spots. Every combo containing #peeldir collapses to
+      α≈8–10° edge-to-edge (post V-fix the running-max runs after
+      branch-following already picked the branch — kill switch, delete
+      candidate); psi+smooth+nose still loses the peel (mean |Δα| 26.7°, 3
+      A-frames). NEW number: baseline α swing across H₀±0.3 m fails 4/6
+      (10.5–56.9°; Sharks 48.5°→3.2° for −0.3 m). The reef still doesn't own
+      the line, now bounded two ways: it must survive wave-scale smoothing,
+      and the nose can't supply that (clamped ≤0.30, near-inert at 0.25).
+- [ ] 1c'. NEXT STRUCTURAL MOVE (decision needed): a reef component strong
+      enough to own the locus under #smooth — options: raise the nose clamp
+      and sweep #nose=<f> with measure_ensemble, revisit the relief cap, or
+      accept noise-peel + treat the H₀ swing with locus hysteresis on H₀
+      rebakes. Sharks residual (48.5 vs 66) rides with whichever is chosen.
+- [ ] 1d. M6p3 steps 3–4 (sound onto Ψ, flip default) NO LONGER ride with the
+      ensemble — judge a #psi-only default flip on its own merits (it holds α
+      at 4.3° mean but raises spurious A-frames 3→5; steps 2–3 still open)
 - Acceptance is now visual AND measured: drone capture shows a single-takeoff
   zipper; α HUD swing < ~5° for ±0.3 m H₀; spots distinguishable by their
   SURF (pairwise-RMSE instrument from the audit), not just coastline.

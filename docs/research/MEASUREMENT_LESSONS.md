@@ -104,6 +104,18 @@ target at all six spots, unsmoothed, for the first time.
 
 When repairing the output keeps failing, change which physics gets selected.
 
+## 8b. An ensemble is dominated by its worst member — measure the matrix
+
+Track 1c assumed four flags that "each fail differently" would compose into a
+shipping default. The matrix (`measure_ensemble.mjs`) showed every combination
+containing `#peeldir` is bit-for-bit the peeldir failure alone — α ≈ 8–10°
+everywhere, no rideable branch — because after the V-fix's branch-following
+selection there was nothing left for the constraint to do but flatten a
+coherent line. Judging flags one-at-a-time against default can never see this;
+only leave-one-out reveals which member owns the ensemble's behaviour. And a
+config can pass a stability criterion by being uniformly dead — the full
+ensemble's 1–3° H₀ swing was the stability of a flat line, not of a wave.
+
 ## 9. Parallel agents on shared files fail silently
 
 A workflow round left **two debug probes committed** — an early `return` that

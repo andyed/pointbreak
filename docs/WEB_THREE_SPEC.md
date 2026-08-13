@@ -935,3 +935,59 @@ What the numbers say, post V-fix:
 
 Ships behind `#nose=1`, default off. Four A/B flags now: `#psi`, `#smooth`,
 `#peeldir`, `#nose`.
+
+### The ensemble, judged (2026-08-13) — Track 1c: REJECTED
+
+Track 1c's premise was that each flag fixes a different §4.5 defect, each fails
+alone, and the candidate shipping default is a combination. Measured:
+`scripts/measure_ensemble.mjs`, one fresh headless page per (spot, config) at
+`#preset=<spot>&sim=42&hud=0` — the nose re-measure's instrument, whose `base`
+rows reproduce that table's numbers exactly. Matrix: baseline, each flag alone,
+the full ensemble, and leave-one-out of the full ensemble; then an H₀ ± 0.3 m
+sweep on `base` and `full`. Score = the acceptance triple all-at-once (A-frames
+0 with Sewers exempt, right branch ≥ 1.5 crests, |derived α − target| ≤ 5°).
+
+| config | pass | spurious A-frames | mean \|Δα\| |
+|---|---|---|---|
+| base | 1/6 | 3 | 4.3° |
+| psi | 1/6 | 5 | 4.3° |
+| smooth | 0/6 | 0 | 28.2° |
+| peeldir | 0/6 | 0 | 44.5° |
+| nose | 1/6 | 3 | 5.5° |
+| **full (all four)** | **0/6** | 0 | 44.5° |
+| full − peeldir | 0/6 | 3 | 26.7° |
+| full − psi / − smooth / − nose | 0/6 | 0 | 44.5° |
+
+Three findings, and a verdict.
+
+**1. The ensemble is dominated by its worst member.** Every combination
+containing `#peeldir` is indistinguishable from `#peeldir` alone: α ≈ 8–10° on
+all six spots, takeoff pinned to a stage edge, zero whole crests on either
+branch. The running-max constraint now runs *after* the V-fix's
+branch-following selection already picked one branch by continuity, so it no
+longer trades a wrong wave for a duller one — it flattens an already-coherent
+line into an edge-to-edge closeout. Flags that "each fail differently" do not
+compose into a fix; the kill switch wins.
+
+**2. Without peeldir the ensemble still loses the peel.** `psi+smooth+nose`
+lands at α 15–48° against 38–66° targets (mean |Δα| 26.7°) and keeps 3
+A-frames anyway. Smoothing still eats what the noise was supplying, and the
+nose at its tuned 0.25 cannot replace it — post V-fix confirmation of "the
+peel is the noise", now at ensemble strength.
+
+**3. The H₀ swing makes the noise-ownership vivid.** Baseline α across
+H₀ ± 0.3 m: Sewers 0.5° and The Hook 3.0° (ok), First Peak 10.5°, Jack's
+22.3°, Second Peak 39.4°, **Sharks 56.9°** (48.5° → 3.2° for 0.3 m less
+swell). The acceptance's "< ~5° swing" fails 4/6 on the config that hits the α
+targets. `full` swings 1–7° — stable because it is uniformly dead at ~9°.
+
+**Verdict: no flag combination ships.** The choice the matrix leaves is
+stability-of-the-dead or accuracy-of-the-accidental. The defect is unchanged
+and now bounded on two sides: the reef must produce a sustained oblique locus
+*strong enough to survive wave-scale smoothing*, and the nose as built cannot
+(its fraction clamps at 0.30 and it is near-inert at 0.25 while making Sharks
+worse). `#peeldir` is superseded by branch-following selection and is a
+candidate for deletion, not for a default. M6p3 steps 3–4 no longer "ride with
+the ensemble" — a `#psi` default flip must be judged on its own merits, noting
+psi raises spurious A-frames 3 → 5 by fitting more (shorter, correct) crests
+onto branches the takeoff instrument then counts as rideable.
