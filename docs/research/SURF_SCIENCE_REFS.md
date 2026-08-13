@@ -108,24 +108,104 @@ from it raises or lowers peel angle.
 
 Hutt et al. revalidated Walker's beginner/intermediate/expert scheme as a 1–10 skill
 rating from 28 world-class Pacific/Indonesian breaks, on peel angle + wave height
-(heights capped at 4 m). Verified anchor values (full table: Hutt et al. 2001, 66–81):
+(heights capped at 4 m).
 
-| Rating | Surfer class                     | α (deg) | H (m)      |
-|--------|----------------------------------|---------|------------|
-| 1      | absolute beginner                | ≈ 90    | 0.70–1.00  |
-| 2      | learner (whitewater→green waves) | ≈ 70    | 0.65–1.50  |
-| 4–5    | standard maneuvers, consecutively| ≈ 55–46 | 0.5 – >4   |
-| 6–7    | advanced (top amateur ≈ 29°)     | ≈ 45–29 | 0.4 – >4   |
-| 8+     | professional / world-class       | ≈ 27–20 | 0.35 – >4  |
+**CORRECTED 2026-08-13.** The table that stood here carried four wrong values and a
+mislabelled column, and the "world-class ≈ 30–60°" rule of thumb below it could not be
+sourced at all. Re-read verbatim from Hutt, J.A., Black, K.P. & Mead, S.T. (2001),
+*J. Coastal Research* SI 29, 66–81 (JSTOR 25736206), as reproduced in full in
+Barlow, M. (2013), PhD thesis, Leeds Beckett Univ., Table 1.1, p.12
+(eprints.leedsbeckett.ac.uk/id/eprint/592):
 
-Rule of thumb from the same literature: 56–70° beginner waves, 46–55° intermediate,
-20–45° fast waves for advanced surfers; world-class breaks concentrate α ≈ 30–60°.
+| Rating | Description                                              | **peel angle LIMIT** (°) | min/max H_b (m) |
+|--------|----------------------------------------------------------|--------------------------|-----------------|
+| 1      | beginner, not yet able to ride the face                  | 90          | 0.7 / 1.00  |
+| 2      | learner, rides laterally along the wave                  | 70          | 0.65 / 1.50 |
+| 3      | can generate speed by "pumping"                          | 60          | 0.60 / 2.50 |
+| 4      | begins standard manoeuvres on occasion                   | 55          | 0.55 / 4.00 |
+| 5      | standard manoeuvres consecutively, single wave           | 50          | 0.5 / >4.00 |
+| 6      | standard consecutively; advanced on occasion             | 40          | 0.45 / >4.00|
+| 7      | top amateur, consecutive advanced manoeuvres             | 29          | 0.4 / >4.00 |
+| 8      | professional surfers                                     | 27          | 0.35 / >4.00|
+| 9      | top 44 surfers                                           | *not reached* | 0.3 / >4.00 |
+| 10     | surfers in the future                                    | *not reached* | 0.3 / >4.00 |
 
-**Model mapping:** the planar-shelf tilt θ directly controls α (for a plane shelf,
-post-refraction crest-to-depth-contour obliquity ≈ α). Target α ≈ 30–60° for a
-"Pleasure Point" feel; the breaking-intensity regression maps shelf steepness to the
-barrel-vs-mush visual axis; components taxonomy justifies adding a local "ridge/focus"
-bump to make sections.
+What was wrong, and why it matters:
+
+- Rating 5 is **50**, not 46; rating 6 is **40**, not 45; rating 3 (**60**) was missing
+  entirely; and **there is no 20** — ratings 9–10 read "not reached", i.e. waves not yet
+  surfed by the world's best. The 46/45/20 figures look like band-edge interpolations of
+  the "20–45 / 46–55 / 56–70" bins that circulate on secondary web pages, not anchors.
+- The column is a **limit**, not a typical value: the *minimum* α a surfer of that skill
+  can negotiate. A rating-2 surfer needs α **≥ 70°**. A break is NOT "a rating-2 break"
+  because it measures 70°. The old header (`α (deg)`) invited exactly that misreading,
+  and the model's authored targets appear to have inherited it.
+- **"World-class breaks concentrate α ≈ 30–60°" is WITHDRAWN — unsourceable.** The
+  literature points the other way: Mead, S.T., Black, K.P., Green, M., Hume, T.M.,
+  Hutt, J.A. & Sayce, A. (1997), *High seabed gradients and **low** peel angles produce
+  world-class surfing breaks*, NZ Marine Science Society Annual Conf., Univ. of Auckland.
+  Also "low angles creating fast surfing waves and high angles creating slow waves"
+  (Scarfe, Elwany, Mead & Black 2003, Scripps Tech. Rep., 3–4) and "high peel angles do
+  not necessarily prevent surfers from riding waves, whereas low peel angles do"
+  (Scarfe, Healy & Rennie 2009, *JCR* 25(3), 545). Reconciliation: α must clear a
+  **floor** (~30°, Walker 1974) to be surfable; **quality** sits at the low end of the
+  surfable band. The withdrawn rule of thumb conflated floor with optimum.
+
+### 2.3.1 Measured peel angles at real point breaks — the evidence is one series
+
+Searched 2026-08-13. **No measured peel angle exists in the literature for Pleasure
+Point, Steamer Lane, or any Santa Cruz break** — a positively supported negative:
+Atkin, E.A., Reineman, D.R., Reiblich, J. & Revell, D.L. (2020), "Applicability of
+management guidelines for surfing resources in California", *Shore & Beach* 88(2),
+names Steamer Lane and argues California breaks still *lack* quantitative baselines,
+citing peel angle only as something baseline studies "are to establish".
+
+The one published per-wave series at a point break — Raglan "The Ledge", NZ, one ride,
+30 July 2001, α at 1 s intervals (Scarfe 2008 PhD, Univ. of Waikato, Table 2-3 p.44,
+from Scarfe 2002a MSc; reproduced as Fig. 12 in Scarfe, Healy & Rennie 2009):
+
+| t (s) | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|-------|---|---|---|---|---|---|---|---|
+| α (°) | 0 | 48 | 50 | **69** | 22 | **69** | 45 | 30 |
+
+Method caveat that matters here: the breakpoint locus is measured (photogrammetric
+rectification of 1 fps oblique video) but the **crest orientation comes from a refraction
+model** — the authors hedge it as "22° to 69° *in the modelled scenario*". Every
+published α for a natural break shares this hybrid character.
+
+Read it for structure, not for a mean: **69° occurs twice in eight seconds, as the
+escape section that lets the surfer out of a barrelling closeout**, alternating with
+22–30° sections. Non-closeout mean ≈ 48°. **No point break is documented anywhere with
+a sustained mean α above 55°.** A much larger instrument-measured dataset exists — Manu
+Bay, Raglan, ~1.6 M breakpoint+crest pairs, 2017–2020, the first work to detect both
+directly from imagery (Atkin, McIntosh & Bryan, ICCE 2022) — but it defers all numbers
+to Atkin (2021), Proc. 25th Australasian Coasts & Ports Conf., which is not obtainable
+online. That is the highest-value missing document for this project.
+
+The only literature hook for a *deliberately* high-α wave: "long boarders desire waves
+with higher peel angles and lower breaking intensities than short boarders" (Scarfe et
+al. 2003, 2) — qualitative, no numbers.
+
+**Consequence for this model's acceptance framing.** The bank authors **one α per
+spot** and the acceptance test compares a single derived number against it. The only
+measured point-break series has α running 0 → 48 → 50 → 69 → 22 → 69 → 45 → 30 within
+**eight seconds of one ride** — a range wider than the entire spread of this project's
+seven authored targets, inside a single wave. Two things follow. First, a spatially
+varying α along the stage is what a real point break does, so the "dead down-point
+third" measured on Second Peak / Jack's / Sharks (`WEB_THREE_SPEC.md`, "Where the peel
+actually lives") is not prima facie a defect — the Raglan series opens at α = 0, a
+closeout. Second, a scalar target is the weaker instrument: the honest comparison is a
+**distribution** over the stage, not a median against one number. That is a cheap change
+to the acceptance test and it should precede any further reef-shape work.
+
+**Model mapping (revised 2026-08-13).** The planar-shelf tilt θ controls α (for a plane
+shelf, post-refraction crest-to-depth-contour obliquity ≈ α). A defensible target band
+is **~30–50°**, above Walker's ~30° surfable floor and consistent with the only measured
+point-break series; the breaking-intensity regression maps shelf steepness to the
+barrel-vs-mush axis; the components taxonomy justifies a local ridge/focus bump for
+sections. Targets in the high 50s–70s are **learner-grade on the Hutt limit scale and
+unsupported by any measurement** — see `WEB_THREE_SPEC.md` "The reef-shape sweep" for
+the measured consequence: this project's own wedge saturates at ~45°.
 
 ---
 
