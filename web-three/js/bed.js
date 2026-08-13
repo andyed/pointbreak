@@ -79,8 +79,13 @@ const REEF_CEIL_EL = -0.5;    // m NAVD88 hard ceiling: the reef must never move
 // the break line. 3.2 m is the Mead & Black relief band — going past it is a
 // fidelity cost, which is exactly what this sweep is meant to price.
 let REEF_AMP_MAX = 3.2;       // m max uplift (Mead & Black wedge amplitude band)
-let REEF_FLANK_W = 45;        // m cross-strike feather half-width (smoothstep, C1)
-export const REEF_AMP_DEFAULT = 3.2, REEF_FLANK_DEFAULT = 45;
+// 80 m adopted 2026-08-13 (Track 1c'-c.8, with the 1c'-c.7 retarget): the
+// reef-shape sweep measured 45 -> 80 nearly halving mean stage-alpha error at
+// either amplitude, invariants clean; 120 is WORSE (a shelf, not a reef).
+// Amplitude stays 3.2 — the sweep showed it saturates (5 -> 7 changed nothing)
+// and 3.2 keeps the Mead & Black relief band, which is a fidelity claim.
+let REEF_FLANK_W = 80;        // m cross-strike feather half-width (smoothstep, C1)
+export const REEF_AMP_DEFAULT = 3.2, REEF_FLANK_DEFAULT = 80;
 export function setReefAmp(m) {
   const v = Number.isFinite(m) ? Math.min(Math.max(m, 0.5), 12) : REEF_AMP_DEFAULT;
   if (v !== REEF_AMP_MAX) { REEF_AMP_MAX = v; invalidateReef(); }

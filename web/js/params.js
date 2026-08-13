@@ -50,21 +50,36 @@ export const PARAM_DEFS = [
 // every site) rather than a named preset: the A-frame is a mechanism, and the
 // wave that demonstrates it is on the west side, not here.
 //
-// The bank is the Pleasure Point canon, ordered apex -> down-point, which is
-// also the golden-rule gradient: alpha rises (mellower) and xi falls (less
-// plunging) as you move away from the corner. Every name is a real site on
-// this point; geoSpot is its OSM surf node. Private's is the one site whose
-// coastline defeats the cubic contour fit (16.5 m RMS), so it runs on the
-// synthetic stage and says so in the app rather than borrowing a neighbour's
-// bathymetry.
+// The bank is the Pleasure Point canon, ordered apex -> down-point. Every name
+// is a real site on this point; geoSpot is its OSM surf node. Private's is the
+// one site whose coastline defeats the cubic contour fit (16.5 m RMS), so it
+// runs on the synthetic stage and says so in the app rather than borrowing a
+// neighbour's bathymetry.
+//
+// RETARGET 2026-08-13 (Track 1c'-c.7). The old bank encoded the golden-rule
+// gradient as alpha RISING down-point (58/62/66/70 = mellower). That is
+// backwards physics: Snell over the shore platform bounds the peel at
+// sin(a_max) = c_b/c_s (Henriquez 2004 eq. 3.5, tests/peel-ceiling.test.js),
+// smaller waves break shallower, refract more, and get a LOWER ceiling — so
+// the small down-point spots are the LOW-alpha ones. Each retargeted alpha is
+// its spot's own ceiling evaluated at the model's own geometry (h_b from the
+// card, shelf depth = wedge seaward edge, crest + REEF_AMP_MAX + 1.2 fade),
+// corroborated independently by Integral's Topanga study (31-53 deg, 12
+// scenarios, never above 53) — the 58-70 deg targets came from surf-guide
+// character prose and sat outside both bounds. Sewers (38) is well inside its
+// 47 deg ceiling and keeps its guide value. First Peak keeps 50 against a 44
+// planar bound BY MEASUREMENT: it hits 50.8 stage-median at the shipped
+// shape — it sits at the apex, where the coast tangent carries ~111 deg of
+// rotation the planar bound cannot see. Mellow-down-point now belongs to
+// SHELTERING (H_eff falling down-point), not to alpha.
 export const PRESETS = {
   sewers:     { label: 'Sewers',       geoSpot: 'Sewer Peak',   alpha: 38, xi: 1.15, sections: 0.40, T: 15, H0: 2.2, dF: 0.008, tau: 6,   chop: 0.2,  aframe: 0 },
   firstpeak:  { label: 'First Peak',   geoSpot: 'First Peak',   alpha: 50, xi: 0.85, sections: 0.25, T: 14, H0: 1.8, dF: 0.007, tau: 5.5, chop: 0.1,  aframe: 0 },
-  secondpeak: { label: 'Second Peak',  geoSpot: 'Second Peak',  alpha: 58, xi: 0.65, sections: 0.15, T: 14, H0: 1.5, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
-  jacks:      { label: "Jack's (38th)", geoSpot: '38th',        alpha: 62, xi: 0.50, sections: 0.10, T: 13, H0: 1.1, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
-  thehook:    { label: 'The Hook',     geoSpot: 'The Hook',     alpha: 48, xi: 0.80, sections: 0.20, T: 13, H0: 1.5, dF: 0.007, tau: 5,   chop: 0.15, aframe: 0 },
-  sharks:     { label: 'Sharks',       geoSpot: "Shark's Cove", alpha: 66, xi: 0.45, sections: 0.10, T: 13, H0: 1.0, dF: 0.006, tau: 4.5, chop: 0.1,  aframe: 0 },
-  privates:   { label: 'Privates',     geoSpot: null,           alpha: 70, xi: 0.35, sections: 0.05, T: 12, H0: 0.7, dF: 0.006, tau: 4,   chop: 0.15, aframe: 0 },
+  secondpeak: { label: 'Second Peak',  geoSpot: 'Second Peak',  alpha: 41, xi: 0.65, sections: 0.15, T: 14, H0: 1.5, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
+  jacks:      { label: "Jack's (38th)", geoSpot: '38th',        alpha: 37, xi: 0.50, sections: 0.10, T: 13, H0: 1.1, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
+  thehook:    { label: 'The Hook',     geoSpot: 'The Hook',     alpha: 41, xi: 0.80, sections: 0.20, T: 13, H0: 1.5, dF: 0.007, tau: 5,   chop: 0.15, aframe: 0 },
+  sharks:     { label: 'Sharks',       geoSpot: "Shark's Cove", alpha: 36, xi: 0.45, sections: 0.10, T: 13, H0: 1.0, dF: 0.006, tau: 4.5, chop: 0.1,  aframe: 0 },
+  privates:   { label: 'Privates',     geoSpot: null,           alpha: 31, xi: 0.35, sections: 0.05, T: 12, H0: 0.7, dF: 0.006, tau: 4,   chop: 0.15, aframe: 0 },
 };
 
 export const DEFAULT_PRESET = 'secondpeak';

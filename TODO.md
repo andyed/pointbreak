@@ -23,21 +23,26 @@ Promoted to the top of this file because it is the one change the whole
 now downstream of it. Full derivation: `docs/WEB_THREE_SPEC.md` "The
 reef-shape sweep" + `tests/peel-ceiling.test.js`.
 
-- [ ] 1c'-c.7 RETARGET THE BANK (the actionable consequence, needs Andy).
-      Bring α_target inside the per-spot ceiling. Suggested, reading the
-      ceiling table in 1c'-c.6 below at h_s = 6 m: secondpeak 58→~43,
-      jacks 62→~37, sharks 66→~35, privates 70→~30, thehook 48→43, leaving
-      sewers 38 and firstpeak 50 (the two already inside the bound).
-      NOTE this INVERTS the authored down-point gradient — physics makes the
-      small, sheltered down-point spots the LOW-α ones. Before doing it, decide
-      what carries "mellow" instead: the honest candidate is the unimplemented
-      sheltering field `H_eff(u)` (MODEL.md §2.6.2, PP_MAP_GEOMETRY finding 2),
-      which the bank currently fakes via per-spot card H₀. Mellow = smaller and
-      weaker, not slower-peeling.
-- [ ] rides with it: **1c'-c.8** (stated in full below) — ADOPT flank 45→80 at
-      the unchanged 3.2 m amplitude. It does not beat the ceiling, it gets
-      spots UP TO it (sharks 11→35 against a 35 bound). Land the two together
-      so the flank change is scored against corrected targets.
+- [x] 1c'-c.7 RETARGETED 2026-08-13 (Andy approved the paired plan). Each
+      retargeted α is its spot's OWN ceiling from the model's own geometry
+      (h_b from the card; h_s = wedge seaward edge = crest + AMP + 1.2 fade),
+      not the h_s = 6 m column: secondpeak 58→41, jacks 62→37, thehook 48→41,
+      sharks 66→36, privates 70→31; sewers 38 kept (inside its 47.3°);
+      firstpeak 50 kept against a 44.0° planar bound BY MEASUREMENT (50.8
+      stage-median at the shipped shape — apex rotation the planar bound can't
+      see; named exemption in tests/peel-ceiling.test.js). The test now FAILS
+      if a target is raised back over its ceiling. Mellow moved to sheltering
+      (next item).
+- [x] 1c'-c.8 FLANK 45→80 ADOPTED with it, amp unchanged 3.2. Scored TOGETHER
+      against corrected targets (measure_reef_shape.mjs, 2026-08-13):
+      3.2/45 = 4/6 on target, mean |Δα| 7.2°; **3.2/80 = 4/6, mean 4.6°**,
+      invariants clean, max raise 3.6 m — vs 2/6 @ 23.6° pre-retarget. Residual
+      misses are now single-digit: Second Peak 35/41, Sharks 26/36 (were
+      −38/−55 against the old targets). First Peak overshoots at 80 (55/50).
+- [ ] 1c'-c.9 SHELTERING `H_eff(u)` (in progress — the other half of the
+      retarget): mellow = smaller and weaker down-point, not slower-peeling.
+      MODEL.md §2.6.2, PP_MAP_GEOMETRY finding 2; replaces the per-spot card
+      H₀ fake with a field the model owns.
 
 ---
 

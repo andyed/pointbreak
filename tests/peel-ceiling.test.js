@@ -40,23 +40,31 @@ function peelCeilingDeg(T, hBreak, hShelf) {
   return r >= 1 ? null : Math.asin(r) * 180 / Math.PI;
 }
 
-// The bank, as it ships (web/js/params.js). alpha is the authored target.
-const BANK = [
-  { key: 'sewers',     alpha: 38, T: 15, H0: 2.2 },
-  { key: 'firstpeak',  alpha: 50, T: 14, H0: 1.8 },
-  { key: 'secondpeak', alpha: 58, T: 14, H0: 1.5 },
-  { key: 'jacks',      alpha: 62, T: 13, H0: 1.1 },
-  { key: 'thehook',    alpha: 48, T: 13, H0: 1.5 },
-  { key: 'sharks',     alpha: 66, T: 13, H0: 1.0 },
-  { key: 'privates',   alpha: 70, T: 12, H0: 0.7 },
-];
+// The bank is imported live (web/js/params.js), not copied: the whole point of
+// this test is that the next person to edit an alpha target finds out here.
+import { PRESETS } from '../web/js/params.js';
+const BANK = Object.entries(PRESETS).map(([key, p]) =>
+  ({ key, alpha: p.alpha, T: p.T, H0: p.H0 }));
 
-// Where refraction over the Pleasure Point shore platform begins. The reef's
-// own cross-shore bound ends the wedge where the bed falls more than
-// REEF_AMP_MAX + 1.2 below the crest datum (bed.js), which on these spots is
-// roughly the 5-7 m contour; Henriquez's own threshold for reaching alpha > 30
-// is h_s < 8 m. Both bracket the same band, so the bound is reported across it
-// rather than at one assumed depth.
+// First Peak is exempt from the planar bound BY MEASUREMENT: it holds 50
+// against a ~44 planar ceiling (stage-median 50.8 at the shipped shape). It
+// sits at the apex, where the coast tangent carries ~111 deg of rotation
+// (PP_MAP_GEOMETRY) — refraction the straight-contour bound cannot see. The
+// exemption is named, not silent, so it cannot creep to other spots.
+const MEASURED_EXEMPT = new Set(['firstpeak']);
+
+// Where refraction over the Pleasure Point shore platform begins, PER SPOT:
+// the wedge's own seaward edge. bed.js ends the reef where the natural bed
+// falls more than REEF_AMP_MAX + 1.2 (the fade band) below the crest datum,
+// and the crest sits at clamp(0.75 h_b, 1.2, 3.0) below MSL — so
+// h_s = crestDepth + 3.2 + 1.2. This lands in the 5.6-7.3 m band, inside
+// Henriquez's own h_s < 8 m threshold for alpha > 30.
+const REEF_AMP_MAX = 3.2, REEF_FADE = 1.2;
+function shelfDepthFor(spot) {
+  const hb = breakingDepth(spot.H0, spot.T);
+  const crestDepth = Math.min(Math.max(0.75 * hb, 1.2), 3.0);
+  return crestDepth + REEF_AMP_MAX + REEF_FADE;
+}
 const SHELF_DEPTHS_M = [5, 6, 8];
 
 test('Henriquez bound reproduces its own published figure', () => {
@@ -81,35 +89,44 @@ test('the bound falls as the shelf deepens, and never depends on reef size', () 
       `ceiling should fall with shelf depth: ${at[i - 1].toFixed(1)} -> ${at[i].toFixed(1)}`);
 });
 
-test('authored alpha targets vs the physics ceiling on this bank', () => {
+test('every authored alpha target sits inside its own per-spot ceiling', () => {
+  // RETARGETED 2026-08-13 (Track 1c'-c.7). Before that date this test pinned
+  // the contradiction (5 of 7 targets over the bound at every shelf depth
+  // tried, the smallest spots asking for the highest angles); the bank now
+  // carries each spot's own ceiling as its target, so the test's job flips:
+  // it FAILS if anyone raises a target back over the physics, or edits the
+  // wedge geometry in a way that lowers a ceiling below its target.
   const rows = [];
-  let overCount = 0;
   for (const spot of BANK) {
     const hb = breakingDepth(spot.H0, spot.T);
-    const ceil = SHELF_DEPTHS_M.map((hs) => peelCeilingDeg(spot.T, hb, hs));
-    const best = Math.max(...ceil.filter((v) => v !== null));
-    const over = spot.alpha > best;
-    if (over) overCount++;
+    const hs = shelfDepthFor(spot);
+    const ceil = peelCeilingDeg(spot.T, hb, hs);
+    const exempt = MEASURED_EXEMPT.has(spot.key);
+    const over = ceil !== null && spot.alpha > ceil + 0.5; // rounding headroom
     rows.push(`  ${spot.key.padEnd(11)} H0 ${String(spot.H0).padStart(4)}  h_b ${hb.toFixed(2)} m  `
-      + `ceiling ${ceil.map((v) => v === null ? ' -- ' : v.toFixed(0).padStart(4)).join(' /')}  `
-      + `target ${String(spot.alpha).padStart(3)}  ${over ? 'OVER' : 'ok'}`);
+      + `h_s ${hs.toFixed(2)} m  ceiling ${ceil === null ? ' --' : ceil.toFixed(1).padStart(5)}  `
+      + `target ${String(spot.alpha).padStart(3)}  ${over ? (exempt ? 'over (measured exempt)' : 'OVER') : 'ok'}`);
+    if (!exempt) {
+      assert.ok(ceil !== null, `${spot.key}: bound vacuous — geometry changed?`);
+      assert.ok(!over,
+        `${spot.key}: target ${spot.alpha} exceeds its per-spot ceiling ${ceil.toFixed(1)} deg`);
+    }
   }
-  console.log(`\n  peel-angle ceiling, sin(a_max) = c_b/c_s, at h_s = ${SHELF_DEPTHS_M.join(' / ')} m:`);
-  console.log(rows.join('\n'));
-  console.log(`\n  ${overCount} of ${BANK.length} authored targets exceed the bound at EVERY shelf depth tried.\n`);
+  console.log(`\n  per-spot peel ceiling, sin(a_max) = c_b/c_s, h_s = wedge seaward edge:`);
+  console.log(rows.join('\n') + '\n');
 
-  // The finding this test pins down, so it cannot silently regress: the small-H0
-  // down-point spots are the ones asking for the HIGHEST peel angles, and they
-  // are the ones the physics constrains HARDEST — smaller waves break shallower,
-  // refract more, and end up with a lower bound. Mead (2001) records the same
-  // effect measured at Raglan (Hutt 1997): 15 deg vs 40 deg of offshore-to-break
-  // direction change for 4 m vs 1 m waves on ONE bathymetry.
+  // The mechanism, pinned so it cannot silently regress: smaller waves break
+  // shallower, refract more, and get a LOWER bound — so down-point alpha must
+  // FALL, not rise. Mead (2001) records the same effect measured at Raglan
+  // (Hutt 1997): 15 deg vs 40 deg of offshore-to-break direction change for
+  // 4 m vs 1 m waves on ONE bathymetry. "Mellow" down-point is sheltering
+  // (H_eff), not peel angle.
   const sharks = BANK.find((s) => s.key === 'sharks');
   const sewers = BANK.find((s) => s.key === 'sewers');
   const ceilSharks = peelCeilingDeg(sharks.T, breakingDepth(sharks.H0, sharks.T), 6);
   const ceilSewers = peelCeilingDeg(sewers.T, breakingDepth(sewers.H0, sewers.T), 6);
   assert.ok(ceilSharks < ceilSewers,
     `the smaller spot should have the LOWER ceiling: sharks ${ceilSharks.toFixed(1)} vs sewers ${ceilSewers.toFixed(1)}`);
-  assert.ok(sharks.alpha > sewers.alpha,
-    'and the bank asks the smaller spot for the HIGHER target — that is the contradiction');
+  assert.ok(sharks.alpha < sewers.alpha,
+    'the bank must ask the smaller spot for the LOWER target — the pre-retarget contradiction resolved');
 });

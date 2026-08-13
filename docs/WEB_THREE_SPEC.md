@@ -1247,3 +1247,54 @@ leaves a genuine fork for the high-target spots: **either the wedge needs a
 component that is not a widened plane, or those three α targets — which came
 from surf-guide character descriptions, not measurement — are wrong.** Nothing
 in the sweep can settle which; it needs the drone-capture validation pass.
+
+### The retarget, landed (2026-08-13, evening) — 1c'-c.7 + 1c'-c.8 as one change
+
+The bank now carries each spot's own physics ceiling as its α target, and the
+flank ships at 80 m. The two were landed together deliberately: flank 80 does
+not beat the ceiling, it gets spots up to it, so scored against the old 58–70°
+targets it reads as a failure and scored against corrected targets it reads as
+what it is.
+
+Per-spot targets from the model's own geometry — h_b from the card,
+h_s = the wedge's own seaward edge (crest depth + REEF_AMP_MAX + 1.2 m fade,
+the depth at which `bound` ends the reef), sin(α_max) = c_b/c_s:
+
+| spot | h_b | h_s | ceiling | old target | new target |
+|---|---|---|---|---|---|
+| Sewers | 3.88 m | 7.31 m | 47.3° | 38 | **38** (kept, inside) |
+| First Peak | 3.22 m | 6.81 m | 44.0° | 50 | **50** (kept, measured exempt) |
+| Second Peak | 2.78 m | 6.49 m | 41.4° | 58 | **41** |
+| Jack's | 2.11 m | 5.98 m | 36.9° | 62 | **37** |
+| The Hook | 2.70 m | 6.43 m | 41.0° | 48 | **41** |
+| Sharks | 1.95 m | 5.86 m | 35.8° | 66 | **36** |
+| Privates | 1.42 m | 5.60 m | 30.8° | 70 | **31** |
+
+First Peak's exemption is named in `tests/peel-ceiling.test.js`, not silent:
+it measures 50.8 stage-median against the 44.0° planar bound because it sits
+at the apex, where the coast tangent carries ~111° of rotation
+(PP_MAP_GEOMETRY) that a straight-contour bound cannot see. The test now
+asserts every other target sits INSIDE its per-spot ceiling and that the bank
+asks the smaller spot for the LOWER α — the pre-retarget contradiction, now
+guarded in the failing direction.
+
+Re-scored with `measure_reef_shape.mjs` against the corrected targets:
+
+| amp | flank | on target | mean \|Δα\| | med crestOff | max raise | invariants |
+|---|---|---|---|---|---|---|
+| 3.2 | 45 | 4/6 | 7.2° | 47 m | 3.6 m | ok |
+| **3.2** | **80 (shipped)** | **4/6** | **4.6°** | 72 m | 3.6 m | ok |
+
+Against the old targets this same sweep read 2/6 at 23.6° — the improvement is
+mostly the targets stopping asking for the impossible, and partly the wider
+flank (7.2 → 4.6° at identical targets). Note the retarget moved the FIT too
+(β seeds from α_target), so per-spot measured values shifted: Second Peak
+35/41 and Sharks 26/36 are the residual misses, single-digit now where they
+were 32–55° under the old bank; First Peak overshoots at 80 (55/50), the one
+regression worth watching.
+
+What "mellow down-point" means now that α no longer fakes it: sheltering.
+`H_eff(u)` (MODEL.md §2.6.2) is the next item — the per-spot card H₀ already
+encodes the gradient dishonestly (Sewers 2.2 m → Privates 0.7 m as seven
+disconnected constants); the field version derives it from apex geometry so
+one swell produces the whole gradient.
