@@ -11,7 +11,7 @@ directly confirmed is flagged inline.
 
 ---
 
-## 1. Peel angle and makeability — Walker (1974)
+## 1. Peel angle and makeability — Walker (1974a)
 
 Walker's Look Laboratory work is the origin of the peel-angle formalism and the
 "makeable wave" criterion. Peel angle α is the angle between the trail of broken
@@ -47,7 +47,7 @@ divergence as α → 0 bound the playable/plausible range of θ.
 
 ---
 
-## 2. Surfing-reef science — Mead & Black (2001), JCR Special Issue 29
+## 2. Surfing-reef science — Mead & Black (2001a/b/c), JCR Special Issue 29
 
 The core corpus is *Journal of Coastal Research* Special Issue No. 29 (2001), K.P.
 Black (ed.), "Natural and Artificial Reefs for Surfing and Coastal Protection."
@@ -594,7 +594,7 @@ wedge amplitude or flank width takes stage-median α much past ~45°, and enlarg
 wedge past a point makes it *worse*. That is not an implementation defect. Two primary
 sources state the mechanism, both read directly rather than via summary.
 
-**Mead, S.T. (2001), PhD thesis, Univ. of Waikato** (the thesis behind Mead & Black
+**Mead, S.T. (2000), PhD thesis, Univ. of Waikato** (the thesis behind Mead & Black
 2001, *JCR* SI 29:5–20). Refraction is the antagonist of peel angle:
 
 > "Waves must peel at an angle along the crest for surfing, but refraction tends to
@@ -673,7 +673,7 @@ hardest. Mead records the same effect measured at Raglan (citing Hutt 1997) — 
 **What does produce a high peel angle** — not planar tilt:
 
 - "large peel angles are generally associated with **nonuniform bottom contours**"
-  — Boqué Ciurana & Aguilar (2020), *JMSE* 8(8):599, citing Walker (1974).
+  — Boqué Ciurana & Aguilar (2020), *JMSE* 8(8):599, citing Walker (1974a).
 - In Henriquez's own model the high values come from "the relatively rapid change of
   the reef angle β at the reef tip and due to wave focusing at the reef tip" — a
   *rotating* strike plus focusing, not a steeper plane.
