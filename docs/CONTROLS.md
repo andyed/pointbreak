@@ -11,7 +11,11 @@ web-three/#preset=secondpeak&cam=cliff&tide=-0.5&sim=42&hud=0
 Two kinds of flag, named as such below: a **feature flag** gates work that is
 landed but not yet default (default off, judged as an ensemble — TODO Track 1c);
 an **A/B revert** turns a shipped default OFF so a regression can be bisected
-without checking out old code.
+without checking out old code. (The ensemble was judged on 2026-08-13 and
+REJECTED — no combination of the four feature flags ships; see
+`WEB_THREE_SPEC.md` "The ensemble, judged". They remain individually useful for
+A/B measurement.) A third kind, **sweep knob**, exposes a shipped constant so
+it can be measured across a range; it defaults to the shipped value.
 
 | param | values | default | what it does | kind |
 |---|---|---|---|---|
@@ -36,7 +40,9 @@ without checking out old code.
 | `psi` | `1` | off | feature flag: shoaling wavelength (baked Ψ phase field), water only — rider drifts off crests BY DESIGN (M6p3 step 1) | feature flag |
 | `smooth` | `1` | off | feature flag: 90 m wave-scale break-line smoothing (kills A-frames, currently also the taxonomy) | feature flag |
 | `peeldir` | `1` | off | feature flag: direction-monotonicity constraint on the break line | feature flag |
-| `nose` | `1` or a float, clamped [0, 0.30] | off | feature flag: reef nose v2 — down-point taper of the uplift amplitude in stage fraction; `1` = the tuned 0.25, a float tunes it directly | feature flag |
+| `nose` | `1` or a float, clamped [0, 1.0] | off | feature flag: reef nose v2 — down-point taper of the uplift amplitude in stage fraction; `1` = the tuned 0.25, a float tunes it directly. Swept to the definitional bound 2026-08-13: the taper mechanism is EXHAUSTED, no fraction passes | feature flag |
+| `reefamp` | float m, clamped [0.5, 12] | `3.2` | sweep knob: M5 wedge max uplift (`REEF_AMP_MAX`). Appears twice in the wedge — the lift clamp AND `bound`, where the reef ceases to exist — so it also sets how far seaward the reef reaches. Measured to SATURATE by ~5 m | sweep knob |
+| `reefflank` | float m, clamped [14, 300] | `45` | sweep knob: wedge cross-strike feather half-width (`REEF_FLANK_W`). The effective lever on stage-median α — 45→80 nearly halves mean \|Δα\|; 120+ is worse (shelf, not reef) | sweep knob |
 
 **Removed:** `#swell=` (2026-08-11). It wrote `state.swellDeg`, which nothing
 read — the refraction bake takes `swellDeg: state.alpha` — so the knob looked

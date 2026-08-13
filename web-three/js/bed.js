@@ -69,8 +69,27 @@ function smoothstepJS(a, b, x) {
 // read the same |derived alpha|; only this one keeps the zipper a right.
 const PHI_BREAK_DEG = 9;      // refracted crest bearing the seed assumes (MODEL.md 2.4)
 const REEF_CEIL_EL = -0.5;    // m NAVD88 hard ceiling: the reef must never move the shoreline
-const REEF_AMP_MAX = 3.2;     // m max uplift (Mead & Black wedge amplitude band)
-const REEF_FLANK_W = 45;      // m cross-strike feather half-width (smoothstep, C1)
+// SWEEPABLE for Track 1c'-c.3 (`#reefamp=`, `#reefflank=`). Both default to the
+// shipped values; both invalidate every reef cache on change. REEF_AMP_MAX is
+// the more consequential of the two because it appears TWICE below — as the
+// lift clamp AND inside `bound`, which is where the reef CEASES TO EXIST (the
+// wedge ends where the natural bed falls more than this below the crest datum,
+// V-fix part 1). So raising it both lifts harder and extends the reef seaward
+// into deeper water; that second effect is the one that can put the reef under
+// the break line. 3.2 m is the Mead & Black relief band — going past it is a
+// fidelity cost, which is exactly what this sweep is meant to price.
+let REEF_AMP_MAX = 3.2;       // m max uplift (Mead & Black wedge amplitude band)
+let REEF_FLANK_W = 45;        // m cross-strike feather half-width (smoothstep, C1)
+export const REEF_AMP_DEFAULT = 3.2, REEF_FLANK_DEFAULT = 45;
+export function setReefAmp(m) {
+  const v = Number.isFinite(m) ? Math.min(Math.max(m, 0.5), 12) : REEF_AMP_DEFAULT;
+  if (v !== REEF_AMP_MAX) { REEF_AMP_MAX = v; invalidateReef(); }
+}
+export function setReefFlank(m) {
+  const v = Number.isFinite(m) ? Math.min(Math.max(m, 14), 300) : REEF_FLANK_DEFAULT;
+  if (v !== REEF_FLANK_W) { REEF_FLANK_W = v; invalidateReef(); }
+}
+export function getReefShape() { return { amp: REEF_AMP_MAX, flank: REEF_FLANK_W }; }
 const REEF_RIDGE_WAVELENGTH = 50;  // m along-strike ridge spacing (their "sections")
 const REEF_RIDGE_MOD = 0.15;  // fractional amplitude modulation from the ridges
 const REEF_ANCHOR_X = 24;     // m: crest line meets the natural crest-depth contour here

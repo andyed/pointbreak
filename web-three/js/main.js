@@ -22,7 +22,8 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
-         setReefNose, REEF_NOSE_FRAC_TUNED, bedElevBlended } from './bed.js';
+         setReefNose, REEF_NOSE_FRAC_TUNED, bedElevBlended,
+         setReefAmp, setReefFlank, getReefShape, reefAudit } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -1099,8 +1100,21 @@ function frame(now) {
 function applyHashParams() {
   const h = new URLSearchParams(location.hash.replace(/^#/, ''));
   if (!h.toString()) return 0;
+  // Track 1c'-c.3 reef-shape sweep (`#reefamp=`, `#reefflank=`). FIRST, before
+  // the preset: applyPreset -> applyBed builds the reefed composite, so a shape
+  // set afterwards would fit and bake against one bed while the GPU drew
+  // another — the authority split this repo keeps re-finding. The module-level
+  // applyBed at load time has already run with the defaults, so the shape also
+  // gets an explicit rebuild below.
+  const shapeChanged = h.has('reefamp') || h.has('reefflank');
+  if (h.has('reefamp')) setReefAmp(parseFloat(h.get('reefamp')));
+  if (h.has('reefflank')) setReefFlank(parseFloat(h.get('reefflank')));
   const p = h.get('preset');
   if (p && PRESETS[p]) applyPreset(state, p);
+  // No preset in the hash means applyPreset never re-ran applyBed, so the bed
+  // would still be the load-time default one. Rebuild it explicitly.
+  if (shapeChanged && !(p && PRESETS[p]))
+    applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
   // Conditions day rides on top of the preset (ocean over reef). Handled
   // before #tide= so an explicit tide in the hash still wins over the day's.
   const dayKey = h.get('day');
@@ -1247,6 +1261,14 @@ window.__pointbreak = {
     const s = [...d].sort((a, b) => a - b);
     return { median: s[Math.floor(s.length / 2)], min: s[0], max: s[s.length - 1] };
   },
+  // The reef shape the bake ACTUALLY used — so a sweep can prove the knob is
+  // live rather than inferring it from a number that did not move.
+  reefShape: () => getReefShape(),
+  // The M5 clamp invariants (0 deepened / 0 above the -0.5 m ceiling / 0 dry
+  // posts touched / shoreline shift 0) plus the fit residual and checksum.
+  // Exposed so a reef-shape sweep can prove it has not bought peel angle by
+  // breaking the guarantees that let the wedge into the bed in the first place.
+  reefAudit: () => reefAudit(state.geoSpot),
   // Stage-median derived alpha — the ACCEPTANCE instrument since 2026-08-13.
   // The x = 0 readout samples the same neighbourhood the reef fit is tuned at
   // (bed.js reefFitFor, xs = [-16, -8, 0, 8, 16]), so it certifies the fit

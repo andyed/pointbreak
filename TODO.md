@@ -88,15 +88,42 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       change-the-selection only works when the declaration and the candidates
       are in the SAME NEIGHBOURHOOD (continuity compares to the previous
       crossing — always near; a band compares to the crest — 40–191 m away).
-- [ ] 1c'-c.3 THE ONE REMAINING STRUCTURAL ITEM — close the crest offset.
-      `crestOffset()` median predicts peel quality monotonically: First Peak 40 m
-      and Sewers 41 m hit their stage-α targets; The Hook 70 m is intermediate;
-      Second Peak 108 m, Jack's 114 m, Sharks 191 m miss by 32–55°. Threshold is
-      about one flank width. This IS option (a) (REEF_AMP_MAX / wedge shape),
-      and the low-H₀ branch flips + the dead down-point third are symptoms of
-      it rather than independent items — no rule phrased in reef coordinates
-      can bite while the offset is this large. crestOffset() is the cheap
-      progress meter: drive it under ~45 m.
+- [x] 1c'-c.3 SWEPT 2026-08-13 (spec "The reef-shape sweep";
+      scripts/measure_reef_shape.mjs, `#reefamp=` / `#reefflank=`). amp × flank
+      over {3.2,5,7} × {45,80,120}, all six spots, M5 clamp invariants checked
+      per row (all CLEAN — 0 deepened / 0 above ceiling / 0 dry, max raise
+      ≤5.6 m) and the shape re-asserted per row so a stale cache can't fake it.
+      • FLANK IS THE LEVER, AMPLITUDE SATURATES: 45→80 m nearly halves mean
+        |Δα| (23.6→15.5 at amp 3.2; 20.6→12.9 at amp 5). amp 5→7 does NOTHING
+        (bound + the −0.5 m ceiling already dominate). 120 m is worse than 80 —
+        past some width the wedge is a shelf, not a reef.
+      • CEILING, and it is not about reef size: at flank 160/240 the three
+        failing spots do not improve (Second Peak 39→32→34, Jack's 43→40→42,
+        Sharks 35→37→33). Targets ≤50° land; targets ≥58° plateau at 33–43°.
+        The wedge cannot express a stage-wide peel past ~45° on this bathymetry.
+      • The FIT still reports success throughout — residuals −0.4/2.8/1.0° at
+        flank 240 while the stage reads 34/42/33. Self-certification is now
+        measured at every reef shape, not just the shipped one.
+      • CORRECTION: this morning's "drive crestOffset under ~45 m" is
+        WITHDRAWN. Offset sits at 105–121 m across all shapes while mean |Δα|
+        halves; 3.2/80 has a HIGHER offset and a much LOWER error. The
+        correlation was across spots at one fixed shape. ~105 m looks
+        structural (crest at 0.75·h_b, breaking at h_b). Objective is
+        stageAlpha(); crestOffset() is demoted to a diagnostic.
+- [ ] 1c'-c.5 DECISION (Andy) — adopt a new reef shape default?
+      • CHEAPEST HONEST: flank 45→80 at the unchanged 3.2 m amplitude. Mean
+        |Δα| 23.6°→15.5°, Mead & Black relief band intact, invariants clean.
+      • BEST MEASURED: amp 5 + flank 80 → 3/6 on target, mean 12.9°. Exceeds
+        the cited M&B 3.2 m band, which is a fidelity claim in the docs — a
+        call for Andy, not a tuning decision.
+      • Neither closes the ≥58° spots (Second Peak, Jack's, Sharks) because the
+        ceiling above says the wedge cannot.
+- [ ] 1c'-c.6 THE FORK the ceiling forces: either the wedge needs a component
+      that is not a widened plane, OR the ≥58° α targets are wrong — they came
+      from surf-guide character descriptions, not measurement. Nothing in the
+      sweep can settle it; this is now a direct dependency of the Phase 3 FIRST
+      VALIDATION PASS (drone/cam capture), which is already the project's
+      largest honesty gap.
 - [ ] 1c'-c.4 DEAD DOWN-POINT THIRD: still a judgement, not a measurement —
       real point breaks shut down on the inside. If it stays, record it in
       MODEL.md; likely resolves with c.3.

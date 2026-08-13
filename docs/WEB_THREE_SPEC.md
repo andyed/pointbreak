@@ -1158,6 +1158,13 @@ it explains the whole 2026-08-13 sequence at once: why the ensemble fails, why
 the nose taper is exhausted, and why a selection rule phrased in the reef's
 terms has nothing to select among.
 
+> **PARTLY WITHDRAWN the same day** — see "The reef-shape sweep" below. The
+> correlation above is across SPOTS at one fixed reef shape and does NOT
+> survive changing the shape: median crest offset stays at 105-121 m while mean
+> |Δα| halves, and the ~105 m floor is structural (the crest sits at 0.75·h_b,
+> the wave breaks at h_b). `crestOffset()` is a diagnostic for a line that has
+> left the reef, not an objective. The objective is `stageAlpha()`.
+
 MEASUREMENT_LESSONS 8 says repair-the-output fails where change-the-selection
 works. The corollary this adds: **changing the selection only works when the
 declaration and the candidates are in the same neighbourhood.** Branch-following
@@ -1170,5 +1177,73 @@ candidates are actually near.
 an anchor-selection defect, and they will not yield to a rule expressed in reef
 coordinates while `crestOffset` stays this large. Closing the offset is the
 same work as option (a) (`REEF_AMP_MAX` / wedge shape) — the flips are a
-symptom of it, not an independent item. `crestOffset()` is now the cheap
-progress meter for that work: drive it under ~45 m and the rest should follow.
+symptom of it, not an independent item. ~~`crestOffset()` is now the cheap
+progress meter for that work: drive it under ~45 m and the rest should
+follow.~~ **Withdrawn — minimise `stageAlpha()` error instead; see "The
+reef-shape sweep".**
+
+### The reef-shape sweep (2026-08-13, later) — flank is the lever, and there is a ceiling
+
+Track 1c'-c.3, run with `scripts/measure_reef_shape.mjs` over
+amp × flank ∈ {3.2, 5, 7} × {45, 80, 120}, all six spots, scored on
+stage-median α with the M5 clamp invariants (`reefAudit`) checked per row so
+that peel angle bought by deepening posts or breaching the −0.5 m ceiling is
+reported as a failure rather than a win. The shape is re-asserted per row from
+`__pointbreak.reefShape()`, so a stale cache cannot masquerade as "this shape
+does nothing".
+
+| amp | flank | on target | mean \|Δα\| | median crest offset | max raise | invariants |
+|---|---|---|---|---|---|---|
+| **3.2** | **45 (shipped)** | 2/6 | 23.6° | 108 m | 3.6 m | ok |
+| 3.2 | 80 | 2/6 | **15.5°** | 121 m | 3.6 m | ok |
+| 3.2 | 120 | 1/6 | 17.1° | 105 m | 3.6 m | ok |
+| 5 | 45 | 3/6 | 20.6° | 107 m | 4.8 m | ok |
+| **5** | **80** | **3/6** | **12.9°** | 105 m | 5.1 m | ok |
+| 5 | 120 | 2/6 | 14.0° | 111 m | 5.1 m | ok |
+| 7 | 80 | 3/6 | 12.9° | 105 m | 5.3 m | ok |
+
+**1. Flank width is the lever; amplitude saturates.** 45 → 80 m nearly halves
+the mean error at either amplitude (23.6 → 15.5 at 3.2 m, 20.6 → 12.9 at 5 m).
+Amplitude 5 → 7 m changes nothing at all — the `bound` term and the −0.5 m
+ceiling have already taken over. 120 m is worse than 80 m: past some width the
+wedge stops being a reef and starts being a shelf, and the fit loses the strike
+it was reading. **Every configuration keeps the clamp invariants** (0 deepened,
+0 above ceiling, 0 dry posts, max raise ≤ 5.6 m), so nothing here is bought by
+breaking M5's guarantees.
+
+**2. There is a ceiling on achievable stage-median α, and it is not about reef
+size.** Pushed to flank 160 and 240 at amp 5, the three failing spots do not
+improve — Second Peak 39 → 32 → 34, Jack's 43 → 40 → 42, Sharks 35 → 37 → 33.
+The spots whose targets are ≤ 50° (Sewers 38, First Peak 50, The Hook 48) land
+on target; every spot whose target is ≥ 58° (Second Peak 58, Jack's 62, Sharks
+66) plateaus in the 33–43° band whatever the wedge does. On this bathymetry the
+wedge cannot express a stage-wide peel much past ~45°.
+
+**3. And the fit reports success throughout.** At flank 240, `reefAudit`
+residuals are −0.4°, 2.8° and 1.0° — the fit believes it hit 58, 62 and 66 —
+while the stage-median α is 34, 42 and 33. The self-certification named earlier
+today is now measured at every reef shape, not just the shipped one: β
+converges on the ±16 m window and the stage does not follow it.
+
+**4. Correction to this morning's claim about `crestOffset()`.** It was written
+up as "the root defect reduced to a single number… drive it under ~45 m and the
+rest should follow." **The sweep falsifies the actionable half.** Across shapes,
+median crest offset sits at 105–121 m and barely moves while mean \|Δα\| halves
+— 3.2/80 has a *higher* offset (121 m) than the shipped 3.2/45 (108 m) and a
+much *lower* error. The correlation that made it look like a root-defect meter
+was across *spots at one fixed shape*; it does not survive changing the shape,
+and the ~105 m floor looks structural (the crest sits at 0.75·h_b while the wave
+breaks at h_b, so some separation is expected and correct). Use `stageAlpha()`
+as the objective. `crestOffset()` is demoted to a diagnostic — useful for
+spotting a line that has left the reef entirely, not a thing to minimise.
+
+**Where this leaves 1c'-c.3.** The cheapest honest improvement is **flank
+45 → 80 m at the unchanged 3.2 m amplitude**: mean error 23.6° → 15.5°, the
+Mead & Black relief band intact, invariants clean. Going to amp 5 buys another
+2.6° and a third on-target spot but exceeds that cited band, which is a
+fidelity claim in the docs and therefore Andy's call, not a tuning decision.
+Neither closes the ≥ 58° spots, because finding 2 says the wedge cannot. That
+leaves a genuine fork for the high-target spots: **either the wedge needs a
+component that is not a widened plane, or those three α targets — which came
+from surf-guide character descriptions, not measurement — are wrong.** Nothing
+in the sweep can settle which; it needs the drone-capture validation pass.
