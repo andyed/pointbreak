@@ -185,7 +185,7 @@ thresholds, McCowan's breaker index) is cited in `docs/MODEL.md`.
   (Scarfe 2008 PhD, Waikato; Scarfe, Healy & Rennie 2009, *JCR* 25(3)).
 - The refraction ceiling on a planar reef component,
   `sin α_max = c_b/c_s`, follows from Snell (Henriquez 2004, TU Delft MSc);
-  Mead (2001, PhD, Waikato) gives the mechanism — enlarging a
+  Mead (2000, PhD, Waikato) gives the mechanism — enlarging a
   fixed-orientation wedge *increases* refraction before breaking and lowers
   the peel. `tests/peel-ceiling.test.js` evaluates the bound on this model's
   own dispersion code.
@@ -213,6 +213,43 @@ thresholds, McCowan's breaker index) is cited in `docs/MODEL.md`.
   are obtained by contacting the project chief at USGS Pacific Science Center,
   not by download. Inventory and caveats: `docs/research/SURF_SCIENCE_REFS.md`
   §2.3.1.
+
+### Citations are audited, not trusted
+
+A model whose weakest input is a number read out of the literature cannot
+afford confabulated references. Every citation in `docs/research/` is entered
+in [`docs/research/refs.bib`](docs/research/refs.bib) and checked with
+[science-agent](https://github.com/andyed/science-agent) (MIT), which verifies
+DOIs, authors and titles against CrossRef and flags orphan and ambiguous
+citations:
+
+```bash
+science-agent audit docs/research --bibtex=docs/research/refs.bib
+```
+
+Entries without a DOI are grey literature, theses or unindexed proceedings that
+CrossRef does not carry; each says so in its own `note` field rather than
+passing silently. Entries whose volume/page triple has not been confirmed against
+a publisher page say that too. The audit has already paid for itself here — it
+caught three references discussed in prose but never entered, and the run that
+built the bib turned up a **broken citation inside the Topanga EIR itself**: its
+Zijlema, Stelling & Smit (2011) reference carries a title that resolves to
+nothing, where the real paper is *SWASH* (Coastal Engineering 58(10):992–1012).
+
+It also caught a **wrong year in this repo's own citations**, including in the
+published essay: the Waikato thesis behind the refraction ceiling was cited as
+both "Mead 2000" and "Mead 2001". The ResearchCommons record dates it **2000**;
+"Mead 2001, PhD" was wrong and is corrected at every call site. The bare
+"Walker (1974)" and "Mead & Black (2001)" call sites now carry their
+`1974a` / `2001a-c` letters.
+
+The audit reports zero ambiguities and no genuine orphans. The orphans it still
+lists are of two harmless kinds, left deliberately: works cited only *inside*
+this repo's summary of the Celeris paper — that paper's own benchmark and
+comparison list, not references of ours — and parser artifacts, since the
+matcher keys on a citation's last surname and so reads "Mendonça et al. (2012)"
+as "Moura (2012)" and "Black Surf Santa Cruz (2025)" as "Cruz (2025)". Both are
+in the bib under their real keys.
 
 ## Licence
 

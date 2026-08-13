@@ -1,0 +1,740 @@
+% pointbreak — bibliography for docs/research/, README.md and the visual essay.
+%
+% Built 2026-08-13. Every entry carrying a DOI below was verified against CrossRef
+% with `science-agent verify` / `search` (github:andyed/science-agent) on that date.
+% Entries WITHOUT a DOI are grey literature, theses, agency reports or unindexed
+% conference proceedings that CrossRef does not carry; each says so in its note.
+%
+% House rule (CLAUDE.md): verified citations only in docs/research/ — no fabricated
+% references. If you add an entry, verify it or mark it unverified explicitly.
+%
+% Re-audit:  node <science-agent>/cli.js audit docs/research --bibtex=docs/research/refs.bib
+
+% ---------------------------------------------------------------------------
+% 1. Peel angle and makeability
+% ---------------------------------------------------------------------------
+
+@techreport{walker1974recreational,
+  author      = {Walker, James R.},
+  title       = {Recreational Surfing Parameters},
+  institution = {University of Hawaii, Department of Ocean Engineering},
+  number      = {LOOK Laboratory TR-30},
+  address     = {Honolulu, Hawaii},
+  year        = {1974},
+  pages       = {311},
+  note        = {Origin of the peel-angle formalism and the makeable-wave criterion;
+                 puts the practical surfable floor near 30 deg. Not in CrossRef
+                 (university technical report). Verified via the reference lists of
+                 Scarfe et al. 2003 and Scarfe, Healy \& Rennie 2009.}
+}
+
+@phdthesis{walker1974wave,
+  author = {Walker, James R.},
+  title  = {Wave Transformations over a Sloping Bottom and over a Three-Dimensional Shoal},
+  school = {University of Hawaii, Department of Ocean Engineering},
+  address= {Honolulu, Hawaii},
+  year   = {1974},
+  note   = {Companion to the LOOK Laboratory report. Not in CrossRef.}
+}
+
+@techreport{walkerpalmer1971general,
+  author      = {Walker, James R. and Palmer, R. Q.},
+  title       = {The General Surf Site Concept},
+  institution = {University of Hawaii},
+  number      = {LOOK Laboratory TR-18},
+  address     = {Honolulu, Hawaii},
+  year        = {1971},
+  note        = {Source of the peel-angle definition as ``the included angle between
+                 the peel-line and a line tangent to the crest-line at the breaking
+                 point.'' Not in CrossRef.}
+}
+
+@article{dally2001maximum,
+  author  = {Dally, William R.},
+  title   = {The Maximum Speed of Surfers},
+  journal = {Journal of Coastal Research},
+  volume  = {SI 29},
+  pages   = {33--40},
+  year    = {2001},
+  note    = {Special Issue 29, K. P. Black (ed.). Bounds the makeability criterion
+             from the surfer-speed side. Page range from the SI 29 contents as
+             reproduced in Scarfe et al. 2003.}
+}
+
+% ---------------------------------------------------------------------------
+% 2. Surfing-reef science — JCR Special Issue 29 and the Waikato lineage
+% ---------------------------------------------------------------------------
+
+@article{meadblack2001field,
+  author  = {Mead, Shaw T. and Black, Kerry P.},
+  title   = {Field Studies Leading to the Bathymetric Classification of World-Class Surfing Breaks},
+  journal = {Journal of Coastal Research},
+  volume  = {SI 29},
+  pages   = {5--20},
+  year    = {2001},
+  note    = {The seven-component bathymetric taxonomy (ramp, focus, platform, wedge,
+             ledge, ridge, pinnacle).}
+}
+
+@article{meadblack2001functional,
+  author  = {Mead, Shaw T. and Black, Kerry P.},
+  title   = {Functional Component Combinations Controlling Surfing Quality at World-Class Surfing Breaks},
+  journal = {Journal of Coastal Research},
+  volume  = {SI 29},
+  pages   = {21--32},
+  year    = {2001}
+}
+
+@article{meadblack2001predicting,
+  author  = {Mead, Shaw T. and Black, Kerry P.},
+  title   = {Predicting the Breaker Intensity of Surfing Waves},
+  journal = {Journal of Coastal Research},
+  volume  = {SI 29},
+  pages   = {51--65},
+  year    = {2001},
+  note    = {Vortex length-to-width ratio vs orthogonal seabed gradient,
+             Y = 0.065X + 0.821, R^2 = 0.71. Widely miscited as ``breaking
+             intensity''; the SI 29 contents entry reads ``breaker intensity''.}
+}
+
+@article{hutt2001classification,
+  author  = {Hutt, John A. and Black, Kerry P. and Mead, Shaw T.},
+  title   = {Classification of Surf Breaks in Relation to Surfing Skill},
+  journal = {Journal of Coastal Research},
+  volume  = {SI 29},
+  pages   = {66--81},
+  year    = {2001},
+  note    = {JSTOR 25736206. Source of the 1--10 skill / peel-angle LIMIT table.
+             The column is a MINIMUM negotiable alpha per skill level, not a
+             typical value -- see SURF_SCIENCE_REFS.md 2.3 for the corrected
+             transcription and the four values that were wrong here before
+             2026-08-13.}
+}
+
+@phdthesis{barlow2013thesis,
+  author = {Barlow, Matthew},
+  title  = {[PhD thesis]},
+  school = {Leeds Beckett University},
+  year   = {2013},
+  url    = {https://eprints.leedsbeckett.ac.uk/id/eprint/592},
+  note   = {Cited ONLY as the accessible full reproduction of Hutt et al. 2001
+             Table 1.1, p.12. Thesis title not independently confirmed --
+             do not cite for its own claims without checking.}
+}
+
+@phdthesis{mead2000thesis,
+  author = {Mead, Shaw T.},
+  title  = {Incorporating High-Quality Surfing Breaks into Multi-Purpose Reefs},
+  school = {University of Waikato},
+  year   = {2000},
+  url    = {https://researchcommons.waikato.ac.nz/handle/10289/13967},
+  note   = {The thesis behind Mead \& Black 2001 (JCR SI 29). Source of BOTH
+             the Bingin alpha figures (~35 deg along the wedge, 40--55 deg in the
+             take-off zone, WBEND refraction model cross-checked against aerial
+             photos) AND the mechanism that enlarging a fixed-orientation wedge
+             INCREASES refraction before breaking and therefore LOWERS the peel
+             angle -- the refraction ceiling in SURF_SCIENCE_REFS.md 2.3.2, and
+             the reason this model's wedge saturates near 45 deg.
+             YEAR CONFLICT RESOLVED 2026-08-13: the repo previously cited this one
+             thesis as both ``Mead 2000'' and ``Mead 2001''. The Waikato
+             ResearchCommons record dates it 2000. ``Mead 2001, PhD'' was WRONG
+             and has been corrected at every call site (SURF_SCIENCE_REFS.md
+             2.3.2, README.md, and the published essay footer). Do not confuse
+             with meadblack2001field/functional/predicting, which are 2001
+             journal papers.}
+}
+
+@inproceedings{mead1997high,
+  author    = {Mead, Shaw T. and Black, Kerry P. and Green, M. and Hume, T. M. and Hutt, John A. and Sayce, A.},
+  title     = {High Seabed Gradients and Low Peel Angles Produce World-Class Surfing Breaks},
+  booktitle = {New Zealand Marine Science Society Annual Conference},
+  address   = {University of Auckland},
+  year      = {1997},
+  note      = {The title is the citation: quality sits at the LOW end of the
+             surfable alpha band. Directly contradicts the withdrawn
+             ``world-class breaks concentrate at 30--60 deg'' rule of thumb.
+             Not in CrossRef (society conference).}
+}
+
+% ---------------------------------------------------------------------------
+% 2.3.1 Measured peel angles — the Scarfe / Raglan series and the imagery methods
+% ---------------------------------------------------------------------------
+
+@article{scarfe2009research,
+  author  = {Scarfe, Bradley E. and Healy, Terry R. and Rennie, Hamish G.},
+  title   = {Research-Based Surfing Literature for Coastal Management and the Science of Surfing---A Review},
+  journal = {Journal of Coastal Research},
+  volume  = {25},
+  number  = {3},
+  pages   = {539--557},
+  year    = {2009},
+  doi     = {10.2112/07-0958.1},
+  note    = {VERIFIED CrossRef 2026-08-13. Reproduces the Raglan per-wave alpha
+             series as Fig. 12; its one worked numeric example is ~52 deg,
+             glossed as ``fast but surfable''.}
+}
+
+@techreport{scarfe2003science,
+  author      = {Scarfe, Bradley E. and Elwany, M. Hany S. and Mead, Shaw T. and Black, Kerry P.},
+  title       = {The Science of Surfing Waves and Surfing Breaks---A Review},
+  institution = {Scripps Institution of Oceanography},
+  year        = {2003},
+  url         = {https://escholarship.org/uc/item/6h72j1fz},
+  note        = {eScholarship qt6h72j1fz. The secondary source this repo's SI 29
+             titles and page ranges were checked against. Also the only literature
+             hook for deliberately high alpha: ``long boarders desire waves with
+             higher peel angles and lower breaking intensities than short
+             boarders'' (p.2) -- qualitative, no numbers.}
+}
+
+@phdthesis{scarfe2008thesis,
+  author = {Scarfe, Bradley E.},
+  title  = {Oceanographic Considerations for the Management and Protection of Surfing Breaks},
+  school = {University of Waikato},
+  year   = {2008},
+  note   = {Table 2-3, p.44: the one published per-wave alpha series at any point
+             break -- Raglan ``The Ledge'', one ride, 30 July 2001, alpha at 1 s
+             intervals = 0, 48, 50, 69, 22, 69, 45, 30 deg. Breakpoint locus is
+             photogrammetrically measured; crest orientation comes from a
+             refraction model, so even this is hybrid. Not in CrossRef.}
+}
+
+@inproceedings{scarfe2002influence,
+  author    = {Scarfe, Bradley E. and de Lange, Willem P. and Chong, A. K. and Black, Kerry P. and Mead, Shaw T.},
+  title     = {The Influence of Surfing Wave Parameters on Manoeuvre Type from Field Investigations at Raglan, New Zealand},
+  booktitle = {Proceedings of the 2nd Surfing Arts, Science and Issues Conference (SASIC 2)},
+  pages     = {74--89},
+  year      = {2002},
+  note      = {Source of the manoeuvre/alpha mapping used by Integral at Topanga:
+             takeoff 45--60 deg, cutback >= 55 deg, re-entry 50--55 deg, speed
+             section ~40 deg. NOT IN CROSSREF (unindexed proceedings) -- searched
+             2026-08-13, no match. Unverifiable by DOI.}
+}
+
+@article{thompson2021wave,
+  author  = {Thompson, Michael and Zelich, Ivan and Watterson, Evan and Baldock, Tom E.},
+  title   = {Wave Peel Tracking: A New Approach for Assessing Surf Amenity and Analysis of Breaking Waves},
+  journal = {Remote Sensing},
+  volume  = {13},
+  number  = {17},
+  pages   = {3372},
+  year    = {2021},
+  doi     = {10.3390/rs13173372},
+  note    = {VERIFIED CrossRef 2026-08-13. Consumes a FRAME SEQUENCE -- which is
+             why it cannot be run on OFR 2007-1270's archived products, those
+             being 10-minute time-averages that have integrated the peel away.}
+}
+
+@inproceedings{atkin2022deep,
+  author    = {Atkin, Edward and McIntosh, Robert and Bryan, Karin R.},
+  title     = {Deep Learning Object Detection Application to Surfing Wave Quality},
+  booktitle = {Proceedings of the 37th International Conference on Coastal Engineering (ICCE)},
+  year      = {2022},
+  url       = {https://icce-ojs-tamu.tdl.org/icce/article/view/12664},
+  note      = {~1.6 M breakpoint+crest pairs at Manu Bay, Raglan, 2017--2020;
+             first work to detect both directly from imagery. Defers all numbers
+             to Atkin (2021), below.}
+}
+
+@inproceedings{atkin2021coasts,
+  author    = {Atkin, Edward},
+  booktitle = {Proceedings of the 25th Australasian Coasts and Ports Conference},
+  year      = {2021},
+  title     = {[title not confirmed]},
+  note      = {NOT OBTAINABLE ONLINE as of 2026-08-13 and NOT VERIFIED. This is the
+             highest-value missing document for this project -- it carries the
+             numbers Atkin, McIntosh \& Bryan 2022 defers to. Do not cite until a
+             copy is in hand.}
+}
+
+@article{atkin2020surf,
+  author  = {Atkin, Edward and Reineman, Dan and Reiblich, Jesse and Revell, David L.},
+  title   = {Applicability of Surf Break Baselines and Monitoring in California},
+  journal = {Shore \& Beach},
+  volume  = {88},
+  number  = {2},
+  year    = {2020},
+  note    = {Names Steamer Lane; argues California breaks still LACK quantitative
+             baselines, citing peel angle only as something baseline studies
+             ``are to establish''. Article title not independently confirmed --
+             verify before publication. Note the fourth author is a principal at
+             Integral Consulting, the firm behind integral2023topanga.}
+}
+
+% ---------------------------------------------------------------------------
+% 2.3.1 (cont.) The California grey literature — where the gap actually lives
+% ---------------------------------------------------------------------------
+
+@techreport{integral2023topanga,
+  author      = {{Integral Consulting Inc.}},
+  title       = {Topanga Surf Quality Impact Assessment Report, Topanga Lagoon Restoration Project},
+  institution = {Prepared for the Resource Conservation District of the Santa Monica Mountains and Moffatt \& Nichol},
+  address     = {Santa Cruz, California},
+  month       = nov,
+  year        = {2023},
+  url         = {https://b0e10c6b-183c-4b9c-9876-33636ee7bd6c.filesusr.com/ugd/a4773f_72220b5b12804c1c8bb594cdc0958295.pdf},
+  note        = {Dated 10 November 2023. Appendix B of Moffatt \& Nichol,
+             ``Topanga Lagoon Restoration, Shoreline Morphology Analyses'', within
+             the Draft EIR appendices (SCH 2022050478); pp. 141--185 of that
+             446 MB bundle. NOT ``Appendix H'', and NOT 2024 -- 2024 is the DEIR
+             release year. XBeach 2D nonhydrostatic (no+), 5 ft grid, 35 min per
+             scenario, alpha per breaking wave as an alongshore profile.
+             Section-averaged alpha 31--53 deg across 12 scenarios. MODELLED, and
+             validated only qualitatively against a surfer focus group -- it is
+             not a measured alpha. Full extraction: TOPANGA_PEEL_ANGLE_2023.md.
+             Grey literature, no DOI; read first-hand 2026-08-13.}
+}
+
+@techreport{savethewaves2025climate,
+  author      = {{Save The Waves Coalition} and {Integral Consulting Inc.} and {Black Surf Santa Cruz}},
+  title       = {Climate Vulnerability of California's Natural Surfing Capital: Insights on Surfonomics and Surf Break Vulnerability from Santa Cruz for Local and Statewide Consideration},
+  institution = {Save The Waves Coalition},
+  year        = {2025},
+  month       = sep,
+  url         = {https://www.savethewaves.org/wp-content/uploads/2025/09/Climate-Vulnerability-of-Californias-Natural-Surfing-Capital_2025_SaveTheWavesCoalition.pdf},
+  note        = {Published 16 September 2025; supported by the California Ocean
+             Protection Council. 31 Santa Cruz breaks. Its vulnerability metric is
+             SURFABILITY -- ``percentage of time with surfable conditions in
+             daylight hours'' -- an availability scalar with no geometry in it.
+             ``Peel'' occurs exactly once, as list item m in a recommended
+             contents template for FUTURE assessments. Grey literature, no DOI.}
+}
+
+@techreport{ccc2008pleasurepoint,
+  author      = {{California Coastal Commission}},
+  title       = {Revised Findings, Appeal No. A-3-SCO-07-015 (Pleasure Point Seawall)},
+  institution = {California Coastal Commission},
+  year        = {2008},
+  note        = {Imposes a permanent Surf Monitoring condition for ``wave breaking
+             patterns'', specified only as ``wave height, period and wave break
+             CHARACTER''. The one enforceable long-run Pleasure Point
+             wave-monitoring mandate, and it has no geometric metric attached.
+             Agency findings document, no DOI.}
+}
+
+% ---------------------------------------------------------------------------
+% 2.3.2 The refraction ceiling
+% ---------------------------------------------------------------------------
+
+@mastersthesis{henriquez2004,
+  author = {Henriquez, Martijn},
+  title  = {Artificial Surf Reefs},
+  school = {Delft University of Technology},
+  year   = {2004},
+  url    = {https://repository.tudelft.nl/record/uuid:75b15cd7-08a1-48e5-8fc9-337f184ae318},
+  note   = {Source of the refraction bound sin(alpha_max) = c_b/c_s, which follows
+             from Snell and contains NO reef dimension. Evaluated on this model's
+             own dispersion code by tests/peel-ceiling.test.js. Not in CrossRef.}
+}
+
+% ---------------------------------------------------------------------------
+% 3. Break criteria
+% ---------------------------------------------------------------------------
+
+@article{mccowan1894highest,
+  author  = {McCowan, J.},
+  title   = {On the Highest Wave of Permanent Type},
+  journal = {Philosophical Magazine, Series 5},
+  volume  = {38},
+  pages   = {351--358},
+  year    = {1894},
+  note    = {Solitary-wave limit H_b/h_b = gamma ~ 0.78, which fixes this model's
+             breakpoint locus. Pre-DOI; verified via secondary sources only,
+             original text not inspected.}
+}
+
+@inproceedings{battjes1974surf,
+  author    = {Battjes, Jurjen A.},
+  title     = {Surf Similarity},
+  booktitle = {Proceedings of the 14th International Conference on Coastal Engineering},
+  address   = {Copenhagen},
+  publisher = {ASCE},
+  pages     = {466--480},
+  year      = {1974},
+  note      = {Deep-water Iribarren thresholds: spilling xi0 < 0.5, plunging
+             0.5--3.3, surging/collapsing > 3.3. NOT FOUND in CrossRef when
+             searched 2026-08-13; verified via secondary sources only.}
+}
+
+@inproceedings{iribarren1949protection,
+  author    = {Iribarren, C. R. and Nogales, C.},
+  title     = {Protection des Ports},
+  booktitle = {XVIIth International Navigation Congress},
+  address   = {Lisbon},
+  pages     = {31--80},
+  year      = {1949},
+  note      = {Section II-4. Page range NOT independently verified. Pre-DOI.}
+}
+
+@book{komar1998beach,
+  author    = {Komar, Paul D.},
+  title     = {Beach Processes and Sedimentation},
+  edition   = {2nd},
+  publisher = {Prentice Hall},
+  year      = {1998},
+  pages     = {544}
+}
+
+@book{deandalrymple1991water,
+  author    = {Dean, Robert G. and Dalrymple, Robert A.},
+  title     = {Water Wave Mechanics for Engineers and Scientists},
+  publisher = {World Scientific},
+  year      = {1991}
+}
+
+% ---------------------------------------------------------------------------
+% 4. Santa Cruz / northern Monterey Bay
+% ---------------------------------------------------------------------------
+
+@techreport{storlazzi2007pleasurepoint,
+  author      = {Storlazzi, Curt D. and Barnard, Patrick L. and Collins, Brian D. and Finlayson, David P. and Golden, Nadine E. and Hatcher, Gerry A. and Kayen, Robert E. and Ruggiero, Peter},
+  title       = {High-Resolution Topographic, Bathymetric, and Oceanographic Data for the Pleasure Point Area, Santa Cruz County, California: 2005--2007},
+  institution = {U.S. Geological Survey},
+  number      = {Open-File Report 2007-1270},
+  pages       = {23},
+  year        = {2007},
+  doi         = {10.3133/ofr20071270},
+  note        = {VERIFIED CrossRef 2026-08-13. THE primary bathymetry source for
+             this model's shelf geometry. Contains ZERO occurrences of ``peel'':
+             its Subtask 2.2, ``Spatial and Temporal Variation in Breaking Wave
+             Patterns'', reduces breaking to timex/variance imagery and never
+             computes a break-line orientation. The report is a 23-page
+             DESCRIPTION -- the data itself is a request to the USGS Pacific
+             Science Center, not a download.}
+}
+
+@techreport{storlazzi2005forcing,
+  author      = {Storlazzi, Curt D. and Wingfield, D. K.},
+  title       = {Spatial and Temporal Variations in Oceanographic and Meteorologic Forcing Along the Central California Coast, 1980--2002},
+  institution = {U.S. Geological Survey},
+  number      = {Scientific Investigations Report 2005-5085},
+  year        = {2005},
+  note        = {Wave climate -- heights, periods, approach directions,
+             seasonality -- for the model's swell input.}
+}
+
+@article{storlazzi2000enso,
+  author  = {Storlazzi, Curt D. and Griggs, Gary B.},
+  title   = {Influence of El Ni\~{n}o--Southern Oscillation (ENSO) Events on the Evolution of Central California's Shoreline},
+  journal = {GSA Bulletin},
+  volume  = {112},
+  number  = {2},
+  pages   = {236--249},
+  year    = {2000},
+  doi     = {10.1130/0016-7606(2000)112<236:IOENOE>2.0.CO;2},
+  note    = {VERIFIED CrossRef 2026-08-13.}
+}
+
+@article{oreilly2016cdip,
+  author  = {O'Reilly, William C. and Olfe, Corey B. and Thomas, Julianna and Seymour, Richard J. and Guza, R. T.},
+  title   = {The California Coastal Wave Monitoring and Prediction System},
+  journal = {Coastal Engineering},
+  volume  = {116},
+  pages   = {118--132},
+  year    = {2016},
+  doi     = {10.1016/j.coastaleng.2016.06.005},
+  note    = {VERIFIED CrossRef 2026-08-13. NOTE: the DOI resolves to issue
+             10.1016/j.coastaleng.2016.06.005; confirm the 116/118--132
+             volume-page triple against the publisher page before publication.
+             CDIP/MOP spectral refraction transforms to the 10 m contour --
+             the source of realistic H/T/theta at this site.}
+}
+
+@article{raichle1998mavericks,
+  author  = {Raichle, Andrew W.},
+  title   = {Numerical Predictions of Surfing Conditions at Mavericks, California},
+  journal = {Shore \& Beach},
+  volume  = {66},
+  number  = {2},
+  pages   = {26--30},
+  year    = {1998},
+  note    = {Nearest published surf-specific modelling in the region. Title not
+             independently confirmed.}
+}
+
+% ---------------------------------------------------------------------------
+% 5. Real-time simulation of breaking / peeling waves (graphics)
+% ---------------------------------------------------------------------------
+
+@misc{tessendorf2001simulating,
+  author = {Tessendorf, Jerry},
+  title  = {Simulating Ocean Water},
+  howpublished = {SIGGRAPH Course Notes},
+  year   = {2001},
+  note   = {Updated 2004. FFT spectral height fields; the ``choppy wave''
+             horizontal displacement sharpens crests and self-intersects at
+             incipient breaking -- the cheapest crest-sharpening term available
+             for the unbroken wall. Course notes, no DOI.}
+}
+
+@article{yuksel2007waveparticles,
+  author  = {Yuksel, Cem and House, Donald H. and Keyser, John},
+  title   = {Wave Particles},
+  journal = {ACM Transactions on Graphics},
+  volume  = {26},
+  number  = {3},
+  year    = {2007},
+  doi     = {10.1145/1275808.1276501},
+  note    = {VERIFIED CrossRef 2026-08-13. SIGGRAPH 2007. The closest published
+             analog to advecting a ``zipper'' front along a crest.}
+}
+
+@inproceedings{thurey2007breaking,
+  author    = {Th{\"u}rey, Nils and M{\"u}ller-Fischer, Matthias and Schirm, Simon and Gross, Markus},
+  title     = {Real-Time Breaking Waves for Shallow Water Simulations},
+  booktitle = {Proceedings of Pacific Graphics 2007},
+  year      = {2007},
+  doi       = {10.1109/PG.2007.33},
+  note      = {VERIFIED CrossRef 2026-08-13. Detects steep fronts in a
+             shallow-water height field and spawns connected-particle sheets for
+             the plunging lip plus spray/foam.}
+}
+
+@article{jeschke2017packets,
+  author  = {Jeschke, Stefan and Wojtan, Chris},
+  title   = {Water Wave Packets},
+  journal = {ACM Transactions on Graphics},
+  volume  = {36},
+  number  = {4},
+  year    = {2017},
+  doi     = {10.1145/3072959.3073678},
+  note    = {VERIFIED CrossRef 2026-08-13. SIGGRAPH 2017.}
+}
+
+@article{jeschke2018wavelets,
+  author  = {Jeschke, Stefan and Sk{\v r}ivan, Tom{\'a}{\v s} and M{\"u}ller-Fischer, Matthias and Chentanez, Nuttapong and Macklin, Miles and Wojtan, Chris},
+  title   = {Water Surface Wavelets},
+  journal = {ACM Transactions on Graphics},
+  volume  = {37},
+  number  = {4},
+  year    = {2018},
+  doi     = {10.1145/3197517.3201336},
+  note    = {VERIFIED CrossRef 2026-08-13, including the full author list that
+             was previously only publisher-listing confirmed.}
+}
+
+@article{tavakkol2017celeris,
+  author  = {Tavakkol, Sasan and Lynett, Patrick},
+  title   = {Celeris: A GPU-Accelerated Open Source Software with a Boussinesq-Type Wave Solver for Real-Time Interactive Simulation and Visualization},
+  journal = {Computer Physics Communications},
+  volume  = {217},
+  pages   = {117--127},
+  year    = {2017},
+  doi     = {10.1016/j.cpc.2017.03.002},
+  note    = {VERIFIED CrossRef 2026-08-13. Preprint arXiv:1611.05984; code at
+             github.com/SasanTV/Celeris, GPL-3.0 -- CANNOT be vendored into this
+             MIT repository. The method is a different matter: implementing from
+             the paper is clean where reading the source is not. The existence
+             proof for the phase-resolving road this project did not take.}
+}
+
+% ---------------------------------------------------------------------------
+% 5.1 Shipped implementations (prior art, not papers)
+% ---------------------------------------------------------------------------
+
+@misc{stormbreakers,
+  author       = {{Stormrider31}},
+  title        = {Storm Breakers},
+  howpublished = {Unity URP ocean package, CC0-1.0},
+  url          = {https://github.com/Stormrider31/Storm-Breakers},
+  note         = {Read 2026-08-11. Proprietary wave model, no cited literature.
+             Ships breaking waves as an EFFECT on an authored shoreline: no
+             measured bathymetry, no peel angle, no Iribarren number, no break
+             line whose position is set by depth.}
+}
+
+@misc{oceancommunitynextgen,
+  author       = {Tsiantas, Elias},
+  title        = {Ocean Community Next Gen},
+  howpublished = {Unity ocean shader package, BSD 3-Clause},
+  url          = {https://github.com/eliasts/Ocean_Community_Next_Gen},
+  year         = {2020},
+  note         = {Read 2026-08-11; last commit 2020-05-19. A Tessendorf-style IFFT
+             over a Phillips spectrum -- the commodity deep-water substrate,
+             named. Dispersion is omega = sqrt(gk) with no tanh(kh), so there is
+             no depth anywhere in it: no shoaling, no refraction, no breaking.
+             It confirms the layering thesis rather than competing with it.}
+}
+
+% ---------------------------------------------------------------------------
+% 6. Added 2026-08-13 after the first audit pass flagged them as orphans.
+%    Integral's own methodology chain (referenced from TOPANGA_PEEL_ANGLE_2023.md)
+%    plus the dispersion / wave-shape forms the model itself relies on.
+% ---------------------------------------------------------------------------
+
+@article{mendonca2012leirosa,
+  author  = {Mendon\c{c}a, Ana and Fortes, Concei\c{c}\~{a}o Juana and Capit\~{a}o, Rui and Neves, Maria Gra\c{c}a and Antunes do Carmo, Jos\'{e} Sim\~{a}o and Moura, Teresa},
+  title   = {Hydrodynamics around an Artificial Surfing Reef at Leirosa, Portugal},
+  journal = {Journal of Waterway, Port, Coastal, and Ocean Engineering},
+  volume  = {138},
+  number  = {3},
+  pages   = {226--235},
+  year    = {2012},
+  doi     = {10.1061/(ASCE)WW.1943-5460.0000128},
+  note    = {VERIFIED CrossRef 2026-08-13. Source of the peel-angle definition
+             figure reproduced in integral2023topanga.}
+}
+
+@article{zijlema2011swash,
+  author  = {Zijlema, Marcel and Stelling, Guus and Smit, Pieter},
+  title   = {{SWASH}: An Operational Public Domain Code for Simulating Wave Fields and Rapidly Varied Flows in Coastal Waters},
+  journal = {Coastal Engineering},
+  volume  = {58},
+  number  = {10},
+  pages   = {992--1012},
+  year    = {2011},
+  doi     = {10.1016/j.coastaleng.2011.05.015},
+  note    = {VERIFIED CrossRef 2026-08-13. CITATION DEFECT IN THE SOURCE:
+             integral2023topanga's reference list cites these three authors and
+             year under the title ``Simulating nearshore wave transformation with
+             non-hydrostatic wave-flow modeling'' with a bare ``TU Delft'' and no
+             venue -- that title resolves to NOTHING in CrossRef. This entry is
+             the corrected form. It matters because this reference carries
+             Integral's entire nonhydrostatic-over-Boussinesq justification.}
+}
+
+@manual{deltares2010xbeach,
+  author       = {{Deltares}},
+  title        = {XBeach Model Description and Manual},
+  organization = {UNESCO-IHE Institute for Water Education, Deltares and Delft University of Technology},
+  year         = {2010},
+  url          = {https://xbeach.readthedocs.io/en/latest/},
+  note         = {CITATION DEFECT IN THE SOURCE: integral2023topanga's in-line
+             citation reads ``(Deltacrest 2010)'' while its own reference list
+             reads ``Deltares 2010''. Deltares is correct; ``Deltacrest'' is not
+             an organisation. Software manual, no DOI.}
+}
+
+@article{guo2002dispersion,
+  author  = {Guo, Junke},
+  title   = {Simple and Explicit Solution of Wave Dispersion Equation},
+  journal = {Coastal Engineering},
+  volume  = {45},
+  number  = {2},
+  pages   = {71--74},
+  year    = {2002},
+  doi     = {10.1016/S0378-3839(02)00039-X},
+  note    = {VERIFIED CrossRef 2026-08-13. The explicit dispersion form MODEL.md
+             4.5 declares physics-owned and dispersion.js implements. Volume/page
+             triple not independently confirmed -- check before publication.
+             Celeris offers Eckart (1952) as an alternative worth a numerical A/B,
+             given 4.5 already records the comment and the code disagreeing by
+             4.98 percent.}
+}
+
+@article{abreu2010asymmetric,
+  author  = {Abreu, Tiago and Silva, Paulo A. and Sancho, Francisco and Temperville, Andr\'{e}},
+  title   = {Analytical Approximate Wave Form for Asymmetric Waves},
+  journal = {Coastal Engineering},
+  volume  = {57},
+  number  = {7},
+  pages   = {656--667},
+  year    = {2010},
+  doi     = {10.1016/j.coastaleng.2010.02.005},
+  note    = {VERIFIED CrossRef 2026-08-13. Cited from
+             AGENT_PROPOSALS_2026-08-10.md for nonlinear wave-shape
+             parameterisation. Volume/page triple not independently confirmed.}
+}
+
+@article{ruessink2012parameterization,
+  author  = {Ruessink, B. G. and Ramaekers, G. and van Rijn, L. C.},
+  title   = {On the Parameterization of the Free-Stream Non-Linear Wave Orbital Motion in Nearshore Morphodynamic Models},
+  journal = {Coastal Engineering},
+  volume  = {65},
+  pages   = {56--63},
+  year    = {2012},
+  doi     = {10.1016/j.coastaleng.2012.03.006},
+  note    = {VERIFIED CrossRef 2026-08-13. Cited from
+             AGENT_PROPOSALS_2026-08-10.md. Volume/page triple not independently
+             confirmed.}
+}
+
+% ---------------------------------------------------------------------------
+% 7. Added 2026-08-13, second audit pass — the last genuine orphans.
+% ---------------------------------------------------------------------------
+
+@article{boqueciurana2020surfingdays,
+  author  = {Boqu\'{e} Ciurana, Anna and Aguilar, Enric},
+  title   = {Expected Distribution of Surfing Days in the Iberian Peninsula},
+  journal = {Journal of Marine Science and Engineering},
+  volume  = {8},
+  number  = {8},
+  pages   = {599},
+  year    = {2020},
+  doi     = {10.3390/jmse8080599},
+  note    = {VERIFIED CrossRef 2026-08-13; volume/issue/article number all match
+             the citation in SURF_SCIENCE_REFS.md 2.3.2. Cited there for ``large
+             peel angles are generally associated with nonuniform bottom
+             contours'' -- which they attribute to Walker (1974). Note this is a
+             SECONDARY attribution: the claim is Walker's, read through this
+             paper, not verified against Walker directly.}
+}
+
+@article{blackmead2009reef,
+  author  = {Black, Kerry P. and Mead, Shaw T.},
+  title   = {Design of Surfing Reefs},
+  journal = {The Reef Journal},
+  volume  = {1},
+  number  = {1},
+  pages   = {183},
+  year    = {2009},
+  note    = {NOT IN CROSSREF -- searched 2026-08-13, no match; The Reef Journal
+             is defunct and unindexed. Title NOT INDEPENDENTLY CONFIRMED; the
+             page reference (1(1):183) is what SURF_SCIENCE_REFS.md 2.3.2 carries.
+             Cited for ASR Ltd's stated design intent for an EASY reef
+             (Boscombe, target difficulty 4--5): ``Peel angles ... should be a
+             minimum of 50 deg and an average of around 60 deg.'' Weight it as
+             designer self-report, not measurement -- no measured peel angle for
+             Boscombe exists. This is the ONLY literature support anywhere for a
+             deliberately high-alpha design target, so its weakness matters:
+             it is the strongest thing standing behind this model's 58--70 deg
+             authored numbers.}
+}
+
+@techreport{pierrobenedet2008surfing,
+  author      = {Pierro, Thomas and Benedet, Lindino},
+  title       = {Surfing Engineered Beaches},
+  institution = {Coastal Planning \& Engineering, Inc.},
+  year        = {2008},
+  note        = {NOT IN CROSSREF -- searched 2026-08-13. Recorded for a negative
+             reason, in AGENT_PROPOSALS_2026-08-10.md: a link circulated in an
+             agent proposal as ``Walker 1974'' resolves to THIS document instead.
+             It is not Walker and must not be cited as him, though it may cite
+             him. Kept in the bib so the disproven mapping stays findable.}
+}
+
+@mastersthesis{moores2001speed,
+  author = {Moores, Andrew},
+  title  = {[title not confirmed]},
+  school = {University of Waikato},
+  year   = {2001},
+  note   = {NOT VERIFIED. Cited in SURF_SCIENCE_REFS.md 1 alongside Dally (2001b)
+             as ``later measurement work on surfer speed limits'', which bounds
+             the makeability criterion Vs >= c/sin(alpha) from the surfer-speed
+             side. CrossRef returns nothing for this author/year/topic (searched
+             2026-08-13); the reference is inherited from the Scarfe et al. 2003
+             review's reference list and has never been seen first-hand here.
+             An A. Moores co-authors Mead et al., ``Design and Construction of the
+             Boscombe Multi-Purpose Reef'' (ICCE 2011, 10.9753/icce.v32.structures.58),
+             which is consistent with the same Waikato surfing-reef group but is
+             NOT confirmation of this thesis. Do not cite for a number.}
+}
+
+@incollection{eckart1952gravity,
+  author    = {Eckart, Carl},
+  title     = {The Propagation of Gravity Waves from Deep to Shallow Water},
+  booktitle = {Gravity Waves},
+  series    = {National Bureau of Standards Circular 521},
+  pages     = {165--173},
+  publisher = {U.S. National Bureau of Standards},
+  year      = {1952},
+  note      = {NOT IN CROSSREF -- searched 2026-08-13, no match; NBS circulars are
+             pre-DOI. Booktitle/series/pages NOT INDEPENDENTLY CONFIRMED here.
+             Entered because this is a LIVE suggestion for this repo, not just a
+             mention inside the Celeris summary: the explicit approximation
+             k = (omega^2/g) sqrt(coth(omega^2 d/g)) is a candidate numerical A/B
+             against guo2002dispersion, which MODEL.md 4.5 declares physics-owned
+             -- worth running given 4.5 already records the comment and the code
+             disagreeing by 4.98 percent. Verify the citation before it carries
+             any published claim.}
+}
