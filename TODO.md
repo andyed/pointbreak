@@ -71,21 +71,35 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
         slides and a fixed station crosses into that tail — that IS the swing.
       • reporting correction: "α on target 4/6" describes the FIT WINDOW.
         Stage-median α is 11° (Sharks) and ~17° (Second Peak) vs 66 / 58.
-- [ ] 1c'-c. DECISIONS this diagnosis forces (Andy), in dependency order:
-      1. ACCEPTANCE INSTRUMENT: retire α-at-x=0 as the criterion (it samples
-         the same neighbourhood the reef fit is tuned at — MEASUREMENT_LESSONS
-         4) and restate the <5° swing rule on stage-median α. Cheap, and
-         everything downstream is scored against it.
-      2. LOW-H₀ BRANCH FLIPS: prefer the DETERMINISTIC fix over hysteresis —
-         reject anchor crossings beyond a declared band of the wedge crest, so
-         a far interloper cannot win `nearest`. Hysteresis (seed the branch
-         from the previous bake) also works but makes the rendered line depend
-         on the HISTORY of H₀, breaking the repo's determinism property
-         (same spot+conditions ⇒ same wave, checksums match across loads).
-      3. DEAD DOWN-POINT THIRD: judgement, not measurement — real point breaks
-         shut down on the inside. If it stays, say so in MODEL.md; if not, it
-         is the next structural item and (a)'s REEF_AMP_MAX comes back.
-      Sharks residual (48.5 vs 66 at the station; 11° stage-median) rides here.
+- [x] 1c'-c.1 ACCEPTANCE INSTRUMENT RETIRED 2026-08-13. α-at-x=0 samples the
+      same neighbourhood the reef fit is tuned at, so it certifies the fit
+      (MEASUREMENT_LESSONS 4). `__pointbreak.stageAlpha()` is the acceptance
+      instrument now — stage-restricted median, with the fit-window and
+      outside-window medians alongside. HUD reports target · x0 · stage, never
+      x0 alone. The <5° swing rule is restated on stage-median α.
+- [x] 1c'-c.2 BRANCH-FLIP FIX BUILT AND FALSIFIED 2026-08-13 (spec "The anchor
+      band, falsified"). Declaring "the line lies within one flank width of the
+      wedge crest" and ranking crossings by it — at the anchor, then at every
+      station — measured BIT-IDENTICAL to default at bands 45 m → 1 m, flag
+      proven live first. Reverted, with a do-not-retry note at the call site.
+      WHY: `__pointbreak.crestOffset()` shows the drawn line sits a median of
+      40–191 m from the wedge crest, so the in-band set is empty and the
+      fallback runs everywhere. Corollary added to MEASUREMENT_LESSONS 8:
+      change-the-selection only works when the declaration and the candidates
+      are in the SAME NEIGHBOURHOOD (continuity compares to the previous
+      crossing — always near; a band compares to the crest — 40–191 m away).
+- [ ] 1c'-c.3 THE ONE REMAINING STRUCTURAL ITEM — close the crest offset.
+      `crestOffset()` median predicts peel quality monotonically: First Peak 40 m
+      and Sewers 41 m hit their stage-α targets; The Hook 70 m is intermediate;
+      Second Peak 108 m, Jack's 114 m, Sharks 191 m miss by 32–55°. Threshold is
+      about one flank width. This IS option (a) (REEF_AMP_MAX / wedge shape),
+      and the low-H₀ branch flips + the dead down-point third are symptoms of
+      it rather than independent items — no rule phrased in reef coordinates
+      can bite while the offset is this large. crestOffset() is the cheap
+      progress meter: drive it under ~45 m.
+- [ ] 1c'-c.4 DEAD DOWN-POINT THIRD: still a judgement, not a measurement —
+      real point breaks shut down on the inside. If it stays, record it in
+      MODEL.md; likely resolves with c.3.
 - [ ] 1d. M6p3 steps 3–4 (sound onto Ψ, flip default) NO LONGER ride with the
       ensemble — judge a #psi-only default flip on its own merits (it holds α
       at 4.3° mean but raises spurious A-frames 3→5; steps 2–3 still open)

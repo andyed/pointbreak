@@ -549,9 +549,18 @@ function refreshHUD() {
       // the synthetic label together, never the derived number alone. If the
       // fit missed tolerance the residual is not hidden: the numbers show it.
       const fit = (state.bedShape || 0) === 0 ? reefFitFor(state.geoSpot) : null;
+      // Report the STAGE median alongside the x = 0 number, never x = 0 alone.
+      // x = 0 sits inside the reef fit's own station window, so on its own it
+      // says the fit converged, not that the wave peels (2026-08-13 measurement;
+      // __pointbreak.stageAlpha above). The two disagree by 40-50 deg on Second
+      // Peak, Jack's and Sharks, where the oblique run ends in a dead
+      // down-point third.
+      const sa = window.__pointbreak && window.__pointbreak.stageAlpha
+        ? window.__pointbreak.stageAlpha() : null;
+      const stageTxt = sa ? ` · ${sa.median.toFixed(0)}° stage` : '';
       hudAlpha.textContent = fit
-        ? `α ${fit.targetDeg}° target · ${derived.toFixed(0)}° derived · reef synthetic`
-        : `${derived.toFixed(0)}° derived`;
+        ? `α ${fit.targetDeg}° target · ${derived.toFixed(0)}° at x0${stageTxt} · reef synthetic`
+        : `${derived.toFixed(0)}° at x0${stageTxt}`;
     } else {
       // alpha is authored at the peak only. Down the point the contour swings
       // away from the swell and the realized peel angle rises on its own, so
@@ -1218,6 +1227,55 @@ window.__pointbreak = {
       out.push({ x, z: breakZAt(x, lastBaked.x0, lastBaked.x1),
                  a: derivedAlphaDeg(x, lastBaked.x0, lastBaked.x1) });
     return out;
+  },
+  // How far does the drawn break line sit from the fitted wedge crest it is
+  // supposed to be the break of? This is the ROOT DEFECT as a single number:
+  // if the reef owned the line these would track, and any declaration phrased
+  // as "the line lies within X of the crest" has something to select among.
+  // zc(x) = zRef + tan(beta)*(x - REEF_ANCHOR_X), REEF_ANCHOR_X = 24 (bed.js).
+  crestOffset: (step = 4) => {
+    if (!lastBaked) return null;
+    const fit = (state.bedShape || 0) === 0 ? reefFitFor(state.geoSpot) : null;
+    if (!fit) return null;
+    const P = modelP();
+    const lo = (P.stageStart ?? -110) + 10, hi = (P.stageEnd ?? 290) - 10;
+    const tanB = Math.tan(fit.betaDeg * Math.PI / 180);
+    const d = [];
+    for (let x = lo; x <= hi; x += step)
+      d.push(Math.abs(breakZAt(x, lastBaked.x0, lastBaked.x1) - (fit.zRef + tanB * (x - 24))));
+    if (!d.length) return null;
+    const s = [...d].sort((a, b) => a - b);
+    return { median: s[Math.floor(s.length / 2)], min: s[0], max: s[s.length - 1] };
+  },
+  // Stage-median derived alpha — the ACCEPTANCE instrument since 2026-08-13.
+  // The x = 0 readout samples the same neighbourhood the reef fit is tuned at
+  // (bed.js reefFitFor, xs = [-16, -8, 0, 8, 16]), so it certifies the fit
+  // rather than the wave: measured, alpha in the fit window hits target on all
+  // six spots while the stage median is 11 deg at Sharks and ~17 at Second Peak
+  // against 66/58 targets. It also overstates the H0 swing 4-8x and at Second
+  // Peak moves OPPOSITE to the line it samples. Restricted to the stage on
+  // purpose — the bake spans ~600 m and its flat flanks make a whole-bake
+  // median true and vacuous (MEASUREMENT_LESSONS 8c).
+  // See WEB_THREE_SPEC "Where the peel actually lives".
+  stageAlpha: (step = 2) => {
+    if (!lastBaked) return null;
+    const P = modelP();
+    const lo = (P.stageStart ?? -110) + 10, hi = (P.stageEnd ?? 290) - 10;
+    const xs = [], as = [];
+    for (let x = lo; x <= hi; x += step) {
+      xs.push(x);
+      as.push(derivedAlphaDeg(x, lastBaked.x0, lastBaked.x1));
+    }
+    if (!as.length) return null;
+    const med = (v) => { const s = [...v].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+    const inFit = as.filter((_, i) => Math.abs(xs[i]) <= 16);
+    const outFit = as.filter((_, i) => Math.abs(xs[i]) > 16);
+    return {
+      stageLo: lo, stageHi: hi,
+      median: med(as),
+      inFit: inFit.length ? med(inFit) : null,
+      outFit: outFit.length ? med(outFit) : null,
+    };
   },
   takeoffProfile: (step = 1) => {
     if (!lastBaked) return null;

@@ -104,6 +104,16 @@ target at all six spots, unsmoothed, for the first time.
 
 When repairing the output keeps failing, change which physics gets selected.
 
+**Corollary (2026-08-13): changing the selection only works when the
+declaration and the candidates are in the same neighbourhood.** A second
+selection-step intervention — rank crossings by their distance from the fitted
+wedge crest — measured bit-identical to default at bands from 45 m down to 1 m,
+because `crestOffset()` puts the drawn line 40–191 m from that crest, so the
+in-band set is empty and the fallback runs everywhere. Branch-following worked
+because continuity compares each candidate to the *previous crossing*, which is
+always nearby. Before declaring a constraint, measure the distance between what
+you are declaring and what you are choosing among.
+
 ## 8b. An ensemble is dominated by its worst member — measure the matrix
 
 Track 1c assumed four flags that "each fail differently" would compose into a

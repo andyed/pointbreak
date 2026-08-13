@@ -88,9 +88,12 @@ const median = (a) => {
   return s.length ? s[Math.floor(s.length / 2)] : null;
 };
 
+const extraArg = process.argv.find((a) => a.startsWith('--extra='));
+const EXTRA = extraArg ? '&' + extraArg.slice(8) : '';   // e.g. --extra=anchorband=0
+
 async function probe(preset, h0) {
   const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0`
-            + (h0 === null ? '' : `&h0=${h0.toFixed(2)}`);
+            + (h0 === null ? '' : `&h0=${h0.toFixed(2)}`) + EXTRA;
   await page.goto(url, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(1600);

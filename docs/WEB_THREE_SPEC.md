@@ -1112,3 +1112,63 @@ can be true at once; only the second one is what a surfer sees.
 Whether the dead down-point third is a defect or a true inside closeout is a
 judgement call, not a measurement — point breaks do shut down on the inside.
 It wants a decision before it wants code.
+
+### The anchor band, falsified — and the root defect as one number (2026-08-13)
+
+Acting on 1c'-c: item 1 (retire α-at-x=0 as the acceptance criterion) landed;
+item 2 (a deterministic fix for the low-H₀ branch flips) was built, measured,
+and **falsified**. Recorded because the negative is more informative than the
+patch would have been.
+
+**What was built.** Not hysteresis — seeding the branch from the previous bake
+makes the rendered line depend on the *history* of H₀ and breaks the
+determinism M5 holds deliberately. Instead a declaration in the reef's own
+terms: *the reef's line lies within one flank width (`REEF_FLANK_W`, 45 m) of
+the reef's crest*, used to rank crossings — first at the branch-following
+anchor, then at every station.
+
+**Both forms measured bit-identical to default, at bands from 45 m down to
+1 m.** The flag was proven live before the result was believed (it reported
+the band the bake actually used), so this is an inert mechanism rather than the
+`#nose=1` unwired trap — but the tell was the same, and checking cost one run.
+
+**Why it cannot work.** A new instrument, `__pointbreak.crestOffset()`,
+measures how far the drawn line sits from the fitted wedge crest it is supposed
+to be the break of:
+
+| spot | median \|line − crest\| | stage-median α / target |
+|---|---|---|
+| First Peak | 40 m | 50.8 / 50 |
+| Sewers | 41 m | 38.8 / 38 |
+| The Hook | 70 m | 38.9 / 48 |
+| Second Peak | 108 m | 18.2 / 58 |
+| Jack's | 114 m | 25.9 / 62 |
+| Sharks | **191 m** | **11 / 66** |
+
+The in-band set is empty at most stations on most spots, so the unfiltered
+fallback runs everywhere and the band is a no-op. Its premise — that the line
+is near the crest — is false on exactly the spots that need help.
+
+**And that ordering is the finding.** Crest offset predicts peel quality
+monotonically: the two spots inside one flank width hit their stage-median α
+target; the three beyond 100 m miss by 32–55°; The Hook sits between on both
+axes. This is the ROOT DEFECT — "the reef never owns the break line" — reduced
+to a single measurable number with a threshold at roughly one flank width, and
+it explains the whole 2026-08-13 sequence at once: why the ensemble fails, why
+the nose taper is exhausted, and why a selection rule phrased in the reef's
+terms has nothing to select among.
+
+MEASUREMENT_LESSONS 8 says repair-the-output fails where change-the-selection
+works. The corollary this adds: **changing the selection only works when the
+declaration and the candidates are in the same neighbourhood.** Branch-following
+succeeded because continuity compares candidates to the *previous crossing*,
+which is always nearby. A band compares them to the *wedge crest*, which is
+40–191 m away. Any future declaration must be phrased against something the
+candidates are actually near.
+
+**Where this leaves the flips.** Unfixed and now correctly scoped: they are not
+an anchor-selection defect, and they will not yield to a rule expressed in reef
+coordinates while `crestOffset` stays this large. Closing the offset is the
+same work as option (a) (`REEF_AMP_MAX` / wedge shape) — the flips are a
+symptom of it, not an independent item. `crestOffset()` is now the cheap
+progress meter for that work: drive it under ~45 m and the rest should follow.

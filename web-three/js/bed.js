@@ -824,6 +824,21 @@ export function bakeBreakLine(spotName, xRange, opts) {
     for (let d = 0; d < BREAK_N && !all[i0].crossings.length; d++)
       i0 = Math.min(Math.max(i0 + (d % 2 ? d : -d), 0), BREAK_N - 1);
     const nearest = (cands, ref) => cands.reduce((b, z) => Math.abs(z - ref) < Math.abs(b - ref) ? z : b);
+    // ANCHOR BAND: TRIED AND FALSIFIED 2026-08-13 — do not retry without new
+    // information.
+    // The proposed deterministic fix for the low-H0 branch flips was to declare
+    // that "the reef's line lies within one flank width of the reef's crest"
+    // and rank candidates by that band (at the anchor, then at every station).
+    // Both forms measured BIT-IDENTICAL to default, at bands from 45 m down to
+    // 1 m — with the flag proven live first (it reported the band the bake
+    // actually used), so this is an inert mechanism, not an unwired one.
+    // Why it cannot work: __pointbreak.crestOffset() measures the drawn line at
+    // a median of 40-191 m from the fitted wedge crest, so the in-band set is
+    // empty at most stations and the unfiltered fallback runs everywhere. The
+    // band's premise — that the line is near the crest — is false on exactly
+    // the spots that need help. That is the ROOT DEFECT restated: the reef does
+    // not own the line, so a declaration phrased in the reef's terms has
+    // nothing to select among. See WEB_THREE_SPEC "The anchor band, falsified".
     breakArr[i0] = all[i0].crossings.length ? nearest(all[i0].crossings, zcAt(xAtI(i0))) : all[i0].fallback;
     for (let i = i0 + 1; i < BREAK_N; i++)
       breakArr[i] = all[i].crossings.length ? nearest(all[i].crossings, breakArr[i - 1]) : breakArr[i - 1];
