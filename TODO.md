@@ -110,20 +110,70 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
         correlation was across spots at one fixed shape. ~105 m looks
         structural (crest at 0.75·h_b, breaking at h_b). Objective is
         stageAlpha(); crestOffset() is demoted to a diagnostic.
-- [ ] 1c'-c.5 DECISION (Andy) — adopt a new reef shape default?
-      • CHEAPEST HONEST: flank 45→80 at the unchanged 3.2 m amplitude. Mean
-        |Δα| 23.6°→15.5°, Mead & Black relief band intact, invariants clean.
-      • BEST MEASURED: amp 5 + flank 80 → 3/6 on target, mean 12.9°. Exceeds
-        the cited M&B 3.2 m band, which is a fidelity claim in the docs — a
-        call for Andy, not a tuning decision.
-      • Neither closes the ≥58° spots (Second Peak, Jack's, Sharks) because the
-        ceiling above says the wedge cannot.
-- [ ] 1c'-c.6 THE FORK the ceiling forces: either the wedge needs a component
-      that is not a widened plane, OR the ≥58° α targets are wrong — they came
-      from surf-guide character descriptions, not measurement. Nothing in the
-      sweep can settle it; this is now a direct dependency of the Phase 3 FIRST
-      VALIDATION PASS (drone/cam capture), which is already the project's
-      largest honesty gap.
+- [x] 1c'-c.6 THE FORK IS SETTLED 2026-08-13 by literature + a new test:
+      **THE α TARGETS ARE WRONG. THE WEDGE IS AT ITS PHYSICAL BOUND.**
+      (SURF_SCIENCE_REFS 2.3.2, verified verbatim from Mead 2001 PhD and
+      Henriquez 2004 TU Delft MSc; `tests/peel-ceiling.test.js`.)
+      • MECHANISM: refraction aligns crests to the isobaths as they shoal, so
+        for straight parallel contours peel angle IS the incidence angle at
+        breaking and Snell bounds it: **sin α_max = c_b / c_s**. The bound
+        contains NO wedge dimension — which is exactly why widening ours
+        saturated. Mead: "as the depth of a wedge increases, the amount of
+        refraction occurring on the wedge prior to breaking increases… the
+        wedge must be rotated at a greater angle… to maintain a surfable peel
+        angle." Enlarging a fixed-orientation plane LOWERS α.
+      • EVALUATED ON OUR OWN DISPERSION CODE (ceiling at h_s = 5/6/8 m):
+        sewers 62/54/45 vs target 38 ok · firstpeak 54/48/40 vs 50 ok ·
+        secondpeak 49/43/37 vs 58 OVER · thehook 48/43/36 vs 48 AT BOUND ·
+        jacks 41/37/32 vs 62 OVER · sharks 39/35/30 vs 66 OVER ·
+        privates 33/30/26 vs 70 OVER. **5 of 7 targets exceed the bound at
+        every shelf depth tried**, and the two that clear it are exactly the
+        two spots that hit target in the reef sweep. Sharks' reef ends near
+        the 6 m contour → bound 35°; best measured config produced EXACTLY 35.
+      • THE GOLDEN RULE IS BACKWARDS: params.js raises α down-point while
+        lowering H₀ 2.2→0.7, but smaller waves break shallower, refract more,
+        and have a LOWER ceiling. It asks the highest peel angles of the spots
+        physics constrains hardest. Mead records the same measured at Raglan
+        (Hutt 1997): 15° vs 40° of direction change for 4 m vs 1 m waves.
+      • FORCING IT WOULD LOOK WRONG ANYWAY: the Borth physical model (HR
+        Wallingford HRPP576) targeted 45–65° and measured 72–85° — logged as a
+        FAILURE, "wave breaking did not progress along the crest". High α off a
+        planar structure is a wave that has stopped peeling, i.e. a closeout.
+      • COUNTER-EVIDENCE, recorded not buried (SURF_SCIENCE_REFS 2.3.2): ASR
+        Ltd's own prescription for an EASY reef is "a minimum of 50° and an
+        average of around 60°" (Black & Mead 2009), a natural break at Cables
+        was estimated 60–70°, and Walker's central value is ~50°. So high α is
+        not absurd per se. The precise claim is narrower and still binding: at
+        THESE spots' breaking depths — set by their own authored H₀ of 0.7–1.5 m
+        — a planar component on this shelf cannot deliver 58–70°. Sharks would
+        need refraction to begin essentially at the break point.
+      • CONVENTION CONFLICT to be aware of: the Cables design brief (ASRC 1994)
+        says "30 degrees is appropriate for beginners, 60 degrees is desirable
+        for professional boardriders" — exactly INVERTED vs Hutt et al. 2001.
+        Check which convention a source uses before citing its numbers.
+- [ ] 1c'-c.7 RETARGET THE BANK (the actionable consequence, needs Andy).
+      Bring α_target inside the per-spot ceiling. Suggested, from the table
+      above at h_s = 6 m: secondpeak 58→~43, jacks 62→~37, sharks 66→~35,
+      privates 70→~30, thehook 48→43, leaving sewers 38 and firstpeak 50.
+      NOTE this INVERTS the authored down-point gradient — physics makes the
+      small, sheltered down-point spots the LOW-α ones. Before doing it, decide
+      what carries "mellow" instead: the honest candidate is the unimplemented
+      sheltering field `H_eff(u)` (MODEL.md §2.6.2, PP_MAP_GEOMETRY finding 2),
+      which the bank currently fakes via per-spot card H₀. Mellow = smaller and
+      weaker, not slower-peeling.
+- [ ] 1c'-c.8 ADOPT flank 45→80 at the unchanged 3.2 m amplitude. Reframed by
+      c.6: it does not beat the ceiling, it gets spots UP TO it (sharks 11→35
+      against a 35 bound). Mean |Δα| 23.6°→15.5°, M&B relief band intact, all
+      M5 clamp invariants clean. Cheap and defensible; do it with c.7 so the
+      targets it is scored against are the corrected ones.
+- [ ] 1c'-c.9 THE HIGH-α MECHANISM, if ever wanted: not a steeper or wider
+      plane. Literature says high α comes from NONUNIFORM contours — a
+      ROTATING strike plus focusing. Real designed reefs do this: Narrowneck's
+      arms rotate 85° offshore → 65° inshore, the stated principle being to
+      hold peel angle constant by "gradually decreasing the reef angle β
+      shoreward" (Mead, Black & Hutt 1998). Our wedge has ONE constant β. This
+      is the only shape change with literature support — but c.7 may remove the
+      need for it entirely.
 - [ ] 1c'-c.4 DEAD DOWN-POINT THIRD: still a judgement, not a measurement —
       real point breaks shut down on the inside. If it stays, record it in
       MODEL.md; likely resolves with c.3.

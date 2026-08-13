@@ -529,3 +529,172 @@ Healy & Rennie 2009, JCR 25(3), 539–557.*
   claimed here:* Synolakis (1987) solitary run-up on a 1:19.85 planar beach;
   Whalin (1971) focusing over a semicircular shoal; Briggs et al. (1995)
   solitary run-up on a conical island.
+
+### 2.3.2 Why a planar wedge saturates — the refraction ceiling (verified 2026-08-13)
+
+This project measured a ceiling (`WEB_THREE_SPEC.md`, "The reef-shape sweep"): no
+wedge amplitude or flank width takes stage-median α much past ~45°, and enlarging the
+wedge past a point makes it *worse*. That is not an implementation defect. Two primary
+sources state the mechanism, both read directly rather than via summary.
+
+**Mead, S.T. (2001), PhD thesis, Univ. of Waikato** (the thesis behind Mead & Black
+2001, *JCR* SI 29:5–20). Refraction is the antagonist of peel angle:
+
+> "Waves must peel at an angle along the crest for surfing, but refraction tends to
+> align wave crests parallel to the isobaths. If waves are refracted too much before
+> breaking on the wedge, the peel angle is decreased past surfable limits; waves begin
+> to close-out."
+
+And the part that kills "just make the wedge bigger" — verified verbatim at mead.txt
+4167–4171:
+
+> "as the depth of a wedge increases, the amount of refraction occurring on the wedge
+> prior to breaking increases. As a result, the wedge must be rotated at a greater
+> angle to the favoured orthogonal direction in order to maintain a surfable peel angle
+> at breaking."
+
+**Size and orientation are coupled.** Scaling a fixed-orientation planar wedge drives
+peel angle *down*. Mead quantifies it across two real reefs in one wave climate:
+Narrowneck (to ~11 m depth, ~450 m arm) has its wedge "rotated to ~85° to the favoured
+orthogonal direction", while the much smaller Mount Maunganui reef (<95 m, ~4.5 m) "is
+set 30° less, at close to 55°".
+
+**Henriquez, M. (2004), "Artificial Surf Reefs", MSc thesis, TU Delft** derives the
+bound. For straight parallel contours the peel angle *is* the incidence angle at
+breaking (θ_b = α), so Snell gives his eq. 3.5:
+
+    sin α / c_b  =  sin θ_s / c_s
+
+Since sin θ_s ≤ 1, the ceiling follows immediately:
+
+    **sin α_max = c_b / c_s**
+
+— c_b the celerity at breaking depth, c_s the celerity where refraction over the
+component begins. **It contains no wedge dimension at all**, which is exactly why
+widening ours saturated. Henriquez states the consequence (henriquez.txt 1038–1040):
+
+> "when refraction starts in deep water, it is impossible to obtain surfable peel
+> angles no matter how large the offshore wave angle θ0 is"
+
+and finds the tilt optimum is non-monotonic (2709–2712): "Increasing the reef angle β
+will result in greater peel angles up to a certain point. This point is where the reef
+angle is β ≈ 65°−70°. Higher reef angles will not result in significantly higher peel
+angles and will only result in oscillating peel angles and lower breaker heights." His
+Fig. 4.2 varies β = 60/70/80° on a straight-contour reef and the peel angle sits at
+~30–38° **for all three** along the body of the ride.
+
+*(The closed form above is our derivation from his eq. 3.5, not a printed statement in
+the thesis. It is checked against his Fig. 3.3 in `tests/peel-ceiling.test.js`, which
+reproduces the published peak α at h_s = 3–8 m to within a few degrees.)*
+
+**Evaluated on this bank, with this model's own dispersion code** (`tests/peel-ceiling.test.js`,
+ceiling at h_s = 5 / 6 / 8 m):
+
+| spot | H₀ | h_b | ceiling (°) | target | |
+|---|---|---|---|---|---|
+| Sewers | 2.2 | 3.88 | 62 / 54 / 45 | 38 | ok |
+| First Peak | 1.8 | 3.22 | 54 / 48 / 40 | 50 | ok |
+| Second Peak | 1.5 | 2.78 | 49 / 43 / 37 | 58 | **over** |
+| The Hook | 1.5 | 2.70 | 48 / 43 / 36 | 48 | **at the bound** |
+| Jack's | 1.1 | 2.11 | 41 / 37 / 32 | 62 | **over** |
+| Sharks | 1.0 | 1.95 | 39 / 35 / 30 | 66 | **over** |
+| Private's | 0.7 | 1.42 | 33 / 30 / 26 | 70 | **over** |
+
+**Five of seven authored targets exceed the physical bound at every shelf depth
+tried** — and the two that clear it, Sewers and First Peak, are precisely the two spots
+that hit their targets in the reef sweep. Sharks is the sharpest case: its reef ends
+near the 6 m contour, giving a bound of 35°, and the best measured configuration
+produced **exactly 35**. The wedge is not underperforming. It is saturated.
+
+**The bank's golden rule is backwards.** `params.js` raises α down-point ("alpha rises
+(mellower) … as you move away from the corner") while lowering H₀ from 2.2 to 0.7.
+But smaller waves break shallower, refract more, and therefore have a *lower* ceiling:
+the bank asks for the highest peel angles at exactly the spots physics constrains
+hardest. Mead records the same effect measured at Raglan (citing Hutt 1997) — 15° vs
+40° of offshore-to-breakpoint direction change for 4 m vs 1 m waves on one bathymetry.
+
+**What does produce a high peel angle** — not planar tilt:
+
+- "large peel angles are generally associated with **nonuniform bottom contours**"
+  — Boqué Ciurana & Aguilar (2020), *JMSE* 8(8):599, citing Walker (1974).
+- In Henriquez's own model the high values come from "the relatively rapid change of
+  the reef angle β at the reef tip and due to wave focusing at the reef tip" — a
+  *rotating* strike plus focusing, not a steeper plane.
+- Real designed reefs are therefore **not constant-orientation planes**: Narrowneck's
+  arms rotate from 85° offshore to 65° inshore (Weppe 2010 MSc, Waikato, citing Black
+  1998 / Black & Mead 2001b), the stated principle being to hold peel angle constant by
+  "gradually decreasing the reef angle β shoreward" (Mead, Black & Hutt 1998).
+- Mead's taxonomy assigns the *ridge* the opposite job: it "provides a section of
+  steeper seabed gradient, causing a **decrease** in peel angle and increase in breaker
+  intensity" (Scarfe et al. 2003, Scripps).
+
+**And a warning about forcing it.** The Borth (Wales) physical model (Rigden, Stewart,
+Allsop & Johnson 2013, HR Wallingford HRPP576) targeted 45–65° and its designs measured
+**72–85°** — recorded as a *failure*: on the companion Jumeirah model peel angle went
+"up to 80° as wave breaking did not progress along the crest". High peel angle off a
+planar structure signals a wave that has stopped peeling, i.e. a closeout. If this
+model were forced to 66° at Sharks, that is what it would be drawing.
+
+#### The counter-evidence, recorded because it cuts against the above
+
+High peel angles are not absurd in themselves, and one source deliberately designs for
+the very band this project authored. Kept here rather than filed away:
+
+- **ASR Ltd's own prescription for an *easy* reef** (Boscombe, target difficulty 4–5):
+  "Peel angles, which determine the 'speed' of the surfing ride, should be a minimum of
+  50° and an average of around 60°." — Black & Mead (2009), *The Reef Journal* 1(1):183.
+  So 50–60° *is* a stated design intent for a mellow wave. Caveats: designer
+  self-report, and no measured peel angle for Boscombe exists.
+- **A natural break estimated at 60–70°.** The pre-existing right at Cables (Perth)
+  "on average about 60–70°" — unsurfable because it was *too large*, not too slow
+  (Bancroft 1999, UWA honours thesis).
+- **Walker's own central value**, via the same thesis: "A peel angle of about 50° is
+  typical according to studies of many sites."
+
+**The reconciliation, and the precise claim this project should make.** The bound
+`sin α_max = c_b/c_s` is not a universal prohibition on 60° waves — it is a constraint
+given *where refraction starts* and *how deep the wave breaks*. A 60° peel is reachable
+where breaking is deep relative to the onset of refraction, or where contours are
+nonuniform. What the table above shows is narrower and harder to escape: **at these
+spots' own breaking depths — set by their own authored H₀ of 0.7–1.5 m — a planar
+component on this shelf cannot deliver 58–70°.** Sharks would need c_b/c_s ≈ 0.91,
+i.e. refraction beginning essentially at the break point. That is a statement about
+Pleasure Point at small swell, not about surfing in general.
+
+**A convention conflict worth knowing about.** The Cables design brief (Perth ASRC 1994,
+via Bancroft) states "30 degrees is appropriate for beginners, and 60 degrees is
+desirable for professional boardriders" — **exactly inverted** relative to Hutt et al.
+(2001), where 90° is the beginner limit and 27° the professional one, and relative to
+Mead et al. (1997) tying world-class breaks to *low* peel angles. Both are grey or
+committee sources on the ASRC side. Unresolved; do not build on either number without
+checking which convention a source is using.
+
+**Two ASR nulls worth not re-deriving.** Narrowneck's seven-year monitoring paper
+(Jackson, Corbett, Tomlinson, McGrath & Stuart 2007, *Shore & Beach* 75(4):67–79 —
+peer-reviewed) contains **no peel angle at all**; it reports ride geometry instead
+(rides averaging 150–200 m, up to 260–270 m; ~30 s average, over 60 s longest; speeds
+3.7–7.4 m/s), which is a useful acceptance shape for this model's own ride tests. And
+Mount Maunganui was **deliberately designed low/fast** (55°→35°, Black & Mead 2009), so
+its sub-50° figures are the spec, not a failure to reach high α — its actual failure was
+construction (2,800 m³ built against 6,500 m³ design; Dahm & Gibberd 2013, BOPRC).
+
+**Number traps.** Pratte's "45°", Leirosa's "45°/66°" and Narrowneck's "85°" that
+circulate are **reef arm orientations**, not peel angles. Do not cite them as α.
+Separately, every published ASR *design* peel angle traces to ASR Ltd, who designed and
+built the reefs — designer self-report, no independent verification. And no artificial
+reef in the retrieved literature has a published post-construction field-measured peel
+angle, with one exception — **Cables (Perth), the only reef with both a design and a
+measurement, and they agree**: designed at 45° (ASRC 1994 brief; Lyons 1992 1:40
+physical model, with a 25–65° working range under ±20° of swell direction), measured at
+"approximately 45 degrees" from circling-helicopter video on 17 Oct 1999. Its own
+source (Bancroft 1999, UWA honours thesis, §4.4) flags it as "an approximation on a
+single day under a certain set of wave conditions". Verdict there: "the reef is working
+to design". Narrowneck, Boscombe, Mount Maunganui, Opunake, Pratte's and Kovalam have
+**no** measured peel angle in any retrievable source.
+
+**Point breaks specifically** (mead.txt 4484–4487) — the headland *is* the wedge:
+
+> "the large wedges of headlands must be rotated away from the favoured orthogonal
+> direction to compensate for refraction of waves beyond surfable peel angles. As a
+> consequence, point-breaks often have better surfing conditions than coasts that are
+> oriented towards the dominant swell direction."
