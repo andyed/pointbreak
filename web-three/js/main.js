@@ -463,6 +463,13 @@ const drawerBackdrop = document.getElementById('drawerBackdrop');
 const controlDrawer = document.getElementById('controlDrawer');
 const breakKeys = document.getElementById('breakKeys');
 const uiReveal = document.getElementById('uiReveal');
+const waveSizeControl = document.getElementById('waveSizeControl');
+const waveSizeValue = document.getElementById('waveSizeValue');
+const tideControl = document.getElementById('tideControl');
+const tideValue = document.getElementById('tideValue');
+const sectionPositionControl = document.getElementById('sectionPositionControl');
+const sectionPosition = document.getElementById('sectionPosition');
+const sectionPositionValue = document.getElementById('sectionPositionValue');
 
 function syncControlUI() {
   if (topPreset) topPreset.textContent = state.paused
@@ -504,6 +511,28 @@ function syncControlUI() {
     const active = shortcutStates[button.dataset.shortcut];
     if (typeof active === 'boolean') button.setAttribute('aria-pressed', String(active));
   });
+
+  if (waveSizeControl) waveSizeControl.value = String(state.H0);
+  if (waveSizeValue) {
+    const ft = state.H0 * 3.28084;
+    waveSizeValue.textContent = `${state.H0.toFixed(1)} m · ${ft.toFixed(1)} ft`;
+  }
+  if (tideControl) tideControl.value = String(state.tide || 0);
+  if (tideValue) {
+    const tide = state.tide || 0;
+    tideValue.textContent = `${tide >= 0 ? '+' : ''}${tide.toFixed(2)} m · ${tideLabel(tide)}`;
+  }
+  const dayButton = document.querySelector('[data-cycle="condition-day"]');
+  if (dayButton) {
+    dayButton.querySelector('.control-state').textContent = activeDayLabel || 'Preset ocean';
+  }
+  const bedButton = document.querySelector('[data-cycle="bed"]');
+  if (bedButton) {
+    bedButton.querySelector('.control-state').textContent = ['Measured + reef', 'Plane', 'Measured'][state.bedShape || 0];
+  }
+  if (sectionPositionControl) sectionPositionControl.hidden = !showSection;
+  if (sectionPosition) sectionPosition.value = String(sectionX);
+  if (sectionPositionValue) sectionPositionValue.textContent = `${sectionX >= 0 ? '+' : ''}${sectionX} m`;
 }
 
 function refreshHUD() {
@@ -579,13 +608,53 @@ function refreshHUD() {
 // Swell-height step, clamped to the PARAM_DEFS range. Rounded to the step so
 // repeated presses land on clean values instead of drifting on float error.
 const H0_DEF = PARAM_DEFS.find((d) => d.key === 'H0');
-function stepH0(dir) {
-  const v = (state.H0 || 0) + dir * H0_DEF.step;
+function clearActiveDay() {
+  activeDayLabel = null;
+  activeDayKey = null;
+}
+
+function setH0(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return;
   const snapped = Math.round(v / H0_DEF.step) * H0_DEF.step;
   state.H0 = Math.min(Math.max(snapped, H0_DEF.min), H0_DEF.max);
-  // A hand on the size knob means the day label no longer describes the ocean.
-  if (activeDayLabel) { activeDayLabel = null; activeDayKey = null; }
+  clearActiveDay();
   refreshHUD();
+}
+
+function stepH0(dir) {
+  setH0((state.H0 || 0) + dir * H0_DEF.step);
+}
+
+function setTide(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return;
+  state.tide = Math.min(Math.max(v, TIDE_RANGE[0]), TIDE_RANGE[1]);
+  clearActiveDay();
+  refreshHUD();
+}
+
+function cycleConditionDay() {
+  const i = CONDITION_DAYS.findIndex((day) => day.key === activeDayKey);
+  const day = applyConditionDay(state, uniforms,
+    CONDITION_DAYS[(i + 1 + CONDITION_DAYS.length) % CONDITION_DAYS.length].key);
+  if (day) {
+    activeDayKey = day.key;
+    activeDayLabel = day.label;
+    refreshHUD();
+  }
+}
+
+function cycleBedMode() {
+  state.bedShape = ((state.bedShape || 0) + 1) % 3;
+  refreshHUD();
+}
+
+function setSectionX(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return;
+  sectionX = Math.min(Math.max(Math.round(v / 25) * 25, -250), 250);
+  syncControlUI();
 }
 
 function selectPreset(key) {
@@ -633,24 +702,19 @@ function runShortcut(key) {
   }
   else if (normalized === 'm') { toggleAudio(); refreshHUD(); }
   else if (normalized === 'c') setSectionVisible(!showSection);
-  else if (normalized === '[') { state.tide = Math.max((state.tide || 0) - 0.15, TIDE_RANGE[0]); refreshHUD(); }
-  else if (normalized === ']') { state.tide = Math.min((state.tide || 0) + 0.15, TIDE_RANGE[1]); refreshHUD(); }
+  else if (normalized === '[') setTide((state.tide || 0) - 0.15);
+  else if (normalized === ']') setTide((state.tide || 0) + 0.15);
   else if (normalized === '-' || normalized === '_') stepH0(-1);
   else if (normalized === '=' || normalized === '+') stepH0(+1);
-  else if (normalized === 'd') {
-    const i = CONDITION_DAYS.findIndex((x) => x.key === activeDayKey);
-    const d = applyConditionDay(state, uniforms,
-      CONDITION_DAYS[(i + 1 + CONDITION_DAYS.length) % CONDITION_DAYS.length].key);
-    if (d) { activeDayKey = d.key; activeDayLabel = d.label; refreshHUD(); }
-  }
-  else if (normalized === 'b') { state.bedShape = ((state.bedShape || 0) + 1) % 3; refreshHUD(); }
+  else if (normalized === 'd') cycleConditionDay();
+  else if (normalized === 'b') cycleBedMode();
   else if (normalized === 'n') {
     structuralBreaker = structuralBreaker ? 0 : 1;
     uniforms.u_breakShape.value = structuralBreaker;
     refreshHUD();
   }
-  else if (normalized === ',') sectionX = Math.max(sectionX - 25, -250);
-  else if (normalized === '.') sectionX = Math.min(sectionX + 25, 250);
+  else if (normalized === ',') setSectionX(sectionX - 25);
+  else if (normalized === '.') setSectionX(sectionX + 25);
   else return false;
   return true;
 }
@@ -686,7 +750,7 @@ window.addEventListener('keydown', (e) => {
 // ---------- cross-section overlay ----------
 const section = makeSection(document.body, {
   // dragging the water line is the discoverable form of the [ and ] keys
-  onTide: (t) => { state.tide = t; refreshHUD(); },
+  onTide: setTide,
 });
 let showSection = false;
 let sectionX = 0;
@@ -728,6 +792,12 @@ let psiPhaseFn = null;
 section.el.style.display = 'none';
 
 function initControlUI() {
+  waveSizeControl.min = String(H0_DEF.min);
+  waveSizeControl.max = String(H0_DEF.max);
+  waveSizeControl.step = String(H0_DEF.step);
+  tideControl.min = String(TIDE_RANGE[0]);
+  tideControl.max = String(TIDE_RANGE[1]);
+
   presetKeys.forEach((key) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -785,6 +855,11 @@ function initControlUI() {
   document.querySelector('[data-action="section"]').addEventListener('click', () => {
     setSectionVisible(!showSection);
   });
+  document.querySelector('[data-cycle="condition-day"]').addEventListener('click', cycleConditionDay);
+  document.querySelector('[data-cycle="bed"]').addEventListener('click', cycleBedMode);
+  waveSizeControl.addEventListener('input', () => setH0(waveSizeControl.value));
+  tideControl.addEventListener('input', () => setTide(tideControl.value));
+  sectionPosition.addEventListener('input', () => setSectionX(sectionPosition.value));
 
   menuToggle.addEventListener('click', () => {
     setMenuOpen(!document.body.classList.contains('menu-open'));

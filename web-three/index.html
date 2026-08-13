@@ -59,6 +59,34 @@
       <div id="siteControls" class="site-controls"></div>
     </section>
 
+    <section class="control-section" aria-labelledby="conditionsHeading">
+      <div class="section-heading">
+        <h2 id="conditionsHeading">Conditions</h2>
+        <span>Shape the arriving swell</span>
+      </div>
+      <div class="mode-controls">
+        <button type="button" data-cycle="condition-day">
+          <span>Condition day</span><span class="control-state">Preset ocean</span>
+        </button>
+      </div>
+      <div class="range-controls">
+        <label class="range-control" for="waveSizeControl">
+          <span class="range-label">
+            <span>Wave size</span>
+            <output id="waveSizeValue" for="waveSizeControl">—</output>
+          </span>
+          <input id="waveSizeControl" type="range" min="0.4" max="3" step="0.1">
+        </label>
+        <label class="range-control" for="tideControl">
+          <span class="range-label">
+            <span>Tide</span>
+            <output id="tideValue" for="tideControl">—</output>
+          </span>
+          <input id="tideControl" type="range" step="0.001">
+        </label>
+      </div>
+    </section>
+
     <section class="control-section" aria-labelledby="viewHeading">
       <div class="section-heading">
         <h2 id="viewHeading">View</h2>
@@ -79,6 +107,18 @@
           <span>Seabed section</span><span class="control-state">Off</span>
         </button>
       </div>
+      <div class="mode-controls">
+        <button type="button" data-cycle="bed">
+          <span>Seabed mode</span><span class="control-state">Measured + reef</span>
+        </button>
+      </div>
+      <label id="sectionPositionControl" class="range-control section-position-control" for="sectionPosition" hidden>
+        <span class="range-label">
+          <span>Section position</span>
+          <output id="sectionPositionValue" for="sectionPosition">0 m</output>
+        </span>
+        <input id="sectionPosition" type="range" min="-250" max="250" step="25" value="0">
+      </label>
     </section>
 
     <details class="readout">

@@ -100,8 +100,8 @@ you edit a file, reload, and see the old build — including import errors namin
 exports that are present on disk. `scripts/serve.py` is the same server with
 `no-store`.
 
-Keys: `1`–`7` sites, `V` camera (Free / Cliff / Drone / Follow), `S` surfer,
-`C` cross-section, `B` swap the seabed for its least-squares plane, `[` `]` tide,
+Keys: `1`–`7` sites, `V` camera, `S` surfer, `C` cross-section, `M` audio,
+`-` `+` wave size, `[` `]` tide, `D` condition day, `B` seabed mode,
 `,` `.` move the section transect, `space` pause, `H` hide panels.
 
 URL hash params drive the same build from outside:

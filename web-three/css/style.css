@@ -137,7 +137,7 @@ body.menu-open .control-drawer { transform: translateX(0); visibility: visible; 
 .site-controls, .camera-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .camera-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-.site-controls button, .camera-controls button, .toggle-controls button {
+.site-controls button, .camera-controls button, .toggle-controls button, .mode-controls button {
   min-height: 44px;
   padding: 9px 11px;
   border: 1px solid var(--line);
@@ -156,8 +156,24 @@ body.menu-open .control-drawer { transform: translateX(0); visibility: visible; 
 }
 
 .toggle-controls { margin-top: 14px; display: grid; gap: 7px; }
-.toggle-controls button { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.toggle-controls button, .mode-controls button { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .control-state { color: var(--accent); font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.mode-controls { display: grid; gap: 7px; margin-bottom: 18px; }
+.mode-controls button { min-height: 44px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: transparent; font-size: 13px; font-weight: 650; text-align: left; cursor: pointer; }
+.toggle-controls + .mode-controls { margin-top: 7px; margin-bottom: 0; }
+.range-controls { display: grid; gap: 18px; }
+.range-control { display: grid; gap: 9px; }
+.section-position-control { margin-top: 18px; }
+.section-position-control[hidden] { display: none; }
+.range-label { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-size: 13px; font-weight: 650; }
+.range-label output { color: var(--accent); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.range-control input[type="range"] {
+  width: 100%;
+  height: 24px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
 
 .readout { border-bottom: 1px solid var(--line); }
 .readout summary {
@@ -246,10 +262,10 @@ kbd {
   cursor: pointer;
 }
 
-button:focus-visible, summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+button:focus-visible, summary:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 @media (hover: hover) and (pointer: fine) {
-  .icon-button:hover, .site-controls button:hover, .camera-controls button:hover, .toggle-controls button:hover,
+  .icon-button:hover, .site-controls button:hover, .camera-controls button:hover, .toggle-controls button:hover, .mode-controls button:hover,
   .break-keys button:hover, .command-keys button:hover, .ui-reveal:hover { background: #1c2a31; }
   .site-controls button[aria-pressed="true"]:hover, .camera-controls button[aria-pressed="true"]:hover,
   .break-keys button[aria-pressed="true"]:hover, .command-keys button[aria-pressed="true"]:hover { background: var(--accent); }
