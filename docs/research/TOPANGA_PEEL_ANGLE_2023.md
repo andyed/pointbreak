@@ -181,14 +181,27 @@ line-global tool (smooth, peeldir, morphological closing) survived. It changes
 the line from "where does the criterion cross on this frame" to "where does
 breaking concentrate over 35 minutes". Candidate for the TODO 1c' track.
 
-**(e) The rhetorical point for the essay gets sharper, not weaker.** The firm
-did not lack the capability or the will — they built a careful, focus-group-
-grounded, wave-resolving α study for a Malibu-area lagoon EIR in 2023, then were
-a named partner on the 2025 Santa Cruz climate-vulnerability study covering 31
-breaks and that study's metric is **surfability = % of daylight hours with
-surfable conditions**. An availability scalar, no geometry. Peel angle appears
-in it exactly once, as line item `m` in a *recommended contents template* for
-future assessments. The tool existed, the authors overlapped, the gap stayed open.
+**(e) What this establishes for the essay: the gap is not a tooling gap.** The
+capability exists and has been exercised carefully on this coast — a
+focus-group-grounded, wave-resolving α study for a Malibu-area lagoon EIR in
+2023. The same firm was later a named partner on the 2025 Santa Cruz
+climate-vulnerability study covering 31 breaks, whose metric is **surfability =
+% of daylight hours with surfable conditions**; peel angle appears there once,
+as line item `m` in a *recommended contents template* for future assessments.
+
+Read that as two studies answering two different questions rather than as an
+omission: an availability scalar is the right instrument for a
+climate-vulnerability assessment, and that assessment answered its own question.
+The conclusion that matters here is narrower and forward-looking — **the
+technique is proven on this coastline; it has not yet been pointed at this
+reef.**
+
+*Register note, 2026-08-13.* This paragraph previously closed "the tool existed,
+the authors overlapped, the gap stayed open." The live essay was softened away
+from that framing the same day (Andy's call, immediately after opening contact
+with Integral), and this file is **public on GitHub** — a reader following the
+essay to the repo would otherwise land on the sharper version. Aligned
+deliberately: same facts, no indictment. Keep any future edit in this register.
 
 ## 5. Citation
 

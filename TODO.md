@@ -16,6 +16,31 @@ clock fake waves instantly) but honesty items that don't change the picture
 drop. Supersedes the 2026-08-09 surfer mission: the rider is garnish; the
 wave is the show.
 
+## ▶ NEXT UP (2026-08-13) — retarget the peel-angle bank
+
+Promoted to the top of this file because it is the one change the whole
+2026-08-13 measurement arc points at, and everything in Track 1 below is
+now downstream of it. Full derivation: `docs/WEB_THREE_SPEC.md` "The
+reef-shape sweep" + `tests/peel-ceiling.test.js`.
+
+- [ ] 1c'-c.7 RETARGET THE BANK (the actionable consequence, needs Andy).
+      Bring α_target inside the per-spot ceiling. Suggested, reading the
+      ceiling table in 1c'-c.6 below at h_s = 6 m: secondpeak 58→~43,
+      jacks 62→~37, sharks 66→~35, privates 70→~30, thehook 48→43, leaving
+      sewers 38 and firstpeak 50 (the two already inside the bound).
+      NOTE this INVERTS the authored down-point gradient — physics makes the
+      small, sheltered down-point spots the LOW-α ones. Before doing it, decide
+      what carries "mellow" instead: the honest candidate is the unimplemented
+      sheltering field `H_eff(u)` (MODEL.md §2.6.2, PP_MAP_GEOMETRY finding 2),
+      which the bank currently fakes via per-spot card H₀. Mellow = smaller and
+      weaker, not slower-peeling.
+- [ ] rides with it: **1c'-c.8** (stated in full below) — ADOPT flank 45→80 at
+      the unchanged 3.2 m amplitude. It does not beat the ceiling, it gets
+      spots UP TO it (sharks 11→35 against a 35 bound). Land the two together
+      so the flank change is scored against corrected targets.
+
+---
+
 ## PLAN (2026-08-11 evening, post external-validity audit — supersedes the
 ## priority list below, which is kept for landed-status history)
 Source: docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md. Decisions by Andy
@@ -151,16 +176,6 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
         says "30 degrees is appropriate for beginners, 60 degrees is desirable
         for professional boardriders" — exactly INVERTED vs Hutt et al. 2001.
         Check which convention a source uses before citing its numbers.
-- [ ] 1c'-c.7 RETARGET THE BANK (the actionable consequence, needs Andy).
-      Bring α_target inside the per-spot ceiling. Suggested, from the table
-      above at h_s = 6 m: secondpeak 58→~43, jacks 62→~37, sharks 66→~35,
-      privates 70→~30, thehook 48→43, leaving sewers 38 and firstpeak 50.
-      NOTE this INVERTS the authored down-point gradient — physics makes the
-      small, sheltered down-point spots the LOW-α ones. Before doing it, decide
-      what carries "mellow" instead: the honest candidate is the unimplemented
-      sheltering field `H_eff(u)` (MODEL.md §2.6.2, PP_MAP_GEOMETRY finding 2),
-      which the bank currently fakes via per-spot card H₀. Mellow = smaller and
-      weaker, not slower-peeling.
 - [ ] 1c'-c.8 ADOPT flank 45→80 at the unchanged 3.2 m amplitude. Reframed by
       c.6: it does not beat the ceiling, it gets spots UP TO it (sharks 11→35
       against a 35 bound). Mean |Δα| 23.6°→15.5°, M&B relief band intact, all

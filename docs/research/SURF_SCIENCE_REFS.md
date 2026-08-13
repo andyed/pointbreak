@@ -185,12 +185,14 @@ The negative is positively supported, not a failed search:
   and validated only qualitatively against a surfer focus group** — so it is not a
   measured α and does not break the negative above. Full extraction, method, and the
   section-averaged α table: [TOPANGA_PEEL_ANGLE_2023.md](TOPANGA_PEEL_ANGLE_2023.md).
-  The same firm was then a named technical partner on the Santa Cruz study above,
+  The same firm was later a named technical partner on the Santa Cruz study above,
   whose vulnerability metric is **surfability — "percentage of time with surfable
   conditions in daylight hours"**, an availability scalar with no geometry in it, and
-  peel angle appears once as a line item in a template for *future* assessments. The
-  firm had the tool, had used it on a California point break two years earlier, and
-  worked the relevant study; the gap stayed open anyway.
+  peel angle appears once as a line item in a template for *future* assessments.
+  Two studies, two questions: an availability scalar is the right instrument for a
+  climate-vulnerability assessment, and that assessment answered its own question.
+  What follows for this project is narrower and forward-looking — **the technique is
+  proven on this coastline; it has not yet been pointed at this reef.**
 
 Mead's own California leg (May/June 1998; Mead 2000 PhD, Waikato) surveyed El Capitan,
 Fort Point, Rincon Point, The Wedge and Ventura Point — meso-scale components plus
