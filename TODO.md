@@ -108,6 +108,14 @@ No parity port. Consequences to carry honestly:
       period-structured (windswell ~215° vs groundswell ~192°); condition-day
       bundles gain a direction field; drift samples the seasonal distribution.
       Calibration set: the 16-month CDIP pull (audit doc, THREDDS recipes).
+- [ ] 3d. User control (gated on Track 1c' + 3a–3c): add an **Incident
+      direction** control to the Conditions drawer, expressed as the SC116
+      nearshore true bearing the swell arrives from. Clamp to the observed 90%
+      band **188–216°**, default/reference **194°**; named days set their
+      period/season-appropriate direction and live mode uses observed `waveDp`.
+      The value must remain ocean state (never rewrite site character or break
+      location), preserve a right at every canon spot, and produce the expected
+      monotone **4–8°** derived-peel swing across the full control range.
 
 ### Track 4 — conditions truthfulness
 - [ ] 4a. Tide polarity ROOT-CAUSE first: breaking intensity currently
