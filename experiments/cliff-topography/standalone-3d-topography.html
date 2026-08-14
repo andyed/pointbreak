@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pleasure Point — Dual-View 3D Topography & Cross-Section Transect</title>
+  <style>
+    :root {
+      --bg: #0b0d11;
+      --panel-bg: #14181f;
+      --panel-bg-subtle: #19202a;
+      --border: #242c38;
+      --border-focus: #3d4a5d;
+      --text: #e6e4d2;
+      --text-dim: #a8a798;
+      --text-foam: #eef2f3;
+      --cyan: #7fdfff;
+      --cyan-dim: rgba(127, 223, 255, 0.25);
+      --gold: #c9a86a;
+      --gold-dim: rgba(201, 168, 106, 0.25);
+      --cliff: #f4a261;
+      --cliff-dark: #e76f51;
+      --teal: #2f6f7a;
+      --slate: #6b7f8c;
+      --font-serif: Georgia, 'Times New Roman', serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      padding: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      color: var(--text-foam);
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .badge-dual {
+      background: #1e2836;
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--text);
+      font-weight: 400;
+      margin-bottom: 12px;
+    }
+
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .meta-item {
+      background: var(--panel-bg);
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .meta-item span { color: var(--cyan); font-weight: 500; }
+
+    /* Dual View Grid Layout */
+    .dual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 1100px) {
+      .dual-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .card-header {
+      padding: 12px 18px;
+      background: #10141a;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-foam);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+
+    .spot-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .spot-pill {
+      background: #1c232d;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .spot-pill:hover {
+      color: var(--text-foam);
+      border-color: var(--border-focus);
+    }
+
+    .spot-pill.active {
+      background: #233a4c;
+      color: var(--cyan);
+      border-color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .view-body {
+      padding: 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* 3D SVG Wrapper */
+    .svg-container {
+      width: 100%;
+      height: 100%;
+      min-height: 480px;
+      background: #0f1216;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .svg-container svg, .svg-container object {
+      width: 100%;
+      height: 100%;
+      max-height: 520px;
+      display: block;
+    }
+
+    /* 2D Transect Canvas Wrapper */
+    .transect-container {
+      width: 100%;
+      height: 100%;
+      min-height: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .transect-canvas-box {
+      flex: 1;
+      min-height: 380px;
+      background: #0f1216;
+      border-radius: 6px;
+      position: relative;
+      border: 1px solid #1a222c;
+      overflow: hidden;
+    }
+
+    canvas#transectCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Scrubber Slider */
+    .scrub-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--panel-bg-subtle);
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .scrub-label {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    input[type=range] {
+      flex: 1;
+      accent-color: var(--cyan);
+      height: 6px;
+      background: #252e3b;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    /* Spot Summary Stats Bar */
+    .transect-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: #11151c;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    .stat-box {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-label { color: var(--text-dim); margin-bottom: 2px; }
+    .stat-val { font-size: 14px; font-weight: 600; color: var(--text-foam); }
+    .stat-val.cliff { color: var(--cliff); }
+    .stat-val.water { color: var(--cyan); }
+    .stat-val.break { color: var(--gold); }
+
+    /* Technical Notes */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 18px;
+    }
+
+    .info-box {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .info-box h3 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      color: var(--text-foam);
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+
+    .info-box p {
+      font-size: 13.5px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .info-box ul {
+      padding-left: 18px;
+      font-size: 13.5px;
+      color: var(--text-dim);
+    }
+
+    .info-box li { margin-bottom: 4px; }
+
+    footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--cyan); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-row">
+      <h1>PLEASURE POINT — Dual-View Topography &amp; Cliff Drop-Off</h1>
+      <div class="badge-dual">Synchronized Dual View</div>
+    </div>
+    <div class="subtitle">
+      Comparing the 3D oblique bathymetric grid with synchronized 2D shore-normal cross-sections from offshore reef to East Cliff Drive terrace.
+    </div>
+    <div class="meta-bar">
+      <div class="meta-item">Bathymetry &amp; Topo: <span>NOAA NCEI 1/3″ DEM (NAVD88)</span></div>
+      <div class="meta-item">Datum: <span>MSL = NAVD88 +0.905 m</span></div>
+      <div class="meta-item">Ref Break Depth: <span>h = 1.9 m (H₀ = 1.5 m)</span></div>
+      <div class="meta-item">Exaggeration: <span>×7 (3D) / ×5 (2D)</span></div>
+      <div class="meta-item">Design: <span>/muriel spatial OLED</span></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="dual-grid">
+      <!-- VIEW 1: 3D OBLIQUE TOPOGRAPHY -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="dot"></div>
+            <span>View 1: 3D Oblique Grid Topography</span>
+          </div>
+          <span style="font-size: 12px; color: var(--text-dim); font-family: var(--font-mono);">Down-point: Left → Right</span>
+        </div>
+        <div class="view-body">
+          <div class="svg-container">
+            <object id="topo-svg-object" type="image/svg+xml" data="docs/figures/fig-floor-cliff.svg" width="100%" height="100%"></object>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: 2D SYNCHRONIZED TRANSECT -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="dot" style="background: var(--cliff);"></div>
+            <span>View 2: Shore-Normal Profile Cut (Offshore → Cliff)</span>
+          </div>
+          <div class="spot-pills" id="spotPills">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+        <div class="view-body">
+          <div class="transect-container">
+            <!-- 2D Canvas Profile -->
+            <div class="transect-canvas-box" id="canvasBox">
+              <canvas id="transectCanvas"></canvas>
+            </div>
+
+            <!-- Down-Point Scrubber Slider -->
+            <div class="scrub-bar">
+              <span class="scrub-label">Along-Point Scrub:</span>
+              <input type="range" id="xScrubber" min="-650" max="850" step="10" value="0">
+              <span class="scrub-label" id="xValLabel">X = 0 m</span>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="transect-stats">
+              <div class="stat-box">
+                <span class="stat-label">Active Location</span>
+                <span class="stat-val" id="statSpot">Second Peak</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Cliff Top Elevation</span>
+                <span class="stat-val cliff" id="statCliff">+12.5 m NAVD88</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Cliff Drop to Water</span>
+                <span class="stat-val cliff" id="statDrop">11.6 m drop</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Break Line Distance</span>
+                <span class="stat-val break" id="statBreak">90 m offshore</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TECHNICAL CONTEXT -->
+    <div class="info-grid">
+      <div class="info-box">
+        <h3>How to Read the Dual View</h3>
+        <p>The 3D grid on the left provides spatial orientation along the point break. The 2D cross-section on the right resolves the vertical drop-off unambiguously by drawing the true shore-normal elevation profile.</p>
+        <ul>
+          <li><strong>Click any spot pill</strong> (e.g. <em>Sewers, 38th, The Hook, Privates</em>) to immediately slice the topography at that exact break.</li>
+          <li><strong>Scrub the slider</strong> to continuously travel down the 1.5 km reef and watch the cliff face height climb from +8.9 m at Sewers to +19.5 m at Privates.</li>
+          <li><strong>Hover over the 2D chart</strong> to inspect exact elevation, water depth, and distance from shore under the cursor.</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <h3>Geological Mechanics: Cliff to Ramp</h3>
+        <p>The Pleasure Point marine terrace exhibits a classic wave-cut platform morphology:</p>
+        <ul>
+          <li><strong style="color: var(--cliff);">Upper Terrace (+10 m to +20 m):</strong> Relict Pleistocene marine terrace carrying East Cliff Drive.</li>
+          <li><strong style="color: var(--cliff);">Sea Cliff Face:</strong> Near-vertical cliff formed by wave undercutting of the Purisima Formation siltstone.</li>
+          <li><strong style="color: var(--cyan);">Wave-Cut Reef Ramp (MSL to −12 m):</strong> Modern submerged shore platform sloping gently seaward at a 1:58 ramp ($1.0^\circ$ slope), causing waves to shoal and break.</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <h3>Design Standards &amp; Provenance</h3>
+        <ul>
+          <li><strong>Data Sources:</strong> NOAA NCEI Monterey Bay 1/3″ DEM (2012) &amp; OpenStreetMap surf spots.</li>
+          <li><strong>Tidal Datum:</strong> NOAA CO-OPS Station 9413450 Monterey ($	ext{MSL} = 	ext{NAVD88} + 0.905	ext{ m}$).</li>
+          <li><strong>Palette:</strong> Muriel OLED dark token system with WCAG 8:1 contrast halos.</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>PointBreak Topography Lab &copy; 2026. Built with <a href="https://github.com/andyed/muriel" target="_blank">/muriel</a> visual &amp; spatial capabilities.</p>
+  </footer>
+
+  <script type="module">
+    import { PP_TRANSECTS } from './pp_transects.js';
+
+    const SPOTS = PP_TRANSECTS.spots;
+    const SPOT_ORDER = ["Sewers", "First Peak", "Second Peak", "38th", "The Hook", "Sharks", "Privates"];
+    let currentTransect = SPOTS["Second Peak"];
+    let currentX = currentTransect.x;
+
+    const pillsContainer = document.getElementById('spotPills');
+    const xScrubber = document.getElementById('xScrubber');
+    const xValLabel = document.getElementById('xValLabel');
+    const canvas = document.getElementById('transectCanvas');
+    const canvasBox = document.getElementById('canvasBox');
+    const ctx = canvas.getContext('2d');
+
+    const statSpot = document.getElementById('statSpot');
+    const statCliff = document.getElementById('statCliff');
+    const statDrop = document.getElementById('statDrop');
+    const statBreak = document.getElementById('statBreak');
+
+    // Initialize Spot Pills
+    SPOT_ORDER.forEach(name => {
+      if (SPOTS[name]) {
+        const btn = document.createElement('button');
+        btn.className = 'spot-pill' + (name === "Second Peak" ? ' active' : '');
+        btn.innerText = name;
+        btn.onclick = () => selectSpot(name);
+        pillsContainer.appendChild(btn);
+      }
+    });
+
+    // Configure Scrubber Bounds
+    xScrubber.min = PP_TRANSECTS.x_min;
+    xScrubber.max = PP_TRANSECTS.x_max;
+    xScrubber.value = currentX;
+
+    xScrubber.oninput = (e) => {
+      const val = parseFloat(e.target.value);
+      selectCustomX(val);
+    };
+
+    function selectSpot(name) {
+      document.querySelectorAll('.spot-pill').forEach(b => b.classList.toggle('active', b.innerText === name));
+      currentTransect = SPOTS[name];
+      currentX = currentTransect.x;
+      xScrubber.value = currentX;
+      xValLabel.innerText = `X = ${Math.round(currentX)} m (${name})`;
+      updateStats();
+      drawChart();
+    }
+
+    function selectCustomX(x) {
+      document.querySelectorAll('.spot-pill').forEach(b => b.classList.remove('active'));
+      currentX = x;
+      xValLabel.innerText = `X = ${Math.round(currentX)} m`;
+
+      // Find nearest grid transect or interpolated
+      let nearest = PP_TRANSECTS.grid[0];
+      let minDiff = Infinity;
+      PP_TRANSECTS.grid.forEach(t => {
+        const diff = Math.abs(t.x - x);
+        if (diff < minDiff) {
+          minDiff = diff;
+          nearest = t;
+        }
+      });
+
+      // Check if near a named spot
+      let matchedSpotName = null;
+      for (const [name, s] of Object.entries(SPOTS)) {
+        if (Math.abs(s.x - x) < 20) {
+          matchedSpotName = name;
+          document.querySelectorAll('.spot-pill').forEach(b => b.classList.toggle('active', b.innerText === name));
+          break;
+        }
+      }
+
+      currentTransect = nearest;
+      if (matchedSpotName) currentTransect.spot_name = matchedSpotName;
+      else currentTransect.spot_name = `Transect (X=${Math.round(x)}m)`;
+
+      updateStats();
+      drawChart();
+    }
+
+    function updateStats() {
+      statSpot.innerText = currentTransect.spot_name || `X = ${Math.round(currentX)} m`;
+      const ct = currentTransect.cliff_top_elev;
+      if (ct !== null && ct !== undefined) {
+        statCliff.innerText = `+${ct.toFixed(1)} m NAVD88`;
+        const drop = ct - PP_TRANSECTS.msl_navd88_m;
+        statDrop.innerText = `${drop.toFixed(1)} m cliff drop`;
+      } else {
+        statCliff.innerText = `N/A`;
+        statDrop.innerText = `N/A`;
+      }
+
+      if (currentTransect.waterline_y !== null && currentTransect.break_y !== null) {
+        const dist = Math.abs(currentTransect.waterline_y - currentTransect.break_y);
+        statBreak.innerText = `${Math.round(dist)} m offshore`;
+      } else {
+        statBreak.innerText = `~85 m offshore`;
+      }
+    }
+
+    // High-DPI 2D Chart Renderer
+    function drawChart(hoverX = null) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvasBox.clientWidth;
+      const h = canvasBox.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+
+      // Background
+      ctx.fillStyle = '#0f1216';
+      ctx.fillRect(0, 0, w, h);
+
+      const pts = currentTransect.points;
+      if (!pts || pts.length === 0) return;
+
+      // Coordinate limits
+      const padL = 60, padR = 30, padT = 40, padB = 50;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      const yMin = PP_TRANSECTS.y_far;   // Offshore (left)
+      const yMax = PP_TRANSECTS.y_land;  // Land / Cliff (right)
+      const eMin = -12.0;                // Deep seabed (bottom)
+      const eMax = 22.0;                 // Upper cliff terrace (top)
+
+      const mapX = (yVal) => padL + ((yVal - yMin) / (yMax - yMin)) * plotW;
+      const mapY = (eVal) => padT + (1 - (eVal - eMin) / (eMax - eMin)) * plotH;
+
+      const mslE = PP_TRANSECTS.msl_navd88_m;
+      const mslScreenY = mapY(mslE);
+      const breakE = mslE - PP_TRANSECTS.h_break_m;
+      const breakScreenY = mapY(breakE);
+
+      // Gridlines & Axis Ticks
+      ctx.strokeStyle = '#1e2632';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#8e96a4';
+      ctx.font = '11px SFMono-Regular, monospace';
+      ctx.textAlign = 'right';
+
+      // Elevation horizontal gridlines (-10m, -5m, 0m, +5m, +10m, +15m, +20m)
+      for (let e = -10; e <= 20; e += 5) {
+        const sy = mapY(e);
+        ctx.beginPath();
+        ctx.moveTo(padL, sy);
+        ctx.lineTo(w - padR, sy);
+        ctx.stroke();
+        ctx.fillText(`${e > 0 ? '+' : ''}${e}m`, padL - 8, sy + 4);
+      }
+
+      // MSL Datum Reference Line (0.0m MSL = +0.905m NAVD88)
+      ctx.strokeStyle = '#7fdfff';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padL, mslScreenY);
+      ctx.lineTo(w - padR, mslScreenY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#7fdfff';
+      ctx.textAlign = 'left';
+      ctx.fillText('Waterline (MSL = +0.91m)', padL + 10, mslScreenY - 6);
+
+      // Break Depth Reference Line (h = 1.9m)
+      ctx.strokeStyle = '#c9a86a';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padL, breakScreenY);
+      ctx.lineTo(w - padR, breakScreenY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#c9a86a';
+      ctx.fillText('Break Depth (h = 1.9m)', padL + 10, breakScreenY + 14);
+
+      // 1. Fill Water Body (from seabed to MSL when submerged)
+      ctx.fillStyle = 'rgba(47, 111, 122, 0.35)';
+      ctx.beginPath();
+      let startedWater = false;
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        if (p.elev <= mslE) {
+          const sx = mapX(p.y);
+          const sy = mapY(p.elev);
+          if (!startedWater) {
+            ctx.moveTo(sx, mslScreenY);
+            startedWater = true;
+          }
+          ctx.lineTo(sx, sy);
+        } else if (startedWater) {
+          ctx.lineTo(mapX(p.y), mslScreenY);
+          break;
+        }
+      }
+      if (startedWater) {
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // 2. Fill Sub-Seabed & Cliff Rock Body (Geology under the curve)
+      const grad = ctx.createLinearGradient(0, mapY(18), 0, mapY(-12));
+      grad.addColorStop(0, '#e76f51');    // Cliff top terra
+      grad.addColorStop(0.4, '#f4a261');  // Cliff face ochre
+      grad.addColorStop(0.55, '#c9a86a'); // Beach / reef sand
+      grad.addColorStop(0.8, '#243b48');  // Submerged bedrock
+      grad.addColorStop(1, '#111a22');    // Deep foundation
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(mapX(pts[0].y), mapY(eMin));
+      for (let i = 0; i < pts.length; i++) {
+        ctx.lineTo(mapX(pts[i].y), mapY(pts[i].elev));
+      }
+      ctx.lineTo(mapX(pts[pts.length - 1].y), mapY(eMin));
+      ctx.closePath();
+      ctx.fill();
+
+      // 3. Draw Terrain / Seabed Profile Curve
+      ctx.lineWidth = 3.2;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const sx1 = mapX(p1.y);
+        const sy1 = mapY(p1.elev);
+        const sx2 = mapX(p2.y);
+        const sy2 = mapY(p2.elev);
+
+        ctx.strokeStyle = (p1.elev > mslE || p2.elev > mslE) ? '#f4a261' : '#7fdfff';
+        ctx.beginPath();
+        ctx.moveTo(sx1, sy1);
+        ctx.lineTo(sx2, sy2);
+        ctx.stroke();
+      }
+
+      // 4. Annotate Key Landmarks
+      if (currentTransect.waterline_y !== null) {
+        const wx = mapX(currentTransect.waterline_y);
+        ctx.fillStyle = '#eef2f3';
+        ctx.beginPath();
+        ctx.arc(wx, mslScreenY, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#eef2f3';
+        ctx.textAlign = 'center';
+        ctx.fillText('Waterline', wx, mslScreenY - 14);
+      }
+
+      if (currentTransect.cliff_top_y !== null && currentTransect.cliff_top_elev !== null) {
+        const cx = mapX(currentTransect.cliff_top_y);
+        const cy = mapY(currentTransect.cliff_top_elev);
+        ctx.fillStyle = '#f4a261';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.textAlign = 'right';
+        ctx.fillText(`Cliff Crest (+${currentTransect.cliff_top_elev.toFixed(1)}m)`, cx - 10, cy - 8);
+      }
+
+      if (currentTransect.break_y !== null) {
+        const bx = mapX(currentTransect.break_y);
+        ctx.fillStyle = '#c9a86a';
+        ctx.beginPath();
+        ctx.arc(bx, breakScreenY, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.textAlign = 'center';
+        ctx.fillText('Wave Break', bx, breakScreenY + 18);
+      }
+
+      // Bottom X Axis Labels (Shore-normal distance)
+      ctx.fillStyle = '#8e96a4';
+      ctx.textAlign = 'left';
+      ctx.fillText('← Offshore (−320m)', padL, h - 16);
+      ctx.textAlign = 'center';
+      ctx.fillText('Shore-Normal Distance (Y axis)', padL + plotW / 2, h - 16);
+      ctx.textAlign = 'right';
+      ctx.fillText('Cliff Terrace (+150m) →', w - padR, h - 16);
+
+      // Title in canvas
+      ctx.fillStyle = '#eef2f3';
+      ctx.font = 'bold 13px Georgia, serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${currentTransect.spot_name || 'Shore-Normal Transect'} Profile`, padL + 10, padT - 16);
+    }
+
+    // Handle Resize
+    window.addEventListener('resize', () => drawChart());
+
+    // Initial render
+    updateStats();
+    drawChart();
+  </script>
+</body>
+</html>
