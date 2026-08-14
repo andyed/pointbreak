@@ -860,17 +860,22 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // Texture reuses clumps (already computed above) rather than sampling new
   // noise: ocean() runs five times per vertex via choppyPos's FD, and the
   // renderer is vertex-bound (662c8c1), so the boost adds zero noise calls.
-  // clumps ONLY, deliberately not streaks: streaks is 6x36 m shore-normal
-  // anisotropic by design, and at this term's amplitude that read as
-  // cross-crest rain-streaks from the point camera (Andy, 2026-08-13 — same
-  // artifact class the M1 critique hit, which is why foamBumpH rotates its
-  // lattice). Coefficient 0.65 -> 0.48 compensates streaks' ~0.72 mean so
-  // the field brightness is unchanged.
+  // Texture: purpose-built ADVECTED noise, not streaks and not clumps.
+  // streaks is 6x36 m shore-normal anisotropic by design and at this term's
+  // amplitude read as cross-crest rain-streaks from the point camera (Andy,
+  // 2026-08-13 — the M1 critique's artifact class, why foamBumpH rotates its
+  // lattice). clumps drifts (+0.13, -0.38) m/s — gently SEAWARD — so the
+  // sustained field's texture crawled against the shoreward-rushing fronts
+  // and the foam read as coming from the wrong direction (Andy, same night).
+  // Real whitewater rides the bore: advect the lattice shoreward at 4.5 m/s,
+  // between sqrt(g*h_b) ~ 4.3 and the measured 4.03-5.50 m/s band (6c).
+  // Coefficient 0.65 -> 0.48 compensated streaks' ~0.72 mean when it left.
+  float boreTex = vnoise2(vec2(x*0.31, (z - 4.5*t)*0.16));
   float reBrk = smoothstep(1.02, 1.35, excess) * brk;
   float frz = u_psiMix * u_depthMix
             * smoothstep(u_refrFrozen - 30.0, u_refrFrozen - 6.0, contourZ(xz));
   residue += u_wwArea * u_depthMix * 0.48 * reBrk * env * exp(-tSince/(1.8*tau))
-           * (0.55 + 0.45*clumps) * (1.0 - frz);
+           * (0.55 + 0.45*boreTex) * (1.0 - frz);
   // Size scaling applies ONCE per term. impactBand/boreBand/trailBand already
   // carry sizeAmp inside life.z/life.w (breakerLifecycleAtX), so multiplying
   // structuralFoam by sizeFoam again made foam quadratic in H0 — down to x0.30
