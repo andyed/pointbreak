@@ -1573,3 +1573,16 @@ octaves) now advect shoreward at 3.2 / 5.0 / 4.0 m/s instead of their old
 boost's pre-fix texture ("foam coming from the wrong direction"). Advection
 re-measured healthy: +3.48 m/s shoreward vs shader front 3.09, linear
 across frame separations.
+
+### Foam anisotropy rotated along-crest (2026-08-13, addendum)
+
+Andy caught the shore-normal house texture live twice — on prod (pre-fix
+build) and then as two residual sideways patches locally, where the only
+remaining carriers were streaks (6×36 m cross-shore cells feeding legacy,
+residue and the bore/trail bands) and both laceN octaves. All three lattices
+are rotated to along-crest / near-isotropic (streaks 18×9 m, lace 10 m and
+3 m): real aerial foam elongates parallel to the crest it fell from, and
+"never a solid sheet" survives with the break running parallel to the wave
+instead of across it. Verified in nadir and point frames (drip-curtain
+gone); tide-legibility A/B re-run: 2.52×/2.57× at L≥205/L≥160 — the
+texture is ratio-neutral within noise.

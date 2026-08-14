@@ -802,13 +802,20 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // deliberately DIFFERENT speeds (3.2 / 5.0 / 4.0 m/s): the differential
   // slip is what decorrelates the pattern in a co-moving frame on a ~2-tau
   // timescale — same-speed advection would just freeze it into the tracker.
-  float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.16, (z - 3.2*t)*0.028) + vec2(1.7, 0.0));
+  // ANISOTROPY ROTATED 2026-08-13 (Andy, live, twice — prod first, then the
+  // residual locally): the old 6x36 m SHORE-NORMAL cells read as sideways
+  // smear from any along-coast camera whenever a term using this texture got
+  // bright. Real aerial foam elongates ALONG the crest it fell from, so the
+  // cells are now ~18 m along-shore x 9 m cross-shore. The original design
+  // intent ("never a solid sheet") survives — the sheet is still broken, just
+  // parallel to the wave instead of across it. Same rotation for laceN below.
+  float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.055, (z - 3.2*t)*0.11) + vec2(1.7, 0.0));
   float legacyFoam = brk * env2 * exp(-tSince/tau) * streaks;
   legacyFoam += boreBandLegacy * 0.85 * exp(-tSince/(0.5*u_T));
 
   // foam lace: dimmer, longer-lived residue; two octaves so cells don't read blocky
-  float laceN = vnoise2(vec2(x*0.22, (z - 5.0*t)*0.045))*0.62
-              + vnoise2(vec2(x*0.74, (z - 4.0*t)*0.15))*0.38;
+  float laceN = vnoise2(vec2(x*0.09, (z - 5.0*t)*0.10))*0.62
+              + vnoise2(vec2(x*0.33, (z - 4.0*t)*0.30))*0.38;
   float lace = brk * env2 * exp(-tSince/(2.4*tau)) * smoothstep(0.45, 0.72, laceN);
   legacyFoam += lace * 0.4;
 
