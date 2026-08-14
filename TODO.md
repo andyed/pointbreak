@@ -197,7 +197,7 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
 - [ ] 1c'-c.4 DEAD DOWN-POINT THIRD: still a judgement, not a measurement —
       real point breaks shut down on the inside. If it stays, record it in
       MODEL.md; likely resolves with c.3.
-- [ ] 1d. M6p3 steps 3–4 (sound onto Ψ, flip default) NO LONGER ride with the
+- [x] 1d. M6p3 CLOSED 2026-08-13 (steps 2-4 landed, #psi DEFAULT ON, cg unified to gT/4π; spec "M6 part 3, closed out"). Superseded text follows: (sound onto Ψ, flip default) NO LONGER ride with the
       ensemble — judge a #psi-only default flip on its own merits (it holds α
       at 4.3° mean but raises spurious A-frames 3→5; steps 2–3 still open)
 - Acceptance is now visual AND measured: drone capture shows a single-takeoff

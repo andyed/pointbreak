@@ -1395,3 +1395,28 @@ pixels are independent of the bake; banding measures exactly the question
 "does the drawn field follow the line", and it satisfies the
 MEASUREMENT_LESSONS 8 corollary (the declaration and the candidates share a
 neighbourhood by construction).
+
+### M6 part 3, closed out (2026-08-13, night) — steps 2–4 landed, #psi default ON
+
+Step 2 (rider) turned out to be ALREADY BUILT — `m4RideSolve` solves in phase
+and consumes `P.phaseFn` (its own header says so; the "steps 2–4 open" status
+above was stale). Step 3 landed tonight: `sound.js`'s crest solve runs on
+`rayPhase` under the same injection contract — exact legacy arithmetic when
+the plane wave is live, numeric inversion (monotone bisection) under Ψ, with
+off-span crests fading their voice. The group speed was unified in the same
+commit: `setEnv` (GLSL + twin), `setupLiftM` and the audio envelope all now
+run the physical `cg = gT/4π` the shoaling path always used, retiring the
+3.4× two-authorities defect recorded 2026-08-12 (and measured as 3.9× in the
+time domain by the cadence audit). The beat period 1/dF at a fixed point is
+cg-independent, so the audit-verified 120.5 s cadence is unaffected; what
+changes is the set band (375 → 1464 m — whole-point sets) and the
+envelope-to-shoreline lag.
+
+Step 4: `#psi` defaults ON. At flip time it is α-neutral (identical
+stage-median to base on all six spots, post-retarget A/B) and the crest
+spacing compresses 104 → 55 m across the stage against the frozen 90 m.
+`#psi=0` is the A/B revert. One measured caveat carried forward: under psi
+the interior-takeoff proxy flags 5 spots vs base's 4 — but base's own count
+moved 3 → 4 across the retarget+sheltering session, and the proxy cannot
+distinguish a real A-frame from a sheltering-shifted takeoff. That question
+belongs to the Track 5 visual pass, not to more proxy sweeps.
