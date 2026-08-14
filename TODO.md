@@ -197,14 +197,39 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       Selection-layer work is EXHAUSTED; what remains is c.10 (rotating
       strike) or accepting the bound. `dline=1` (peaks + anchor selection)
       falsified — the knife-edge moves into the anchor.
-- [ ] 1c'-c.10 THE HIGH-α MECHANISM, if ever wanted: not a steeper or wider
-      plane. Literature says high α comes from NONUNIFORM contours — a
-      ROTATING strike plus focusing. Real designed reefs do this: Narrowneck's
-      arms rotate 85° offshore → 65° inshore, the stated principle being to
-      hold peel angle constant by "gradually decreasing the reef angle β
-      shoreward" (Mead, Black & Hutt 1998). Our wedge has ONE constant β. This
-      is the only shape change with literature support — but c.7 may remove the
-      need for it entirely.
+- [ ] 1c'-c.10 THE HIGH-α MECHANISM — **DEPRIORITIZED 2026-08-14, measured
+      against the wrong defect.** `scripts/measure_alpha_regimes.mjs` splits
+      the stage by whether the wedge actually lifts the bed under the break
+      point: ON-REEF every spot hits its target within 3.6° (Sharks 34.8 vs
+      36, with 7.8° of headroom to its own local Snell ceiling). The 28.4
+      stage median is dilution by the 61% of Sharks' stage with no wedge under
+      the line, plus a limiter-pinned stretch reading a spurious 68°. Rotating
+      β reshapes the wedge where the wedge IS; it cannot touch either. The
+      lever on the stage median is reef EXTENT — c.4 below. Keep c.10 parked
+      unless a spot is ever wanted materially ABOVE its local ceiling.
+      Original rationale, unchanged: literature says high α comes from
+      NONUNIFORM contours — a ROTATING strike plus focusing. Real designed
+      reefs do this: Narrowneck's arms rotate 85° offshore → 65° inshore, the
+      stated principle being to hold peel angle constant by "gradually
+      decreasing the reef angle β shoreward" (Mead, Black & Hutt 1998). Our
+      wedge has ONE constant β.
+      **CITATION UNVERIFIED**: that Narrowneck reference appears nowhere in
+      `docs/research/` — SURF_SCIENCE_REFS carries Mead & Black 2001a/b/c,
+      Hutt et al. 2001 and Mead et al. 1997, no 1998. Verify before it is ever
+      used to justify a shape change (§2.3 already had one unsourceable claim
+      withdrawn on 2026-08-13).
+- [ ] BREAK-LINE V STILL PRESENT AT SHARKS (found 2026-08-14). Default
+      conditions, tide 0: the baked line runs at exactly the
+      `SLEW_M_PER_M = 3.0` clamp for 16 consecutive stations (x −86 → −54,
+      −6.00 m per 2 m step, a 100 m seaward excursion) and reverses at x −48.
+      `derivedAlphaDeg` reads 52–72° across it — 25–40° above the local
+      refraction ceiling, impossible for a planar component. This is the same
+      "100 m seaward V at Sharks" the V-fix part 3 comment (`bed.js`
+      bakeBreakLine, BRANCH FOLLOWING) names as the thing branch-following
+      cures, and branch-following IS active here. Never took, or regressed —
+      unknown. Every spot shows a pinned regime at 67–71°, so this is not
+      Sharks-only. Until it is fixed, α summaries must exclude pinned
+      stations.
 - [ ] 1c'-c.4 DEAD DOWN-POINT THIRD: still a judgement, not a measurement —
       real point breaks shut down on the inside. If it stays, record it in
       MODEL.md; likely resolves with c.3.

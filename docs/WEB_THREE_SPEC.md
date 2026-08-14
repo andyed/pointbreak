@@ -1520,6 +1520,59 @@ Verdicts, recorded so they are not re-derived:
    dead down-point third: the 28/36 gap is wedge saturation, not branch
    selection. The remaining candidates are the rotating-strike wedge
    (1c'-c.10) or accepting the bound; selection-layer work is EXHAUSTED.
+   **AMENDED 2026-08-14 — "wedge saturation" is wrong, see the next section:
+   the wedge delivers 34.8 where it exists. The gap is regime mixing.**
+
+### The stage median mixes three regimes (2026-08-14) — `measure_alpha_regimes.mjs`
+
+`stageAlpha()` has been the acceptance instrument since 2026-08-13, and the
+28/36 Sharks gap is entirely an artifact of what it averages over. Split per
+station along the baked line — by whether the wedge actually lifts the bed
+under the break point (>= 0.30 m) and whether the line is riding
+`bakeBreakLine`'s `SLEW_M_PER_M = 3.0` clamp — the stage is three different
+things:
+
+| spot | stageAlpha | limiter-pinned | **on-reef** | off-reef | target | on-reef − target |
+|---|---|---|---|---|---|---|
+| sewers | 37.5 | 71.1 (25 sta) | **36.7** | 14.4 | 38 | −1.3 |
+| firstpeak | 54.7 | 68.6 (14) | **50.3** | 55.0 | 50 | +0.3 |
+| secondpeak | 37.7 | 67.3 (6) | **44.6** | 15.2 | 41 | +3.6 |
+| jacks | 34.0 | 70.0 (18) | **35.8** | 10.1 | 37 | −1.2 |
+| thehook | 40.3 | 69.8 (19) | **42.7** | 22.2 | 41 | +1.7 |
+| sharks | 28.4 | 68.4 (15) | **34.8** | 10.8 | 36 | −1.2 |
+
+**Every spot hits its target within 3.6° where the wedge operates.** Sharks is
+1.2° short, not 8°. Its stage median is lowest because it has the *lowest reef
+coverage* (39% of stage stations, vs 47–59% elsewhere) and the near-lowest
+bare-bed alpha (10.8) — the median is diluted by bare DEM, not held down by
+refraction.
+
+Two consequences:
+
+1. **1c'-c.10 (rotating strike) is aimed at a defect that is not there.**
+   Rotating β reshapes the wedge where the wedge is; on-reef Sharks already
+   delivers its target with 7.8° of headroom to its own *local* Snell ceiling
+   (41.6). Nothing about strike rotation reaches the 61% of the stage with no
+   wedge under the line. The lever on the stage median is reef **extent**, and
+   that is 1c'-c.4 (the dead down-point third), not c.10.
+2. **The limiter-pinned regime is a measurement defect in its own right.** It
+   reads 67–71° on *every* spot — 25–40° above the local ceiling, which a
+   planar component cannot do. At Sharks the line runs at exactly −6.00 m per
+   2 m station for 16 consecutive stations (x −86 → −54, a 100 m seaward
+   excursion) and then reverses at x = −48. That is the same "100 m seaward V
+   at Sharks" the V-fix part 3 comment at `bed.js` describes branch-following
+   as the cure for — and branch-following is active here (Sharks has a reef
+   fit, `bedShape = 0`). Whether the V-fix never fully took at Sharks or has
+   since regressed is OPEN; either way `derivedAlphaDeg` over a pinned run
+   measures the clamp, not the wave, and those stations should be excluded
+   from any α summary. Same family as the 6b argmax capture
+   (MEASUREMENT_LESSONS 8c): the statistic's domain read before its value.
+
+The local ceiling used here is per station — `sin(α_max) = c(h_b)/c(h_s)` with
+h_b at the baked break point and h_s at the wedge's seaward edge on that ray —
+not the single per-spot number `peel-ceiling.test.js` evaluates. Where the
+wedge has faded, h_s → h_b and the bound goes vacuous, which is why the
+on-reef gate is load-bearing rather than cosmetic.
 
 ### Track 5, first pass: the crest-first read (2026-08-13, late night) — `#crest`
 
