@@ -177,6 +177,7 @@ const uniforms = {
   // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
   u_matte:      { value: 1 },
   u_wwArea:     { value: 1 },  // 4a' whitewater-area coupling; #wwarea=0 is the pre-fix A/B
+  u_crestRead:  { value: 1 },  // Track 5 crest-first read (face darkening + fresh core); #crest=0 reverts
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -1205,6 +1206,8 @@ function applyHashParams() {
   if (h.get('matte') === '0') uniforms.u_matte.value = 0;
   // 4a' whitewater-area coupling defaults ON; #wwarea=0 is the pre-fix A/B
   if (h.get('wwarea') === '0') uniforms.u_wwArea.value = 0;
+  // Track 5 crest-first read defaults ON; #crest=0 is the pre-Track-5 A/B
+  if (h.get('crest') === '0') uniforms.u_crestRead.value = 0;
   // world-collision clamp defaults ON; #noclip=1 restores x-ray debugging
   if (h.get('noclip') === '1') noclipEnabled = true;
   const camName = (h.get('cam') || '').toLowerCase();

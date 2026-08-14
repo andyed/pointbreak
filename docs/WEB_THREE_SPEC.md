@@ -1520,3 +1520,34 @@ Verdicts, recorded so they are not re-derived:
    dead down-point third: the 28/36 gap is wedge saturation, not branch
    selection. The remaining candidates are the rotating-strike wedge
    (1c'-c.10) or accepting the bound; selection-layer work is EXHAUSTED.
+
+### Track 5, first pass: the crest-first read (2026-08-13, late night) — `#crest`
+
+Three render-side changes behind `#crest=0` (default ON), aimed at the 6b
+residual — the brightest foam must sit at the break line, not the swash:
+
+1. **Face darkening** (unblocked by #psi): vDepth is the still-water column,
+   so a standing face over shallow reef showed the vertical sand return and
+   rendered bright exactly where photos show the dark steep face — the
+   tone-inversion the 08-11 audit measured. The Beer-Lambert path now
+   stretches with face steepness (×(1+2.5·steepF)) and the water body sheds
+   30% of its sky light on steep faces; steepF is gated to raised water so
+   chop cannot trip it.
+2. **Pocket foam floor**: the zipper's active break always renders whitewater
+   (foamM ≥ 0.72·pocket) — env²-gated upstream, so lulls stay dark.
+3. **Fresh-foam white core, confined to the line**: dense fresh foam loses
+   texture modulation toward solid white — but only near the baked line or
+   in the pocket. An unconfined "fresh" lift measured as a NULL on the
+   argmax discriminator (every inner bore is fresh behind its own crest;
+   head and competitor rose together).
+
+**Measured** (nadir rig, The Hook, tide −0.8, 8 frames over a set cycle;
+new instrument: per-column brightest-pixel distance to the baked line,
+scratchpad argmax_vs_line.mjs — positive = shoreward, the failure direction):
+
+- aggregate: median +50.9 → +45.1 m, within-±20 m 14.7% → 19.8%
+- per-frame: first-break frame median 6.5 m / 100% within 20 m; active
+  frames improve (44.7→31.9 m, 0.20→0.28); LATE-SET frames unchanged
+  (~94 m) — the competitor there is the aftermath field, which is partly
+  honest (a quiet line SHOULD lose to leftover whitewater) and partly 6c
+  (foam persists 4× authored τ). Re-judge after 6c, not by tuning this.

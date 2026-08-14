@@ -305,11 +305,19 @@ No parity port. Consequences to carry honestly:
       Gate the truthful surface on 3c and the tide-polarity fix in 4a.
 
 ### Track 5 — the reads (after Track 1 geometry)
-- [ ] Foam first — the largest water-level gap: attachment to crests,
-      brightness step (~20 values vs ~130 in photos), aging texture
-      (chunky→lace→gray), trailing persistence
-- [ ] Face darkening AFTER #psi lands (tuning fresnel against under-steepened
-      geometry bakes in a compensation)
+- [x] FIRST PASS LANDED 2026-08-13 late night (`#crest`, default ON; spec
+      "Track 5, first pass"): face darkening (steep-face Beer–Lambert path +
+      sky-light shed — the audit's tone-inversion mechanism found: vDepth is
+      the still-water column, so standing faces showed the sand return),
+      pocket foam floor, and a fresh-foam white core CONFINED to the line
+      (unconfined "fresh" measured null — every inner bore is fresh behind
+      its own crest). Argmax-to-line discriminator: first-break frame 100%
+      within 20 m; active frames improve; late-set frames gated on 6c.
+- [ ] Remaining foam gaps: aging texture (chunky→lace→gray), the shore-normal
+      streaks house texture (legacy/bore terms still carry it; the 4a′ boost
+      already dropped it), swash-band brightness vs the head at low tide
+- [ ] Face darkening tuning from a LOW camera against VISUAL_GROUND_TRUTH
+      stills (current verification is top-down; the money view is the cliff)
 
 ### Track 6 — instrumentation (cheap; start anytime — now the acceptance path
 ### since the twin instruments are deprecated)

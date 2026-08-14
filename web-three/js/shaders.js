@@ -468,6 +468,7 @@ ${KELP_GLSL}
 // cross HAZE_H metres of haze — without this the top-down view greys out.
 uniform float u_camUnder;   // 1 when the eye is below the water surface
 uniform float u_matte;      // 1 = matte the unmodeled world (#matte=0 reverts)
+uniform float u_crestRead;  // Track 5 crest-first read (face darkening + fresh-foam core); #crest=0 reverts
 const float FOG_DENSITY = 0.0011;
 const float HAZE_H      = 70.0;
 
@@ -665,6 +666,12 @@ void main() {
   float hiEdge = mix(0.75, 1.10, ageK);
   foamM = smoothstep(0.15, hiEdge, foamM + (er - 0.5)*erAmp);
   foamM *= mix(1.0, 0.70, ageK);   // aftermath never saturates: filmy, not plates
+  // Track 5 attachment: the zipper's active break is ALWAYS whitewater — the
+  // pocket gets a foam floor the erosion cannot carve away, so the head at
+  // the line never renders dimmer than its own trailing bore. vPocket is
+  // env^2-gated in the model, so lulls stay dark and this cannot paint a
+  // standing white stripe on the line.
+  foamM = max(foamM, u_crestRead * 0.72 * clamp(vPocket*1.5, 0.0, 1.0));
 
   // ---- 1. detail spectrum: fragment-stage normal perturbation ----
   // damped where foam owns the surface and over the boil slick; wind chop
@@ -686,6 +693,13 @@ void main() {
   // geometric normal for back faces so the curl shades as a surface, not a hole
   vec3 Ng = normalize(vNormal) * (gl_FrontFacing ? 1.0 : -1.0);   // wave-scale normal
   vec3 N = normalize(vec3(Ng.x - g.x, Ng.y, Ng.z - g.y)); // + ripple detail
+  // Track 5: how steeply this water stands, gated to the RAISED part of the
+  // wave so chop ripple over flat water cannot trip it. Drives the face
+  // darkening below (VISUAL_GROUND_TRUTH: the face must darken as it
+  // steepens) — unblocked by #psi landing, since tuning this against
+  // under-steepened geometry would have baked in a compensation.
+  float steepF = clamp((1.0 - Ng.y) * 5.0, 0.0, 1.0)
+               * smoothstep(0.4, 1.6, vWorldPos.y) * u_crestRead;
 
   // foam roughness normal (used for foam's own lighting below); influence kept
   // low — foam under a marine layer is lit mostly ambiently, strong normal
@@ -741,7 +755,13 @@ void main() {
   // canopy is genuinely brown-olive, so the departure buys the read honestly.
   float kelp = kelpM * (1.0 - 0.85*foamM);   // whitewater hides the bed
   vec3 kExt = vec3(0.45, 0.20, 0.16);
-  float pathM = max(vDepth, 0.0) * 2.0;             // down and back up
+  // Track 5 face darkening, part 1: vDepth is the STILL-WATER column, so a
+  // standing face over shallow reef kept showing the vertical sand return and
+  // rendered BRIGHT exactly where photos show the steep face dark (the
+  // tone-inversion the 2026-08-11 audit measured). Light crossing a steep
+  // face travels a longer diagonal path through more water — stretch the
+  // Beer-Lambert path with steepness and the sand return dies on the face.
+  float pathM = max(vDepth, 0.0) * 2.0 * (1.0 + 2.5*steepF);   // down and back up
   vec3 bedAlb = mix(vec3(0.60, 0.53, 0.41), vec3(0.035, 0.062, 0.048), kelp);
   vec3 bottomLit = bedAlb * (0.35 + 0.45*clamp(dot(Ng, sunDir), 0.0, 1.0));
   vec3 through = bottomLit * exp(-kExt * pathM);
@@ -751,6 +771,10 @@ void main() {
 
   float lam = clamp(dot(N, sunDir), 0.0, 1.0);
   base *= 0.62 + 0.50*lam;   // gentle slope shading so faces still read
+  // Track 5 face darkening, part 2: the water body itself — a steep face is
+  // lit by less sky (it sees the horizon, not the zenith dome) and its
+  // volume backscatter drops with the grazing illumination.
+  base *= 1.0 - 0.30*steepF;
   // ---- 2. fresnel + glitter ----
   // Schlick, F0 ~ 0.02: near-black looking straight down, mirror at grazing.
   // cosV comes from the GEOMETRIC normal: the ripple perturbation saturates
@@ -827,6 +851,18 @@ void main() {
   // Only the top of the mask range is touched, so ordinary foam is unchanged.
   float plateT = smoothstep(0.72, 0.95, foamM);
   foamCol *= 1.0 - 0.16*plateT*(1.0 - ftex);
+  // Track 5 fresh-foam core: freshly aerated impact foam is DENSE — its
+  // texture contrast collapses toward solid white (the photos' ~130-value
+  // step lives here, not in a brighter white). CONFINED to the head zone at
+  // the baked line: "fresh" alone also lifts the inner bores (every crest
+  // re-breaking inshore is fresh behind itself), which measured as a null on
+  // the 6b argmax discriminator — the head and its competitor rose together.
+  // Attachment means the LINE holds the ceiling; distance to it is the one
+  // signal the inner field cannot fake.
+  float nearLine = exp(-pow((xz.y - breakLine(xz.x))/25.0, 2.0));
+  float freshCore = u_crestRead * (1.0 - ageK) * smoothstep(0.55, 0.90, foamM)
+                  * max(nearLine, clamp(vPocket*1.4, 0.0, 1.0));
+  foamCol = mix(foamCol, vec3(1.0), 0.6*freshCore);
   vec3 filmCol = mix(base, vec3(0.60, 0.68, 0.70), 0.6);
   foamCol = mix(foamCol, filmCol, 0.55*ageK);
   col = mix(col, foamCol, clamp(foamM*mix(1.15, 0.90, ageK), 0.0, 0.97));
