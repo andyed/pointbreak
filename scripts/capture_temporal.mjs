@@ -948,12 +948,17 @@ function analyze(manifest) {
     carrierPeak_s: (() => { const p = firstPeak(acFoam, 2); return p ? p.lag * dt : null; })(),
     setPeak_foam_s: (() => { const p = firstPeak(acFoam, setMinLag); return p ? { period_s: p.lag * dt, r: p.r } : null; })(),
     setPeak_luma_s: (() => { const p = firstPeak(acLuma, setMinLag); return p ? { period_s: p.lag * dt, r: p.r } : null; })(),
-    // Both group speeds the audit flagged as live, with the resulting spatial
-    // set-band length so a reader can see which one the picture is showing.
-    groupSpeed_authored_LAMover2T_m_per_s: 0.5 * 90 / st.T,
-    groupSpeed_physical_gTover4pi_m_per_s: 9.81 * st.T / (4 * Math.PI),
-    setBandLength_authored_m: (0.5 * 90 / st.T) / st.dF,
-    setBandLength_physical_m: (9.81 * st.T / (4 * Math.PI)) / st.dF,
+    // Group speed, with the resulting spatial set-band length.
+    // SHIPPED is the physical deep-water cg = gT/4pi: since 2026-08-13 that is
+    // what setEnv, setupLiftM and the audio envelope all run (M6p3
+    // group-speed unification), matching the authority Green's law always
+    // used. The LAM/2T value is RETIRED — it applied cg = c/2 to the 90 m
+    // DISPLAY wavelength — and is kept here only so captures taken before the
+    // fix stay interpretable. This run's own audit is what retired it.
+    groupSpeed_shipped_gTover4pi_m_per_s: 9.81 * st.T / (4 * Math.PI),
+    groupSpeed_retired_LAMover2T_m_per_s: 0.5 * 90 / st.T,
+    setBandLength_shipped_m: (9.81 * st.T / (4 * Math.PI)) / st.dF,
+    setBandLength_retired_m: (0.5 * 90 / st.T) / st.dF,
     series: { foam: foamSeries, luma: lumaSeries },
   };
 
@@ -1109,8 +1114,8 @@ function report(m) {
   L.push(`    carrier peak in foam autocorr: ${f2(c.carrierPeak_s, 1)} s  [instrument check]`);
   L.push(`    set peak, foam residual: ${c.setPeak_foam_s ? f2(c.setPeak_foam_s.period_s, 1) + ' s (r=' + f2(c.setPeak_foam_s.r) + ')' : 'none found'}`);
   L.push(`    set peak, mean luma:     ${c.setPeak_luma_s ? f2(c.setPeak_luma_s.period_s, 1) + ' s (r=' + f2(c.setPeak_luma_s.r) + ')' : 'none found'}`);
-  L.push(`    group speed authored LAM/2T = ${f2(c.groupSpeed_authored_LAMover2T_m_per_s)} m/s -> set band ${f2(c.setBandLength_authored_m, 0)} m`);
-  L.push(`    group speed physical gT/4pi = ${f2(c.groupSpeed_physical_gTover4pi_m_per_s)} m/s -> set band ${f2(c.setBandLength_physical_m, 0)} m  (x${f2(c.groupSpeed_physical_gTover4pi_m_per_s / c.groupSpeed_authored_LAMover2T_m_per_s)})`);
+  L.push(`    group speed SHIPPED gT/4pi = ${f2(c.groupSpeed_shipped_gTover4pi_m_per_s)} m/s -> set band ${f2(c.setBandLength_shipped_m, 0)} m`);
+  L.push(`    (retired LAM/2T = ${f2(c.groupSpeed_retired_LAMover2T_m_per_s)} m/s -> ${f2(c.setBandLength_retired_m, 0)} m, ${f2(c.groupSpeed_shipped_gTover4pi_m_per_s / c.groupSpeed_retired_LAMover2T_m_per_s)}x short — unified 2026-08-13)`);
   const fo = m.foam;
   L.push(`\n[3] FOAM ADVECTION / PERSISTENCE`);
   L.push(`    shoreward advection ${f2(fo.advection_m_per_s.median)} m/s (IQR ${f2(fo.advection_m_per_s.p25)}..${f2(fo.advection_m_per_s.p75)}, ${fo.advection_m_per_s.pairsAccepted} pairs); shader front speed ${f2(fo.shaderFrontSpeed_m_per_s)} m/s`);

@@ -14,9 +14,24 @@
 //
 //   node scripts/measure_ensemble.mjs [--json] [--skip-swing]
 //
-// Reads: takeoffProfile(1) (takeoff frac + crests per branch) and lineProbe()
-// alpha at the station nearest x = 0 — the same HUD instrument the nose
-// re-measure used (spec, "The nose, re-measured").
+// Reads: takeoffProfile(1) (takeoff frac + crests per branch) and BOTH alpha
+// instruments — stageAlpha().median, which is the acceptance instrument since
+// 2026-08-13 (TODO 1c'-c.1), and lineProbe()'s alpha at the station nearest
+// x = 0, retained as a reported diagnostic ONLY. The verdicts below judge on
+// the stage median. alpha-at-x=0 samples the same neighbourhood the reef fit
+// is tuned at (xs = [-16..16]), so it certifies the fit rather than the wave —
+// it is the reason the pre-2026-08-13 runs of this script read "alpha on
+// target 4/6" while the stage medians were 11-17 deg off.
+//
+// FLAG STATE IS ALWAYS EXPLICIT (fixed 2026-08-13). Every config writes
+// `<flag>=1` or `<flag>=0` for ALL FOUR flags, never relying on a default.
+// Before this, configs only appended the flags they wanted ON — which broke
+// silently the moment #psi's default flipped to ON (M6p3 step 4): `base`
+// quietly became psi-on, the `psi` row became a duplicate of it, and
+// `full-psi` stopped removing psi at all, so the leave-one-out row that
+// should isolate psi's contribution was measuring the full ensemble twice.
+// All four flags accept an explicit 0 (main.js applyHashParams; nose=0 goes
+// through parseFloat and sets the taper fraction to zero).
 
 const PW_CANDIDATES = [
   process.env.PLAYWRIGHT_DIR,
@@ -48,6 +63,13 @@ const ALPHA_TOL = 5;      // deg — target tolerance for the triple criterion
 const SWING_TOL = 5;      // deg — max alpha excursion across H0 +/- 0.3 m
 const H0_SWING = 0.3;     // m
 
+// The flag set the app actually ships, so the report can mark it. Since
+// M6p3 step 4 the shipped default is psi ON and the other three OFF — which
+// means `base` (everything off) is no longer "what a user sees", and the row
+// matching SHIPPED_FLAGS is. Keep this in sync with main.js's initialisers.
+const SHIPPED_FLAGS = ['psi'];
+const sameSet = (a, b) => a.length === b.length && a.every((f) => b.includes(f));
+
 // The matrix. Order matters only for reading the report.
 const CONFIGS = [
   { name: 'base', flags: [] },
@@ -77,7 +99,9 @@ const errors = [];
 
 async function measure(page, preset, flags, h0) {
   let url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0`;
-  for (const f of flags) url += `&${f}=1`;
+  // Explicit state for EVERY flag — see the header note. A config's `flags`
+  // list is the set that should be ON; everything else is forced OFF.
+  for (const f of FLAGS) url += `&${f}=${flags.includes(f) ? 1 : 0}`;
   if (h0 !== undefined) url += `&h0=${h0}`;
   await page.goto(url, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });
@@ -93,8 +117,9 @@ async function measure(page, preset, flags, h0) {
       for (const s of line) if (Math.abs(s.x) < Math.abs(best.x)) best = s;
       alpha0 = best.a;
     }
+    const sa = pb.stageAlpha();
     return { preset: pb.state.preset, target: pb.state.alpha, H0: pb.state.H0,
-             alpha0, prof };
+             stageAlpha: sa ? sa.median : null, alpha0, prof };
   });
   if (!r || r.preset !== preset) throw new Error(`preset did not apply: ${r && r.preset}`);
   return r;
@@ -102,15 +127,19 @@ async function measure(page, preset, flags, h0) {
 
 // A-frame per the takeoff instrument: interior minimum with a whole crest on
 // the left. Sewers is exempt (canon-true A-frame).
-function judge(preset, target, alpha0, prof) {
+// Judged on the STAGE MEDIAN (the acceptance instrument). dAlpha0 is carried
+// alongside as a diagnostic so a reader can see the fit-vs-wave gap directly,
+// but it decides nothing.
+function judge(preset, target, stageAlpha, alpha0, prof) {
   const interior = prof.frac > EDGE && prof.frac < 1 - EDGE;
   const aframe = interior && prof.leftCrests >= 1;
   return {
     aframeOK: preset === 'sewers' ? true : !aframe,
     aframe,
     rightOK: prof.rightCrests >= 1.5,
-    alphaOK: alpha0 !== null && Math.abs(alpha0 - target) <= ALPHA_TOL,
-    dAlpha: alpha0 === null ? null : alpha0 - target,
+    alphaOK: stageAlpha !== null && Math.abs(stageAlpha - target) <= ALPHA_TOL,
+    dAlpha: stageAlpha === null ? null : stageAlpha - target,
+    dAlpha0: alpha0 === null ? null : alpha0 - target,
   };
 }
 
@@ -123,9 +152,9 @@ const matrix = [];
 for (const cfg of CONFIGS) {
   for (const preset of PRESETS) {
     const r = await measure(page, preset, cfg.flags);
-    const j = judge(preset, r.target, r.alpha0, r.prof);
+    const j = judge(preset, r.target, r.stageAlpha, r.alpha0, r.prof);
     matrix.push({ config: cfg.name, preset, target: r.target, H0: r.H0,
-                  alpha0: r.alpha0, frac: r.prof.frac,
+                  stageAlpha: r.stageAlpha, alpha0: r.alpha0, frac: r.prof.frac,
                   leftCrests: r.prof.leftCrests, rightCrests: r.prof.rightCrests,
                   ...j });
     if (!JSON_OUT) process.stderr.write('.');
@@ -151,10 +180,12 @@ if (!SKIP_SWING) {
     const cfg = CONFIGS.find((c) => c.name === cfgName);
     for (const preset of PRESETS) {
       const mid = matrix.find((m) => m.config === cfgName && m.preset === preset);
-      const alphas = [mid.alpha0];
+      // Swing on the stage median too: measured 2026-08-13, alpha-at-x=0
+      // overstates the H0 swing 4-8x and at Second Peak moves the WRONG WAY.
+      const alphas = [mid.stageAlpha];
       for (const dh of [-H0_SWING, +H0_SWING]) {
         const r = await measure(page, preset, cfg.flags, +(mid.H0 + dh).toFixed(2));
-        alphas.push(r.alpha0);
+        alphas.push(r.stageAlpha);
         if (!JSON_OUT) process.stderr.write('.');
       }
       const valid = alphas.filter((a) => a !== null);
@@ -173,24 +204,29 @@ if (JSON_OUT) {
   console.log(JSON.stringify({ matrix, scores, swing }, null, 2));
 } else {
   console.log('\n== Track 1c ensemble matrix ==');
-  console.log('pass = A-frame OK (Sewers exempt) AND right crests >= 1.5 AND |dAlpha| <= 5, all at once\n');
+  console.log('pass = A-frame OK (Sewers exempt) AND right crests >= 1.5 AND |dAlpha| <= 5, all at once');
+  console.log('alpha = stageAlpha() MEDIAN (the acceptance instrument); a@x0 is a diagnostic, judged on nothing');
+  console.log('every config sets all four flags explicitly (=1/=0) — no reliance on shipped defaults\n');
   console.log('config        pass  spurious-Aframes  mean|dAlpha|');
-  for (const s of scores)
-    console.log(`${s.config.padEnd(13)} ${String(s.pass).padStart(2)}/${s.of}   ${String(s.spuriousAframes).padStart(6)}            ${s.meanAbsDA.toFixed(1).padStart(5)}`);
+  for (const s of scores) {
+    const cfg = CONFIGS.find((c) => c.name === s.config);
+    const mark = sameSet(cfg.flags, SHIPPED_FLAGS) ? '  <- SHIPPED default' : '';
+    console.log(`${s.config.padEnd(13)} ${String(s.pass).padStart(2)}/${s.of}   ${String(s.spuriousAframes).padStart(6)}            ${s.meanAbsDA.toFixed(1).padStart(5)}${mark}`);
+  }
 
-  console.log('\nper-spot detail (config | spot | alpha derived/target | takeoff frac | L/R crests | verdicts)');
+  console.log('\nper-spot detail (config | spot | stage alpha/target | a@x0 diagnostic | takeoff frac | L/R crests | verdicts)');
   for (const cfg of CONFIGS) {
     console.log(`\n-- ${cfg.name} --`);
     for (const m of matrix.filter((x) => x.config === cfg.name)) {
       const v = [m.aframeOK ? '' : 'A-FRAME', m.rightOK ? '' : 'short-right',
                  m.alphaOK ? '' : `dA=${m.dAlpha === null ? '?' : m.dAlpha.toFixed(1)}`]
                 .filter(Boolean).join(' ') || 'PASS';
-      console.log(`${m.preset.padEnd(11)} a ${String(m.alpha0 === null ? '?' : m.alpha0.toFixed(1)).padStart(5)}/${String(m.target).padEnd(3)} frac ${m.frac.toFixed(2)}  L ${m.leftCrests.toFixed(2)} R ${m.rightCrests.toFixed(2)}  ${v}`);
+      console.log(`${m.preset.padEnd(11)} a ${String(m.stageAlpha === null ? '?' : m.stageAlpha.toFixed(1)).padStart(5)}/${String(m.target).padEnd(3)} (a@x0 ${String(m.alpha0 === null ? '?' : m.alpha0.toFixed(1)).padStart(5)}) frac ${m.frac.toFixed(2)}  L ${m.leftCrests.toFixed(2)} R ${m.rightCrests.toFixed(2)}  ${v}`);
     }
   }
 
   if (swing.length) {
-    console.log('\n== H0 swing (alpha excursion across H0 -0.3 / default / +0.3) ==');
+    console.log('\n== H0 swing (STAGE-MEDIAN alpha excursion across H0 -0.3 / default / +0.3) ==');
     for (const s of swing)
       console.log(`${s.config.padEnd(6)} ${s.preset.padEnd(11)} H0 ${s.H0}  alphas [${s.alphas.map((a) => a === null ? '?' : a.toFixed(1)).join(', ')}]  swing ${s.swing === null ? '?' : s.swing.toFixed(1)}  ${s.swingOK ? 'ok' : 'FAIL'}`);
   }
