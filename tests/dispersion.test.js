@@ -135,21 +135,32 @@ test('Psi is monotone non-decreasing on every mapped spot (rider inversion)', ()
   }
 });
 
-test('Psi freezes at the waterline instead of integrating fiction up the beach', () => {
-  // A ramp that runs from 8 m of water to 3 m above the waterline. Past the
-  // shore the depth floor would give k ~ 0.64 rad/m; letting that integrate
-  // added ~64 rad of pure fiction and detonated the mesh in the 2026-08-10
-  // build. The guard is that Psi stops advancing.
+test('Psi clamps shallow depth instead of freezing — bounded beach, no dead zone', () => {
+  // A ramp that runs from 8 m of water to 3 m above the waterline. Two
+  // regimes were both wrong: the 0.05 m depth floor gave k ~ 0.64 rad/m and
+  // ~64 rad of beach fiction (2026-08-10, mesh detonated), and the freeze
+  // that replaced it created a phase-DEAD zone shoreward of the FIRST 0.5 m
+  // crossing — on a reef coast that is the reef crest, so the whole inner
+  // surf zone throbbed as one tSince block and printed razor edges (Andy,
+  // live, 2026-08-13). The contract now: k evaluated at max(depth, 0.5 m),
+  // Psi STRICTLY increasing everywhere, and the beach's contribution bounded
+  // (k(0.5 m) ~ 0.2 rad/m — a few rad over the swash, not 64).
   const elevAt = (zc) => MSL - 8 + (zc + 200) * (11 / 400);
   const out = D.integratePsi({
     elevAt, waterLevel: MSL, omega: OMEGA,
     kappa: D.alongshoreKappa(OMEGA, 50), zMin: -200, zMax: 200, n: 256,
   });
-  assert.ok(out.frozenFrom !== null, 'ramp crossed the waterline but never froze');
-  const beyond = D.psiSample(out.psi, out.frozenFrom + 50, -200, 200);
-  const at = D.psiSample(out.psi, out.frozenFrom, -200, 200);
-  assert.equal(beyond, at, 'Psi kept advancing past the propagating-depth cutoff');
-  assert.ok(out.psiMax < 40, `Psi ran to ${out.psiMax.toFixed(1)} rad — fiction leaked in`);
+  assert.equal(out.frozenFrom, null, 'nothing freezes anymore');
+  for (let i = 1; i < out.psi.length; i++)
+    assert.ok(out.psi[i] > out.psi[i - 1], `Psi not strictly increasing at ${i}`);
+  // Beach fiction stays bounded: the whole span accumulates far less than the
+  // 64 rad the 0.05 m floor produced, and the clamped tail advances at the
+  // 0.5 m rate, not the floor rate.
+  assert.ok(out.psiMax < 60, `Psi ran to ${out.psiMax.toFixed(1)} rad — fiction leaked in`);
+  const kClamp = D.normalWavenumber(OMEGA, 0.5, D.alongshoreKappa(OMEGA, 50));
+  const tailRate = (D.psiSample(out.psi, 190, -200, 200) - D.psiSample(out.psi, 150, -200, 200)) / 40;
+  assert.ok(Math.abs(tailRate - kClamp) / kClamp < 0.05,
+    `beach tail advances at ${tailRate.toFixed(3)} rad/m vs clamped k ${kClamp.toFixed(3)}`);
 });
 
 test("Snell's invariant holds and the swell straightens shoreward", () => {
@@ -170,24 +181,20 @@ test("Snell's invariant holds and the swell straightens shoreward", () => {
   assert.ok(deg(2) < 12, `crests still ${deg(2).toFixed(1)} deg oblique at 2 m`);
 });
 
-test('zcAtPsi inverts psiSample to sub-metre in the propagating region', () => {
+test('zcAtPsi inverts psiSample to sub-metre across the WHOLE span', () => {
   const out = D.integratePsi({
     elevAt: planeBed('Second Peak'), waterLevel: MSL, omega: OMEGA,
     kappa: D.alongshoreKappa(OMEGA, 50), zMin: -260, zMax: 170, n: 256,
   });
-  // Second Peak's plane crosses the propagating-depth cutoff at ~101 m, so the
-  // invertible domain ends there. Inverting inside the frozen shelf is not a
-  // regression to fix — Psi is CONSTANT there by design, so no inverse exists.
-  assert.ok(out.frozenFrom !== null && out.frozenFrom < 170,
-    'expected Second Peak to reach the cutoff inside the baked span');
-  for (const zc of [-200, -120, -40, 0, 60]) {
-    assert.ok(zc < out.frozenFrom, `test station ${zc} is inside the frozen shelf`);
+  // With the clamp (no freeze), Psi is strictly increasing over the full
+  // baked span, so the inverse exists EVERYWHERE — including the shallow
+  // inner zone where the old frozen shelf made it undefined. That flat shelf
+  // was not a harmless non-invertibility: it was the phase-dead zone that
+  // printed razor foam edges. Stations past the old ~101 m cutoff included
+  // deliberately.
+  assert.equal(out.frozenFrom, null, 'nothing freezes anymore');
+  for (const zc of [-200, -120, -40, 0, 60, 110, 150]) {
     const back = D.zcAtPsiIn(out.psi, D.psiSample(out.psi, zc, -260, 170), -260, 170);
     assert.ok(Math.abs(back - zc) < 0.5, `round trip ${zc} -> ${back.toFixed(2)}`);
   }
-  // And the frozen shelf is flat, which is what makes it non-invertible: any
-  // target at or past the cutoff resolves to the cutoff itself.
-  const past = D.zcAtPsiIn(out.psi, out.psiMax, -260, 170);
-  assert.ok(past <= out.frozenFrom + 2,
-    `frozen shelf is not flat: psiMax inverted to ${past.toFixed(1)}`);
 });

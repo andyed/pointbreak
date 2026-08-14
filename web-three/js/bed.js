@@ -1111,7 +1111,7 @@ const REFR_N = 256;
 export const REFR_ZC_MIN = -260, REFR_ZC_MAX = 170;
 let refrTex = null, refrKey = '';
 const refrPsi = new Float32Array(REFR_N);
-let refrKappa = 0, refrPsiMin = 0, refrPsiMax = 1, refrFrozenFrom = REFR_ZC_MAX;
+let refrKappa = 0, refrPsiMin = 0, refrPsiMax = 1;
 
 // Returns { texture, kappa, psiMin, psiMax } or null with no bathymetry.
 // The maths lives in dispersion.js (pure, THREE-free, node-testable); this
@@ -1120,8 +1120,7 @@ export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg =
   if (!spotName) return null;
   const key = [spotName, T, tide, bedShape, swellDeg, xRef].join('|');
   if (refrTex && key === refrKey) {
-    return { texture: refrTex, kappa: refrKappa, psiMin: refrPsiMin, psiMax: refrPsiMax,
-             frozenFrom: refrFrozenFrom };
+    return { texture: refrTex, kappa: refrKappa, psiMin: refrPsiMin, psiMax: refrPsiMax };
   }
   const omega = 2 * Math.PI / T;
   const kappa = alongshoreKappa(omega, swellDeg);
@@ -1135,10 +1134,6 @@ export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg =
   refrPsi.set(baked.psi);
   refrPsiMin = baked.psiMin;
   refrPsiMax = baked.psiMax;
-  // Where the integration stopped (0.5 m depth on the reference transect) —
-  // the phase field is spatially constant for zc past this, and the foam
-  // area-boost must fade out before it (see ocean()'s 4a' comment).
-  refrFrozenFrom = baked.frozenFrom ?? REFR_ZC_MAX;
   const span = Math.max(refrPsiMax - refrPsiMin, 1e-6);
 
   const rgba = new Uint8Array(REFR_N * 4);
@@ -1154,8 +1149,7 @@ export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg =
   refrTex.needsUpdate = true;
   refrKey = key;
   refrKappa = kappa;
-  return { texture: refrTex, kappa, psiMin: refrPsiMin, psiMax: refrPsiMax,
-           frozenFrom: refrFrozenFrom };
+  return { texture: refrTex, kappa, psiMin: refrPsiMin, psiMax: refrPsiMax };
 }
 
 // CPU twin of the shader lookup (rider, audio, HUD).

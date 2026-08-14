@@ -88,35 +88,38 @@ export const MIN_PROPAGATING_DEPTH = 0.5;
 // total spatial phase = kappa*x + Psi(zc), exact for a straight contour and
 // reducing to the old plane wave when the depth is constant.
 //
-// Integration STOPS at MIN_PROPAGATING_DEPTH and freezes Psi from there in.
-// Past the waterline there is no propagating wave, and the depth floor would
-// otherwise make k explode: at 0.05 m, k is ~0.64 rad/m, so the beach alone
-// contributed ~64 rad of pure fiction and the phase field came out as noise
-// (the mesh detonated when this was first switched on in 2026-08-10's reverted
-// build). The shore fade has killed the wave there anyway.
-//
-// Returns { psi, kappa, psiMin, psiMax, frozenFrom } — frozenFrom is the zc the
-// integration stopped at, or null if it ran the whole span.
+// Depth is CLAMPED at MIN_PROPAGATING_DEPTH — the integration never freezes.
+// The first form FROZE Psi at the first crossing below 0.5 m, chosen against
+// the 0.05 m floor whose k (~0.64 rad/m) turned the beach into ~64 rad of
+// fiction (the mesh detonated in 2026-08-10's reverted build). But freezing
+// at the FIRST crossing is wrong on a reef coast: at Sewers the reference
+// transect crosses the shallow reef CREST, so the whole inner surf zone —
+// including genuinely deep water shoreward of the reef — was phase-dead.
+// tSince there was spatially uniform, every phase-clocked foam term throbbed
+// as one block, and the zone boundary printed as razor edges: horizontal at
+// The Hook (straight coast), PERPENDICULAR to the break line at the apex
+// (Andy, live, 2026-08-13 — the "wedge fill" and the vertical band cuts are
+// the same zone in its lit and dark states). Clamping instead keeps k finite
+// (at 0.5 m, k = omega/sqrt(g*0.5) — bounded, ~3 rad over a 30 m swash) and
+// Psi STRICTLY increasing, which the rider/audio bisection inversion wants
+// anyway. frozenFrom is retained in the return shape as null so callers keep
+// working; nothing freezes anymore.
 export function integratePsi({
   elevAt, waterLevel, omega, kappa,
   zMin, zMax, n = 256, minDepth = MIN_PROPAGATING_DEPTH,
 }) {
   const psi = new Float32Array(n);
   const dz = (zMax - zMin) / (n - 1);
-  let acc = 0, prevKz = null, frozen = false, frozenFrom = null;
+  let acc = 0, prevKz = null;
   for (let i = 0; i < n; i++) {
     const zc = zMin + dz * i;
-    const depth = waterLevel - elevAt(zc);
-    if (depth <= minDepth) {
-      if (!frozen) { frozen = true; frozenFrom = zc; }
-    }
-    if (frozen) { psi[i] = acc; continue; }
+    const depth = Math.max(waterLevel - elevAt(zc), minDepth);
     const kz = normalWavenumber(omega, depth, kappa);
     if (prevKz !== null) acc += 0.5 * (kz + prevKz) * dz;
     prevKz = kz;
     psi[i] = acc;
   }
-  return { psi, kappa, psiMin: psi[0], psiMax: psi[n - 1], frozenFrom };
+  return { psi, kappa, psiMin: psi[0], psiMax: psi[n - 1], frozenFrom: null };
 }
 
 // Linear sample of a baked Psi table. Twin of the shader's texelFetch pair.

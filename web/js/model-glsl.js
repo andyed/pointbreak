@@ -89,7 +89,6 @@ uniform float u_shelterMix; // 1 = H_eff sheltering field, 0 = flat H0 (#shelter
 uniform vec2 u_refrZ;       // contour-z range the table spans
 uniform vec2 u_refrPsi;     // decode window for Psi, radians
 uniform float u_refrKappa;  // alongshore wavenumber, rad/m (Snell invariant)
-uniform float u_refrFrozen; // contour-z the Psi integration froze at (4a')
 
 // ---------- constants ----------
 // GPU SOURCE OF TRUTH for the shared physics constants. GLSL cannot import, so
@@ -857,21 +856,15 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // broken band — that is the area signal. The boost stays ON tSince's clock
   // (slower, 1.8*tau) so the between-crest lanes survive and the fragment
   // ager's "the mod() seam is repainted at the crest" assumption still holds.
-  // The boost EXCLUDES the Psi-frozen zone: integratePsi stops at 0.5 m depth
-  // on the reference transect and the phase field is spatially uniform for
-  // contour-z past that point (u_refrFrozen), so any visible phase-clocked
-  // foam there throbs as one block and prints the zone boundary as a hard
-  // edge — measured 2026-08-13 as a razor-edged notch/sheet at The Hook,
-  // psi-dependent, bed smooth; near-horizontal down-point (straight coast)
-  // with a kink at the apex, exactly the zc = u_refrFrozen contour's shape. A
-  // depth-keyed exclusion was tried first and missed: the freeze is a
-  // CONTOUR-Z condition from one baked transect, not a local-depth one.
-  // Excluding the zone also keeps the boost out of the swash, which already
-  // captured one instrument (6b); the area signal this term exists for lives
-  // in the mid-surf-zone breadth, not at the waterline. A steady in-zone bore
-  // field was BUILT AND MEASURED WORSE (2026-08-13): the zone's area is
-  // nearly tide-invariant, so it DILUTED the low/high contrast (1.80x ->
-  // 1.53x at L>=205, pinned nadir rig) — don't retry it for tide legibility.
+  // The boost fades out of the SWASH (dep under ~0.85 m): the area signal
+  // this term exists for lives in the mid-surf-zone breadth, and the swash
+  // already captured one instrument (6b). A steady swash-strip bore field
+  // was BUILT AND MEASURED WORSE (2026-08-13): the strip's area is nearly
+  // tide-invariant, so it DILUTED the low/high contrast (1.80x -> 1.53x at
+  // L>=205, pinned nadir rig) — don't retry it for tide legibility.
+  // (A Psi-frozen-zone exclusion lived here for a few hours; the frozen zone
+  // itself was the defect and integratePsi no longer freezes — see its
+  // header. The depth fade below is the part that was always right.)
   // Keyed to env (not env2): the bore field integrates over recent waves.
   // Coefficient sits under the impact head (1.55) so the crash stays the
   // foreground event; sizeFoam scales it downstream with the other H0-free
@@ -891,10 +884,9 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // Coefficient 0.65 -> 0.48 compensated streaks' ~0.72 mean when it left.
   float boreTex = vnoise2(vec2(x*0.16, (z - 4.5*t)*0.16));
   float reBrk = smoothstep(1.02, 1.35, excess) * brk;
-  float frz = u_psiMix * u_depthMix
-            * smoothstep(u_refrFrozen - 30.0, u_refrFrozen - 6.0, contourZ(xz));
+  float swashF = smoothstep(0.85, 0.55, dep);
   residue += u_wwArea * u_depthMix * 0.48 * reBrk * env * exp(-tSince/(1.8*tau))
-           * (0.55 + 0.45*boreTex) * (1.0 - frz);
+           * (0.55 + 0.45*boreTex) * (1.0 - swashF);
   // Size scaling applies ONCE per term. impactBand/boreBand/trailBand already
   // carry sizeAmp inside life.z/life.w (breakerLifecycleAtX), so multiplying
   // structuralFoam by sizeFoam again made foam quadratic in H0 — down to x0.30

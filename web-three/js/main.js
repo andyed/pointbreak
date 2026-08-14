@@ -171,7 +171,6 @@ const uniforms = {
   u_psiMix:     { value: 0 },
   u_shelterMix: { value: 1 },  // H_eff sheltering field; #shelter=0 reverts to flat H0
   u_refrZ:      { value: new THREE.Vector2(REFR_ZC_MIN, REFR_ZC_MAX) },
-  u_refrFrozen: { value: REFR_ZC_MAX },  // zc the Psi integration froze at (4a' foam boost fades out before it)
   u_refrPsi:    { value: new THREE.Vector2(0, 1) },
   u_refrKappa:  { value: 0 },
   // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
@@ -982,7 +981,6 @@ function frame(now) {
       uniforms.u_refrTex.value = refr.texture;
       uniforms.u_refrPsi.value.set(refr.psiMin, refr.psiMax);
       uniforms.u_refrKappa.value = refr.kappa;
-      uniforms.u_refrFrozen.value = refr.frozenFrom ?? REFR_ZC_MAX;
       refreshHUD();
     }
   }

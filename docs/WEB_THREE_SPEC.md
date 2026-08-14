@@ -1607,3 +1607,27 @@ the verification frame itself. Square cells (streaks 10 m, clumps 4.5/1.6 m,
 boreTex 6 m) are the only texture that cannot imply a direction; crest-
 parallel organization belongs to the bands, not the lattice inside them.
 Do not re-elongate foam noise in EITHER axis. Tide ratio 2.51×/2.56×.
+
+### Addendum 4 — the Ψ freeze itself was the defect: clamp, don't freeze (2026-08-13)
+
+The frozen zone kept printing new razor edges (The Hook notch; Sewers' wedge
+fill and vertical band cuts perpendicular to the break line — both states of
+the same phase-dead block, psi-bisected). Root cause: integratePsi froze at
+the FIRST 0.5 m crossing on the reference transect, which on a reef coast is
+the reef CREST — so the whole inner surf zone, including deep water shoreward
+of the reef, had spatially uniform tSince and every phase-clocked foam term
+throbbed there as one block. Fix: integrate with depth CLAMPED to 0.5 m
+(k(0.5 m) ≈ 0.2 rad/m — a few rad over the swash, not the 0.05 m floor's 64
+rad of fiction). Ψ is now strictly increasing over the whole span, which also
+makes the rider/audio inversion well-defined everywhere; the u_refrFrozen
+uniform and the boost's contour exclusion are REMOVED (the boost keeps the
+depth-keyed swash fade, the part that was always right). Tests rewritten to
+assert the new contract (bounded beach tail at the clamped rate, strict
+monotonicity, full-span inversion).
+
+HONEST RATIO REVISION: with the dead zone gone the tide A/B reads
+1.95×/2.17× (was 2.51×/2.56×) — still inside the 1.93–4.95× band. The
+earlier numbers were partly the DEFECT's doing: the frozen zone suppressed
+tide-invariant inner foam on both sides of the A/B. The Sewers bands now
+taper naturally down-point instead of terminating at a wall, and the
+land-boundary notch that came and went with the zone is gone with it.
