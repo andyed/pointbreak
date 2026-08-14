@@ -170,10 +170,12 @@ const uniforms = {
   u_psiMix:     { value: 0 },
   u_shelterMix: { value: 1 },  // H_eff sheltering field; #shelter=0 reverts to flat H0
   u_refrZ:      { value: new THREE.Vector2(REFR_ZC_MIN, REFR_ZC_MAX) },
+  u_refrFrozen: { value: REFR_ZC_MAX },  // zc the Psi integration froze at (4a' foam boost fades out before it)
   u_refrPsi:    { value: new THREE.Vector2(0, 1) },
   u_refrKappa:  { value: 0 },
   // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
   u_matte:      { value: 1 },
+  u_wwArea:     { value: 1 },  // 4a' whitewater-area coupling; #wwarea=0 is the pre-fix A/B
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -978,6 +980,7 @@ function frame(now) {
       uniforms.u_refrTex.value = refr.texture;
       uniforms.u_refrPsi.value.set(refr.psiMin, refr.psiMax);
       uniforms.u_refrKappa.value = refr.kappa;
+      uniforms.u_refrFrozen.value = refr.frozenFrom ?? REFR_ZC_MAX;
       refreshHUD();
     }
   }
@@ -1195,6 +1198,8 @@ function applyHashParams() {
   if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
   // modeled-domain matte defaults ON; #matte=0 is the A/B revert
   if (h.get('matte') === '0') uniforms.u_matte.value = 0;
+  // 4a' whitewater-area coupling defaults ON; #wwarea=0 is the pre-fix A/B
+  if (h.get('wwarea') === '0') uniforms.u_wwArea.value = 0;
   // world-collision clamp defaults ON; #noclip=1 restores x-ray debugging
   if (h.get('noclip') === '1') noclipEnabled = true;
   const camName = (h.get('cam') || '').toLowerCase();

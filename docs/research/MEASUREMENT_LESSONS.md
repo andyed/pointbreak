@@ -160,3 +160,19 @@ and icon services to pin Finder at 73–82%, a live preview tab animated for the
 whole session, and task notifications drove NotificationCenter to 132%. Cap
 concurrent browser agents at ~2, budget captures in tens, never leave a preview
 animating, and check machine load **before** launching and **between** phases.
+
+## 11. An instrument that frames itself on the signal is not a fixed instrument
+
+The drone capture rig auto-frames on the brightest water bins (that is its
+design: find the surf zone, frame it). So any change to FOAM — the thing a
+foam A/B measures — can move the instrument's own window: the 4a′ v2 check
+framed at camera z = −96 where the identical hash on the pre-change build
+framed at z = 84. The two sides of that A/B would have counted different
+world windows and the ratio would have been framing, not foam.
+
+Tell: record the camera per run (the manifest already does) and diff it
+across the arms of any A/B. Fix: pin the sampling — `--rig=nadir` with
+explicit --cx/--cz/--halfw — whenever the quantity being measured is also
+the quantity the auto-framer keys on. Same family as lesson 4
+(self-certifying instruments): the framer is part of the instrument, and it
+must not share a variable with the measurand.

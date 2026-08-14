@@ -1420,3 +1420,63 @@ the interior-takeoff proxy flags 5 spots vs base's 4 — but base's own count
 moved 3 → 4 across the retarget+sheltering session, and the proxy cannot
 distinguish a real A-frame from a sheltering-shifted takeoff. That question
 belongs to the Track 5 visual pass, not to more proxy sweeps.
+
+### Whitewater ∝ broken area (2026-08-13, night) — 4a′ landed, `#wwarea`
+
+The defect (ROUND2, confirmed by the 4a re-measure): `brk` reached the surface
+only as an amplitude subtraction, no foam term scaled with the WIDTH of the
+broken zone, and the one term covering it (the aftermath residue) sat under
+the renderer's 0.15 foam gate. A dropping tide broke over 1.9–5× more area
+and rendered only 1.3–1.8× more bright pixels.
+
+The fix is one term in `ocean()`'s residue path: water whose shoaled height
+still exceeds the depth limit (`excess > 1`) is actively re-breaking, so its
+whitewater gets a boost that clears the gate across the whole broken band —
+per-point and local; the area coupling emerges because per-point visibility
+becomes tide-invariant. It stays on tSince's clock (1.8·τ, slower than the
+0.3-coefficient legacy residue) so the between-crest lanes survive, reuses
+the `clumps` noise already computed (ocean() runs 5×/vertex; zero new noise
+calls), and is `u_depthMix`-gated. `#wwarea=0` reverts.
+
+**Measured** (pinned nadir rig, 600 m, ±320 m window, The Hook, 32 frames /
+128 s set cycle, identical sim clocks, tide −0.8 vs +0.7, bright-px sums):
+
+| config | L≥205 low/high | L≥160 low/high |
+|---|---|---|
+| `#wwarea=0` (pre-fix) | 1.80× | 2.08× |
+| tSince-free draft (v1) | 1.97× | 2.19× |
+| + steady frozen-strip bore (v2) | **1.53×** | **1.85×** |
+| shipped (clocked, Ψ-frozen zone excluded) | **2.66×** | **2.62×** |
+
+Physical broken-area band: 1.93× (wet transect) – 4.95× (surf-zone band).
+The shipped ratio sits inside it; residual compression (Beer–Lambert bottom
+brightening at low tide, the gate's nonlinearity) is accepted.
+
+**Two builds falsified on the way, recorded so they are not retried:**
+
+1. **A tSince-free (sustained) term prints the Ψ-frozen zone.** `integratePsi`
+   stops at 0.5 m depth on the reference transect and freezes Ψ from that
+   contour-z in, so the phase field inshore of `zc = frozenFrom` is spatially
+   uniform. Any VISIBLE phase-clocked foam there throbs as one block and its
+   boundary prints as a razor edge — near-horizontal down-point (straight
+   coast), kinked at the apex: exactly the notch/sheet measured at The Hook.
+   The bake's own comment assumed "the shore fade has killed the wave there
+   anyway" — true for amplitude, false for foam once foam is raised. The
+   shipped term fades out over the 30 m before `u_refrFrozen` (new uniform,
+   `bakeRefraction` now returns `frozenFrom`). A depth-keyed exclusion was
+   tried first and missed: the freeze is a contour-z condition from one baked
+   transect, not a local-depth one.
+2. **A steady bore field inside the frozen zone DILUTES tide legibility**
+   (v2 row above): the zone hugs the shoreline, its area is nearly
+   tide-invariant, and excess is saturated there at both tides — it adds
+   equal foam to both sides of the A/B and drags the ratio DOWN (and it
+   re-brightens the swash that already captured the pixel-α instrument, 6b).
+
+**Instrument note (MEASUREMENT_LESSONS 11):** the drone capture rig
+auto-frames on bright water, so a foam change MOVES ITS OWN measurement
+window — the first A/B pair happened to frame consistently, the v2 check did
+not (camera z −96 vs 84 for the same hash). All numbers above are from the
+pinned `--rig=nadir` camera, which cannot feed back.
+
+α-neutrality: by construction — the change touches only foam accumulation;
+the bake, its cache key, and the height field are untouched.

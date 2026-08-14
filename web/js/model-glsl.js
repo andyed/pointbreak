@@ -25,6 +25,7 @@ uniform float u_chop;     // local wind-sea texture 0..1
 uniform float u_aframe;   // 0 point break, 1 A-frame (abs fold); no site sets 1
 uniform float u_surfer;   // 0 off, 1 riding
 uniform float u_breakShape;// 1 = structural breaker anatomy, 0 = legacy ridge A/B
+uniform float u_wwArea;   // 4a' whitewater-area coupling: 1 on (default), 0 = pre-fix A/B
 uniform float u_geoMix;   // 1 = OSM/NCEI stage profile, 0 = synthetic fallback
 uniform vec2 u_contourFit;// NCEI equal-elevation contour: x2*x^2 + x3*x^3
 uniform vec2 u_stageBounds;// OSM canon-neighbor midpoints in local stage metres
@@ -88,6 +89,7 @@ uniform float u_shelterMix; // 1 = H_eff sheltering field, 0 = flat H0 (#shelter
 uniform vec2 u_refrZ;       // contour-z range the table spans
 uniform vec2 u_refrPsi;     // decode window for Psi, radians
 uniform float u_refrKappa;  // alongshore wavenumber, rad/m (Snell invariant)
+uniform float u_refrFrozen; // contour-z the Psi integration froze at (4a')
 
 // ---------- constants ----------
 // GPU SOURCE OF TRUTH for the shared physics constants. GLSL cannot import, so
@@ -826,6 +828,43 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // the bright foreground event. Do NOT widen BORE_END_S instead — the narrow
   // head is what makes the crash travel; the wake belongs to this residue.
   float residue = lace*0.40 + 0.30*brk*env2*exp(-tSince/(1.6*tau))*streaks;
+  // 4a' whitewater ∝ broken AREA (Track 4). Every bright term above is clocked
+  // to the bore front or decays fast on tSince, so the WIDTH of the broken
+  // zone never reaches the picture: a dropping tide breaks over 1.9-5x more
+  // area but the extra margin renders as covered-but-dim pixels sitting under
+  // the renderer's foam gate (ROUND2 2026-08-11; measured 1.3-1.8x in bright
+  // px). Water whose shoaled height still exceeds the depth limit is actively
+  // RE-breaking, so its whitewater should clear the gate across the whole
+  // broken band — that is the area signal. The boost stays ON tSince's clock
+  // (slower, 1.8*tau) so the between-crest lanes survive and the fragment
+  // ager's "the mod() seam is repainted at the crest" assumption still holds.
+  // The boost EXCLUDES the Psi-frozen zone: integratePsi stops at 0.5 m depth
+  // on the reference transect and the phase field is spatially uniform for
+  // contour-z past that point (u_refrFrozen), so any visible phase-clocked
+  // foam there throbs as one block and prints the zone boundary as a hard
+  // edge — measured 2026-08-13 as a razor-edged notch/sheet at The Hook,
+  // psi-dependent, bed smooth; near-horizontal down-point (straight coast)
+  // with a kink at the apex, exactly the zc = u_refrFrozen contour's shape. A
+  // depth-keyed exclusion was tried first and missed: the freeze is a
+  // CONTOUR-Z condition from one baked transect, not a local-depth one.
+  // Excluding the zone also keeps the boost out of the swash, which already
+  // captured one instrument (6b); the area signal this term exists for lives
+  // in the mid-surf-zone breadth, not at the waterline. A steady in-zone bore
+  // field was BUILT AND MEASURED WORSE (2026-08-13): the zone's area is
+  // nearly tide-invariant, so it DILUTED the low/high contrast (1.80x ->
+  // 1.53x at L>=205, pinned nadir rig) — don't retry it for tide legibility.
+  // Keyed to env (not env2): the bore field integrates over recent waves.
+  // Coefficient sits under the impact head (1.55) so the crash stays the
+  // foreground event; sizeFoam scales it downstream with the other H0-free
+  // terms. Gated by u_depthMix like every depth route, u_wwArea is the A/B.
+  // Texture reuses clumps (already computed above) rather than sampling new
+  // noise: ocean() runs five times per vertex via choppyPos's FD, and the
+  // renderer is vertex-bound (662c8c1), so the boost adds zero noise calls.
+  float reBrk = smoothstep(1.02, 1.35, excess) * brk;
+  float frz = u_psiMix * u_depthMix
+            * smoothstep(u_refrFrozen - 30.0, u_refrFrozen - 6.0, contourZ(xz));
+  residue += u_wwArea * u_depthMix * 0.65 * reBrk * env * exp(-tSince/(1.8*tau))
+           * streaks * (0.55 + 0.45*clumps) * (1.0 - frz);
   // Size scaling applies ONCE per term. impactBand/boreBand/trailBand already
   // carry sizeAmp inside life.z/life.w (breakerLifecycleAtX), so multiplying
   // structuralFoam by sizeFoam again made foam quadratic in H0 — down to x0.30

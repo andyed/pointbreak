@@ -274,11 +274,15 @@ No parity port. Consequences to carry honestly:
       at L≥160 (8235 vs 4664). The 2026-08-11 "2.5× fewer" figure came from
       the frozen sim=42 lull single-frame (ROUND2 already flagged it) plus a
       pre-retarget build. Wiring live tide is no longer blocked on polarity.
-- [ ] 4a'. Tide AMPLITUDE coupling: the sign is right but compressed — the
-      1.9–5× physical broken-area gain reads as 1.3–1.8× in bright pixels
-      (whitewater ∝ area still unimplemented; the foam gate's 0.15 floor and
-      Beer–Lambert water brightening both eat contrast). Visual-legibility
-      item, not a validity blocker.
+- [x] 4a'. LANDED 2026-08-13 night (`#wwarea`, default ON; spec "Whitewater ∝
+      broken area"). One excess-keyed boost in ocean()'s residue path makes
+      per-point foam visibility tide-invariant, so pixels ∝ area emerges:
+      low/high bright-px ratio 1.80×→2.66× at L≥205, 2.08×→2.62× at L≥160
+      (pinned nadir rig; physical band 1.93–4.95×). Two falsified builds
+      recorded in the spec: a tSince-free term prints the Ψ-frozen zone
+      boundary (new `u_refrFrozen` uniform excludes it), and a steady
+      in-zone bore field DILUTES the ratio (1.53×) — don't retry. Residual
+      compression (Beer–Lambert brightening, gate nonlinearity) accepted.
 - [ ] 4b. Wind as data (chop scalar + drift direction are compile-time now);
       sky state (sun visibility → glitter amplitude; marine layer default)
 - [ ] 4c. Decide the live clamps (Hs 3.0 m / Tp 18 s) — surface or raise
