@@ -1543,7 +1543,9 @@ residual — the brightest foam must sit at the break line, not the swash:
 
 **Measured** (nadir rig, The Hook, tide −0.8, 8 frames over a set cycle;
 new instrument: per-column brightest-pixel distance to the baked line,
-scratchpad argmax_vs_line.mjs — positive = shoreward, the failure direction):
+`scripts/measure_argmax_vs_line.mjs` (promoted from the session scratchpad
+2026-08-14; line dump via `scripts/dump_lineprobe.mjs`) — positive =
+shoreward, the failure direction):
 
 - aggregate: median +50.9 → +45.1 m, within-±20 m 14.7% → 19.8%
 - per-frame: first-break frame median 6.5 m / 100% within 20 m; active
