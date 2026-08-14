@@ -249,6 +249,16 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
   nose re-measure: 48.5 vs 66), thehook spurious A-frame, firstpeak α ~10° low.)
 
 ### Track 1b — scene identity (PROMOTED; parallel, independent of 1)
+- [ ] MAP VIEW — wide topology mode. SPECIFIED 2026-08-14, not built:
+      `docs/MAP_VIEW_SPEC.md`. Renders the place (platform, shelf edge, seven
+      spots, per-spot break lines + reef-authority extent) and deliberately
+      runs no wave model. Motivated by two measurements: the render patch
+      (1280 m) is smaller than the point (Sewers→Privates 1556 m), and at the
+      DEM's true elevation range the surf band is 7.9 m of 102 m — 7.8% — so a
+      wide view at true scale spends its contrast on cliffs and the offshore
+      drop. A free camera is NOT the gap: OrbitControls already ships. Blocked
+      for publication on characterising the terrace/track-line DEM artifacts a
+      wide frame exposes.
 - [x] DEM extended to 9.4 km of coast (Cowell's → Bombora), patch extent
       doubled (1874939); extrapolation ramp moved into bedElevM, killing the
       rectangular tableland (8f74205)

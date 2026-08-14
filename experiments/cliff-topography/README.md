@@ -63,6 +63,16 @@ Did not hold up:
 5. **"3D topography" oversells the artifact** — it reads as a 2D profile mesh
    with ×7 vertical exaggeration, not a 3D surface.
 
+## Superseded by
+
+`docs/MAP_VIEW_SPEC.md` (2026-08-14) specifies the wide topology view this was
+reaching for — a plan/oblique relief of the point rather than a cross-section,
+with the elevation ramp clipped to the surf band. The measurements behind that
+spec explain why this attempt could not deliver a "larger view": at the DEM's
+true elevation range the surf-relevant band is 7.8% of the relief, so scale
+mapping, not geometry, was the obstacle. `build_dual_view_data.py`'s name had
+the right instinct; the execution built a profile.
+
 ## If this is ever picked up
 
 Fix order: label collisions (1) and terrain contrast (3) first — both are in
