@@ -1586,3 +1586,15 @@ are rotated to along-crest / near-isotropic (streaks 18×9 m, lace 10 m and
 instead of across it. Verified in nadir and point frames (drip-curtain
 gone); tide-legibility A/B re-run: 2.52×/2.57× at L≥205/L≥160 — the
 texture is ratio-neutral within noise.
+
+**Addendum 2 (same night, third live report):** after the streaks/laceN
+rotation, two cross-shore-elongated lattices remained — clumps (impact-head
+texture, 3.2×6.3 m, still creeping seaward) and boreTex (the 4a′ boost's own
+texture) — and their patches still combed vertically under an along-coast
+camera's foreshortening. Both rotated along-crest (~8×4 m) and advected
+shoreward with the front. Full vnoise2 audit: every foam-BRIGHTNESS lattice
+in ocean() is now along-crest or isotropic (moundNoise is z-constant by
+design but modulates mound HEIGHT along-crest only; fragment ftex/er are
+isotropic; foamBumpH was already rotated 37°). Tide ratio re-measured
+2.51×/2.58× — neutral. If sideways foam appears again, the carrier is NOT a
+model lattice — look at the fragment stage or the spray pass.
