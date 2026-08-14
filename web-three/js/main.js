@@ -779,10 +779,15 @@ let m4Enabled = true;
 // where the crest index means nothing in the re-centered world.
 let m4Ride = null;
 const m4RideState = { n: null, prevX: null, preset: null };
-// M6 part 3, step 1: the water's phase field on the baked Psi. OFF by default —
-// the rider, the audio crest solve and setEnv all still assume constant phi, so
-// this is a water-only preview until steps 2-3 of the spec's staged path land.
-let psiEnabled = false;
+// M6 part 3: the phase field runs on the baked Psi. DEFAULT ON since
+// 2026-08-13 (step 4): the rider solves in phase (m4RideSolve consumes
+// P.phaseFn, step 2), the audio crest solve inverts rayPhase (sound.js,
+// step 3), and setEnv/setupLiftM run the physical cg = gT/4pi — every
+// consumer now shares one phase authority, which was the whole precondition
+// for the flip. Measured at flip time: alpha-neutral vs base (identical
+// stage-median on all six spots), crest spacing 104->55 m across the stage
+// vs the frozen 90 m. `#psi=0` is the A/B revert.
+let psiEnabled = true;
 // Direction constraint on the baked break line (MODEL.md 4.5). OFF by default:
 // it does remove the A-frame on all 18 combos, and it costs the peel — see the
 // measured note in WEB_THREE_SPEC. #peeldir=1 to A/B it.
