@@ -1598,3 +1598,12 @@ design but modulates mound HEIGHT along-crest only; fragment ftex/er are
 isotropic; foamBumpH was already rotated 37°). Tide ratio re-measured
 2.51×/2.58× — neutral. If sideways foam appears again, the carrier is NOT a
 model lattice — look at the fragment stage or the spray pass.
+
+**Addendum 3 — the anisotropy question is SETTLED: isotropic.** The
+along-crest rotation overcorrected: a 2:1 x-elongated lattice advecting
+shoreward inside a diagonal band BARBER-POLES (apparent sideways slide along
+the band), and reads as horizontal smear in nadir stills — Andy caught it in
+the verification frame itself. Square cells (streaks 10 m, clumps 4.5/1.6 m,
+boreTex 6 m) are the only texture that cannot imply a direction; crest-
+parallel organization belongs to the bands, not the lattice inside them.
+Do not re-elongate foam noise in EITHER axis. Tide ratio 2.51×/2.56×.

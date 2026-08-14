@@ -802,14 +802,16 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // deliberately DIFFERENT speeds (3.2 / 5.0 / 4.0 m/s): the differential
   // slip is what decorrelates the pattern in a co-moving frame on a ~2-tau
   // timescale — same-speed advection would just freeze it into the tracker.
-  // ANISOTROPY ROTATED 2026-08-13 (Andy, live, twice — prod first, then the
-  // residual locally): the old 6x36 m SHORE-NORMAL cells read as sideways
-  // smear from any along-coast camera whenever a term using this texture got
-  // bright. Real aerial foam elongates ALONG the crest it fell from, so the
-  // cells are now ~18 m along-shore x 9 m cross-shore. The original design
-  // intent ("never a solid sheet") survives — the sheet is still broken, just
-  // parallel to the wave instead of across it. Same rotation for laceN below.
-  float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.055, (z - 3.2*t)*0.11) + vec2(1.7, 0.0));
+  // ISOTROPIC, settled 2026-08-13 after three live reports and one
+  // overcorrection. The original 6x36 m shore-normal cells smeared sideways
+  // from any along-coast camera; the along-crest rotation that replaced them
+  // BARBER-POLED — a 2:1 x-elongated lattice advecting shoreward inside a
+  // diagonal band reads as foam sliding sideways along the band, and in
+  // nadir stills as horizontal smear (Andy caught both). A square cell is
+  // the only texture that cannot imply a direction; the crest-parallel
+  // organization belongs to the BANDS, not the lattice inside them.
+  // "Never a solid sheet" survives — 10 m cells still break the sheet.
+  float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.10, (z - 3.2*t)*0.10) + vec2(1.7, 0.0));
   float legacyFoam = brk * env2 * exp(-tSince/tau) * streaks;
   legacyFoam += boreBandLegacy * 0.85 * exp(-tSince/(0.5*u_T));
 
@@ -821,14 +823,10 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
 
   // Structural whitewater changes character with age instead of only fading:
   // dense granular impact -> coherent low bore -> perforated trailing lace.
-  // Rotated along-crest + advected shoreward 2026-08-13 (third live report):
-  // after streaks/laceN were rotated, clumps and boreTex were the LAST
-  // cross-shore-elongated lattices (3.2x6.3 m), and under an along-coast
-  // camera's foreshortening their patches still combed vertically. Cells now
-  // ~8x4 m along-crest, riding shoreward with the front instead of the old
-  // 0.4 m/s seaward creep (the wrong-direction class, again).
-  float clumps = vnoise2(vec2(x*0.13, (z - 3.5*t)*0.28))*0.58
-               + vnoise2(vec2(x*0.42, (z - 3.0*t)*0.80))*0.42;
+  // Isotropic + advected shoreward (see the streaks comment for the full
+  // history: shore-normal smeared, along-crest barber-poled, square settles).
+  float clumps = vnoise2(vec2(x*0.22, (z - 3.5*t)*0.22))*0.58
+               + vnoise2(vec2(x*0.62, (z - 3.0*t)*0.62))*0.42;
   float impactFoam = impactBand*smoothstep(0.20, 0.66, clumps + 0.28);
   float boreFoam = boreBand*(0.62 + 0.38*streaks);
   float trailFoam = trailBand*(0.34 + 0.48*streaks)
@@ -891,7 +889,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // Real whitewater rides the bore: advect the lattice shoreward at 4.5 m/s,
   // between sqrt(g*h_b) ~ 4.3 and the measured 4.03-5.50 m/s band (6c).
   // Coefficient 0.65 -> 0.48 compensated streaks' ~0.72 mean when it left.
-  float boreTex = vnoise2(vec2(x*0.12, (z - 4.5*t)*0.22));
+  float boreTex = vnoise2(vec2(x*0.16, (z - 4.5*t)*0.16));
   float reBrk = smoothstep(1.02, 1.35, excess) * brk;
   float frz = u_psiMix * u_depthMix
             * smoothstep(u_refrFrozen - 30.0, u_refrFrozen - 6.0, contourZ(xz));
