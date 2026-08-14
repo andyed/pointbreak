@@ -698,8 +698,14 @@ void main() {
   // darkening below (VISUAL_GROUND_TRUTH: the face must darken as it
   // steepens) — unblocked by #psi landing, since tuning this against
   // under-steepened geometry would have baked in a compensation.
+  // FRONT FACES ONLY, and faded out of the pocket: the M2 folding lip
+  // self-intersects by design (accepted z-fight), and darkening its flipped
+  // steep normals painted the fold as a camera-dependent BLACK POLYGON
+  // (Andy, live, 2026-08-13). The fold's glassy look was fine; keep it.
   float steepF = clamp((1.0 - Ng.y) * 5.0, 0.0, 1.0)
-               * smoothstep(0.4, 1.6, vWorldPos.y) * u_crestRead;
+               * smoothstep(0.4, 1.6, vWorldPos.y) * u_crestRead
+               * (gl_FrontFacing ? 1.0 : 0.0)
+               * (1.0 - clamp(vPocket*1.2, 0.0, 1.0));
 
   // foam roughness normal (used for foam's own lighting below); influence kept
   // low — foam under a marine layer is lit mostly ambiently, strong normal
