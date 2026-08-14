@@ -267,9 +267,18 @@ No parity port. Consequences to carry honestly:
       monotone **4–8°** derived-peel swing across the full control range.
 
 ### Track 4 — conditions truthfulness
-- [ ] 4a. Tide polarity ROOT-CAUSE first: breaking intensity currently
-      INVERTS with tide (low glassy, high active). Wiring live tide before
-      this is anti-validity.
+- [x] 4a. TIDE POLARITY RE-MEASURED 2026-08-13 post-retarget — CORRECT, the
+      inversion does not reproduce. 32 frames over a 128 s set cycle at The
+      Hook (identical sim clocks, drone rig): low tide −0.8 renders 1.28×
+      MORE bright foam px than high +0.7 at L≥205 (1700 vs 1329) and 1.77×
+      at L≥160 (8235 vs 4664). The 2026-08-11 "2.5× fewer" figure came from
+      the frozen sim=42 lull single-frame (ROUND2 already flagged it) plus a
+      pre-retarget build. Wiring live tide is no longer blocked on polarity.
+- [ ] 4a'. Tide AMPLITUDE coupling: the sign is right but compressed — the
+      1.9–5× physical broken-area gain reads as 1.3–1.8× in bright pixels
+      (whitewater ∝ area still unimplemented; the foam gate's 0.15 floor and
+      Beer–Lambert water brightening both eat contrast). Visual-legibility
+      item, not a validity blocker.
 - [ ] 4b. Wind as data (chop scalar + drift direction are compile-time now);
       sky state (sun visibility → glitter amplitude; marine layer default)
 - [ ] 4c. Decide the live clamps (Hs 3.0 m / Tp 18 s) — surface or raise
