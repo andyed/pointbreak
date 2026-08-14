@@ -1360,3 +1360,38 @@ separations) reads 5.50 / 4.96 / 2.63 m/s at 1/2/4 dt in the cadence run — it
 degrades exactly where the Eulerian correlation has already died (0.08 at 8 s),
 so the 1 dt figure is the trustworthy one and the check is really telling us
 the sampling window, not a nonlinearity.
+
+### 6b separated: the pixel α instrument is captured by the swash field (2026-08-13, late)
+
+One capture, as prescribed. `lineProbe()` overlaid on the zipper run's own
+frames, detector argmax compared per column:
+
+- **The detector's most-active bin sits a mean of +117 m SHOREWARD of the
+  baked line** (mean |offset| 119 m); of the 179 columns missing by >60 m,
+  **177 miss shoreward**. Only 6% of in-stage columns land within the
+  detector's own ±24 m band of the baked line.
+- The far-miss columns are **brighter** than the near-line columns (mean
+  summed residual 0.088 vs 0.069): sustained swash/shore-edge whitewater and
+  mid-water residual patches outscore the transient crest foam in
+  summed-over-time activity, so an argmax detector goes to them.
+
+**Verdict: cause (b).** The 4.3–8.8° pixel readings measured the shoreline's
+geometry, not the peel's — they are void and stay out of every summary. The
+2026-08-11 audit's "α collapses to ~8–10° visible" number was produced by the
+same class of instrument and should be treated as suspect for the same reason.
+
+**What the overlay frame ALSO shows (recorded as observation, not verdict):**
+up-point, the rendered foam mass hugs the baked line; down-point of
+mid-stage, the line runs over dark water with no visible activity in that
+frame. Whether the render ever expresses the line's down-point run cannot be
+answered from this capture — the saved x-t profiles follow the detector's
+contaminated band (corr(x, t_peak) = −0.47 there, but that band is mostly
+swash). A residual (a)-question stays open in Track 5's foam-attachment item:
+crest foam must outshine the bore field for the peel to read at all.
+
+**Instrument fix, when Track 6 returns to this:** band the pixel measurement
+to the baked line rather than the per-column argmax. Not circular — the
+pixels are independent of the bake; banding measures exactly the question
+"does the drawn field follow the line", and it satisfies the
+MEASUREMENT_LESSONS 8 corollary (the declaration and the candidates share a
+neighbourhood by construction).
