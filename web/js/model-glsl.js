@@ -794,13 +794,21 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float sizeFoam = mix(1.0, clamp(u_H0*shelterAt(x)/1.5, 0.55, 1.6), u_depthMix);
 
   // Legacy whitewater: broken into shore-normal streaks (never a solid sheet).
-  float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.16, z*0.028) + vec2(1.7, t*0.015));
+  // 6c CHURN FIX (2026-08-13): tSince resets every period, so no decay clock
+  // reaches the measured 24 s Lagrangian e-fold — that number was the noise
+  // LATTICES, whose old sideways creep (0.4-0.5 m/s over 20-36 m cells) let
+  // the foam pattern persist 50-100 s while real whitewater is re-written by
+  // every wave. The aftermath lattices now advect SHOREWARD at bore-ish but
+  // deliberately DIFFERENT speeds (3.2 / 5.0 / 4.0 m/s): the differential
+  // slip is what decorrelates the pattern in a co-moving frame on a ~2-tau
+  // timescale — same-speed advection would just freeze it into the tracker.
+  float streaks = 0.45 + 0.55*vnoise2(vec2(x*0.16, (z - 3.2*t)*0.028) + vec2(1.7, 0.0));
   float legacyFoam = brk * env2 * exp(-tSince/tau) * streaks;
   legacyFoam += boreBandLegacy * 0.85 * exp(-tSince/(0.5*u_T));
 
   // foam lace: dimmer, longer-lived residue; two octaves so cells don't read blocky
-  float laceN = vnoise2(vec2(x*0.22, z*0.045) + vec2(0.0, t*0.02))*0.62
-              + vnoise2(vec2(x*0.74, z*0.15) - vec2(t*0.01, 0.0))*0.38;
+  float laceN = vnoise2(vec2(x*0.22, (z - 5.0*t)*0.045))*0.62
+              + vnoise2(vec2(x*0.74, (z - 4.0*t)*0.15))*0.38;
   float lace = brk * env2 * exp(-tSince/(2.4*tau)) * smoothstep(0.45, 0.72, laceN);
   legacyFoam += lace * 0.4;
 

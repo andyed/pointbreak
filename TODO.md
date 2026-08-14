@@ -342,9 +342,19 @@ No parity port. Consequences to carry honestly:
       to the bright bins. Consistent with the 2026-08-11 audit's independent
       "α collapses to ~8–10° visible crest angle" — two instruments now say the
       picture doesn't show the geometry's peel.
-- [ ] 6c. FOAM PERSISTS ~4× AUTHORED: Lagrangian e-fold 24.0 s vs authored
-      τ = 6 s (Eulerian 3.5–3.7 s). Advection 5.50 m/s vs 4.03 m/s shader front
-      speed. Feeds Track 5 foam work directly.
+- [x] 6c. RESOLVED 2026-08-13 late night — the "persists 4× authored" reading
+      was INSTRUMENT SEMANTICS (spec "6c re-derived"). The Lagrangian tracker
+      follows the bore, and what stays correlated in that frame is the
+      band-scale foam structure riding a front that takes ~57 s to transit
+      the zone — a 17–24 s co-moving e-fold is the front's coherent lifetime,
+      not foam decay. Proof: churning the noise lattices left the correlation
+      table bit-identical. The τ-governed quantity (Eulerian tail after
+      passage) measures 2.7–3.7 s vs authored 5–6 — at or BELOW authored, no
+      defect. Advection re-measured healthy post-4a′: +3.47 m/s vs front
+      3.09, linear across separations (the old 5.50-vs-4.03 gap predates the
+      area boost's advected texture). Kept from the investigation: aftermath
+      lattices now advect shoreward (3.2/5.0/4.0 m/s) instead of creeping
+      sideways — the live "foam from the wrong direction" artifact class.
 - [ ] Temporal audit harness: N-frame captures → zipper speed vs Vp=c/sin α,
       set cadence (is the 3.4× group-speed error visible?), foam advection.
       The audit's biggest blind spot: every visual claim was one frozen frame.

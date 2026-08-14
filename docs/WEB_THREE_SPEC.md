@@ -1551,3 +1551,25 @@ scratchpad argmax_vs_line.mjs — positive = shoreward, the failure direction):
   (~94 m) — the competitor there is the aftermath field, which is partly
   honest (a quiet line SHOULD lose to leftover whitewater) and partly 6c
   (foam persists 4× authored τ). Re-judge after 6c, not by tuning this.
+
+### 6c re-derived: the 24 s was the instrument, not the foam (2026-08-13, late night)
+
+The cadence audit's "foam persists ~4× authored (Lagrangian e-fold 24 s vs
+τ = 6)" does not survive re-derivation. tSince resets every carrier period
+(~14 s), so no decay clock in the model can even EXPRESS a 24 s e-fold; and
+churning the aftermath noise lattices — the only other candidate carrier —
+left the Lagrangian correlation table bit-identical (0.92→0.69 over 6 s
+lags, before and after). What the advection-following tracker actually
+correlates is the band-scale foam structure riding the bore front, which
+takes ~57 s to cross the surf zone: a 17–24 s co-moving e-fold is the
+front's coherent lifetime. The quantity τ governs — the Eulerian tail after
+passage — measures 2.7–3.7 s against authored 5–6 s: at or below authored.
+No amount defect exists. (MEASUREMENT_LESSONS 8c family: the statistic's
+domain — what frame, what carrier — read before its value.)
+
+Kept from the investigation: the aftermath lattices (streaks, both lace
+octaves) now advect shoreward at 3.2 / 5.0 / 4.0 m/s instead of their old
+0.4–0.5 m/s sideways creep — the same live artifact class as the area
+boost's pre-fix texture ("foam coming from the wrong direction"). Advection
+re-measured healthy: +3.48 m/s shoreward vs shader front 3.09, linear
+across frame separations.
