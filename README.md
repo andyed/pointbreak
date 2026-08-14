@@ -125,7 +125,7 @@ Keys: `1`–`7` sites, `V` camera, `S` surfer, `C` cross-section, `M` audio,
 `,` `.` move the section transect, `space` pause, `H` hide panels.
 
 URL hash params drive the same build from outside:
-`#preset=firstpeak&cam=cliff&section=1&bed=plane&tide=-0.5&hud=0`. The full
+`#preset=firstpeak&cam=cliff&section=1&bed=plane&tide=-0.5&controls=1`. The full
 list — presets, condition days, quality tiers, and which flags are A/B reverts
 vs gated features — is in [docs/CONTROLS.md](docs/CONTROLS.md).
 

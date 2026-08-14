@@ -28,6 +28,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
+import { readHashParams, shouldShowControls, parseSpeedParam } from './url-params.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -52,7 +53,7 @@ let qualityIdx = 0;          // set from #q= below, else auto-tuned at runtime
 let qualityLocked = false;   // #q= pins the tier and disables auto-fallback
 let SEG_X = QUALITY_TIERS[0].segX, SEG_Z = QUALITY_TIERS[0].segZ;
 {   // parse #q= before the geometry is built; full hash parsing happens later
-  const q = new URLSearchParams(location.hash.replace(/^#/, '')).get('q');
+  const q = readHashParams().get('q');
   if (q) {
     const i = QUALITY_TIERS.findIndex((t) => t.name === q.toLowerCase());
     if (i >= 0) { qualityIdx = i; qualityLocked = true; SEG_X = QUALITY_TIERS[i].segX; SEG_Z = QUALITY_TIERS[i].segZ; }
@@ -1106,9 +1107,9 @@ function frame(now) {
 // So an essay can embed the same build framed several ways without shipping
 // several builds. Hash rather than query: no server round-trip, and it keeps
 // the deployed sim a pure static file.
-//   #preset=secondpeak&cam=cliff&shape=legacy&section=1&bed=plane&tide=-0.5&surfer=1&sim=42&hud=0
+//   #preset=secondpeak&cam=cliff&shape=legacy&section=1&bed=plane&tide=-0.5&surfer=1&sim=42&controls=0
 function applyHashParams() {
-  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const h = readHashParams();
   if (!h.toString()) return 0;
   // Track 1c'-c.3 reef-shape sweep (`#reefamp=`, `#reefflank=`). FIRST, before
   // the preset: applyPreset -> applyBed builds the reefed composite, so a shape
@@ -1161,7 +1162,6 @@ function applyHashParams() {
   if (h.get('bed') === 'reef') state.bedShape = 0;
   if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
   if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
-  if (h.get('hud') === '0') document.body.classList.add('hidepanel');
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
   if (h.has('h0')) {
@@ -1195,7 +1195,7 @@ function applyHashParams() {
   // a real direction knob needs the MODEL.md §2.4/§4.5 variable split first.
   // See docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md ("Direction in the
   // code") and TODO.md Track 3a (doc) / 3c (wiring, gated on Track 1).
-  if (h.has('speed')) state.speed = Math.min(Math.max(parseFloat(h.get('speed')) || 1, 0), 4);
+  if (h.has('speed')) state.speed = parseSpeedParam(h.get('speed'), state.speed);
   // modeled-domain matte defaults ON; #matte=0 is the A/B revert
   if (h.get('matte') === '0') uniforms.u_matte.value = 0;
   // 4a' whitewater-area coupling defaults ON; #wwarea=0 is the pre-fix A/B
@@ -1204,8 +1204,13 @@ function applyHashParams() {
   if (h.get('noclip') === '1') noclipEnabled = true;
   const camName = (h.get('cam') || '').toLowerCase();
   const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);
-  // Tour is the screensaver: chrome defaults OFF unless the hash asks for it.
-  if (camName === 'tour' && !h.has('hud')) document.body.classList.add('hidepanel');
+  // Tour is the screensaver: controls default OFF there, but an explicit
+  // controls=1 (or legacy hud=1) restores the same canonical app surface.
+  const controlsVisible = shouldShowControls(h, { tour: camName === 'tour' });
+  document.body.classList.toggle('hidepanel', !controlsVisible);
+  // URL-owned clean mode is intentionally not recoverable from inside the
+  // frame. The H shortcut still uses hidepanel alone and keeps Show controls.
+  document.body.classList.toggle('controls-disabled', !controlsVisible);
   applyCam(ci >= 0 ? ci : 0);
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }

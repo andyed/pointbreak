@@ -22,9 +22,8 @@
 //   2. `state.speed = 0` is then set through the debug hook, which zeroes the
 //      accumulation term at `main.js:820` while leaving `state.paused` false —
 //      so the surfer / tour / audio block at `main.js:926-997` still runs
-//      against the injected time. (`#speed=0` in the hash does NOT work:
-//      `parseFloat('0') || 1` at `main.js:1075` is a falsy-default trap and
-//      yields 1 — the repo-wide pattern noted in CLAUDE.md.)
+//      against the injected time. (`#speed=0` now freezes correctly, but this
+//      harness still owns time explicitly so every sampled frame is exact.)
 //   3. Each subsequent frame is `__pointbreak.setSim(t)` (`main.js:1108`)
 //      followed by two rAF ticks, so the render loop has copied simTime into
 //      `u_time` (`main.js:837`) and drawn before the screenshot.

@@ -5,7 +5,7 @@ early `#q=` read in `web-three/js/main.js`). Hash, not query — no server
 round-trip, so the deployed sim stays a pure static file. Combine with `&`:
 
 ```
-web-three/#preset=secondpeak&cam=cliff&tide=-0.5&sim=42&hud=0
+web-three/#preset=secondpeak&cam=cliff&tide=-0.5&sim=42&controls=0
 ```
 
 Two kinds of flag, named as such below: a **feature flag** gates work that is
@@ -26,10 +26,11 @@ it can be measured across a range; it defaults to the shipped value.
 | `bed` | `reef` `plane` `measured` | `reef` | seabed A/B: measured+synthetic reef / least-squares plane / measured only — the causal demo for the peel | control |
 | `surfer` | `1` / `0` | off | show the procedural rider | control |
 | `section` | `1` | off | cross-section chart overlay (section.js) | control |
-| `hud` | `0` | shown | hide panels (auto-hidden under `cam=tour` unless `hud` is given) | control |
+| `controls` | `1` / `0` | shown | explicitly show or hide the app bar, drawer, and reveal affordance; `1` overrides Tour's clean-screen default | control |
+| `hud` | `1` / `0` | shown | legacy alias for `controls`; retained for existing permalinks and captures | compatibility |
 | `audio` | `1` | off | arm procedural surf audio; starts on the first user gesture (browser policy) | control |
 | `sim` | seconds | 0 | seed the sim clock — deterministic captures (`sim=42` is the house probe clock) | instrument |
-| `speed` | 0–4 | 1 | sim time scale (0 freezes) | control |
+| `speed` | 0–4 | 1 | sim time scale (`0` freezes) | control |
 | `h0` | metres, clamped 0.4–3.0 | preset | override swell height | control |
 | `cam` | `free` `cliff` `lineup` `drone` `point` `follow` `tour` | `free` | camera preset; `tour` is the screensaver auto-cut | control |
 | `q` | `high` `medium` `low` `potato` | auto | pins the quality tier (grid density — the app is vertex-bound) and disables auto-fallback | control |
