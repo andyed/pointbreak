@@ -1298,3 +1298,65 @@ What "mellow down-point" means now that α no longer fakes it: sheltering.
 encodes the gradient dishonestly (Sewers 2.2 m → Privates 0.7 m as seven
 disconnected constants); the field version derives it from apex geometry so
 one swell produces the whole gradient.
+
+### The cadence audit, finally run (2026-08-13, evening) — Track 6
+
+The 260-frame temporal run had never been executed by anyone since the harness
+landed on 2026-08-11. It has now been run. Probe proved first, per
+MEASUREMENT_LESSONS: `--verify-clock` reports **mean |ΔLuma| 0.000/255, max
+0.0** between driven (`setSim`) and per-frame-reload capture at sim 200/202/214
+— the injected clock is bit-exact, so every number below is about the model,
+not the harness.
+
+**1. SET CADENCE — VERIFIED, the first temporal claim this model has ever
+passed.** Authored `1/dF` = 125.0 s. Measured over 518 s of sim at 2 s steps:
+set peak in the foam residual **120.5 s (r = 0.74)**, and independently in mean
+luma **120.8 s (r = 0.73)**. Two estimators, 3.6% low, agreeing to 0.3 s. Sets
+arrive when the model says they do.
+
+**2. GROUP SPEED IS 3.9× WRONG — M6 part 3, now measured in the time domain.**
+Authored `cg = LAM/2T` = 3.00 m/s against the physical `gT/4π` = 11.71 m/s, so
+the set band is 375 m where it should be 1464 m. This is the frozen-LAM defect
+(tests/dispersion.test.js) showing up as *rhythm*, not just steepness, and it
+is confirmed independently by the harness control: the measured cross-shore
+carrier phase speed is **6.18–6.64 m/s (R² 1.00)**, which matches
+`LAM/T = 6.00` and not `√(g·h_b) = 5.26`. The renderer is propagating a frozen
+90 m wave. M6 parts 1+3 now have a second, temporal argument.
+
+**3. THE PIXEL-SPACE α INSTRUMENT HAS NO LINE TO FIT — verdict withheld.**
+Across three rigs the measured peel came out 7.5° / 8.8° / 4.3° against a
+38° authored target and a `stageAlpha()` reading of 38° stage-median. Do NOT
+record any of those as "the measured peel". The reason they disagree is that
+the detector's per-column most-active bin **does not form a line**: it ranges
+over 378 m of cross-shore (z −147…231) and the break-line slope fit returns
+**R² = 0.00–0.05**. A slope fitted at R² = 0 is not a measurement of anything,
+and the number moving 2× with framing is the tell.
+
+Three candidate causes, NOT yet separated, and the next session should
+separate them before anyone acts on this:
+  (a) *the render doesn't express the peel* — the foam field is wide and
+      unattached enough that no coherent line survives to pixels (Track 5,
+      foam attachment, the standing "biggest visual gap");
+  (b) *the detector is captured by a brighter non-break feature* — swash, the
+      along-shore foam stripe the secondary estimator already warns about, or
+      lagoon chop outcompeting the break band in summed residual;
+  (c) *the 38° is real but invisible* — the baked line genuinely carries it
+      and a 378 m-wide activity field simply buries it.
+The cheap discriminator is to overlay the baked line (`lineProbe()`) on a
+captured frame and look: if the line is where the detector isn't, it is (b);
+if the line is where nothing is bright, it is (a). That is one capture, not a
+sweep. Note this is CONSISTENT with the 2026-08-11 audit's independent finding
+that authored α "collapses to ~8–10° visible crest angle" — two instruments now
+say the picture does not show the peel the geometry claims, which is a
+screensaver-mission problem (the wave is judged in 10 seconds of watching)
+whatever its cause.
+
+**4. FOAM PERSISTS ~4× LONGER THAN AUTHORED.** Authored τ = 6 s. Measured
+Eulerian decorrelation e-fold 3.5–3.7 s but **Lagrangian (advection-following)
+24.0 s**. Foam that is followed as it moves stays correlated four times longer
+than the authored decay. Shoreward advection measures 5.50 m/s against a shader
+front speed of 4.03 m/s. The linearity check (speed must agree across frame
+separations) reads 5.50 / 4.96 / 2.63 m/s at 1/2/4 dt in the cadence run — it
+degrades exactly where the Eulerian correlation has already died (0.08 at 8 s),
+so the 1 dt figure is the trustworthy one and the check is really telling us
+the sampling window, not a nonlinearity.

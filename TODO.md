@@ -39,10 +39,13 @@ reef-shape sweep" + `tests/peel-ceiling.test.js`.
       invariants clean, max raise 3.6 m — vs 2/6 @ 23.6° pre-retarget. Residual
       misses are now single-digit: Second Peak 35/41, Sharks 26/36 (were
       −38/−55 against the old targets). First Peak overshoots at 80 (55/50).
-- [ ] 1c'-c.9 SHELTERING `H_eff(u)` (in progress — the other half of the
-      retarget): mellow = smaller and weaker down-point, not slower-peeling.
-      MODEL.md §2.6.2, PP_MAP_GEOMETRY finding 2; replaces the per-spot card
-      H₀ fake with a field the model owns.
+- [x] 1c'-c.9 SHELTERING `H_eff(u)` LANDED 2026-08-13 (33c1443, deployed):
+      shelter(x) = exp(−(x−24)/1675), calibrated from the card bank's own H₀
+      gradient (r² 0.81), feeding shoaling + breaking gate + amplitude + foam
+      + the bake. `#shelter=0` reverts both sides. MODEL.md §2.6.7. Scored:
+      5/6 on target, mean |Δα| 3.3°; Second Peak H₀ swing 1.7° (<5° passes).
+      Open residue: Sharks 28/36 + its low-H₀ collapse, First Peak 55/50
+      overshoot at flank 80.
 
 ---
 
@@ -181,12 +184,9 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
         says "30 degrees is appropriate for beginners, 60 degrees is desirable
         for professional boardriders" — exactly INVERTED vs Hutt et al. 2001.
         Check which convention a source uses before citing its numbers.
-- [ ] 1c'-c.8 ADOPT flank 45→80 at the unchanged 3.2 m amplitude. Reframed by
-      c.6: it does not beat the ceiling, it gets spots UP TO it (sharks 11→35
-      against a 35 bound). Mean |Δα| 23.6°→15.5°, M&B relief band intact, all
-      M5 clamp invariants clean. Cheap and defensible; do it with c.7 so the
-      targets it is scored against are the corrected ones.
-- [ ] 1c'-c.9 THE HIGH-α MECHANISM, if ever wanted: not a steeper or wider
+- [x] 1c'-c.8 LANDED 2026-08-13 with the retarget (see NEXT UP above): flank
+      80 shipped at 3.2 m amp, scored against corrected targets.
+- [ ] 1c'-c.10 THE HIGH-α MECHANISM, if ever wanted: not a steeper or wider
       plane. Literature says high α comes from NONUNIFORM contours — a
       ROTATING strike plus focusing. Real designed reefs do this: Narrowneck's
       arms rotate 85° offshore → 65° inshore, the stated principle being to
@@ -289,6 +289,30 @@ No parity port. Consequences to carry honestly:
 
 ### Track 6 — instrumentation (cheap; start anytime — now the acceptance path
 ### since the twin instruments are deprecated)
+- [x] **CADENCE AUDIT RUN 2026-08-13** (first execution since the harness
+      landed; spec "The cadence audit, finally run"). Clock proved bit-exact
+      first (`--verify-clock`, mean |ΔLuma| 0.000). **Set cadence VERIFIED:
+      120.5 s foam-residual / 120.8 s mean-luma vs 125.0 s authored, two
+      estimators agreeing to 0.3 s.** Three defects surfaced, below.
+- [ ] 6a. GROUP SPEED 3.9× WRONG (measured): authored LAM/2T = 3.00 m/s vs
+      physical gT/4π = 11.71 m/s; set band 375 m where it should be 1464 m.
+      Control confirms it — measured carrier phase speed 6.18–6.64 m/s matches
+      LAM/T = 6.00, not √(g·h_b) = 5.26. **This is M6 parts 1+3**, now with a
+      temporal argument on top of the steepness one. Fix there, not here.
+- [ ] 6b. SEPARATE THE α DISAGREEMENT before acting on it. Pixel α reads
+      4.3–8.8° across rigs vs 38° authored / 38° stageAlpha, but the detector's
+      break-line fit is R² = 0.00–0.05 over a 378 m-wide activity band — it has
+      no line to fit, so none of those numbers is a measurement. Three
+      unseparated causes: (a) the render doesn't express the peel (Track 5 foam
+      attachment), (b) the detector is captured by a brighter non-break feature,
+      (c) 38° is real but buried. **Discriminator is ONE capture**: overlay
+      `lineProbe()` on a frame and look at where the baked line falls relative
+      to the bright bins. Consistent with the 2026-08-11 audit's independent
+      "α collapses to ~8–10° visible crest angle" — two instruments now say the
+      picture doesn't show the geometry's peel.
+- [ ] 6c. FOAM PERSISTS ~4× AUTHORED: Lagrangian e-fold 24.0 s vs authored
+      τ = 6 s (Eulerian 3.5–3.7 s). Advection 5.50 m/s vs 4.03 m/s shader front
+      speed. Feeds Track 5 foam work directly.
 - [ ] Temporal audit harness: N-frame captures → zipper speed vs Vp=c/sin α,
       set cadence (is the 3.4× group-speed error visible?), foam advection.
       The audit's biggest blind spot: every visual claim was one frozen frame.
