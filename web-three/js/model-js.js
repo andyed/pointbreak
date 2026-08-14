@@ -12,7 +12,7 @@
 // of the model uniforms: { T, H0, alphaRad, xi, sections, dF, chop, aframe,
 // geoMix, contourX2, contourX3, stageStart, stageEnd }.
 
-import { GAMMA } from './dispersion.js';   // one JS home for the physics constants
+import { GAMMA, G } from './dispersion.js';   // one JS home for the physics constants
 
 const PI  = Math.PI;
 // MODEL-TWIN: display wavelength, m. Exported as the ONE JS definition
@@ -135,7 +135,7 @@ export function reefWindow(x, P) {
 }
 
 function setEnv(s, t, P) {
-  const cg = 0.5 * LAM / P.T;                 // deep-water group speed = c/2
+  const cg = G * P.T / (4 * PI);   // physical deep-water cg — see GLSL setEnv
   return 0.5 + 0.5 * Math.cos(2 * PI * P.dF * (t - s / cg));
 }
 
@@ -157,9 +157,8 @@ export function oceanH(x, z, t, P) {
 
   const s     = rayS(x, z, P);
   // Crest phase follows rayPhase (shoals under P.phaseFn). setEnv stays on the
-  // metric ray coordinate: the GROUP envelope's cg = LAM/2T is still the frozen
-  // deep-water form in the shader too, so mirroring it here keeps the twin
-  // faithful. Moving the group speed is step 3's scope, not this one.
+  // metric ray coordinate but now runs the physical cg = gT/4pi, mirroring
+  // the shader (2026-08-13 group-speed unification).
   const theta = w * t - rayPhase(x, z, P);
   const env   = setEnv(s, t, P), env2 = env * env;
   const q     = 1.6 + 3.2 * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * P.xi);

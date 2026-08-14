@@ -480,9 +480,18 @@ float rayPhase(vec2 xz){
 // Takes the RAY coordinate, not z: sets are bands parallel to the crests, so
 // with an oblique swell they must arrive along the ray. Passing z made the
 // group fronts shore-parallel and out of step with the crests they envelope.
+// Group speed: the PHYSICAL deep-water cg = gT/4pi — the same authority the
+// shoaling path already uses (Green's law cg0, bed.js march, dispersion.js).
+// Until 2026-08-13 this was 0.5*LAM/T, i.e. cg = c/2 applied to the 90 m
+// DISPLAY wavelength of an already-shoaled swell — a speed no linear theory
+// assigns to this swell at any depth (deep-water L for T=14 s is ~306 m). The
+// cadence audit measured the consequence in the time domain: measured carrier
+// phase speed matched LAM/T while the set band ran 3.9x short (375 m vs
+// 1464 m), so sets crossed the stage at a crawl. The beat period 1/dF at a
+// fixed point is cg-independent — the VERIFIED 120.5 s cadence does not move.
+// JS twins: setEnv in model-js.js, the voice envelope in sound.js.
 float setEnv(float s, float t){
-  float c  = LAM/u_T;
-  float cg = 0.5*c;
+  float cg = G*u_T/(4.0*PI);
   return 0.5 + 0.5*cos(2.0*PI*u_dF*(t - s/cg));
 }
 
@@ -521,7 +530,7 @@ float setEnv(float s, float t){
 float setupPeakM(){ return 0.3*u_H0*u_depthMix; }
 
 float setupLiftM(vec2 xz, float t){
-  float cg = 0.5*LAM/u_T;                          // group speed, as in setEnv
+  float cg = G*u_T/(4.0*PI);                       // group speed, as in setEnv
   float ph = 2.0*PI*u_dF*(t - rayS(xz)/cg);        // set-envelope phase at this station
   // Lag in set-cycle radians: base ~0.9 rad (~24 s of a 167 s cycle) keeps the
   // water level trailing the set that raised it; the +0.8*sin(ph) swing holds

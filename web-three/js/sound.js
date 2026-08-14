@@ -18,7 +18,8 @@
 //      A limiter now sits before output.
 //   5. the underwater test was `camera.y < 1.0`. main.js already computes the
 //      real thing against the JS twin of the surface; it is passed in.
-import { breakLine, reefWindow, coastCurve, rayS, swellPhi, LAM } from './model-js.js';
+import { breakLine, reefWindow, coastCurve, rayS, rayPhase, swellPhi, LAM } from './model-js.js';
+import { G } from './dispersion.js';
 
 const VOICE_COUNT = 4;
 const BUFFER_SECONDS = 6;      // long enough that the loop is not audible
@@ -131,18 +132,73 @@ export function updateAudio(camera, t, P, camUnder = false) {
   const sp = Math.max(Math.sin(phi), 0.05), cp = Math.max(Math.cos(phi), 0.05);
   const xfoldCam = P.aframe >= 0.5 ? Math.abs(camX) : camX;
 
-  const nCam = Math.floor((w * t - k * rayS(camX, camZ, P)) / (2 * Math.PI));
+  // M6 part 3, step 3 (2026-08-13): the crest solve runs on rayPhase, the same
+  // injection contract as the rider (model-js m4RideSolve) — P.phaseFn when the
+  // Psi bake is live, the frozen-LAM plane wave otherwise. The legacy branch
+  // below is EXACTLY the old closed-form arithmetic (phase = k*S there, so the
+  // divisions cancel); the Psi branch has no closed form and inverts the phase
+  // numerically. Both inversions are monotone: phase increases shoreward in z
+  // (Psi is monotone non-decreasing, tests/dispersion.test.js) and the crest
+  // label increases down-point along the authored line.
+  const nCam = Math.floor((w * t - rayPhase(camX, camZ, P)) / (2 * Math.PI));
+
+  // Bisect rayPhase(camX, z) = target for z (crest's world z at the camera's
+  // station). Returns null when the crest is off the modeled span.
+  const solveZ = (target) => {
+    let lo = camZ - 600, hi = camZ + 400;
+    let flo = rayPhase(camX, lo, P) - target, fhi = rayPhase(camX, hi, P) - target;
+    if (!Number.isFinite(flo) || !Number.isFinite(fhi) || flo * fhi > 0) return null;
+    for (let i = 0; i < 40; i++) {
+      const mid = 0.5 * (lo + hi), f = rayPhase(camX, mid, P) - target;
+      if (flo * f <= 0) { hi = mid; fhi = f; } else { lo = mid; flo = f; }
+    }
+    return 0.5 * (lo + hi);
+  };
+  // Where the crest meets the authored break line: scan for a bracket of
+  // rayPhase(x, zb(x)) = target, then bisect. The zipper position.
+  const solveXZip = (target) => {
+    const xLo = (P.stageStart ?? -110), xHi = (P.stageEnd ?? 290);
+    const g = (x) => rayPhase(x, breakLine(x, P), P) - target;
+    let prevX = xLo, prevF = g(xLo);
+    for (let x = xLo + 8; x <= xHi + 8; x += 8) {
+      const xc = Math.min(x, xHi);
+      const f = g(xc);
+      if (Number.isFinite(prevF) && Number.isFinite(f) && prevF * f <= 0) {
+        let lo = prevX, hi = xc, flo = prevF;
+        for (let i = 0; i < 30; i++) {
+          const mid = 0.5 * (lo + hi), fm = g(mid);
+          if (flo * fm <= 0) hi = mid; else { lo = mid; flo = fm; }
+        }
+        return 0.5 * (lo + hi);
+      }
+      prevX = xc; prevF = f;
+      if (xc >= xHi) break;
+    }
+    return null;
+  };
 
   for (let i = 0; i < VOICE_COUNT; i++) {
     const n = nCam - 1 + i;
     const v = voices[i];
 
-    // this crest's world z at the CAMERA's station, solved in the contour frame
-    const sCrest = (w * t - 2 * Math.PI * n) / k;
-    const zCrest = (sCrest - xfoldCam * sp) / cp - cc;
-    // where this crest's zipper currently is along the shore (break line is
-    // contourZ = 0, so rayS reduces to x*sin(phi) there)
-    const xZip = sCrest / sp;
+    const target = w * t - 2 * Math.PI * n;
+    let zCrest, xZip;
+    if (P.phaseFn) {
+      zCrest = solveZ(target);
+      xZip = solveXZip(target);
+      if (zCrest === null || xZip === null) {
+        // crest off the modeled span: fade the voice rather than guessing
+        v.gain.gain.setTargetAtTime(0, audioCtx.currentTime, TIME_CONST);
+        continue;
+      }
+    } else {
+      // this crest's world z at the CAMERA's station, solved in the contour frame
+      const sCrest = target / k;
+      zCrest = (sCrest - xfoldCam * sp) / cp - cc;
+      // where this crest's zipper currently is along the shore (break line is
+      // contourZ = 0, so rayS reduces to x*sin(phi) there)
+      xZip = sCrest / sp;
+    }
 
     // Breaking state is evaluated at the CREST's own station, not the
     // camera's: on a peeling wave the break position slides along x, and
@@ -150,9 +206,13 @@ export function updateAudio(camera, t, P, camUnder = false) {
     const zb = breakLine(xZip, P);
     const brk = reefWindow(xZip, P) * smoothstep(-6, 14, zCrest - zb);
 
-    const cg = 0.5 * LAM / P.T;
-    // group envelope rides the RAY, same as setEnv() in the shared model
-    const env = 0.5 + 0.5 * Math.cos(2 * Math.PI * P.dF * (t - sCrest / cg));
+    // group envelope rides the metric RAY coordinate at the physical deep-water
+    // cg = gT/4pi, same as setEnv() in the shared model (2026-08-13
+    // unification). rayS(camX, zCrest) equals the legacy sCrest identically in
+    // the plane-wave branch, and stays the envelope's metric label under Psi.
+    const cg = G * P.T / (4 * Math.PI);
+    const sMetric = rayS(camX, zCrest, P);
+    const env = 0.5 + 0.5 * Math.cos(2 * Math.PI * P.dF * (t - sMetric / cg));
 
     // full 3-D distance: the along-shore term was missing, which made a crest
     // hundreds of metres up the point as loud as one directly in front
