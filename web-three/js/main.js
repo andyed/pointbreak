@@ -24,7 +24,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
          setReefNose, REEF_NOSE_FRAC_TUNED, bedElevBlended,
          setReefAmp, setReefFlank, getReefShape, reefAudit,
-         setShelter, getShelter } from './bed.js';
+         setShelter, getShelter, setDensityLine } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
@@ -1128,6 +1128,11 @@ function applyHashParams() {
     setShelter(on);
     uniforms.u_shelterMix.value = on ? 1 : 0;
   }
+  // `#dline=` feature flag: density-composite break line (Topanga method,
+  // bed.js densityCandidates). 1 = density peaks feed the anchor/continuity
+  // selection; 2 = the per-station density mode IS the line. Bake-side only;
+  // the bake cache key carries it, so no explicit invalidation is needed.
+  if (h.has('dline')) setDensityLine(parseInt(h.get('dline'), 10) || 0);
   const p = h.get('preset');
   if (p && PRESETS[p]) applyPreset(state, p);
   // No preset in the hash means applyPreset never re-ran applyBed, so the bed

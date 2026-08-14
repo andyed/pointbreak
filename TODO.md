@@ -186,6 +186,17 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
         Check which convention a source uses before citing its numbers.
 - [x] 1c'-c.8 LANDED 2026-08-13 with the retarget (see NEXT UP above): flank
       80 shipped at 3.2 m amp, scored against corrected targets.
+- [x] 1c'-c.11 DENSITY-COMPOSITE LINE MEASURED 2026-08-13 late night
+      (`#dline`, default OFF; spec "The density-composite line, measured").
+      The Topanga candidate for Sharks, run to a verdict: `dline=2` (density
+      mode IS the line) turns the low-H₀ chatter into ONE clean transition at
+      the physical bistability (H₀≈0.85) — the right form if flip-immunity is
+      ever wanted — but NO density form lifts Sharks' α (26–28 vs 36 in every
+      config; sub-0.85 collapse unchanged). The 28/36 gap is wedge saturation
+      at the Snell bound + the dead down-point third, NOT branch selection.
+      Selection-layer work is EXHAUSTED; what remains is c.10 (rotating
+      strike) or accepting the bound. `dline=1` (peaks + anchor selection)
+      falsified — the knife-edge moves into the anchor.
 - [ ] 1c'-c.10 THE HIGH-α MECHANISM, if ever wanted: not a steeper or wider
       plane. Literature says high α comes from NONUNIFORM contours — a
       ROTATING strike plus focusing. Real designed reefs do this: Narrowneck's

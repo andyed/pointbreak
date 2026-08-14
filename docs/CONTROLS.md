@@ -40,6 +40,7 @@ it can be measured across a range; it defaults to the shipped value.
 | `noclip` | `1` | off | disable the world-collision camera clamp (x-ray debugging) | debug |
 | `psi` | `0` | on | A/B revert: `0` = frozen-LAM plane wave instead of the baked Ψ shoaling phase field. Default ON since 2026-08-13 (M6p3 step 4) — rider and audio both solve in phase now | A/B revert |
 | `wwarea` | `0` | on | A/B revert: `0` = pre-4a′ foam (no re-breaking area boost). Default ON since 2026-08-13: whitewater scales with the broken area so tide legibility survives the foam gate; measured low/high bright-px ratio 1.80×→2.66× at L≥205 (physical band 1.93–4.95×) | A/B revert |
+| `dline` | `1` / `2` | off | feature flag: density-composite break line (Topanga method) — `1` = density peaks feed anchor/continuity (falsified: worse chatter), `2` = per-station density mode is the line (kills low-H₀ flip chatter at Sharks; costs ~2° α). Measured 2026-08-13, spec "The density-composite line" | feature flag |
 | `smooth` | `1` | off | feature flag: 90 m wave-scale break-line smoothing (kills A-frames, currently also the taxonomy) | feature flag |
 | `peeldir` | `1` | off | feature flag: direction-monotonicity constraint on the break line | feature flag |
 | `nose` | `1` or a float, clamped [0, 1.0] | off | feature flag: reef nose v2 — down-point taper of the uplift amplitude in stage fraction; `1` = the tuned 0.25, a float tunes it directly. Swept to the definitional bound 2026-08-13: the taper mechanism is EXHAUSTED, no fraction passes | feature flag |

@@ -821,6 +821,82 @@ function markBreakCrossings(spotName, x, opts) {
   return { crossings, fallback: last === null ? z0 : last };
 }
 
+// ---------- density-composite candidates (Topanga method, adapted) ----------
+// #dline=1. Integral's Topanga study (docs/research/TOPANGA_PEEL_ANGLE_2023.md)
+// builds its break line as a DENSITY COMPOSITE over 35 min of breaking waves
+// restricted to the top third of heights — structurally immune to the low-H0
+// branch flips this bake suffers (Sharks: 102.8 m of line for a 0.05 m H0
+// step at 0.85), because a branch that trips at ONE height contributes one
+// member's worth of density while the persistent branch accumulates across
+// the ensemble. Adapted to a static bake: crossings are collected over a
+// +/-15% effective-height ladder around H0 and kernel-smoothed into a
+// per-station density over z; the CANDIDATES handed to the existing
+// anchor/continuity selection are the density's local maxima instead of one
+// height's instantaneous crossings. This is NOT the falsified anchor band
+// (MEASUREMENT_LESSONS 8 corollary): that reranked one height's candidates
+// against a reference 40-191 m away; this changes what the candidates ARE,
+// and the selection still compares neighbourhood-local (previous station z).
+const DLINE_LADDER = [0.85, 0.90, 0.95, 1.00, 1.05, 1.10, 1.15];
+const DLINE_SIGMA_M = 6;
+// 0 off; 1 = density PEAKS as candidates for the existing anchor/continuity
+// selection; 2 = the line IS the per-station density MODE (argmax — the
+// literal Topanga reading, no anchor knife-edge; slew limit still applies).
+let densityLineOn = 0;
+export function setDensityLine(mode) { densityLineOn = Number(mode) || 0; }
+export function getDensityLine() { return densityLineOn; }
+
+function densityCandidates(spotName, x, opts) {
+  const { z0, z1 } = PP_DEPTH_DATA.grid;
+  const nBins = Math.floor((z1 - z0) / MARCH_DZ) + 1;
+  const dens = new Float32Array(nBins);
+  const falls = [];
+  let any = false;
+  for (const m of DLINE_LADDER) {
+    const r = markBreakCrossings(spotName, x, { ...opts, H0: opts.H0 * m });
+    falls.push(r.fallback);
+    for (const zc of r.crossings) {
+      any = true;
+      const c = (zc - z0) / MARCH_DZ;
+      const lo = Math.max(0, Math.ceil(c - (3 * DLINE_SIGMA_M) / MARCH_DZ));
+      const hi = Math.min(nBins - 1, Math.floor(c + (3 * DLINE_SIGMA_M) / MARCH_DZ));
+      for (let b = lo; b <= hi; b++) {
+        const d = ((b - c) * MARCH_DZ) / DLINE_SIGMA_M;
+        dens[b] += Math.exp(-0.5 * d * d);
+      }
+    }
+  }
+  falls.sort((a, b) => a - b);
+  const fallback = falls[Math.floor(falls.length / 2)];
+  if (!any) return { crossings: [], fallback };
+  // ABSOLUTE threshold, deliberately not relative-to-max: a peak backed by at
+  // least ~one ladder member (kernel apex = 1.0) is a real branch and must
+  // stay a candidate no matter how much density the OTHER branch accumulates.
+  // The first cut used 0.30*max and measured WORSE flips than instantaneous
+  // (Second Peak dzMax 15.6 -> 109.8 m): as H0 slid, the near branch fell
+  // below the moving threshold and VANISHED, forcing the jump this method
+  // exists to prevent. Candidate existence must not depend on the competition.
+  const thresh = 0.8;
+  const crossings = [];
+  let bestB = 1, bestD = -1;
+  for (let b = 1; b < nBins - 1; b++) {
+    if (dens[b] > bestD) { bestD = dens[b]; bestB = b; }
+    if (dens[b] >= thresh && dens[b] >= dens[b - 1] && dens[b] > dens[b + 1]) {
+      // parabolic sub-bin refinement so the 2 m march grid is not a floor on
+      // locus precision (same reason markBreak interpolates its crossing)
+      const d0 = dens[b - 1], d1 = dens[b], d2 = dens[b + 1];
+      const denom = d0 - 2 * d1 + d2;
+      const off = Math.abs(denom) > 1e-9 ? 0.5 * (d0 - d2) / denom : 0;
+      crossings.push(z0 + (b + Math.min(Math.max(off, -0.5), 0.5)) * MARCH_DZ);
+    }
+  }
+  // mode (dline=2): the densest bin, parabolic-refined — the line itself
+  const d0 = dens[Math.max(bestB - 1, 0)], d1 = dens[bestB], d2 = dens[Math.min(bestB + 1, nBins - 1)];
+  const denom = d0 - 2 * d1 + d2;
+  const off = Math.abs(denom) > 1e-9 ? Math.min(Math.max(0.5 * (d0 - d2) / denom, -0.5), 0.5) : 0;
+  const mode = z0 + (bestB + off) * MARCH_DZ;
+  return { crossings, fallback, mode };
+}
+
 // Returns { texture, x0, x1 } or null when the site has no bathymetry.
 export function bakeBreakLine(spotName, xRange, opts) {
   if (!spotName) return null;
@@ -831,7 +907,7 @@ export function bakeBreakLine(spotName, xRange, opts) {
   // `null` when peeldir is off, which is its own distinct cache state.
   const peelPhi = opts.peel ? opts.peel.phiRad : null;
   const key = [spotName, x0, x1, opts.H0, opts.T, opts.tide, opts.bedShape, peelPhi,
-               SHELTER_ON ? 'shel' : 'flat'].join('|');
+               SHELTER_ON ? 'shel' : 'flat', densityLineOn ? 'dens' + densityLineOn : 'inst'].join('|');
   if (breakTex && key === breakKey) return { texture: breakTex, x0, x1 };
 
   const rgba = new Uint8Array(BREAK_N * 4);
@@ -851,7 +927,9 @@ export function bakeBreakLine(spotName, xRange, opts) {
   const fit = opts.bedShape === 0 ? reefFitFor(spotName) : null;
   if (fit) {
     const all = [];
-    for (let i = 0; i < BREAK_N; i++) all.push(markBreakCrossings(spotName, xAtI(i), opts));
+    for (let i = 0; i < BREAK_N; i++)
+      all.push(densityLineOn ? densityCandidates(spotName, xAtI(i), opts)
+                             : markBreakCrossings(spotName, xAtI(i), opts));
     const tanB = Math.tan(fit.betaDeg * Math.PI / 180);
     const zcAt = (x) => fit.zRef + tanB * (x - 24);   // REEF_ANCHOR_X
     // anchor: the station nearest the wedge anchor that has any crossing
@@ -875,11 +953,18 @@ export function bakeBreakLine(spotName, xRange, opts) {
     // the spots that need help. That is the ROOT DEFECT restated: the reef does
     // not own the line, so a declaration phrased in the reef's terms has
     // nothing to select among. See WEB_THREE_SPEC "The anchor band, falsified".
-    breakArr[i0] = all[i0].crossings.length ? nearest(all[i0].crossings, zcAt(xAtI(i0))) : all[i0].fallback;
-    for (let i = i0 + 1; i < BREAK_N; i++)
-      breakArr[i] = all[i].crossings.length ? nearest(all[i].crossings, breakArr[i - 1]) : breakArr[i - 1];
-    for (let i = i0 - 1; i >= 0; i--)
-      breakArr[i] = all[i].crossings.length ? nearest(all[i].crossings, breakArr[i + 1]) : breakArr[i + 1];
+    if (densityLineOn === 2) {
+      // dline=2: the density MODE is the line — no anchor, no selection, so
+      // no knife-edge to flip. Persistence across the ladder is the authority.
+      for (let i = 0; i < BREAK_N; i++)
+        breakArr[i] = all[i].crossings.length ? all[i].mode : all[i].fallback;
+    } else {
+      breakArr[i0] = all[i0].crossings.length ? nearest(all[i0].crossings, zcAt(xAtI(i0))) : all[i0].fallback;
+      for (let i = i0 + 1; i < BREAK_N; i++)
+        breakArr[i] = all[i].crossings.length ? nearest(all[i].crossings, breakArr[i - 1]) : breakArr[i - 1];
+      for (let i = i0 - 1; i >= 0; i--)
+        breakArr[i] = all[i].crossings.length ? nearest(all[i].crossings, breakArr[i + 1]) : breakArr[i + 1];
+    }
   } else {
     for (let i = 0; i < BREAK_N; i++) breakArr[i] = markBreak(spotName, xAtI(i), opts);
   }

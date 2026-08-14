@@ -1480,3 +1480,43 @@ pinned `--rig=nadir` camera, which cannot feed back.
 
 α-neutrality: by construction — the change touches only foam accumulation;
 the bake, its cache key, and the height field are untouched.
+
+### The density-composite line, measured (2026-08-13, late night) — `#dline`
+
+The Topanga candidate (TOPANGA_PEEL_ANGLE_2023.md: break line = density
+composite over 35 min of breaking waves) adapted to the static bake: per
+station, criterion crossings are collected over a ±15% effective-height
+ladder (7 members) and kernel-smoothed (σ = 6 m) into a density over z.
+Two forms, both behind `#dline` (default OFF):
+
+- `dline=1` — density PEAKS feed the existing anchor/continuity selection.
+- `dline=2` — the per-station density MODE **is** the line (the literal
+  Topanga reading; no anchor, no selection knife-edge).
+
+Measured with measure_h0_swing.mjs (13 H₀ points/spot, 0.05 m steps):
+
+| config | Sharks aMed@card (36 target) | Sharks low-tail flips | Second Peak aMed@card (41) |
+|---|---|---|---|
+| baseline | 28.5 | chatter: fracBig 1.00 across 0.75–1.0, dzMax 50–100 m | 37.2 |
+| `dline=1` | 26.3 | WORSE — bistable chatter every step (79–113 m) | 38.0 |
+| `dline=2` | 26.2 | **one clean transition at 0.85** (110 m), fracBig ≤0.47 elsewhere | 36.9 |
+
+Verdicts, recorded so they are not re-derived:
+
+1. **dline=1 is falsified.** With candidates stabilized, the knife-edge moves
+   into selection-at-anchor: two comparable density peaks straddle the crest
+   reference and `nearest()` flips between them, continuity propagating the
+   flip line-wide. (An absolute existence threshold — 0.8, ~one ladder
+   member — was required first: the initial 0.30·max relative threshold let
+   the near branch VANISH when the far branch accumulated density, which is
+   the same jump the method exists to prevent.)
+2. **dline=2 does what Topanga's method actually promises**: chatter becomes
+   one clean transition at the physical bistability (H₀ ≈ 0.85 at Sharks,
+   where the ladder itself straddles the branch change). It is the right
+   form if flip-immunity is ever wanted as a default.
+3. **No density form lifts Sharks' α** — 26–28 stage-median vs 36 target in
+   every config, and the sub-0.85 collapse (aMed ~6) persists identically.
+   Consistent with the recorded Snell bound (~35° at Sharks' shelf) and the
+   dead down-point third: the 28/36 gap is wedge saturation, not branch
+   selection. The remaining candidates are the rotating-strike wedge
+   (1c'-c.10) or accepting the bound; selection-layer work is EXHAUSTED.
