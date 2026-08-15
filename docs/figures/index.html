@@ -25,7 +25,7 @@
 <meta property="og:site_name" content="Mind Bending Pixels">
 <meta property="og:url" content="https://mindbendingpixels.com/pleasurepoint/">
 <meta property="og:title" content="Modelling the waves at Pleasure Point &mdash; a first pass">
-<meta property="og:description" content="An early attempt at a computational model of the waves along Pleasure Point, a long point break in Santa Cruz. Built on OpenStreetMap coastline and NOAA NCEI seafloor survey data. The measurements are public; the model is a day old and unvalidated.">
+<meta property="og:description" content="An early attempt at a computational model of the waves along Pleasure Point, a long point break in Santa Cruz. Built on OpenStreetMap coastline and NOAA NCEI seafloor survey data. The measurements are public; the model is unvalidated.">
 <meta property="og:image" content="https://mindbendingpixels.com/pleasurepoint/og-card.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="2400">
@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="The measured Pleasure Point coastline with seven named surf breaks labelled by distance along the point, from Sewer Peak at 402 m to Private's at 1977 m, and an inset frame from the wave simulation showing a wave peeling along the point.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Modelling the waves at Pleasure Point &mdash; a first pass">
-<meta name="twitter:description" content="An early attempt at a computational model of the waves along Pleasure Point, a long point break in Santa Cruz. Built on OpenStreetMap coastline and NOAA NCEI seafloor survey data. The measurements are public; the model is a day old and unvalidated.">
+<meta name="twitter:description" content="An early attempt at a computational model of the waves along Pleasure Point, a long point break in Santa Cruz. Built on OpenStreetMap coastline and NOAA NCEI seafloor survey data. The measurements are public; the model is unvalidated.">
 <meta name="twitter:image" content="https://mindbendingpixels.com/pleasurepoint/og-card.png">
 <meta name="twitter:image:alt" content="The measured Pleasure Point coastline with seven named surf breaks labelled by distance along the point, and an inset frame from the wave simulation.">
 
@@ -446,7 +446,7 @@
       <a href="sim/web-three/#preset=firstpeak&amp;cam=cliff" target="_blank" rel="noopener">Open the full simulator &#8599;</a>
     </figcaption>
   </figure>
-  <p class="deck">A first pass, about a day old. Public coastline and seafloor survey data for a long point break on the east side of Santa Cruz, and a WebGL model that tries to turn that data into breaking waves. The measurements are solid. The model is a start.</p>
+  <p class="deck">A first pass. Public coastline and seafloor survey data for a long point break on the east side of Santa Cruz, and a WebGL model that tries to turn that data into breaking waves. The measurements are solid. The model is a start.</p>
   <p class="source-line">
     Source, data and build scripts:
     <a href="https://github.com/andyed/pointbreak" target="_blank" rel="noopener">github.com/andyed/pointbreak</a>
@@ -1109,6 +1109,71 @@ depth and exposure.</desc>
       <span class="mono">H = min(H<sub>0</sub>K<sub>s</sub>, &gamma;h)</span>
       with &gamma; &asymp; 0.78, and a shoreline wherever depth crosses zero.
       None of it has been checked against a measurement of this break.
+    </p>
+
+    <p class="prose">
+      What makes a point break tractable at all is that its defining motion is
+      geometric. The breakpoint &mdash; the spot where the wave is actively
+      folding over &mdash; travels along the crest at
+      <span class="mono">V<sub>p</sub> &asymp; c / sin(&alpha;)</span>,
+      where <span class="mono">c</span> is the wave speed and &alpha; is the
+      peel angle: the angle the advancing whitewater front makes with the
+      unbroken crest, in Walker&rsquo;s 1974 formalism. At
+      &alpha;&nbsp;&rarr;&nbsp;0 the whole line breaks at once &mdash; a
+      closeout, <span class="mono">V<sub>p</sub></span> unbounded. At
+      &alpha;&nbsp;=&nbsp;90&deg; the breakpoint moves at exactly wave speed,
+      the slowest peel there is. Every judgment on this page about
+      &ldquo;fast&rdquo; or &ldquo;mellow&rdquo; water is a statement about
+      that one angle.
+    </p>
+
+    <p class="prose">
+      Two more standard relations sit underneath. Dispersion sets the speed:
+      <span class="mono">&omega;&sup2; = gk&nbsp;tanh(kh)</span>, which in
+      shallow water collapses to
+      <span class="mono">c = &radic;(gh)</span> &mdash; waves slow as the
+      water thins, and the slowing is what makes them grow. And because speed
+      depends on depth, Snell&rsquo;s law
+      (<span class="mono">sin&theta;/c</span> constant) bends every crest
+      toward shallow water, so crests arrive nearly parallel to the depth
+      contours regardless of how they started. On a shelf tilted against the
+      swell, one end of every crest is always in shallower water than the
+      other: the break criterion is met at one end first, then progressively
+      along the line. That progression <em>is</em> the peel. The model&rsquo;s
+      job reduces to drawing its locus honestly.
+    </p>
+
+    <p class="prose">
+      At runtime none of this is solved as a fluid. The model bakes a break
+      line &mdash; the locus over the measured bed where shoaled height first
+      exceeds the depth ceiling &mdash; and every crest that crosses it
+      produces a traveling breakpoint with no per-wave state: green face
+      ahead of the crossing, an active pocket at it, decaying whitewater
+      behind. Whether that pocket spills or throws is a second, independent
+      knob: the Iribarren number
+      <span class="mono">&xi; = tan&beta; / &radic;(H/L&#8320;)</span>,
+      which depends on bottom slope, not peel angle &mdash; a wave can peel
+      slowly and still plunge. Sets come free from beating: two swell
+      components a few millihertz apart make a group envelope with period
+      <span class="mono">1/&Delta;f</span> &mdash; about 124&nbsp;s at the
+      settings here, measured in-app.
+    </p>
+
+    <p class="prose">
+      One editorial rule keeps the physics honest. The measured seafloor
+      decides where waves break, but 10&nbsp;m bathymetry carries
+      0.3&ndash;0.9&nbsp;m of survey residual, and on slopes this gentle
+      (1:58 at Second Peak) that noise displaces the break line by tens of
+      metres &mdash; enough to invent A-frames the real point does not have.
+      So each mapped site adds one declared component: a planar wedge in
+      Mead &amp; Black&rsquo;s (2001) taxonomy of surf-break bathymetry,
+      fitted toward that site&rsquo;s target character. The declaration is
+      bounded &mdash; the physics still proposes every candidate break
+      position; the wedge only chooses among them &mdash; and the plane
+      counterfactual below removes it along with every other bump. What the
+      model may author and what it must
+      derive is a recorded rule in the repository
+      (<span class="mono">MODEL.md &sect;4.5</span>), not a habit.
     </p>
 
     <p class="prose">
