@@ -239,6 +239,23 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
 - Acceptance is now visual AND measured: drone capture shows a single-takeoff
   zipper; α HUD swing < ~5° for ±0.3 m H₀; spots distinguishable by their
   SURF (pairwise-RMSE instrument from the audit), not just coastline.
+- [ ] HERO SCREENSAVER READ FAILED 2026-08-14 (10-second read of the hero
+      state, sewers/drone/sim=42, full 1000×750 frame — the OG capture's
+      source state). All four criteria fail:
+      (1) no single wave reads as the subject — 3–4 parallel foam stripes
+          read as static texture bands, nothing for the eye to land on;
+      (2) crash direction illegible — no fresh→decayed foam gradient along
+          any crest, no visible traveling breakpoint;
+      (3) no curl locatable at drone altitude — the bright mid-frame teal
+          band reads as shallows, not a wave face;
+      (4) terrain reads generic coast — no 110° point turn, no cliff line;
+          the kelp mottle reads as cloud shadow.
+      The contrast budget is spent on deep-water kelp mottle (upper half)
+      while the zipper is the least-differentiated stripe — the model knows
+      more than the image communicates. Levers: the map-view slice
+      (docs/MAP_VIEW_SPEC.md) as the place-identity layer, plus re-staging
+      the hero shot (camera, light, foam freshness gradient) rather than
+      more model tuning.
 - **DECIDED 2026-08-11 (Andy): Sewer Peak's A-frame is canon-true** — the
   guides call it a bowly A-frame with rideable lefts. "A-frames = 0" applies
   to every OTHER preset; at Sewers an interior takeoff with leftCrests ≥ 1 is
