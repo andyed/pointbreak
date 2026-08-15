@@ -563,7 +563,14 @@ function refreshHUD() {
       // down-point third.
       const sa = window.__pointbreak && window.__pointbreak.stageAlpha
         ? window.__pointbreak.stageAlpha() : null;
-      const stageTxt = sa ? ` · ${sa.median.toFixed(0)}° stage` : '';
+      // Report the limiter-cleaned median: pinned stations read the slew clamp
+      // (67-71 deg, physically impossible), and averaging them in overstated
+      // the stage on every spot. The excluded count stays visible so a pinned
+      // regime is never silently absorbed (TODO "BREAK-LINE V STILL PRESENT").
+      const stageTxt = sa
+        ? ` · ${(sa.medianClean ?? sa.median).toFixed(0)}° stage` +
+          (sa.pinnedN ? ` (${sa.pinnedN}/${sa.stations} pinned excl)` : '')
+        : '';
       hudAlpha.textContent = fit
         ? `α ${fit.targetDeg}° target · ${derived.toFixed(0)}° at x0${stageTxt} · reef synthetic`
         : `${derived.toFixed(0)}° at x0${stageTxt}`;
@@ -1314,18 +1321,32 @@ window.__pointbreak = {
     if (!lastBaked) return null;
     const P = modelP();
     const lo = (P.stageStart ?? -110) + 10, hi = (P.stageEnd ?? 290) - 10;
-    const xs = [], as = [];
+    const xs = [], as = [], zs = [];
     for (let x = lo; x <= hi; x += step) {
       xs.push(x);
+      zs.push(breakZAt(x, lastBaked.x0, lastBaked.x1));
       as.push(derivedAlphaDeg(x, lastBaked.x0, lastBaked.x1));
     }
     if (!as.length) return null;
+    // LIMITER-PINNED stations: the line is riding bakeBreakLine's
+    // SLEW_M_PER_M = 3.0 clamp (a branch teleport turned into a ramp), so
+    // derivedAlphaDeg there measures the limiter, not a wave — it reads
+    // 67-71 deg on every spot, above the local refraction ceiling. Threshold
+    // and backward-difference stencil mirror measure_alpha_regimes.mjs
+    // (SLEW_PINNED = 2.9). `median` stays all-stations for continuity with
+    // recorded ensemble/reef-shape sweeps; medianClean is the honest number.
+    const pinned = xs.map((x, i) =>
+      i > 0 && Math.abs((zs[i] - zs[i - 1]) / (xs[i] - xs[i - 1])) >= 2.9);
     const med = (v) => { const s = [...v].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
-    const inFit = as.filter((_, i) => Math.abs(xs[i]) <= 16);
-    const outFit = as.filter((_, i) => Math.abs(xs[i]) > 16);
+    const clean = as.filter((_, i) => !pinned[i]);
+    const inFit = as.filter((_, i) => Math.abs(xs[i]) <= 16 && !pinned[i]);
+    const outFit = as.filter((_, i) => Math.abs(xs[i]) > 16 && !pinned[i]);
     return {
       stageLo: lo, stageHi: hi,
       median: med(as),
+      medianClean: clean.length ? med(clean) : null,
+      pinnedN: pinned.filter(Boolean).length,
+      stations: as.length,
       inFit: inFit.length ? med(inFit) : null,
       outFit: outFit.length ? med(outFit) : null,
     };

@@ -113,7 +113,8 @@ for (const spot of SPOTS) {
       rows.push({ x: p.x, a: p.a, slope, hb, hs, ceil, lift: liftAtBreak });
     }
     return { spot, geo, T: card.T, H0: card.H0, target: card.alpha,
-      stageLo: st.stageLo, stageHi: st.stageHi, stageMed: st.median, rows };
+      stageLo: st.stageLo, stageHi: st.stageHi, stageMed: st.median,
+      stageMedClean: st.medianClean ?? null, stagePinnedN: st.pinnedN ?? null, rows };
   }, { spot, tide: TIDE, LIFT_EPS: 0.05, MARCH_MAX: 400 });
 
   if (r.error) { console.error(`${spot}: ${r.error}`); continue; }
@@ -125,7 +126,9 @@ for (const spot of SPOTS) {
   const headroom = med(onCeil.map((q) => q.ceil - q.a));
 
   console.log(`\n${r.spot}  T ${r.T}s  H0 ${r.H0}m  target ${r.target}  tide ${TIDE}  stage ${r.stageLo.toFixed(0)}..${r.stageHi.toFixed(0)} m`);
-  console.log(`  stageAlpha() median          ${f(r.stageMed)}   <- the acceptance instrument, all three regimes mixed`);
+  console.log(`  stageAlpha() median          ${f(r.stageMed)}   <- all three regimes mixed (kept for continuity with recorded sweeps)`);
+  if (r.stageMedClean !== null)
+    console.log(`  stageAlpha() medianClean     ${f(r.stageMedClean)}   <- limiter-pinned excluded in-app (${r.stagePinnedN} sta) — the HUD number`);
   console.log(`  LIMITER-PINNED  ${String(pinned.length).padStart(3)} sta  alpha ${f(med(pinned.map((q) => q.a)))}   (riding SLEW_M_PER_M — an artifact, not a peel)`);
   console.log(`  ON-REEF         ${String(onReef.length).padStart(3)} sta  alpha ${f(med(onReef.map((q) => q.a)))}   ceiling ${f(med(onCeil.map((q) => q.ceil)))}   headroom ${f(headroom)}`);
   console.log(`  OFF-REEF        ${String(offReef.length).padStart(3)} sta  alpha ${f(med(offReef.map((q) => q.a)))}   (bare DEM — the dead down-point third)`);
