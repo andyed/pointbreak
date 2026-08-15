@@ -727,7 +727,31 @@ precedent) — do not decide now.
       far more rigorous than the weekend drone footage, and it does not
       depend on the surf being good.
 
+## M7 — subsurface view (PROTOTYPED 2026-08-14, not scheduled)
+
+Two standalone mocks in `experiments/`, nothing wired into web-three. Full
+record, measured cost, and the port checklist: `docs/WEB_THREE_SPEC.md` "M7".
+Deliberately NOT jumping the queue ahead of the peel-angle retarget.
+
+- [x] Establish it needs no new physics — orbital ellipses, bed scour `u_b`,
+      and the flattening-with-depth read are all closed-form linear theory over
+      fields `dispersion.js`/`bed.js` already carry
+- [x] 2D cutaway (`experiments/aquarium-cutaway-mock.html`) — doubles as an
+      essay figure
+- [x] 3D lattice + underwater flight (`experiments/orbital-lattice-mock.html`)
+      — submersion atmosphere, bed-collision clamp verified
+- [x] Orbit rings BUILT, WATCHED, CUT — too dense to read; the moving dots
+      carry the depth story alone. Don't re-propose without reading M7 first.
+- [x] Cost measured with a real GPU timer query: submerged 0.51–0.96 ms GPU,
+      *cheaper* than the aerial view (the opaque bed occludes the transparent
+      surface). Dive is effectively free; the lattice is not the risk.
+- [ ] Port: swap the synthetic wedge for the augmented bed grid + the Ψ/Snell
+      bake (the mock hand-rolls a Snell invariant)
+- [ ] Re-read the "barrel-interior POV camera" out-of-scope line if this lands
+      — M7 is an instrument, not a hero camera, but it moves toward one
+
 ## Someday
-- [ ] Web explainer essay (zipper math, interactive)
+- [ ] Web explainer essay (zipper math, interactive) — the aquarium cutaway
+      (`experiments/aquarium-cutaway-mock.html`) is a ready figure for it
 - [ ] Psychodeli+ port: zipper as musical-phrase primitive
 - [ ] PointBreak.tox release on derivative.ca (needs the parked TD vehicle first)

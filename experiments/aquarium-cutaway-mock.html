@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aquarium Cutaway — mock</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #06101a; }
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  canvas { max-width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script>
+'use strict';
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+
+// ---------- world ----------
+const DOMAIN = 250;            // m cross-shore, offshore left -> shore right
+const T = 10;                  // s swell period
+const OMEGA = 2 * Math.PI / T;
+const G = 9.81;
+const GAMMA = 0.78;            // McCowan
+const H0 = 12.2, HMIN = 0.8;   // m depth range
+const A0 = 0.9;                // m amplitude at h = H0
+const TIMESCALE = 3;
+
+const hScale = (W - 80) / DOMAIN;      // px per m horizontal
+const vScale = 30;                     // px per m vertical (exaggerated)
+const orbScale = 11;                   // px per m for orbit ellipses (isotropic, shape-true)
+const X0 = 40;                         // left margin px
+const MSL_Y = 250;                     // px of z = 0
+
+const xPix = xm => X0 + xm * hScale;
+const zPix = zm => MSL_Y - zm * vScale;   // z up positive (m), MSL at 0
+
+// depth profile: planar-ish shelf + mild ridge (a "section" nod)
+function depth(xm) {
+  const t = Math.min(Math.max(xm / DOMAIN, 0), 1);
+  const ramp = t * t * (3 - 2 * t) * 0.72 + t * 0.28;  // eased + linear blend
+  let h = H0 - (H0 - HMIN) * ramp;
+  h -= 0.45 * Math.exp(-Math.pow((xm - 132) / 14, 2)); // ridge: shallower bump
+  return Math.max(h, HMIN * 0.7);
+}
+
+// dispersion: omega^2 = g k tanh(k h), Newton-free fixed point
+function solveK(h) {
+  let k = OMEGA * OMEGA / G;
+  for (let i = 0; i < 24; i++) k = OMEGA * OMEGA / (G * Math.tanh(k * h));
+  return k;
+}
+
+// ---------- precompute columns ----------
+const N = 500;
+const col = [];
+{
+  let phi = 0, xb = null;
+  for (let i = 0; i < N; i++) {
+    const xm = (i / (N - 1)) * DOMAIN;
+    const h = depth(xm);
+    const k = solveK(h);
+    if (i > 0) phi += k * (DOMAIN / (N - 1));
+    let A = A0 * Math.pow(H0 / h, 0.25);           // Green's law
+    const Hh = 2 * A / h;
+    const broken = Hh >= GAMMA;
+    if (broken && xb === null) xb = xm;
+    col.push({ xm, h, k, phi, A, Hh, broken });
+  }
+  col.xb = xb;
+  // beyond break: decay H toward 0.4 h (mock, outside linear theory)
+  for (let i = 0; i < N; i++) {
+    const c = col[i];
+    if (col.xb !== null && c.xm > col.xb) {
+      const d = (c.xm - col.xb) / 30;
+      const frac = GAMMA * Math.exp(-d) + 0.4 * (1 - Math.exp(-d));
+      c.A = frac * c.h / 2;
+    }
+  }
+}
+const XB = col.xb;   // break position, m
+
+function colAt(xm) {
+  const f = Math.min(Math.max(xm / DOMAIN, 0), 1) * (N - 1);
+  const i = Math.min(Math.floor(f), N - 2);
+  const t = f - i, a = col[i], b = col[i + 1];
+  return {
+    h: a.h + (b.h - a.h) * t, k: a.k + (b.k - a.k) * t,
+    phi: a.phi + (b.phi - a.phi) * t, A: a.A + (b.A - a.A) * t,
+    Hh: a.Hh + (b.Hh - a.Hh) * t, broken: a.xm > XB,
+  };
+}
+
+// sharpened crest: p=1 is exactly cos(theta); p>1 peaks crests
+function surfaceEta(c, theta) {
+  const s = Math.min(Math.max((c.Hh - 0.3) / (GAMMA - 0.3), 0), 1);
+  const p = 1 + 2.2 * s;
+  return c.A * (2 * Math.pow((1 + Math.cos(theta)) / 2, p) - 1);
+}
+
+// ---------- tracer layout ----------
+const tracers = [];
+for (let xm = 22; xm < (XB ?? DOMAIN) - 14; xm += 20) {
+  const h = depth(xm);
+  for (let z0 = -1.6; z0 > -h + 0.9; z0 -= 2.1) tracers.push({ xm, z0 });
+}
+
+// ---------- drawing ----------
+function surfacePath(t) {
+  const pts = [];
+  for (let i = 0; i < N; i += 2) {
+    const c = col[i];
+    const theta = c.phi - OMEGA * t;
+    let eta = surfaceEta(c, theta);
+    if (XB !== null && c.xm > XB) {
+      eta += 0.14 * Math.sin(c.xm * 2.1 + t * 9) + 0.09 * Math.sin(c.xm * 5.3 - t * 13);
+    }
+    pts.push([xPix(c.xm), zPix(eta)]);
+  }
+  return pts;
+}
+
+function draw(now) {
+  const t = (now / 1000) * TIMESCALE;
+  ctx.clearRect(0, 0, W, H);
+
+  // background sky/void
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#08131f'); bg.addColorStop(1, '#050d16');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  const surf = surfacePath(t);
+
+  // water column fill: surface down to bed
+  ctx.beginPath();
+  ctx.moveTo(surf[0][0], surf[0][1]);
+  for (const p of surf) ctx.lineTo(p[0], p[1]);
+  for (let i = N - 1; i >= 0; i -= 4) ctx.lineTo(xPix(col[i].xm), zPix(-col[i].h));
+  ctx.closePath();
+  const wg = ctx.createLinearGradient(0, MSL_Y - 40, 0, MSL_Y + 12.5 * vScale);
+  wg.addColorStop(0, 'rgba(22, 62, 84, 0.92)');
+  wg.addColorStop(1, 'rgba(8, 24, 38, 0.96)');
+  ctx.fillStyle = wg; ctx.fill();
+
+  // orbit guides + tracer dots
+  for (const tr of tracers) {
+    const c = colAt(tr.xm);
+    const kzh = c.k * (tr.z0 + c.h);
+    const sinhkh = Math.sinh(c.k * c.h);
+    const ah = c.A * Math.cosh(kzh) / sinhkh;
+    const av = c.A * Math.sinh(kzh) / sinhkh;
+    const cx = xPix(tr.xm), cy = zPix(tr.z0);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, Math.max(ah * orbScale, 0.5), Math.max(av * orbScale, 0.5), 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(122, 182, 208, 0.28)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    const theta = c.phi - OMEGA * t;
+    const dx = -ah * Math.sin(theta) * orbScale;
+    const dz = av * Math.cos(theta) * orbScale;
+    ctx.beginPath();
+    ctx.arc(cx + dx, cy - dz, 3.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#cfeeff';
+    ctx.fill();
+  }
+
+  // bed fill
+  ctx.beginPath();
+  ctx.moveTo(xPix(0), zPix(-col[0].h));
+  for (let i = 0; i < N; i += 2) ctx.lineTo(xPix(col[i].xm), zPix(-col[i].h));
+  ctx.lineTo(xPix(DOMAIN), H); ctx.lineTo(xPix(0), H); ctx.closePath();
+  ctx.fillStyle = '#241c12'; ctx.fill();
+  // mudstone strata hint
+  ctx.strokeStyle = 'rgba(150, 120, 80, 0.18)'; ctx.lineWidth = 1;
+  for (let s = 1; s <= 3; s++) {
+    ctx.beginPath();
+    for (let i = 0; i < N; i += 4) {
+      const y = zPix(-col[i].h) + s * 26 + 6 * Math.sin(col[i].xm * 0.09 + s);
+      i === 0 ? ctx.moveTo(xPix(col[i].xm), y) : ctx.lineTo(xPix(col[i].xm), y);
+    }
+    ctx.stroke();
+  }
+  // bed line
+  ctx.beginPath();
+  for (let i = 0; i < N; i += 2) {
+    const p = [xPix(col[i].xm), zPix(-col[i].h)];
+    i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]);
+  }
+  ctx.strokeStyle = '#6b543a'; ctx.lineWidth = 2; ctx.stroke();
+
+  // bed scour glow: u_b = A*omega/sinh(kh), pulsing under the crest
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 4; i < N - 4; i += 5) {
+    const c = col[i];
+    if (XB !== null && c.xm > XB + 25) continue;
+    const theta = c.phi - OMEGA * t;
+    const ub = c.A * OMEGA / Math.sinh(c.k * c.h);
+    const pulse = Math.max(Math.cos(theta), 0);          // strongest under crest
+    const inten = Math.min(ub / 2.2, 1) * (0.25 + 0.75 * pulse);
+    if (inten < 0.05) continue;
+    const gx = xPix(c.xm), gy = zPix(-c.h);
+    const r = 10 + 26 * inten;
+    const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, r);
+    g.addColorStop(0, `rgba(255, 172, 64, ${0.34 * inten})`);
+    g.addColorStop(1, 'rgba(255, 172, 64, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(gx, gy, r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // whitewater / foam beyond break (mock — outside linear theory)
+  if (XB !== null) {
+    ctx.save();
+    ctx.beginPath();
+    const i0 = Math.floor(XB / DOMAIN * (N - 1));
+    ctx.moveTo(xPix(XB), zPix(surfEtaAt(XB, t)));
+    for (let i = i0; i < N; i += 2) {
+      const c = col[i];
+      ctx.lineTo(xPix(c.xm), zPix(surfEtaAt(c.xm, t)));
+    }
+    for (let i = N - 1; i >= i0; i -= 4) {
+      const c = col[i];
+      ctx.lineTo(xPix(c.xm), zPix(surfEtaAt(c.xm, t) - Math.min(1.6, c.h * 0.6)));
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(225, 238, 245, 0.20)';
+    ctx.fill();
+    // foam flecks
+    for (let f = 0; f < 90; f++) {
+      const fx = XB + ((f * 37.7 + t * 6) % (DOMAIN - XB));
+      const c = colAt(fx);
+      const fy = surfEtaAt(fx, t) - (f % 7) * 0.16;
+      const a = 0.5 * (1 - (fx - XB) / (DOMAIN - XB));
+      ctx.fillStyle = `rgba(235, 245, 250, ${a})`;
+      ctx.beginPath();
+      ctx.arc(xPix(fx), zPix(fy), 1.6 + (f % 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // surface line (ahead of break: green face; behind: white)
+  ctx.beginPath();
+  for (let i = 0; i < surf.length; i++) {
+    i === 0 ? ctx.moveTo(surf[i][0], surf[i][1]) : ctx.lineTo(surf[i][0], surf[i][1]);
+  }
+  ctx.strokeStyle = '#7fd8e8'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // H/h fuse gauge strip
+  const gy0 = 118, gh = 12;
+  for (let i = 0; i < N; i += 2) {
+    const c = col[i];
+    const u = Math.min(c.Hh / GAMMA, 1);
+    const rC = Math.round(30 + 225 * u), gC = Math.round(80 + 92 * u), bC = Math.round(105 - 40 * u);
+    ctx.fillStyle = c.xm > XB ? '#eef4f8' : `rgb(${rC},${gC},${bC})`;
+    ctx.fillRect(xPix(c.xm), gy0, hScale * (DOMAIN / (N - 1)) * 2 + 1, gh);
+  }
+  ctx.fillStyle = '#d7e7f2'; ctx.font = '15px system-ui, sans-serif';
+  ctx.fillText('H/h fuse → 0.78', X0, gy0 + gh + 18);
+
+  // break marker
+  if (XB !== null) {
+    const bx = xPix(XB);
+    ctx.setLineDash([6, 6]);
+    ctx.strokeStyle = 'rgba(255, 217, 160, 0.8)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(bx, gy0); ctx.lineTo(bx, zPix(-depth(XB))); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ffd9a0'; ctx.font = 'bold 16px system-ui, sans-serif';
+    ctx.fillText('H/h ≈ 0.78 — zipper fires', bx - 218, gy0 + 34);
+  }
+
+  // ---------- labels ----------
+  ctx.fillStyle = '#eaf3fa'; ctx.font = 'bold 23px system-ui, sans-serif';
+  ctx.fillText('Aquarium cutaway — what the wave feels underwater (mock)', X0, 46);
+  ctx.fillStyle = '#b9d2e2'; ctx.font = '15px system-ui, sans-serif';
+  ctx.fillText('Pleasure Point cross-shore slice · offshore left → shore right · linear theory ahead of the zipper, mock foam behind', X0, 72);
+  ctx.fillText('h < L/2 everywhere in frame — the swell felt bottom long before this window', X0, 96);
+
+  // annotation: orbit flattening (deep column)
+  label('orbits flatten to sway at the bed', xPix(42) + 30, zPix(-depth(42)) - 46, xPix(42) + 12, zPix(-depth(42)) - 14);
+  // annotation: scour
+  label('bed scour  uᵇ = Aω / sinh(kh)', xPix(150), zPix(-depth(178)) + 66, xPix(178) - 6, zPix(-depth(178)) + 6, '#ffd9a0');
+  // annotation: whitewater
+  if (XB !== null) {
+    label('whitewater — outside linear theory', Math.min(xPix(XB) + 8, W - 300), zPix(1.8) - 26, Math.min(xPix(XB + 16), W - 60), zPix(surfEtaAt(XB + 16, t)) - 8);
+  }
+
+  // footer
+  ctx.fillStyle = '#a7c3d6'; ctx.font = '14px system-ui, sans-serif';
+  ctx.fillText('T = 10 s swell · h: 12 m → 0.8 m across 250 m · scene vertical ×6 exaggeration · orbit ellipses isotropic (shape true to kh) · time ×3', X0, H - 22);
+
+  requestAnimationFrame(draw);
+}
+
+function surfEtaAt(xm, t) {
+  const c = colAt(xm);
+  const theta = c.phi - OMEGA * t;
+  let eta = surfaceEta(c, theta);
+  if (XB !== null && xm > XB) {
+    eta += 0.14 * Math.sin(xm * 2.1 + t * 9) + 0.09 * Math.sin(xm * 5.3 - t * 13);
+  }
+  return eta;
+}
+
+function label(text, tx, ty, lx, ly, color) {
+  ctx.strokeStyle = 'rgba(185, 210, 226, 0.5)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(tx + 4, ty + 5); ctx.lineTo(lx, ly); ctx.stroke();
+  ctx.fillStyle = color || '#dcebf5'; ctx.font = '15px system-ui, sans-serif';
+  ctx.fillText(text, tx, ty);
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

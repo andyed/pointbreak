@@ -760,6 +760,137 @@ one piece here that cannot be verified by a number.
 - no NaN in the displaced mesh: `Q > 1` self-intersects by design, and the
   existing offset clamp and finite guards must still hold
 
+## M7 — the subsurface view (orbital field, scour, underwater flight)
+
+**Status: PROTOTYPED outside the renderer, 2026-08-14. Two standalone mocks in
+`experiments/`; nothing is wired into web-three yet. This section records what
+the prototypes established so the port does not re-derive it.**
+
+The premise is that this costs no new physics. MODEL.md §2 reduces the runtime
+to a kinematic zipper, but §1's justification — linear (Airy) theory over a
+shoaling bed — hands us the *entire* subsurface velocity field in closed form.
+Every quantity below is an evaluation of relations the renderer already carries
+in `dispersion.js` and `bed.js`, at points we currently never evaluate. Nothing
+is integrated, advected, or stepped.
+
+A water particle at rest depth `z` under a wave of amplitude `A` traces an
+ellipse with semi-axes
+
+    a_h = A · cosh(k(z+h)) / sinh(kh)      (horizontal)
+    a_v = A · sinh(k(z+h)) / sinh(kh)      (vertical)
+
+so `a_v → 0` at `z = −h`: orbits flatten with depth and degenerate to pure
+horizontal sway at the bed. The bed sway speed is
+
+    u_b = A·ω / sinh(kh)
+
+which is the physical scour variable — `shaders.js` already names it in a
+comment as "the physical scour variable anyway", so the idea was latent in the
+code before it was drawn.
+
+### What the two prototypes are
+
+- `experiments/aquarium-cutaway-mock.html` — 2D cross-shore slice, Canvas.
+  Water column over the bed, orbital ellipses shrinking with depth, an H/h fuse
+  strip burning toward 0.78, scour glow pulsing under each crest. Doubles as a
+  figure; published as a standalone artifact for the essay track.
+- `experiments/orbital-lattice-mock.html` — 3D, three.js, on the repo's own
+  vendored Three + OrbitControls. A plan grid of markers stacked down the water
+  column, refraction-rotated orbit planes, scour on the bed, submersion, and a
+  bed-collision clamp.
+
+Both use a synthetic wedge, **not** the measured DEM. That is the single
+biggest thing the port changes.
+
+### Three findings the port should inherit
+
+**1. Orbit rings were tried and rejected.** The first 3D pass drew each
+marker's orbit path as an instanced torus. At lattice density this reads as
+visual noise — the rings occlude each other and the field stops being legible.
+A distance-fade (rings materialize within ~50 m of the camera, so flying
+through the lattice discloses orbits locally) fixed the density but not the
+premise: the moving dot already tells the story, because a near-bed dot visibly
+sways side-to-side while a shallow one loops. **Rings are gone. Dots carry it.**
+If someone re-proposes rings, this is the record that they were built, watched,
+and cut.
+
+**2. Submersion has to change the world, or crossing the surface reads as a
+bug.** The blend is driven by the camera's depth below the *animated* surface
+height at its own (x,z) — not a flat z = 0 — and drives background colour, fog
+density (~4× underwater), and surface opacity (the interface must read solider
+from below, as a ceiling). Paired with a per-frame clamp holding the camera
+0.9 m above the local bed, so you cannot fly through the reef. Verified: a
+camera forced to y = −20 at a spot where the bed sits at −6.25 snapped to
+−5.35.
+
+**3. Whitewater must visibly opt out.** Linear theory is invalid behind the
+zipper. Markers past the break line lose coherent orbits and jitter as grey
+foam dots, and both mocks label the region "outside linear theory" on the
+canvas. This is the honesty rule from MODEL.md applied to a view that would
+otherwise be very easy to fake.
+
+### Measured cost — the dive is effectively free
+
+Profiled 2026-08-14 with `EXT_disjoint_timer_query_webgl2` on a 2560×1440
+buffer (DPR 2). A `performance.now()` around `renderer.render()` measures only
+command *submission* (a flat 0.3 ms here) and is worthless for this question —
+the real cost is GPU fill rate.
+
+| camera state | GPU median | JS median |
+|---|---|---|
+| aerial, whole domain in frame | 0.98 ms | 0.6 ms |
+| submerged, horizontal through the lattice | 0.51 ms | 0.4 ms |
+| submerged, looking up at the surface | 0.96 ms | 0.3 ms |
+
+Draw calls (5) and triangles (67,560) are identical in all three states —
+Three culls per object and every object intersects the frustum wherever you
+stand — so the only variable is rasterized fragments.
+
+**Underwater is cheaper than the aerial view.** The prediction going in was the
+opposite (that submersion would put the transparent surface full-screen and
+blow up overdraw). It does not: from inside the water looking horizontally the
+opaque bed fills the lower half and the surface is a thin band up top, which is
+*less* transparent overdraw than the aerial view where the surface spans nearly
+the whole frame. Craning upward recovers the aerial cost exactly. The
+transparent surface is the entire story; the bed conveniently occludes it.
+
+CPU is camera-independent by construction — the loops walk 8,181 surface
+vertices, 4,047 bed vertices and 198 markers regardless of view, ~40 ns per
+element. Scaling the lattice to 5,000 markers adds ~0.2 ms. **The lattice is
+not the thing to watch on port; the water shader's per-fragment cost is**,
+since fill rate is the only cost that moved and the mock's flat
+`MeshBasicMaterial` is far cheaper than the real surface.
+
+### Measurement caveat (cost me a wrong claim)
+
+The preview pane only runs `requestAnimationFrame` while it paints: a 3-second
+`wait` produced **zero** frames, and the profile had to be driven by screenshot
+bursts. The sting is that scene time comes from the rAF timestamp, so a single
+frame after a long gap renders a fully time-advanced state — an animation looks
+like it is running smoothly when it has rendered exactly once. Confirming
+"state changed" is not confirming "it animates". Same family as the hidden-tab
+rAF trap in the webgl live-app measurement notes.
+
+### What the port needs
+
+The marker logic is ~100 lines; the work is swapping the synthetic wedge for
+the real stage. Direct substitutions: the augmented bed grid via `bed.js`
+(which already owns the one augmentation surface, so no CPU/GPU twin appears),
+`dispersion.js` for `k`, `wavelengthAt`, and the Ψ/Snell refraction bake that
+the mock approximates with a hand-rolled Snell invariant, and the existing
+bilinear bed sampler for the collision clamp. Submersion needs surface height
+at the camera, which web-three already computes everywhere.
+
+### Tension with "out of scope", declared
+
+The next section lists **barrel-interior POV camera** as out of scope, and an
+underwater camera is adjacent to it. These are not the same thing: M7 is an
+explanatory instrument (what the wave is doing to the water column), not a hero
+camera inside the curl, and it does not require the barrel interior to be
+watertight. But it does move the renderer closer to a POV that the spec has
+deliberately declined, so if M7 lands, the out-of-scope line should be re-read
+rather than silently outgrown.
+
 ## Out of scope (unchanged from MODEL.md §5)
 
 Barrel-interior POV camera, true fluid sim, swash/kelp/cliff geometry (cliffs

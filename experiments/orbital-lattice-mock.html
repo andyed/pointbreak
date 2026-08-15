@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orbital Lattice — three.js layout mock</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #06121c; overflow: hidden; }
+  #hud {
+    position: fixed; top: 14px; left: 16px; max-width: 560px;
+    color: #e8f2fa; font: 14px/1.45 system-ui, sans-serif;
+    background: rgba(4, 12, 20, 0.78); border-radius: 8px; padding: 12px 16px;
+    pointer-events: none;
+  }
+  #hud h1 { font-size: 18px; margin: 0 0 6px; }
+  #hud .amber { color: #ffd9a0; }
+  #hud .dim { color: #b9d2e2; }
+  #foot {
+    position: fixed; bottom: 12px; left: 16px; right: 16px;
+    color: #b9d2e2; font: 13px system-ui, sans-serif;
+    background: rgba(4, 12, 20, 0.78); border-radius: 8px; padding: 8px 14px;
+    pointer-events: none;
+  }
+</style>
+<script type="importmap">
+{ "imports": { "three": "../web-three/vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="hud">
+  <h1>Orbital lattice — web-three layout mock</h1>
+  <div class="dim">Plan grid of orbital markers, stacked down the water column. Each dot rides its local orbit (shape true to kh): near-circles offshore, flattening to sway at the bed.</div>
+  <div class="dim">Orbit planes rotate with refraction (Snell, alongshore k conserved). <span class="amber">Amber bed tint = scour u<sub>b</sub> pulsing under each crest.</span> Gray markers past the diagonal break line: whitewater, outside linear theory.</div>
+  <div class="dim">Cross the surface and the atmosphere follows you down; you can&rsquo;t fly under the reef.</div>
+</div>
+<div id="foot">T = 10 s swell · planar wedge h ≈ 0.6 + 0.055·z + 0.010·x m (the tilt is the zipper) · scale 1:1, no exaggeration · drag to orbit, scroll to zoom — duck below the surface</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from '../web-three/vendor/OrbitControls.js';
+
+const G = 9.81, GAMMA = 0.78;
+const T = 10, OMEGA = 2 * Math.PI / T;
+const XMAX = 140, ZMAX = 180;      // m: x alongshore (peel +x), z cross-shore (shore z=0)
+const THETA0 = 25 * Math.PI / 180; // offshore approach angle off shore-normal
+const A0 = 1.0, H_REF = 12;        // amplitude at reference depth
+
+const depth = (x, z) => Math.max(0.6 + 0.055 * z + 0.010 * x, 0.45);
+function solveK(h) {
+  let k = OMEGA * OMEGA / G;
+  for (let i = 0; i < 24; i++) k = OMEGA * OMEGA / (G * Math.tanh(k * h));
+  return k;
+}
+const amp = h => A0 * Math.pow(H_REF / h, 0.25);      // Green's law
+// Snell invariant: alongshore wavenumber conserved
+const KX = solveK(depth(70, ZMAX)) * Math.sin(THETA0);
+const kzAt = (x, z) => {
+  const k = solveK(depth(x, z));
+  return Math.sqrt(Math.max(k * k - KX * KX, 1e-6));
+};
+
+// break depth: 2 A(h) / h = GAMMA, bisect once
+let hb;
+{
+  let lo = 0.5, hi = 12;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    (2 * amp(mid) / mid > GAMMA) ? lo = mid : hi = mid;
+  }
+  hb = (lo + hi) / 2;
+}
+const zBreak = x => (hb - 0.6 - 0.010 * x) / 0.055;   // diagonal break line
+
+// phase table: phi = KX*x + integral of kz from offshore edge shoreward
+const NXG = 36, NZG = 121;
+const phiGrid = [];
+for (let xi = 0; xi < NXG; xi++) {
+  const x = (xi / (NXG - 1)) * XMAX;
+  const colP = new Float32Array(NZG);
+  let acc = 0;
+  for (let zi = NZG - 1; zi >= 0; zi--) {
+    const z = (zi / (NZG - 1)) * ZMAX;
+    if (zi < NZG - 1) acc += kzAt(x, z + ZMAX / (NZG - 1) / 2) * (ZMAX / (NZG - 1));
+    colP[zi] = acc;
+  }
+  phiGrid.push(colP);
+}
+function phiAt(x, z) {
+  const fx = Math.min(Math.max(x / XMAX, 0), 1) * (NXG - 1);
+  const fz = Math.min(Math.max(z / ZMAX, 0), 1) * (NZG - 1);
+  const xi = Math.min(Math.floor(fx), NXG - 2), zi = Math.min(Math.floor(fz), NZG - 2);
+  const tx = fx - xi, tz = fz - zi;
+  const a = phiGrid[xi][zi] * (1 - tz) + phiGrid[xi][zi + 1] * tz;
+  const b = phiGrid[xi + 1][zi] * (1 - tz) + phiGrid[xi + 1][zi + 1] * tz;
+  return KX * x + (a * (1 - tx) + b * tx);
+}
+
+// ---------- scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07141f);
+scene.fog = new THREE.FogExp2(0x07141f, 0.003);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 900);
+camera.position.set(14, 42, 218);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(75, -7, 50);
+controls.update();
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- surface (precompute statics per vertex; only theta moves) ----------
+const SX = 100, SZ = 80;
+const surfGeo = new THREE.PlaneGeometry(XMAX, ZMAX, SX, SZ);
+surfGeo.rotateX(-Math.PI / 2);
+surfGeo.translate(XMAX / 2, 0, ZMAX / 2);
+const sPos = surfGeo.attributes.position;
+const sN = sPos.count;
+const sStat = { A: new Float32Array(sN), phi: new Float32Array(sN), p: new Float32Array(sN),
+                foam: new Float32Array(sN) };
+const sCol = new Float32Array(sN * 3);
+const cDeep = new THREE.Color(0x123a52), cFace = new THREE.Color(0x2f7d9a), cFoam = new THREE.Color(0xdfe9ef);
+for (let i = 0; i < sN; i++) {
+  const x = sPos.getX(i), z = sPos.getZ(i);
+  const h = depth(x, z), A = amp(h), Hh = 2 * A / h;
+  const zb = zBreak(x);
+  const broken = z < zb;
+  const decay = broken ? Math.exp(-(zb - z) / 22) : 1;
+  sStat.A[i] = broken ? (GAMMA * decay + 0.4 * (1 - decay)) * h / 2 : A;
+  sStat.phi[i] = phiAt(x, z);
+  const s = Math.min(Math.max((Hh - 0.3) / (GAMMA - 0.3), 0), 1);
+  sStat.p[i] = 1 + 2.2 * s;
+  sStat.foam[i] = broken ? 1 : 0;
+  const c = broken ? cFoam : cDeep.clone().lerp(cFace, Math.min(Math.max(1 - h / 12, 0), 1));
+  sCol[i * 3] = c.r; sCol[i * 3 + 1] = c.g; sCol[i * 3 + 2] = c.b;
+}
+surfGeo.setAttribute('color', new THREE.BufferAttribute(sCol, 3));
+const surf = new THREE.Mesh(surfGeo, new THREE.MeshBasicMaterial({
+  vertexColors: true, transparent: true, opacity: 0.34, side: THREE.DoubleSide, depthWrite: false,
+}));
+surf.renderOrder = 2;
+scene.add(surf);
+
+// ---------- bed (scour pulse per frame) ----------
+const BX = 70, BZ = 56;
+const bedGeo = new THREE.PlaneGeometry(XMAX, ZMAX, BX, BZ);
+bedGeo.rotateX(-Math.PI / 2);
+bedGeo.translate(XMAX / 2, 0, ZMAX / 2);
+const bPos = bedGeo.attributes.position;
+const bN = bPos.count;
+const bStat = { ub: new Float32Array(bN), phi: new Float32Array(bN) };
+const bCol = new Float32Array(bN * 3);
+const cBed = new THREE.Color(0x2a2117), cScour = new THREE.Color(0xd98a2e);
+for (let i = 0; i < bN; i++) {
+  const x = bPos.getX(i), z = bPos.getZ(i);
+  const h = depth(x, z), k = solveK(h);
+  bPos.setY(i, -h);
+  bStat.ub[i] = Math.min((amp(h) * OMEGA / Math.sinh(k * h)) / 3.6, 1);
+  bStat.phi[i] = phiAt(x, z);
+  bCol[i * 3] = cBed.r; bCol[i * 3 + 1] = cBed.g; bCol[i * 3 + 2] = cBed.b;
+}
+bedGeo.setAttribute('color', new THREE.BufferAttribute(bCol, 3));
+bedGeo.computeVertexNormals();
+const bed = new THREE.Mesh(bedGeo, new THREE.MeshBasicMaterial({ vertexColors: true }));
+scene.add(bed);
+
+// ---------- marker lattice: plan grid, stacked down the column ----------
+const markers = [];
+for (let x = 12; x <= XMAX - 8; x += 14) {
+  for (let z = 18; z <= ZMAX - 10; z += 16) {
+    const h = depth(x, z), k = solveK(h), A = amp(h);
+    const kz = kzAt(x, z);
+    const dir = new THREE.Vector3(KX / k, 0, -kz / k).normalize(); // refracted propagation
+    const broken = z < zBreak(x);
+    for (let y = -1.6; y > -h + 0.9; y -= 2.2) {
+      const kzh = k * (y + h), sinhkh = Math.sinh(k * h);
+      markers.push({
+        x, y, z, dir, broken, seed: Math.random() * 100,
+        ah: A * Math.cosh(kzh) / sinhkh,
+        av: A * Math.sinh(kzh) / sinhkh,
+        phi: phiAt(x, z),
+      });
+    }
+  }
+}
+const M = markers.length;
+
+// dots: instanced spheres riding the orbits
+const dotGeo = new THREE.SphereGeometry(0.30, 10, 8);
+const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const dots = new THREE.InstancedMesh(dotGeo, dotMat, M);
+const up = new THREE.Vector3(0, 1, 0);
+const m4 = new THREE.Matrix4();
+const vPos = new THREE.Vector3(), vScale = new THREE.Vector3();
+const cDot = new THREE.Color(0xcfeeff), cFoamDot = new THREE.Color(0x9aa4ac);
+for (let i = 0; i < M; i++) {
+  dots.setColorAt(i, markers[i].broken ? cFoamDot : cDot);
+}
+scene.add(dots);
+
+// break line: dashed amber along zBreak(x), floating just above the lip
+{
+  const pts = [];
+  for (let x = 0; x <= XMAX; x += 4) pts.push(new THREE.Vector3(x, 1.9, zBreak(x)));
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  const line = new THREE.Line(g, new THREE.LineDashedMaterial({
+    color: 0xffd9a0, dashSize: 3, gapSize: 2.2,
+  }));
+  line.computeLineDistances();
+  scene.add(line);
+}
+
+// ---------- animate ----------
+const IQ = new THREE.Quaternion();
+const skyBg = new THREE.Color(0x07141f), seaBg = new THREE.Color(0x04222e);
+function etaAt(x, z, t) {
+  const h = depth(x, z);
+  const zb = zBreak(x);
+  const A = z < zb ? 0.35 * h : amp(h);
+  return A * Math.cos(phiAt(x, z) - OMEGA * t);
+}
+// debug/profiling handle
+window.__mock = { camera, controls, renderer, scene, dots, surfGeo, bedGeo, markers, M, sN, bN,
+                  prof: { js: 0, sub: 0, frames: 0, jsTotal: 0 } };
+// GPU timing via EXT_disjoint_timer_query_webgl2: renderer.render() only SUBMITS
+// work, so a performance.now() around it measures driver overhead, not the GPU.
+// Underwater cost is fill-rate bound, which only this can see.
+const gl = renderer.getContext();
+const TQ = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+const P = window.__mock.prof;
+P.gpuAvail = !!TQ;
+let tq = null, tqPending = false;
+
+function frame(now) {
+  const tFrameStart = performance.now();
+  const t = (now / 1000) * 3;   // time x3
+
+  // submersion: blend atmosphere across the interface
+  const cp = camera.position;
+  const inDomain = cp.x > -10 && cp.x < XMAX + 10 && cp.z > -10 && cp.z < ZMAX + 10;
+  const etaCam = inDomain ? etaAt(cp.x, cp.z, t) : 0;
+  const sub = Math.min(Math.max((etaCam - cp.y) / 1.5, 0), 1);  // 0 above, 1 below
+  scene.background.lerpColors(skyBg, seaBg, sub);
+  scene.fog.color.copy(scene.background);
+  scene.fog.density = 0.003 + 0.011 * sub;
+  surf.material.opacity = 0.34 + 0.24 * sub;     // ceiling reads solider from below
+
+  // bed collision: never fly under the reef
+  if (inDomain) {
+    const floor = -depth(Math.min(Math.max(cp.x, 0), XMAX), Math.min(Math.max(cp.z, 0), ZMAX)) + 0.9;
+    if (cp.y < floor) cp.y = floor;
+  }
+
+
+  // surface: eta from precomputed statics
+  for (let i = 0; i < sN; i++) {
+    const th = sStat.phi[i] - OMEGA * t;
+    let eta = sStat.A[i] * (2 * Math.pow((1 + Math.cos(th)) / 2, sStat.p[i]) - 1);
+    if (sStat.foam[i]) eta += 0.15 * Math.sin(sPos.getX(i) * 1.7 + t * 8) * sStat.foam[i];
+    sPos.setY(i, eta);
+  }
+  sPos.needsUpdate = true;
+
+  // bed scour pulse under crests
+  for (let i = 0; i < bN; i++) {
+    const pulse = Math.max(Math.cos(bStat.phi[i] - OMEGA * t), 0);
+    const s = bStat.ub[i] * (0.06 + 0.94 * pulse * pulse);
+    bCol[i * 3]     = cBed.r + (cScour.r - cBed.r) * s;
+    bCol[i * 3 + 1] = cBed.g + (cScour.g - cBed.g) * s;
+    bCol[i * 3 + 2] = cBed.b + (cScour.b - cBed.b) * s;
+  }
+  bedGeo.attributes.color.needsUpdate = true;
+
+  // dots ride their orbits; foam dots jitter incoherently
+  for (let i = 0; i < M; i++) {
+    const mk = markers[i];
+    if (mk.broken) {
+      vPos.set(
+        mk.x + 0.5 * Math.sin(t * 2.1 + mk.seed),
+        mk.y + 0.4 * Math.sin(t * 3.3 + mk.seed * 2),
+        mk.z + 0.5 * Math.cos(t * 1.7 + mk.seed));
+    } else {
+      const th = mk.phi - OMEGA * t;
+      vPos.set(mk.x, mk.y, mk.z)
+        .addScaledVector(mk.dir, -mk.ah * Math.sin(th))
+        .addScaledVector(up, mk.av * Math.cos(th));
+    }
+    m4.compose(vPos, IQ, vScale.set(1, 1, 1));
+    dots.setMatrixAt(i, m4);
+  }
+  dots.instanceMatrix.needsUpdate = true;
+
+  controls.update();
+
+  const tSubmitStart = performance.now();
+  P.js = tSubmitStart - tFrameStart;          // CPU: all the per-vertex/marker loops
+
+  // harvest a completed GPU query before issuing the next
+  if (TQ && tqPending) {
+    const done = gl.getQueryParameter(tq, gl.QUERY_RESULT_AVAILABLE);
+    const disjoint = gl.getParameter(TQ.GPU_DISJOINT_EXT);
+    if (done || disjoint) {
+      if (done && !disjoint) P.gpu = gl.getQueryParameter(tq, gl.QUERY_RESULT) / 1e6; // ns -> ms
+      gl.deleteQuery(tq); tq = null; tqPending = false;
+    }
+  }
+  if (TQ && !tqPending) {
+    tq = gl.createQuery();
+    gl.beginQuery(TQ.TIME_ELAPSED_EXT, tq);
+  }
+
+  renderer.render(scene, camera);
+
+  if (TQ && !tqPending && tq) { gl.endQuery(TQ.TIME_ELAPSED_EXT); tqPending = true; }
+
+  P.submit = performance.now() - tSubmitStart;  // CPU-side draw submission only
+  P.sub = sub;
+  P.frames++;
+  P.jsTotal += P.js;
+  P.calls = renderer.info.render.calls;
+  P.tris = renderer.info.render.triangles;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
