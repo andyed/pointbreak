@@ -218,18 +218,29 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       Hutt et al. 2001 and Mead et al. 1997, no 1998. Verify before it is ever
       used to justify a shape change (§2.3 already had one unsourceable claim
       withdrawn on 2026-08-13).
-- [ ] BREAK-LINE V STILL PRESENT AT SHARKS (found 2026-08-14). Default
-      conditions, tide 0: the baked line runs at exactly the
-      `SLEW_M_PER_M = 3.0` clamp for 16 consecutive stations (x −86 → −54,
-      −6.00 m per 2 m step, a 100 m seaward excursion) and reverses at x −48.
-      `derivedAlphaDeg` reads 52–72° across it — 25–40° above the local
-      refraction ceiling, impossible for a planar component. This is the same
-      "100 m seaward V at Sharks" the V-fix part 3 comment (`bed.js`
-      bakeBreakLine, BRANCH FOLLOWING) names as the thing branch-following
-      cures, and branch-following IS active here. Never took, or regressed —
-      unknown. Every spot shows a pinned regime at 67–71°, so this is not
-      Sharks-only. Until it is fixed, α summaries must exclude pinned
-      stations.
+- [~] BREAK-LINE V AT SHARKS — CLASSIFIED, NOT YET RE-ROUTED (2026-08-14
+      evening). Two of three layers landed:
+      (1) INSTRUMENT: `stageAlpha()` excludes limiter-pinned stations
+          (6abfc57), matching measure_alpha_regimes' classification exactly
+          (15 stations at Sharks).
+      (2) RENDERER: SECTION-GAP semantics per the standing 4.5 call — the
+          bake flags pinned texels in the break texture's B channel
+          (feathered over ~3 texels; the binary flags stay in `gapArr` for
+          instruments via `breakGapAt`/lineProbe.gap), and `breakMask()` in
+          model-glsl withdraws the zipper's breaking claim there: no crash,
+          no zipper foam, the wave passes through unbroken. Depth's own
+          permission (`gate`) deliberately stands. `#gap=0` is the A/B
+          revert. Verified clock-pinned at sims 36/42/48: diffs confined to
+          the gap's screen band; 19 gap stations x −88 → −52 (the ±1-texel
+          endpoints widening is by design). MECHANISM, settled: across the
+          bare-DEM stretch the near branch has no crossing, so
+          nearest-to-previous teleports to the far branch and the slew clamp
+          rams the teleport into a 16-station ramp at exactly 3.0 m/m.
+      (3) OPEN — THE LINE ITSELF: the baked z still traces the V, so the
+          face field anchored to `z - zb` shows a faint seam across the gap.
+          Candidate: bridge zb linearly between gap endpoints for the
+          RENDER anchor only (instruments keep the honest V). Also still
+          open: whether reef EXTENT (c.4) removes the gap's cause outright.
 - [ ] 1c'-c.4 DEAD DOWN-POINT THIRD: still a judgement, not a measurement —
       real point breaks shut down on the inside. If it stays, record it in
       MODEL.md; likely resolves with c.3.

@@ -764,6 +764,10 @@ const MARCH_DZ = 2;
 // smoothing kernel the renderer uses is resolved in the fit too.
 const FIT_DENSE_DX = 10;
 let breakTex = null, breakKey = '', breakArr = new Float32Array(BREAK_N);
+// Per-texel section-gap flags (1 = limiter-pinned, rendered as NOT BREAKING).
+// Lives alongside breakArr under the same cache discipline: any key change
+// rebakes both, so the exported readbacks always match the live texture.
+let gapArr = new Uint8Array(BREAK_N);
 
 // Excess at a station: H0*Ks - gamma*h. Negative seaward of the break, positive
 // inside it; the break line is its zero crossing.
@@ -992,10 +996,38 @@ export function bakeBreakLine(spotName, xRange, opts) {
     for (let i = BREAK_N - 2; i >= 0; i--)
       breakArr[i] = Math.min(Math.max(breakArr[i], breakArr[i + 1] - maxStep), breakArr[i + 1] + maxStep);
   }
+  // ---------- SECTION GAP (2026-08-14 — the V, classified in-render) ----------
+  // Where the final line rides the slew clamp, the step between texels is a
+  // branch teleport turned into a ramp — a line-TRANSPORT artifact, not a
+  // breaking crest (derivedAlphaDeg reads 52-72 deg there, above the local
+  // refraction ceiling). MODEL.md 4.5 call: a steep line segment means NO
+  // BREAKING — the wave passes through unbroken, a section gap — rather than
+  // a wrapped crest. Threshold 2.9 mirrors measure_alpha_regimes.mjs /
+  // stageAlpha(): it catches the pinned run without catching an honest steep
+  // stretch (Privates' 70 deg target is tan(70) = 2.75). Both endpoints of a
+  // pinned step are flagged so the mask covers the whole ramp.
+  gapArr.fill(0);
+  {
+    const dxTex = (x1 - x0) / (BREAK_N - 1);
+    for (let i = 1; i < BREAK_N; i++)
+      if (Math.abs(breakArr[i] - breakArr[i - 1]) / dxTex >= 2.9) { gapArr[i] = 1; gapArr[i - 1] = 1; }
+  }
+  // Feather the mask over ~3 texels (~14 m on a 600 m bake): a 0/255 step
+  // interpolates across ONE texel and prints a razor vertical cut where the
+  // crash resumes — the same hard-edge artifact class as the Psi-freeze foam
+  // (2026-08-13). Distance transform, then a ramp: 0 inside the gap, full
+  // breaking 3 texels out. gapArr itself stays binary for the instruments.
+  const GAP_FEATHER_TEX = 3;
+  const gapDist = new Float32Array(BREAK_N).fill(BREAK_N);
+  for (let i = 0; i < BREAK_N; i++) if (gapArr[i]) gapDist[i] = 0;
+  for (let i = 1; i < BREAK_N; i++) gapDist[i] = Math.min(gapDist[i], gapDist[i - 1] + 1);
+  for (let i = BREAK_N - 2; i >= 0; i--) gapDist[i] = Math.min(gapDist[i], gapDist[i + 1] + 1);
   for (let i = 0; i < BREAK_N; i++) {
     const u = Math.min(Math.max((breakArr[i] - BREAK_Z_MIN) / (BREAK_Z_MAX - BREAK_Z_MIN), 0), 1);
     const q = Math.round(u * 65535);
-    rgba[i * 4] = (q >> 8) & 255; rgba[i * 4 + 1] = q & 255; rgba[i * 4 + 3] = 255;
+    rgba[i * 4] = (q >> 8) & 255; rgba[i * 4 + 1] = q & 255;
+    rgba[i * 4 + 2] = Math.round(Math.min(gapDist[i] / GAP_FEATHER_TEX, 1) * 255);
+    rgba[i * 4 + 3] = 255;
   }
   // ---------- DIRECTION: the declaration constrains the derivation ----------
   // MODEL.md 4.5. The site is a right. Depth proposes where the wave breaks;
@@ -1091,6 +1123,13 @@ export function derivedAlphaDeg(x, x0, x1) {
   const e = 3 * (x1 - x0) / BREAK_N;
   const dz = breakZAt(x + e, x0, x1) - breakZAt(x - e, x0, x1);
   return Math.abs(Math.atan2(dz, 2 * e) * 180 / Math.PI);
+}
+
+// Is this station inside a baked section gap? Nearest-texel readback of the
+// same flags the texture's B channel carries, for instruments (lineProbe).
+export function breakGapAt(x, x0, x1) {
+  const f = Math.min(Math.max((x - x0) / (x1 - x0), 0), 1) * (BREAK_N - 1);
+  return gapArr[Math.round(f)] === 1;
 }
 
 // ---------- refraction: Snell over the measured depth profile ----------

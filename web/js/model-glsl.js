@@ -55,6 +55,7 @@ uniform float u_rideOffset;
 // it replaces.
 uniform sampler2D u_breakTex;
 uniform float u_breakMix;   // 1 = emergent line, 0 = authored tan(alpha) line
+uniform float u_gapMask;    // 1 = honor baked section gaps, 0 = #gap=0 A/B revert
 uniform vec2 u_breakX;      // x range the texture spans
 uniform vec2 u_breakZ;      // decode window for z
 // Rider solved CPU-side against the same baked line and passed in: with an
@@ -251,6 +252,21 @@ float breakTexZ(float x){
   float za = mix(u_breakZ.x, u_breakZ.y, (a.r*255.0*256.0 + a.g*255.0)/65535.0);
   float zb = mix(u_breakZ.x, u_breakZ.y, (b.r*255.0*256.0 + b.g*255.0)/65535.0);
   return mix(za, zb, tf);
+}
+
+// SECTION GAP (2026-08-14). The bake flags limiter-pinned texels in the B
+// channel (0 = gap): there the drawn line is a branch teleport turned into a
+// ramp by the slew clamp — line transport, not a breaking crest — so the wave
+// must pass through UNBROKEN (MODEL.md 4.5: a steep line segment is a section
+// gap, not a wrapped crest). Returns 1.0 (breaking allowed) outside gaps, on
+// the authored-line fallback (u_breakMix 0), and under the #gap=0 A/B revert.
+float breakMask(float x){
+  float f = clamp((x - u_breakX.x)/max(u_breakX.y - u_breakX.x, 1e-3), 0.0, 1.0)*127.0;
+  int i = int(floor(f));
+  float tf = f - float(i);
+  float ma = texelFetch(u_breakTex, ivec2(min(i,127), 0), 0).b;
+  float mb = texelFetch(u_breakTex, ivec2(min(i+1,127), 0), 0).b;
+  return mix(1.0, mix(ma, mb, tf), u_gapMask*u_breakMix);
 }
 
 float breakLine(float x){
@@ -598,7 +614,9 @@ vec4 breakerLifecycleAtX(float x, float t){
   float frontSpeed = mix(2.4, 4.1, plunge);
   float frontZ = zb + frontSpeed*age;
   float env = setEnv(rayS(atBreak), t);
-  float activity = env*env*reefWindow(x);
+  // breakMask: no crash fires inside a section gap — the line there is a
+  // limiter artifact, and a crash anchored to it paints the V.
+  float activity = env*env*reefWindow(x)*breakMask(x);
   // The previous 0.68 s sigma made a 52 m First Peak impact head, while its
   // 0.55*T bore e-fold covered ~297 m: the head moved mathematically but the
   // whole line stayed white, so no crash ran down the wave. A narrow head plus
@@ -676,7 +694,10 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // needed twice below, and they are different claims: inside is whether the
   // wave has ARRIVED, reef is whether this station is on the shelf at all.
   float inside  = smoothstep(-6.0, 14.0, z - zb);
-  float brkZip  = inside * reef;
+  // breakMask withdraws the ZIPPER's claim inside a section gap (the line is
+  // a limiter artifact there); depth's own permission (gate below) stands.
+  float mask    = breakMask(x);
+  float brkZip  = inside * reef * mask;
   // Break where the shoaled wave exceeds what the depth can carry. Comparing
   // Hsh against the limit (rather than H/d against gamma) is the same McCowan
   // criterion but survives the cap above, which pins H/d at gamma everywhere
@@ -696,7 +717,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // inside factors out, so depth still decides whether it breaks and the
   // shore break outside the reef window survives (reef = 0, gate = 1), but
   // nothing breaks before the wave has reached the line.
-  brk           = mix(brkZip, inside*max(reef, gate), u_depthMix);
+  brk           = mix(brkZip, inside*max(reef*mask, gate), u_depthMix);
   float decay   = 1.0 - 0.68*brk;          // broken wave has dumped its energy
 
   // ---- the wave dies in the swash ----
