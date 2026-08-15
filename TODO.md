@@ -267,6 +267,16 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       (docs/MAP_VIEW_SPEC.md) as the place-identity layer, plus re-staging
       the hero shot (camera, light, foam freshness gradient) rather than
       more model tuning.
+      PARTIAL PROGRESS 2026-08-14 late (edf91ca, #head/#pock): line-attached
+      stripes now carry a comet gradient (bright down-point head, dissolving
+      tail — criterion 2 partially met) and the pocket footprint scales with
+      H_eff (criterion 3 mechanism landed, unverified at altitude). STILL
+      OPEN: (a) the INNER re-breaking stripes have no along-crest clock —
+      life.x anchors at the break line only — so they band uniformly and
+      dominate wide frames; per-stripe lifecycle is the next mechanism.
+      (b) kelp mottle still owns the upper-half contrast budget. (c) the 4a'
+      tide-area ratio (1.95x/2.17x) needs a capture_temporal re-measure
+      under the deeper aftermath aging before the next conditions claim.
 - **DECIDED 2026-08-11 (Andy): Sewer Peak's A-frame is canon-true** — the
   guides call it a bowly A-frame with rideable lefts. "A-frames = 0" applies
   to every OTHER preset; at Sewers an interior takeoff with leftCrests ≥ 1 is
