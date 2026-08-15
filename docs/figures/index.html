@@ -1398,12 +1398,17 @@ depth and exposure.</desc>
       if (e.isIntersecting) {
         var t = timers.get(f); if (t) { clearTimeout(t); timers.delete(f); }
         if (!f.getAttribute('src')) f.setAttribute('src', f.dataset.src);
+        f.style.visibility = '';
       } else if (f.getAttribute('src')) {
         timers.set(f, setTimeout(function () {
           var r = f.getBoundingClientRect();
           var near = r.bottom > -innerHeight && r.top < innerHeight * 2;
           if (!near) {
             setInteractive(f.closest('.sim-frame'), false);
+            // Hide before detaching: a src-less iframe paints WHITE
+            // (about:blank), not transparent, so the .sim-frame's dark
+            // ground never shows through. Measured 251.5 mean luminance.
+            f.style.visibility = 'hidden';
             f.removeAttribute('src');
           }
           timers.delete(f);
