@@ -689,9 +689,20 @@ void main() {
   // a comet, and the comet points the peel. Placed after the pocket floor:
   // at the live head lifeAge ~ 0 so the floor is never carved.
   float zbC = breakLine(xz.x);
-  float lifeAge = mod(wA*t - rayPhase(vec2(xz.x, zbC)), 2.0*PI)/wA;
+  vec4 lifeC = breakerLifecycleAtX(xz.x, t);
+  // SEAM DIRECTION (Andy, 2026-08-14 night): the first carve was a moving
+  // freshness window — its trailing edge chased the head at zipper speed, and
+  // the mod() reset re-brightened foam under the old bore before the new bore
+  // arrived, so seams crawled INWARD at the break edges where real broken
+  // boundaries spread outward and fade in place. Two changes: (1) foam
+  // shoreward of the current wave's bore front (lifeC.y) belongs to the
+  // PREVIOUS wave — age it one period older instead of letting the wrap
+  // repaint it; (2) tau 4->9 s and floor 0.30->0.45, so the tail dissolves in
+  // place instead of visibly translating.
+  float foamAge = mix(lifeC.x + u_T, lifeC.x,
+                      smoothstep(xz.y - 3.0, xz.y + 3.0, lifeC.y));
   float onStripe = exp(-pow((xz.y - zbC)/25.0, 2.0));
-  foamM *= mix(1.0, 0.30 + 0.70*exp(-lifeAge/4.0), onStripe*u_headRead);
+  foamM *= mix(1.0, 0.45 + 0.55*exp(-foamAge/9.0), onStripe*u_headRead);
 
   // ---- 1. detail spectrum: fragment-stage normal perturbation ----
   // damped where foam owns the surface and over the boil slick; wind chop
