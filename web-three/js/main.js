@@ -29,6 +29,8 @@ import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
 import { readHashParams, shouldShowControls, parseSpeedParam } from './url-params.js';
+import { create as createFisheyeMenu } from '../vendor/fisheye/fisheye-menu.js';
+import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -464,8 +466,8 @@ const hudAlpha = document.getElementById('hudAlpha');
 const hudXi = document.getElementById('hudXi');
 const hudLam = document.getElementById('hudLam');
 const hudSwell = document.getElementById('hudSwell');
-const topPreset = document.getElementById('topPreset');
-const topCam = document.getElementById('topCam');
+const topMenusEl = document.getElementById('topMenus');
+const topPaused = document.getElementById('topPaused');
 const siteControls = document.getElementById('siteControls');
 const cameraControls = document.getElementById('cameraControls');
 const menuToggle = document.getElementById('menuToggle');
@@ -483,10 +485,8 @@ const sectionPosition = document.getElementById('sectionPosition');
 const sectionPositionValue = document.getElementById('sectionPositionValue');
 
 function syncControlUI() {
-  if (topPreset) topPreset.textContent = state.paused
-    ? `${state.preset ? PRESETS[state.preset].label : 'Custom'} · paused`
-    : (state.preset ? PRESETS[state.preset].label : 'Custom');
-  if (topCam) topCam.textContent = CAM_PRESETS[camIdx].name;
+  syncTopMenus();
+  if (topPaused) topPaused.hidden = !state.paused;
 
   siteControls?.querySelectorAll('[data-preset]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.preset === state.preset));
@@ -823,6 +823,82 @@ let lastBaked = null;
 let psiPhaseFn = null;
 section.el.style.display = 'none';
 
+// ---------- appbar menus (break + camera) ----------
+// The location and camera readouts ARE the selectors: two fisheye menubar
+// items labelled with the current break and shot open their lists (vendored
+// fisheye-menu, Fitts's-law item sizing). The spot list is a 1-D map of the
+// point: items ordered by
+// down-point arclength uM, base height proportional to each spot's stage
+// window length (stageBoundsM[1] - stageBoundsM[0]; the windows tile the
+// coastline, so the proportions are the coastline's own). Private's preset
+// carries geoSpot null on purpose (no mapped reef), so menu geometry maps
+// preset -> profile name explicitly instead of reading state semantics.
+const SPOT_PROFILE_FOR_PRESET = { privates: "Private's" };
+const SPOT_MARK_RGB = [121, 220, 255];   // --accent: the active spot
+const SPOT_BLANK_RGB = [13, 20, 24];     // --panel: blank marker, keeps labels aligned
+
+let spotMenuData = null;
+let camMenuData = null;
+let topBarItems = [];
+
+function syncTopMenus() {
+  if (!spotMenuData) return;
+  const label = state.preset ? PRESETS[state.preset].label : 'Custom';
+  if (topBarItems[0] && topBarItems[0].textContent !== label) topBarItems[0].textContent = label;
+  // Panels are rebuilt from these arrays on every open; mutating swatches here
+  // is all it takes to move the active markers.
+  spotMenuData.children.forEach((child) => {
+    child.swatch = child.key === state.preset ? SPOT_MARK_RGB : SPOT_BLANK_RGB;
+  });
+  const camName = CAM_PRESETS[camIdx].name;
+  if (topBarItems[1] && topBarItems[1].textContent !== camName) topBarItems[1].textContent = camName;
+  camMenuData?.children.forEach((child) => {
+    child.swatch = child.camIdx === camIdx ? SPOT_MARK_RGB : SPOT_BLANK_RGB;
+  });
+}
+
+function initTopMenus() {
+  if (!topMenusEl) return;
+  const children = presetKeys.map((key) => {
+    const name = PRESETS[key].geoSpot ?? SPOT_PROFILE_FOR_PRESET[key];
+    const profile = name ? PP_GEO_DATA.profiles[name] : null;
+    const bounds = profile?.stageBoundsM;
+    return {
+      key,
+      label: PRESETS[key].label,
+      u: profile ? profile.uM : Infinity,
+      weight: bounds ? bounds[1] - bounds[0] : 0,
+    };
+  }).sort((a, b) => a.u - b.u);
+  // A spot with no profile still deserves a visible row: give it the mean
+  // length rather than letting weight 0 fall back to 1 (a sliver).
+  const known = children.filter((c) => c.weight > 0);
+  const meanLen = known.reduce((a, c) => a + c.weight, 0) / Math.max(known.length, 1);
+  children.forEach((c) => { if (!(c.weight > 0)) c.weight = meanLen || 1; });
+
+  spotMenuData = { label: 'Break', children };
+  camMenuData = {
+    label: 'Camera',
+    children: CAM_PRESETS.map((p, i) => ({ label: p.name, camIdx: i })),
+  };
+  createFisheyeMenu(topMenusEl, [spotMenuData, camMenuData], {
+    // Budget: 7 x 48 = 336 px. Proportional weights put the shortest window
+    // (First Peak, 132.6 m of coast) at ~22 px at rest — small but tappable,
+    // and fisheye growth on approach does the rest. The camera menu has no
+    // weights, so its seven rows sit uniformly at 48 px.
+    baseHeight: 48,
+    minHeight: 20,
+    fontMin: 13,
+    fontMax: 18,
+    onSelect: (item) => {
+      if (item.key) selectPreset(item.key);
+      else if (Number.isInteger(item.camIdx)) applyCam(item.camIdx);
+    },
+  });
+  topBarItems = Array.from(topMenusEl.querySelectorAll('.fisheye-menubar-item'));
+  syncTopMenus();
+}
+
 function initControlUI() {
   waveSizeControl.min = String(H0_DEF.min);
   waveSizeControl.max = String(H0_DEF.max);
@@ -892,6 +968,8 @@ function initControlUI() {
   waveSizeControl.addEventListener('input', () => setH0(waveSizeControl.value));
   tideControl.addEventListener('input', () => setTide(tideControl.value));
   sectionPosition.addEventListener('input', () => setSectionX(sectionPosition.value));
+
+  initTopMenus();
 
   menuToggle.addEventListener('click', () => {
     setMenuOpen(!document.body.classList.contains('menu-open'));

@@ -47,7 +47,8 @@ button { color: inherit; }
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
 }
 
-.brand { min-width: 0; display: flex; align-items: baseline; gap: 10px; }
+/* overflow hidden: a squeezed brand must clip, never paint over the menus */
+.brand { min-width: 0; display: flex; align-items: baseline; gap: 10px; overflow: hidden; }
 .brand-name { font-size: 16px; line-height: 1; font-weight: 760; letter-spacing: -0.025em; }
 .brand-place { color: var(--secondary); font-size: 13px; font-weight: 550; white-space: nowrap; }
 
@@ -294,13 +295,25 @@ body.controls-disabled .ui-reveal { display: none; }
     left: max(8px, env(safe-area-inset-left));
     right: max(8px, env(safe-area-inset-right));
     min-height: 52px;
-    grid-template-columns: minmax(0, 1fr) auto 44px;
+    /* Phones: the brand keeps its natural width and the MENUS become the
+       shrinkable column — the reverse of the desktop split. Bar-item labels
+       ellipsize under pressure instead of letting columns collide. */
+    grid-template-columns: auto minmax(0, 1fr) 44px;
     gap: 10px;
     padding-left: 12px;
   }
   .brand-place { display: none; }
-  .top-status { justify-content: flex-end; font-size: 12px; }
-  #topCam, .status-divider { display: none; }
+  .top-status { justify-content: flex-end; font-size: 12px; min-width: 0; }
+  .spot-menu { overflow: hidden; }
+  .spot-menu .fisheye-menubar { min-width: 0; font-size: 12px; }
+  .spot-menu .fisheye-menubar-item {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 8px 7px;
+  }
+  .top-paused { font-size: 10px; letter-spacing: 0.02em; }
   .control-drawer { width: min(390px, 100vw); }
   .drawer-scroll { padding-left: 18px; padding-right: 18px; }
   .section-panel { left: 8px; bottom: max(8px, env(safe-area-inset-bottom)); width: calc(100vw - 16px); height: min(190px, 32vh); }
@@ -313,3 +326,54 @@ body.controls-disabled .ui-reveal { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .drawer-backdrop, .control-drawer { transition-duration: 1ms; }
 }
+
+/* ── Appbar spot menu (vendored fisheye-menu) ─────────────────────
+   Contrast, computed on solid pairs (8:1 project floor):
+   accent #79dcff on panel #0d1418        11.94:1  [bar item, active mark]
+   ink #f4f7f8 on panel #0d1418           17.26:1  [menu items]
+   panel #0d1418 on accent #79dcff        11.94:1  [item hover]
+   accent #79dcff on #1c2a31               9.47:1  [bar item hover]
+   secondary #c8d2d7 on panel #0d1418     12.08:1  [paused badge] */
+:root {
+  --fisheye-bar-bg: transparent;
+  --fisheye-bar-border: transparent;
+  --fisheye-bar-text: var(--accent);
+  --fisheye-bar-hover-bg: #1c2a31;
+  --fisheye-bar-hover-text: var(--accent);
+  --fisheye-panel-bg: var(--panel);
+  --fisheye-panel-border: var(--line);
+  --fisheye-panel-shadow: rgba(0, 0, 0, 0.45);
+  --fisheye-item-text: var(--ink);
+  --fisheye-item-hover-bg: var(--accent);
+  --fisheye-item-hover-text: var(--panel);
+  --fisheye-item-trigger-bg: #1c2a31;
+  --fisheye-separator-color: var(--line);
+  --fisheye-focus-ring: var(--focus);
+  --fisheye-swatch-border: transparent;
+}
+
+.spot-menu { min-width: 0; }
+.spot-menu .fisheye-menubar {
+  background: transparent;
+  border-bottom: 0;
+  height: auto;
+  font-size: 13px;
+  font-weight: 650;
+}
+.spot-menu .fisheye-menubar-item {
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* Dropdown affordance; decorative, exempt from the text floor. */
+.spot-menu .fisheye-menubar-item::after { content: " \25BE"; font-size: 11px; }
+
+.top-paused {
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.spot-menu .fisheye-menubar { gap: 4px; }

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pointbreak — Pleasure Point wave model</title>
+<link rel="stylesheet" href="vendor/fisheye/fisheye-menu.css">
 <link rel="stylesheet" href="css/style.css">
 <!-- import map so OrbitControls' bare `import ... from 'three'` resolves to
      the vendored module (same pinned release; see vendor/VENDOR.md) -->
@@ -20,10 +21,9 @@
     <span class="brand-name">pointbreak</span>
     <span class="brand-place">Pleasure Point wave model</span>
   </div>
-  <div class="top-status" aria-live="polite">
-    <span id="topPreset">—</span>
-    <span class="status-divider" aria-hidden="true"></span>
-    <span id="topCam">—</span>
+  <div class="top-status">
+    <nav id="topMenus" class="spot-menu" aria-label="Surf break and camera"></nav>
+    <span id="topPaused" class="top-paused" hidden>paused</span>
   </div>
   <button id="menuToggle" class="icon-button menu-toggle" type="button"
           aria-label="Open controls" aria-controls="controlDrawer" aria-expanded="false">
