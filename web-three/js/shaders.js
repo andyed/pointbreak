@@ -665,13 +665,33 @@ void main() {
   float erAmp  = mix(0.50, 0.18, ageK);
   float hiEdge = mix(0.75, 1.10, ageK);
   foamM = smoothstep(0.15, hiEdge, foamM + (er - 0.5)*erAmp);
-  foamM *= mix(1.0, 0.70, ageK);   // aftermath never saturates: filmy, not plates
+  // aftermath never saturates: filmy, not plates. With #head the aged film
+  // thins further still — the between-stripe aftermath is where the hero
+  // read's contrast budget was leaking (this does NOT touch the stripes:
+  // they ride their crests and are tSince-fresh by construction, which is
+  // why an ageK carve alone measured near-null — see the comet carve below).
+  foamM *= mix(1.0, mix(0.70, 0.50, u_headRead), ageK);
   // Track 5 attachment: the zipper's active break is ALWAYS whitewater — the
   // pocket gets a foam floor the erosion cannot carve away, so the head at
   // the line never renders dimmer than its own trailing bore. vPocket is
   // env^2-gated in the model, so lulls stay dark and this cannot paint a
   // standing white stripe on the line.
   foamM = max(foamM, u_crestRead * 0.72 * clamp(vPocket*1.5, 0.0, 1.0));
+  // COMET CARVE (2026-08-14, #head=0 A/B): direction from altitude. The
+  // line-attached stripe's whitewater encodes when the zipper passed each
+  // station (age since this column's crest crossed the line), but the foam
+  // threshold above re-saturates any dense mask to the same white, so the
+  // gradient never reached the pixels — the hero read saw static chalk.
+  // Post-threshold multiplicative carve on the ZIPPER clock, confined to
+  // ~25 m of the line (the same attachment discipline as freshCore: inner
+  // re-breaking stripes are untouched): the stripe's old end dissolves to
+  // ~30% while the live breakpoint stays at full white — each stripe becomes
+  // a comet, and the comet points the peel. Placed after the pocket floor:
+  // at the live head lifeAge ~ 0 so the floor is never carved.
+  float zbC = breakLine(xz.x);
+  float lifeAge = mod(wA*t - rayPhase(vec2(xz.x, zbC)), 2.0*PI)/wA;
+  float onStripe = exp(-pow((xz.y - zbC)/25.0, 2.0));
+  foamM *= mix(1.0, 0.30 + 0.70*exp(-lifeAge/4.0), onStripe*u_headRead);
 
   // ---- 1. detail spectrum: fragment-stage normal perturbation ----
   // damped where foam owns the surface and over the boil slick; wind chop
@@ -870,7 +890,9 @@ void main() {
                   * max(nearLine, clamp(vPocket*1.4, 0.0, 1.0));
   foamCol = mix(foamCol, vec3(1.0), 0.6*freshCore);
   vec3 filmCol = mix(base, vec3(0.60, 0.68, 0.70), 0.6);
-  foamCol = mix(foamCol, filmCol, 0.55*ageK);
+  // deeper film with #head: the aged tail grades toward water so the fresh
+  // head owns the stripe's brightness (comet read, same A/B as the tail carve)
+  foamCol = mix(foamCol, filmCol, (0.55 + 0.13*u_headRead)*ageK);
   col = mix(col, foamCol, clamp(foamM*mix(1.15, 0.90, ageK), 0.0, 0.97));
 
   // swash-band blend into the fragment-exact land colour computed above:

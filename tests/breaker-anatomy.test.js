@@ -31,7 +31,10 @@ test('breaker consequences share one canonical lifecycle clock', () => {
 });
 
 test('structural pocket is compact and legacy remains reversible', () => {
-  assert.match(model, /2\.0\*7\.5\*7\.5/);
+  // 7.5 m compact bell, now scaled by pockS (H_eff footprint coupling,
+  // 2026-08-14): factor 1.0 at the 1.5 m model-card day keeps compactness.
+  assert.match(model, /2\.0\*\(7\.5\*pockS\)\*\(7\.5\*pockS\)/);
+  assert.match(model, /clamp\(u_H0\*shelterAt\(x\)\/1\.5, 0\.70, 1\.50\), u_depthMix\*u_pockSize/);
   assert.match(model, /mix\(pocketLegacy, pocketCompact, clamp\(u_breakShape/);
   assert.match(main, /h\.get\('shape'\) === 'legacy'/);
   assert.match(main, /setBreakerShape/);

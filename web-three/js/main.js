@@ -163,6 +163,8 @@ const uniforms = {
   u_rideOffset: { value: 0 },
   u_breakTex:   { value: EMPTY_BED },
   u_gapMask:    { value: 1 },   // section-gap masking ON; #gap=0 is the A/B revert
+  u_headRead:   { value: 1 },   // comet-head whitewater aging ON; #head=0 is the A/B revert
+  u_pockSize:   { value: 1 },   // pocket footprint ~ H_eff ON; #pock=0 is the A/B revert
   u_breakMix:   { value: 0 },
   u_breakX:     { value: new THREE.Vector2(-300, 300) },
   u_breakZ:     { value: new THREE.Vector2(BREAK_Z_MIN, BREAK_Z_MAX) },
@@ -1218,6 +1220,10 @@ function applyHashParams() {
   if (h.get('noclip') === '1') noclipEnabled = true;
   // section-gap masking defaults ON; #gap=0 is the pre-fix A/B (the V returns)
   if (h.get('gap') === '0') uniforms.u_gapMask.value = 0;
+  // comet-head whitewater aging defaults ON; #head=0 is the pre-fix A/B
+  if (h.get('head') === '0') uniforms.u_headRead.value = 0;
+  // pocket-footprint size coupling defaults ON; #pock=0 is the pre-fix A/B
+  if (h.get('pock') === '0') uniforms.u_pockSize.value = 0;
   const camName = (h.get('cam') || '').toLowerCase();
   const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);
   // Tour is the screensaver: controls default OFF there, but an explicit

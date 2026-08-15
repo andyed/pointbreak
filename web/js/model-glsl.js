@@ -56,6 +56,8 @@ uniform float u_rideOffset;
 uniform sampler2D u_breakTex;
 uniform float u_breakMix;   // 1 = emergent line, 0 = authored tan(alpha) line
 uniform float u_gapMask;    // 1 = honor baked section gaps, 0 = #gap=0 A/B revert
+uniform float u_headRead;   // 1 = comet-head whitewater aging, 0 = #head=0 A/B revert
+uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
 uniform vec2 u_breakX;      // x range the texture spans
 uniform vec2 u_breakZ;      // decode window for z
 // Rider solved CPU-side against the same baked line and passed in: with an
@@ -776,8 +778,16 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // mode contracts it to a few posts so the face/lip transition has a visible
   // hinge rather than a broad cosmetic glow.
   float crestNear = smoothstep(0.55, 0.98, cos(theta));
-  float pocketLegacy = exp(-(d*d)/(2.0*22.0*22.0));
-  float pocketCompact = exp(-(d*d)/(2.0*7.5*7.5));
+  // CURL FOOTPRINT ~ SIZE (2026-08-14, #pock=0 A/B): SIZE_AUDIT scaled the
+  // crash's BRIGHTNESS with sheltered height but the pocket's spatial extent
+  // stayed a constant bell, so from altitude a 2.5 m day carried the same
+  // curl zone as a 0.7 m day and "curl scales with size" failed the
+  // screensaver read. Same calibration contract as sizeAmp/sizeFoam: factor
+  // is exactly 1.0 at the 1.5 m model-card day at the shelter anchor, gated
+  // by u_depthMix so synthetic presets are untouched.
+  float pockS = mix(1.0, clamp(u_H0*shelterAt(x)/1.5, 0.70, 1.50), u_depthMix*u_pockSize);
+  float pocketLegacy = exp(-(d*d)/(2.0*(22.0*pockS)*(22.0*pockS)));
+  float pocketCompact = exp(-(d*d)/(2.0*(7.5*pockS)*(7.5*pockS)));
   pocket = crestNear * mix(pocketLegacy, pocketCompact, clamp(u_breakShape, 0.0, 1.0))
          * env2 * reef;
   // unbroken crest lines (approaching swell stays legible from above)
@@ -853,8 +863,25 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
                   * exp(-life.x/max(2.4*u_tau, 1.0));
   float trailLace = trailBand*smoothstep(0.48, 0.73, laceN)
                   * exp(-life.x/max(1.8*u_tau, 1.0));
+  // COMET HEAD (2026-08-14, #head=0 A/B): direction from altitude. Along the
+  // break line the fragment's tSince EQUALS the zipper's age at that station,
+  // so the whitewater band already encodes travel direction — but every
+  // existing clock hides it: the impact head (0.42 s ~ 6 m at Vp) is
+  // invisible from the drone and the residue clocks (1.6-2.4 tau) are
+  // near-flat across a whole band, which is why the hero read saw static
+  // chalk stripes. A 2.5 s e-fold on the zipper clock paints each band's
+  // down-point end bright with a graded tail: the breakpoint reads as a
+  // comet, and the comet points the peel. Confined to ~22 m shoreward of the
+  // line so the inner re-breaking field cannot ride it (the 6b argmax null:
+  // "fresh" alone lifts head and competitor together — attachment to the
+  // LINE is the discriminating signal). breakMask: no comet inside a section
+  // gap. sizeFoam here because life.x is a clock, not a height — this term
+  // is otherwise H0-free (calibration contract, factor 1.0 at 1.5 m).
+  float cometFoam = u_headRead * brk * env2 * exp(-life.x/2.5)
+                  * exp(-max(z - zb, 0.0)/22.0) * mask * sizeFoam;
   float structuralFoam = 1.55*impactFoam + 0.84*boreFoam
-                       + 0.66*trailFoam + 0.42*trailLace;
+                       + 0.66*trailFoam + 0.42*trailLace
+                       + 0.90*cometFoam;
   // Downstream aftermath residue (2026-08-11). The structural bands above are
   // all clocked by life.w, which hard-zeros at BORE_END_S, and trailBand is
   // capped shoreward at the moving front (life.y) — max extent frontSpeed*3.8 s
