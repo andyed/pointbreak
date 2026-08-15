@@ -96,6 +96,9 @@ demonstrates it is on Santa Cruz's west side.
 
 - `docs/MODEL.md` — the vehicle-independent parametrization (start here)
 - `docs/research/` — data-access notes, surf-science citations, ground truth
+  - [2026-08-15 Pleasure Point capture](docs/research/PLEASURE_POINT_CAPTURE_2026-08-15.md)
+    — observed conditions, the reproducible 17 s social capture, and the
+    pending field-period measurement
 - `docs/figures/` — the essay and its figure generators
 - `data/osm/`, `data/bathy/` — raw pulls + processing (see each README)
 - `data/climatology/` — transcribed surf-forecast.com break stats; a weak source, kept for provenance (see its README)

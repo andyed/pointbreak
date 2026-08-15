@@ -704,13 +704,19 @@ precedent) — do not decide now.
       rather than reading one. Feeding a measured direction in is what turns
       alpha from an input into a consequence, and is still the prerequisite for
       the emergent break line in Phase 2c.
-- [ ] FIRST VALIDATION PASS — the largest gap in the whole project. Drive the
+- [~] FIRST VALIDATION PASS — the largest gap in the whole project. Drive the
       model with a specific historical swell and compare breaking position and
       height against an independent estimate (a forecast API, or the Surfline
       PP cam for that date). Not rigorous validation, but it moves the claim
       from "looks plausible" to "agrees with something that isn't us on N
       days". Until this exists, every public artifact must keep saying
-      unvalidated.
+      unvalidated. PARTIAL 2026-08-15: one Pleasure Point webcam recording and
+      contemporaneous condition snapshots are logged in
+      `docs/research/PLEASURE_POINT_CAPTURE_2026-08-15.md`; the social render
+      reproducibly matches the reported 17 s buoy period. This is not yet a
+      validation pass: the original recording still needs fixed-transect crest
+      timestamps, excluding its roughly 60 s page auto-scroll interludes, and
+      no breaking-position or face-height residual has been measured.
 - [ ] PEEL ANGLE FROM THE USGS SHORE CAMERA — new 2026-08-13, and the thing
       that would settle 1c'-c.6. Literature search establishes there is NO
       measured peel angle for ANY Santa Cruz break (SURF_SCIENCE_REFS 2.3.1,
