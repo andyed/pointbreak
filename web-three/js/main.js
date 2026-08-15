@@ -163,7 +163,8 @@ const uniforms = {
   u_rideOffset: { value: 0 },
   u_breakTex:   { value: EMPTY_BED },
   u_gapMask:    { value: 1 },   // section-gap masking ON; #gap=0 is the A/B revert
-  u_headRead:   { value: 1 },   // comet-head whitewater aging ON; #head=0 is the A/B revert
+  u_headRead:   { value: 0 },   // comet-head aging OFF by default — Andy judged #head=0 "way
+                                // better" live (2026-08-14 night); #head=1 re-arms it for iteration
   u_pockSize:   { value: 1 },   // pocket footprint ~ H_eff ON; #pock=0 is the A/B revert
   u_breakMix:   { value: 0 },
   u_breakX:     { value: new THREE.Vector2(-300, 300) },
@@ -1220,7 +1221,9 @@ function applyHashParams() {
   if (h.get('noclip') === '1') noclipEnabled = true;
   // section-gap masking defaults ON; #gap=0 is the pre-fix A/B (the V returns)
   if (h.get('gap') === '0') uniforms.u_gapMask.value = 0;
-  // comet-head whitewater aging defaults ON; #head=0 is the pre-fix A/B
+  // comet-head whitewater aging defaults OFF (Andy's live verdict 2026-08-14);
+  // #head=1 arms it for iteration, #head=0 stays an explicit off
+  if (h.get('head') === '1') uniforms.u_headRead.value = 1;
   if (h.get('head') === '0') uniforms.u_headRead.value = 0;
   // pocket-footprint size coupling defaults ON; #pock=0 is the pre-fix A/B
   if (h.get('pock') === '0') uniforms.u_pockSize.value = 0;

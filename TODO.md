@@ -268,10 +268,13 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       the hero shot (camera, light, foam freshness gradient) rather than
       more model tuning.
       PARTIAL PROGRESS 2026-08-14 late (edf91ca, #head/#pock): line-attached
-      stripes now carry a comet gradient (bright down-point head, dissolving
-      tail — criterion 2 partially met) and the pocket footprint scales with
-      H_eff (criterion 3 mechanism landed, unverified at altitude). STILL
-      OPEN: (a) the INNER re-breaking stripes have no along-crest clock —
+      stripes carry a comet gradient behind #head, and the pocket footprint
+      scales with H_eff (#pock, mechanism landed, unverified at altitude).
+      VERDICT (same night, Andy, live A/B): "#head=0 is way better" — the
+      comet default is OFF (#head=1 re-arms it). The mechanism stack (model
+      cometFoam + aftermath thinning + post-threshold carve) stays in the
+      code for iteration; whatever reads worse is in the tuning, not
+      necessarily the idea. STILL OPEN: (a) the INNER re-breaking stripes have no along-crest clock —
       life.x anchors at the break line only — so they band uniformly and
       dominate wide frames; per-stripe lifecycle is the next mechanism.
       (b) kelp mottle still owns the upper-half contrast budget. (c) the 4a'
