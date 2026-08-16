@@ -37,3 +37,7 @@ data/climatology/.cache/
 # ships. Kept as a directory rather than loose files so there is one place to
 # check before staging.
 docs/drafts/
+
+# ad-hoc review screenshots do not belong at the root (see docs/figures/ for
+# generated, referenced figures)
+/*.png
