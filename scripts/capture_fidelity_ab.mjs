@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = resolve(process.argv[2] || '/tmp/pointbreak-fidelity-ab');
-const PORT = 8189;
+const PORT = 8196;   // not 8189 (measure_ride) — 8188–8195/8198 are taken by sibling rigs
 const TIMES = [42, 48, 54, 58];
 const LOOKS = ['current', 'foam', 'full'];
 const BASE_HASH = 'preset=secondpeak&cam=cliff&day=big&h0=1.4&tide=0.732&controls=0&q=high&speed=0';
