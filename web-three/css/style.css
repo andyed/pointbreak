@@ -177,6 +177,30 @@ body.menu-open .control-drawer { transform: translateX(0); visibility: visible; 
   cursor: pointer;
 }
 
+/* Month-of-year picker. A select rather than the drawer's usual cycle button:
+   twelve items is eleven clicks too many, and a month is a value the reader
+   already has an ordered mental model of. Contrast verified against the 8:1
+   floor — ink on panel-raised is 15.73:1, secondary on panel 12.08:1. */
+/* margin-bottom matches .range-controls' own 18px gap: without it the source
+   note butts against the "Wave size" label and reads as captioning the slider
+   rather than the select above it. */
+.select-control { display: grid; gap: 9px; margin: 18px 0; }
+.select-control select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.select-control select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.select-note { color: var(--secondary); font-size: 12px; line-height: 1.4; }
+
 .readout { border-bottom: 1px solid var(--line); }
 .readout summary {
   min-height: 52px;

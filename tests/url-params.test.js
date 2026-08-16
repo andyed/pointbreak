@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook } from '../web-three/js/url-params.js';
+import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook,
+         writeHashParams, needsReloadForHash, bootOnlyParams } from '../web-three/js/url-params.js';
 
 test('permalink state is read from the hash payload', () => {
   const params = readHashParams('#preset=firstpeak&controls=1&section=1');
@@ -35,4 +36,50 @@ test('visual-fidelity look names the reversible three-way comparison', () => {
   assert.equal(parseFidelityLook('foam'), 1);
   assert.equal(parseFidelityLook('FULL'), 2);
   assert.equal(parseFidelityLook('unknown'), 0);
+});
+
+test('the permalink writer emits only round-trip controls, in table order', () => {
+  const hash = writeHashParams({
+    tide: '-0.500', preset: 'firstpeak', month: 'january', cam: 'cliff',
+    m4: '0', sim: '42', reefamp: '3.2',       // boot-only: must not appear
+  });
+  assert.equal(hash, 'preset=firstpeak&cam=cliff&month=january&tide=-0.500');
+});
+
+test('a default view serialises to a bare URL', () => {
+  assert.equal(writeHashParams({
+    surfer: '0', section: '0', audio: '0', speed: '1', bed: 'reef',
+    preset: 'secondpeak', cam: 'free', month: '',
+  }), '');
+  // and with nothing supplied at all
+  assert.equal(writeHashParams({}), '');
+});
+
+test('the writer keeps real zeroes that a truthiness check would drop', () => {
+  // speed=0 freezes the sim and h0=0 is a floor value; both are states a
+  // reader can reach through the UI and must survive a copied link.
+  assert.equal(writeHashParams({ speed: '0', h0: '0.40' }), 'h0=0.40&speed=0');
+});
+
+test('round-tripping a written hash reproduces the same values', () => {
+  const snap = { preset: 'sharks', cam: 'lineup', month: 'december', tide: '0.250' };
+  const back = readHashParams('#' + writeHashParams(snap));
+  for (const [k, v] of Object.entries(snap)) assert.equal(back.get(k), v);
+});
+
+test('a hand-edited hash reloads only when the boot-only set changes', () => {
+  // round-trip-only edits re-apply live, in both directions
+  assert.equal(needsReloadForHash('#month=january&cam=cliff', '#month=august'), false);
+  assert.equal(needsReloadForHash('#hud=0', ''), false);            // legacy alias
+  // adding a boot-only flag
+  assert.equal(needsReloadForHash('#month=january&m4=0', '#month=january'), true);
+  assert.equal(needsReloadForHash('#sim=42', ''), true);
+  assert.equal(needsReloadForHash('#nonsense=1', ''), true);        // unknown: reload beats lying
+  // REMOVING one must reload too: m4Enabled was set at boot and the live path
+  // never touches it, so the app would keep m4=0 while the URL claims default.
+  assert.equal(needsReloadForHash('#month=august', '#month=july&m4=0'), true);
+  // carrying the same boot-only flag through a control change does NOT reload
+  assert.equal(needsReloadForHash('#month=august&m4=0', '#month=july&m4=0'), false);
+  // order and round-trip params must not affect the comparison
+  assert.equal(bootOnlyParams('#m4=0&sim=42&cam=cliff'), bootOnlyParams('#sim=42&m4=0&month=july'));
 });

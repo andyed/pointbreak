@@ -8,6 +8,41 @@ round-trip, so the deployed sim stays a pure static file. Combine with `&`:
 web-three/#preset=secondpeak&cam=cliff&tide=-0.5&sim=42&controls=0
 ```
 
+## The hash round-trips (2026-08-16)
+
+Params of kind **control** are now written back to the URL as you use the app,
+so the address bar is always a shareable permalink of what is on screen. Params
+of every other kind (`instrument`, `A/B revert`, `feature flag`, `sweep knob`,
+`debug`, `compatibility`) are **boot-only**: read once at load, never written.
+
+Three rules follow, and they are the whole contract:
+
+1. **Only what you chose is written.** A default-state view serialises to a bare
+   URL. `surfer=0`, `speed=1`, `bed=reef`, `preset=secondpeak`, `cam=free` are
+   omitted rather than spelled out. The trade-off is deliberate: if a shipped
+   default ever changes, an old link that omitted it changes meaning too, so an
+   author pinning a specific view for a capture or an essay embed should keep
+   writing the value explicitly.
+2. **Boot-only params you typed are preserved.** Loading `#m4=0&sim=42` and then
+   nudging the tide keeps both — the writer owns the control keys and nothing
+   else.
+3. **Editing the URL by hand does the right thing.** A change confined to
+   control params re-applies live. A change to the boot-only set — adding one
+   *or removing one* — reloads, because those are applied once at boot and the
+   live path does not touch them. Removing is not the symmetric no-op it looks
+   like: dropping `m4=0` from the URL without a reload would leave the app at
+   `m4=0` while the URL claimed the default.
+
+Writes are debounced (120 ms) and use `replaceState`, so dragging a slider is
+one write rather than sixty and the back button is not filled with slider
+frames. `replaceState` does not fire `hashchange`, so the app never re-reads its
+own writes. Serialisation order is fixed and matches the table below, so the
+same view always produces the same link.
+
+Not covered: `#day=live` writes `day=live` back, but the fetched ocean is
+whatever the nowcast says *at load time* — the link reproduces the mode, not
+the conditions. That is the intended meaning of `live` and not a defect.
+
 Two kinds of flag, named as such below: a **feature flag** gates work that is
 landed but not yet default (default off, judged as an ensemble — TODO Track 1c);
 an **A/B revert** turns a shipped default OFF so a regression can be bisected
@@ -21,6 +56,7 @@ it can be measured across a range; it defaults to the shipped value.
 |---|---|---|---|---|
 | `preset` | `sewers` `firstpeak` `secondpeak` `jacks` `thehook` `sharks` `privates` | `secondpeak` | site preset: reef, stage bounds, card ocean (params.js) | control |
 | `day` | a conditions.js key (`small` `modelcard` `pulse` `overhead` `big` `stormy` …) or `live` | preset ocean | named condition day rides on top of the preset (ocean only, never the reef); `live` pulls today's MOP SC116 nowcast, cache fallback | control |
+| `month` | `january` … `december` | preset ocean | climatological month: sets H₀ to the **p75** swell height typical of that month at CDIP SC116, de-shoaled to deep water (`data/climatology/pp_monthly_ocean.js`). **Size only** — period is seasonless here (14.4–15.2 s every month), and tide/chop/Δf are not in the bulk pull. Mutually exclusive with `day`; an explicit `h0` wins. Percentile named in the HUD | control |
 | `drift` | `1` | off | screensaver mode: hard-switch through the surf-worthy condition days every 300 s of sim time | control |
 | `tide` | metres MSL, clamped to [−0.862, 0.764] (MLLW…MHHW) | 0 | water level; moves the break position, not the breaking depth | control |
 | `bed` | `reef` `plane` `measured` | `reef` | seabed A/B: measured+synthetic reef / least-squares plane / measured only — the causal demo for the peel | control |

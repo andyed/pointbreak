@@ -27,8 +27,10 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          setShelter, getShelter, setDensityLine } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
+import { MONTHLY_OCEAN, MONTHLY_OCEAN_PCT, getMonthlyOcean } from '../../data/climatology/pp_monthly_ocean.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
-import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook } from './url-params.js';
+import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook,
+         writeHashParams, needsReloadForHash, ROUND_TRIP_PARAMS } from './url-params.js';
 import { create as createFisheyeMenu } from '../vendor/fisheye/fisheye-menu.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 
@@ -95,6 +97,13 @@ let noclipEnabled = false;   // #noclip=1: disable the world-collision clamp
 const DRIFT_PERIOD_S = 300;
 let activeDayKey = null;     // conditions.js key currently applied (drift cursor)
 let activeDayLabel = null;   // HUD suffix; also set by day=live from the nowcast
+let activeMonthKey = null;   // climatological month currently applied (#month=)
+let lastWrittenHash = null;  // what writeHash() last put in the URL (see hashchange)
+// Boot reads the hash, then flips this. Without the gate the first
+// refreshHUD() would serialise the default view over the author's link
+// before applyHashParams() had a chance to read it.
+let hashSyncReady = false;
+const ROUND_TRIP_KEYS = new Set(ROUND_TRIP_PARAMS);
 let driftEnabled = false;
 let driftLeg = 0;            // last drift interval acted on (floor(sim/period))
 
@@ -481,6 +490,8 @@ const breakKeys = document.getElementById('breakKeys');
 const uiReveal = document.getElementById('uiReveal');
 const waveSizeControl = document.getElementById('waveSizeControl');
 const waveSizeValue = document.getElementById('waveSizeValue');
+const monthControl = document.getElementById('monthControl');
+const monthValue = document.getElementById('monthValue');
 const tideControl = document.getElementById('tideControl');
 const tideValue = document.getElementById('tideValue');
 const sectionPositionControl = document.getElementById('sectionPositionControl');
@@ -535,6 +546,15 @@ function syncControlUI() {
   if (tideValue) {
     const tide = state.tide || 0;
     tideValue.textContent = `${tide >= 0 ? '+' : ''}${tide.toFixed(2)} m · ${tideLabel(tide)}`;
+  }
+  if (monthControl) {
+    monthControl.value = activeMonthKey || '';
+    if (monthValue) {
+      const m = activeMonthKey ? getMonthlyOcean(activeMonthKey) : null;
+      monthValue.textContent = m
+        ? `p${MONTHLY_OCEAN_PCT} · ${m.H0.toFixed(2)} m`
+        : 'Preset ocean';
+    }
   }
   const dayButton = document.querySelector('[data-cycle="condition-day"]');
   if (dayButton) {
@@ -629,10 +649,22 @@ function refreshHUD() {
       hudLam.textContent = 'L 90 m (frozen)';
     }
   }
+  // The percentile is named, not implied: p75 is a stated editorial choice
+  // (the good day typical of the month, not the median), and a reader who
+  // cannot see which percentile is on screen cannot tell that from tuning.
+  const monthLabel = activeMonthKey
+    ? `${getMonthlyOcean(activeMonthKey).label} · p${MONTHLY_OCEAN_PCT} climatology`
+    : null;
   hudGeo.textContent = `${describeGeoState(state)} · ${structuralBreaker ? 'breaker anatomy' : 'legacy breaker'}`
     + (state.geoSpot ? ` · ${bedMode}` : '')
-    + (activeDayLabel ? ` · ${activeDayLabel}` : '');
+    + (activeDayLabel ? ` · ${activeDayLabel}` : '')
+    + (monthLabel ? ` · ${monthLabel}` : '');
   syncControlUI();
+  // Every control mutator already ends here, so this is the one place a
+  // permalink write can be hung without threading syncHash() through a
+  // dozen call sites and forgetting one. Coalesced to a frame, so a slider
+  // drag is one write, not sixty.
+  if (hashSyncReady) syncHash();
 }
 
 // Swell-height step, clamped to the PARAM_DEFS range. Rounded to the step so
@@ -643,12 +675,57 @@ function clearActiveDay() {
   activeDayKey = null;
 }
 
+// A month owns H0 and nothing else, so only an H0 change (or a new site) can
+// invalidate it — a tide move cannot, which is why this is separate from
+// clearActiveDay() rather than folded into it.
+function clearActiveMonth() {
+  activeMonthKey = null;
+}
+
+// Apply a climatological month: the pMONTHLY_OCEAN_PCT swell height typical of
+// that month at SC116, already de-shoaled to the deep-water H0 the shader
+// re-shoals from (see pp_monthly_ocean.js). Size only — the month deliberately
+// does not touch T, tide, chop or dF. Returns the month or null.
+function setMonth(key) {
+  if (!key) {
+    clearActiveMonth();
+    refreshHUD();
+    return null;
+  }
+  const m = getMonthlyOcean(key);
+  if (!m) return null;
+  // Restore the site's own card character first. Without this a month picked
+  // after a condition-day would keep that day's T/chop/dF — "January" at storm
+  // junk's 9 s period — and the readout would name a month the ocean is not.
+  // Tide is deliberately NOT restored: it is orthogonal to size and the user's
+  // tide is theirs to keep. The measurement backs the card period here anyway:
+  // interpolated spectral peak at SC116 is 14.4-15.2 s in every month.
+  const card = state.preset ? PRESETS[state.preset] : null;
+  if (card) {
+    state.T = card.T;
+    state.chop = card.chop;
+    state.dF = card.dF;
+    if (uniforms?.u_T) uniforms.u_T.value = card.T;
+    if (uniforms?.u_chop) uniforms.u_chop.value = card.chop;
+    if (uniforms?.u_dF) uniforms.u_dF.value = card.dF;
+  }
+  state.H0 = Math.min(Math.max(m.H0, H0_DEF.min), H0_DEF.max);
+  if (uniforms?.u_H0) uniforms.u_H0.value = state.H0;
+  // A month and a named condition-day are rival descriptions of the same
+  // ocean; the readout must never carry both.
+  clearActiveDay();
+  activeMonthKey = m.key;
+  refreshHUD();
+  return m;
+}
+
 function setH0(value) {
   const v = Number(value);
   if (!Number.isFinite(v)) return;
   const snapped = Math.round(v / H0_DEF.step) * H0_DEF.step;
   state.H0 = Math.min(Math.max(snapped, H0_DEF.min), H0_DEF.max);
   clearActiveDay();
+  clearActiveMonth();
   refreshHUD();
 }
 
@@ -671,6 +748,8 @@ function cycleConditionDay() {
   if (day) {
     activeDayKey = day.key;
     activeDayLabel = day.label;
+    // Rival description of the same ocean — see setMonth().
+    clearActiveMonth();
     refreshHUD();
   }
 }
@@ -694,6 +773,7 @@ function selectPreset(key) {
   // cannot imply that the old ocean still describes the new selection.
   activeDayKey = null;
   activeDayLabel = null;
+  clearActiveMonth();
   refreshHUD();
 }
 
@@ -968,6 +1048,15 @@ function initControlUI() {
   });
   document.querySelector('[data-cycle="condition-day"]').addEventListener('click', cycleConditionDay);
   document.querySelector('[data-cycle="bed"]').addEventListener('click', cycleBedMode);
+  if (monthControl) {
+    for (const m of MONTHLY_OCEAN) {
+      const opt = document.createElement('option');
+      opt.value = m.key;
+      opt.textContent = `${m.label} — ${m.H0.toFixed(2)} m`;
+      monthControl.append(opt);
+    }
+    monthControl.addEventListener('change', () => setMonth(monthControl.value));
+  }
   waveSizeControl.addEventListener('input', () => setH0(waveSizeControl.value));
   tideControl.addEventListener('input', () => setTide(tideControl.value));
   sectionPosition.addEventListener('input', () => setSectionX(sectionPosition.value));
@@ -1023,7 +1112,7 @@ function frame(now) {
     if (leg !== driftLeg) {
       driftLeg = leg;
       const d = applyConditionDay(state, uniforms, nextGoodDay(activeDayKey));
-      if (d) { activeDayKey = d.key; activeDayLabel = d.label; refreshHUD(); }
+      if (d) { activeDayKey = d.key; activeDayLabel = d.label; clearActiveMonth(); refreshHUD(); }
     }
   }
 
@@ -1200,6 +1289,74 @@ function frame(now) {
 // several builds. Hash rather than query: no server round-trip, and it keeps
 // the deployed sim a pure static file.
 //   #preset=secondpeak&cam=cliff&shape=legacy&section=1&bed=plane&tide=-0.5&surfer=1&sim=42&controls=0
+// The ROUND-TRIP half of the hash contract: every param a reader can also
+// change through the UI, in the order their interactions require. Split out of
+// applyHashParams so boot and a hand-edited URL run the SAME code — the two
+// drifting apart is exactly how a permalink starts describing a view that is
+// not on screen. Everything else in applyHashParams (reef-shape sweeps, A/B
+// reverts, feature flags, #sim) stays boot-only: re-running it would re-bake
+// the reef and re-seed the clock, which is neither cheap nor idempotent.
+function applyLiveParams(h, { shapeChanged = false } = {}) {
+  const p = h.get('preset');
+  if (p && PRESETS[p]) applyPreset(state, p);
+  // No preset in the hash means applyPreset never re-ran applyBed, so the bed
+  // would still be the load-time default one. Rebuild it explicitly.
+  if (shapeChanged && !(p && PRESETS[p]))
+    applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
+  // Conditions day rides on top of the preset (ocean over reef). Handled
+  // before #tide= so an explicit tide in the hash still wins over the day's.
+  const dayKey = h.get('day');
+  if (dayKey === 'live') {
+    // Today's ocean at Pleasure Point (MOP SC116 nowcast, CORS verified).
+    // Async by nature; applies when it lands. Offline it falls back to the
+    // localStorage cache, and with no cache it quietly keeps the preset —
+    // a screensaver must never die on a fetch.
+    fetchTodaysOcean()
+      .catch(() => cachedOcean() || Promise.reject(new Error('offline, no cache')))
+      .then((o) => {
+        applyOcean(state, o);
+        activeDayLabel = `live · ${describeOcean(o)}`;
+        clearActiveMonth();
+        refreshHUD();
+      })
+      .catch(() => { activeDayLabel = 'live unavailable'; refreshHUD(); });
+  } else if (dayKey) {
+    const d = applyConditionDay(state, uniforms, dayKey);
+    if (d) { activeDayKey = d.key; activeDayLabel = d.label; clearActiveMonth(); }
+  } else {
+    // No day in the hash means no named day on screen, or a re-apply would
+    // leave a stale label naming an ocean the URL no longer asks for.
+    clearActiveDay();
+  }
+  // #month= rides on the preset like #day= does, and loses to an explicit
+  // #h0= below for the same reason #day= loses to #tide=: the specific value
+  // in the permalink is the one the author meant.
+  if (h.has('month')) setMonth(h.get('month')); else clearActiveMonth();
+  if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, TIDE_RANGE[0]), TIDE_RANGE[1]);
+  // M5 bed modes: reef (default, 0), plane (1), measured/no-reef (2)
+  if (h.get('bed') === 'plane') state.bedShape = 1;
+  if (h.get('bed') === 'measured') state.bedShape = 2;
+  if (h.get('bed') === 'reef') state.bedShape = 0;
+  if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
+  if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
+  if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
+  if (h.has('h0')) {
+    const v = parseFloat(h.get('h0'));
+    if (Number.isFinite(v)) state.H0 = Math.min(Math.max(v, H0_DEF.min), H0_DEF.max);
+  }
+  if (h.has('speed')) state.speed = parseSpeedParam(h.get('speed'), state.speed);
+  const camName = (h.get('cam') || '').toLowerCase();
+  const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);
+  // Tour is the screensaver: controls default OFF there, but an explicit
+  // controls=1 (or legacy hud=1) restores the same canonical app surface.
+  const controlsVisible = shouldShowControls(h, { tour: camName === 'tour' });
+  document.body.classList.toggle('hidepanel', !controlsVisible);
+  // URL-owned clean mode is intentionally not recoverable from inside the
+  // frame. The H shortcut still uses hidepanel alone and keeps Show controls.
+  document.body.classList.toggle('controls-disabled', !controlsVisible);
+  applyCam(ci >= 0 ? ci : 0);
+}
+
 function applyHashParams() {
   const h = readHashParams();
   if (!h.toString()) return 0;
@@ -1225,46 +1382,9 @@ function applyHashParams() {
   // selection; 2 = the per-station density mode IS the line. Bake-side only;
   // the bake cache key carries it, so no explicit invalidation is needed.
   if (h.has('dline')) setDensityLine(parseInt(h.get('dline'), 10) || 0);
-  const p = h.get('preset');
-  if (p && PRESETS[p]) applyPreset(state, p);
-  // No preset in the hash means applyPreset never re-ran applyBed, so the bed
-  // would still be the load-time default one. Rebuild it explicitly.
-  if (shapeChanged && !(p && PRESETS[p]))
-    applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
-  // Conditions day rides on top of the preset (ocean over reef). Handled
-  // before #tide= so an explicit tide in the hash still wins over the day's.
-  const dayKey = h.get('day');
-  if (dayKey === 'live') {
-    // Today's ocean at Pleasure Point (MOP SC116 nowcast, CORS verified).
-    // Async by nature; applies when it lands. Offline it falls back to the
-    // localStorage cache, and with no cache it quietly keeps the preset —
-    // a screensaver must never die on a fetch.
-    fetchTodaysOcean()
-      .catch(() => cachedOcean() || Promise.reject(new Error('offline, no cache')))
-      .then((o) => {
-        applyOcean(state, o);
-        activeDayLabel = `live · ${describeOcean(o)}`;
-        refreshHUD();
-      })
-      .catch(() => { activeDayLabel = 'live unavailable'; refreshHUD(); });
-  } else if (dayKey) {
-    const d = applyConditionDay(state, uniforms, dayKey);
-    if (d) { activeDayKey = d.key; activeDayLabel = d.label; }
-  }
+  applyLiveParams(h, { shapeChanged });
   if (h.get('drift') === '1') driftEnabled = true;
-  if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, TIDE_RANGE[0]), TIDE_RANGE[1]);
-  // M5 bed modes: reef (default, 0), plane (1), measured/no-reef (2)
-  if (h.get('bed') === 'plane') state.bedShape = 1;
-  if (h.get('bed') === 'measured') state.bedShape = 2;
-  if (h.get('bed') === 'reef') state.bedShape = 0;
-  if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
-  if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
-  if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
-  if (h.has('h0')) {
-    const v = parseFloat(h.get('h0'));
-    if (Number.isFinite(v)) state.H0 = Math.min(Math.max(v, H0_DEF.min), H0_DEF.max);
-  }
   if (h.has('psi')) psiEnabled = h.get('psi') === '1';
   if (h.has('peeldir')) peelDirEnabled = h.get('peeldir') === '1';
   if (h.has('smooth')) smoothEnabled = h.get('smooth') === '1';
@@ -1292,7 +1412,6 @@ function applyHashParams() {
   // a real direction knob needs the MODEL.md §2.4/§4.5 variable split first.
   // See docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md ("Direction in the
   // code") and TODO.md Track 3a (doc) / 3c (wiring, gated on Track 1).
-  if (h.has('speed')) state.speed = parseSpeedParam(h.get('speed'), state.speed);
   // modeled-domain matte defaults ON; #matte=0 is the A/B revert
   if (h.get('matte') === '0') uniforms.u_matte.value = 0;
   // 4a' whitewater-area coupling defaults ON; #wwarea=0 is the pre-fix A/B
@@ -1309,18 +1428,77 @@ function applyHashParams() {
   if (h.get('head') === '0') uniforms.u_headRead.value = 0;
   // pocket-footprint size coupling defaults ON; #pock=0 is the pre-fix A/B
   if (h.get('pock') === '0') uniforms.u_pockSize.value = 0;
-  const camName = (h.get('cam') || '').toLowerCase();
-  const ci = CAM_PRESETS.findIndex((c) => c.name.toLowerCase() === camName);
-  // Tour is the screensaver: controls default OFF there, but an explicit
-  // controls=1 (or legacy hud=1) restores the same canonical app surface.
-  const controlsVisible = shouldShowControls(h, { tour: camName === 'tour' });
-  document.body.classList.toggle('hidepanel', !controlsVisible);
-  // URL-owned clean mode is intentionally not recoverable from inside the
-  // frame. The H shortcut still uses hidepanel alone and keeps Show controls.
-  document.body.classList.toggle('controls-disabled', !controlsVisible);
-  applyCam(ci >= 0 ? ci : 0);
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
+
+// ---------- writing the permalink back ----------
+// replaceState, not `location.hash =`: a slider drag would otherwise push a
+// history entry per frame and make the back button useless. replaceState also
+// does NOT fire hashchange, so the listener below only ever sees a real user
+// edit — no re-entrancy guard needed.
+//
+// Boot-only params already in the URL are preserved verbatim. Someone who
+// loaded #m4=0&sim=42 to A/B something must not lose it because they nudged
+// the tide; the writer owns the round-trip keys and nothing else.
+let hashWriteQueued = false;
+
+function currentHashSnapshot() {
+  return {
+    preset: state.preset || null,
+    cam: CAM_PRESETS[camIdx]?.name.toLowerCase() || null,
+    day: activeDayKey,
+    month: activeMonthKey,
+    // A month or a day already implies its own H0; writing h0 as well would
+    // pin the size and make the named ocean unfalsifiable on reload.
+    h0: (activeDayKey || activeMonthKey) ? null : state.H0?.toFixed(2),
+    tide: state.tide ? state.tide.toFixed(3) : null,
+    bed: ['reef', 'plane', 'measured'][state.bedShape || 0],
+    surfer: state.surfer ? '1' : '0',
+    section: showSection ? '1' : '0',
+    audio: isAudioEnabled() ? '1' : '0',
+    speed: String(state.speed),
+    controls: document.body.classList.contains('controls-disabled') ? '0' : null,
+  };
+}
+
+function writeHash() {
+  const owned = writeHashParams(currentHashSnapshot());
+  const kept = readHashParams();
+  for (const k of [...kept.keys()]) if (ROUND_TRIP_KEYS.has(k)) kept.delete(k);
+  const merged = [owned, kept.toString()].filter(Boolean).join('&');
+  const next = `${location.pathname}${location.search}${merged ? '#' + merged : ''}`;
+  if (next === location.pathname + location.search + location.hash) return;
+  lastWrittenHash = merged;
+  history.replaceState(null, '', next);
+}
+
+// Coalesce: setTide/setH0 fire on every `input` event, so a drag would
+// otherwise rewrite the URL sixty times a second. A timer, NOT rAF —
+// requestAnimationFrame is suspended in a hidden tab, which would strand a
+// queued write until the tab came back and is the same hidden-tab rAF trap
+// that faked a #cam=drone failure on two instruments (2026-08-14). Writing a
+// permalink is not a rendering operation and does not belong on the frame clock.
+const HASH_WRITE_DEBOUNCE_MS = 120;
+function syncHash() {
+  if (hashWriteQueued) return;
+  hashWriteQueued = true;
+  setTimeout(() => { hashWriteQueued = false; writeHash(); }, HASH_WRITE_DEBOUNCE_MS);
+}
+
+// A hand-edited URL. Round-trip-only edits re-apply live; anything naming a
+// boot-only flag reloads, because applyHashParams() bakes the reef, arms audio
+// and seeds the sim clock — re-running it in place would be neither cheap nor
+// idempotent, and pretending otherwise is how a control surface starts lying.
+addEventListener('hashchange', (e) => {
+  const h = location.hash.replace(/^#/, '');
+  if (h === lastWrittenHash) return;
+  // Compare against the fragment being replaced, not just the new one — see
+  // needsReloadForHash. Removing a boot-only flag must reload too.
+  const prev = new URL(e.oldURL, location.href).hash;
+  if (needsReloadForHash(location.hash, prev)) { location.reload(); return; }
+  applyLiveParams(readHashParams());
+  refreshHUD();
+});
 
 applyCam(0);
 simTime = applyHashParams();
@@ -1333,6 +1511,7 @@ if (driftEnabled && !activeDayKey) {
   if (d) { activeDayKey = d.key; activeDayLabel = d.label; }
 }
 refreshHUD();
+hashSyncReady = true;
 resize();
 requestAnimationFrame(frame);
 
