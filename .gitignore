@@ -14,7 +14,7 @@ td/
 # Python
 __pycache__/
 *.pyc
-.venv/
+.venv*/
 venv/
 
 # Node — this repo deliberately has no dependencies; Playwright for the capture
@@ -25,6 +25,12 @@ node_modules/
 .deploy/
 scratch/
 *.local
+
+# Raw OPeNDAP pull behind data/climatology/pp_cdip_climatology.json — 5 MB of
+# CDIP hindcast, fully regenerable by rerunning build_cdip_climatology.py. The
+# derived JSON is committed; the pull is not. Its SHA-256 is recorded in that
+# JSON's source block so a rebuild is checkable without shipping the bytes.
+data/climatology/.cache/
 
 # Private working notes — outreach drafts, contact strategy, anything naming
 # real people or unsent correspondence. This repo is public; nothing in here

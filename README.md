@@ -101,7 +101,7 @@ demonstrates it is on Santa Cruz's west side.
     social capture, and least-faithful visual regression stills
 - `docs/figures/` — the essay and its figure generators
 - `data/osm/`, `data/bathy/` — raw pulls + processing (see each README)
-- `data/climatology/` — transcribed surf-forecast.com break stats; a weak source, kept for provenance (see its README)
+- `data/climatology/` — the seasonality prior: 25 years of CDIP MOP SC116 hourly hindcast at the break, plus the weaker surf-forecast.com stats kept for provenance (see its README)
 - `data/model/` — generated stage profiles and seabed patches read by both renderers
 - `web/` — raymarched reference build (maintenance-only)
 - `web-three/` — three.js displaced-grid build; the current vehicle

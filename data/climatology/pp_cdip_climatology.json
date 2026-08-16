@@ -1,0 +1,619 @@
+{
+  "source": {
+    "name": "CDIP MOP v1.1 alongshore hindcast, transect SC116",
+    "dataset_id": "MOPv1.1_SC116_2000010100-2025033123",
+    "endpoint": "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/MOP_alongshore/SC116_hindcast.nc",
+    "protocol": "OPeNDAP (.dds for length, .ascii for values)",
+    "site": {
+      "latitude": 36.94873,
+      "longitude": -121.96333,
+      "note": "~110 m from the Pleasure Point coordinate in docs/research/CDIP_LIVE_DATA.md; MOP transforms to the 10-15 m contour, roughly 150 m off the break"
+    },
+    "file_coverage": "1999-12-31T23:30:00Z to 2025-03-31T23:30:00Z",
+    "cadence": "hourly",
+    "licence": "US federal / Scripps CDIP public data, no redistribution restriction; see LICENSES.md",
+    "cache_sha256": "9b30d2f4c892cd12e49a59fbb0c040fda38cb8f0c189c404d633bf3f38af4907"
+  },
+  "method": {
+    "years_used": "2000-2024 (whole calendar years only)",
+    "why_truncated": "the file ends 2025-03-31, so unfiltered month-of-year bins would hold 26 Januaries against 25 Junes",
+    "qc": "waveFlagPrimary == 1 (good); flags 2/3/4/9 = not_evaluated/questionable/bad/missing",
+    "month_binning": "UTC",
+    "direction_convention": "degrees true, direction waves come FROM",
+    "tp_is_quantised": "waveTp takes only 19 distinct values across the record \u2014 MOP reports the centre of whichever of its 20 frequency bands holds the most energy. Tp percentiles are band labels, not a continuous distribution, and the Tp median is the same band in every month. Use ta_s (mean period, continuous) for period seasonality.",
+    "not_computed": "no rideability, quality or 'fair+' percentage \u2014 those are subjective ratings with undisclosed definitions and do not belong in a physical climatology"
+  },
+  "qc_summary": {
+    "records_in_file": 221328,
+    "flag_histogram": {
+      "1": 221135,
+      "4": 193
+    },
+    "records_used": 218975
+  },
+  "year_round": {
+    "n_hours": 218975,
+    "hs_m": {
+      "mean": 0.733,
+      "p50": 0.634,
+      "p90": 1.152
+    },
+    "hs_distribution_pct": {
+      "<0.5": 23.6,
+      "0.5-1.3": 69.5,
+      "1.3-2": 5.5,
+      "2-3": 1.2,
+      ">3": 0.2
+    },
+    "dp_deg_true": {
+      "circular_mean": 198.6,
+      "resultant_length": 0.989,
+      "p10": 189.968,
+      "p50": 195.644,
+      "p90": 210.197
+    }
+  },
+  "months": {
+    "January": {
+      "n_hours": 18600,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 1.002,
+        "p10": 0.493,
+        "p25": 0.633,
+        "p50": 0.862,
+        "p75": 1.215,
+        "p90": 1.698,
+        "p99": 2.915,
+        "max": 5.073
+      },
+      "hs_distribution_pct": {
+        "<0.5": 10.5,
+        "0.5-1.3": 68.0,
+        "1.3-2": 15.9,
+        "2-3": 4.7,
+        ">3": 0.9
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 18.182
+      },
+      "ta_s": {
+        "mean": 10.094,
+        "p25": 8.383,
+        "p50": 9.857,
+        "p75": 11.544
+      },
+      "dp_deg_true": {
+        "circular_mean": 203.0,
+        "resultant_length": 0.992,
+        "p10": 192.11,
+        "p50": 204.75,
+        "p90": 210.247
+      },
+      "dp_rose_pct": {
+        "S": 7.7,
+        "SSW": 88.3,
+        "SW": 3.9
+      }
+    },
+    "February": {
+      "n_hours": 16968,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.945,
+        "p10": 0.505,
+        "p25": 0.613,
+        "p50": 0.807,
+        "p75": 1.16,
+        "p90": 1.568,
+        "p99": 2.516,
+        "max": 5.044
+      },
+      "hs_distribution_pct": {
+        "<0.5": 9.2,
+        "0.5-1.3": 72.6,
+        "1.3-2": 14.7,
+        "2-3": 3.1,
+        ">3": 0.4
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 18.182
+      },
+      "ta_s": {
+        "mean": 9.383,
+        "p25": 7.787,
+        "p50": 9.109,
+        "p75": 10.755
+      },
+      "dp_deg_true": {
+        "circular_mean": 202.1,
+        "resultant_length": 0.991,
+        "p10": 191.609,
+        "p50": 203.363,
+        "p90": 209.917
+      },
+      "dp_rose_pct": {
+        "S": 9.1,
+        "SSW": 86.2,
+        "SW": 4.6
+      }
+    },
+    "March": {
+      "n_hours": 18594,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.85,
+        "p10": 0.485,
+        "p25": 0.595,
+        "p50": 0.766,
+        "p75": 1.012,
+        "p90": 1.305,
+        "p99": 2.105,
+        "max": 3.409
+      },
+      "hs_distribution_pct": {
+        "<0.5": 11.8,
+        "0.5-1.3": 78.0,
+        "1.3-2": 8.8,
+        "2-3": 1.3,
+        ">3": 0.1
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 12.3,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 18.182
+      },
+      "ta_s": {
+        "mean": 9.059,
+        "p25": 7.61,
+        "p50": 8.814,
+        "p75": 10.232
+      },
+      "dp_deg_true": {
+        "circular_mean": 201.0,
+        "resultant_length": 0.99,
+        "p10": 191.062,
+        "p50": 201.132,
+        "p90": 211.102
+      },
+      "dp_rose_pct": {
+        "S": 10.8,
+        "SSW": 82.4,
+        "SW": 6.7,
+        "WSW": 0.1
+      }
+    },
+    "April": {
+      "n_hours": 17991,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.729,
+        "p10": 0.476,
+        "p25": 0.562,
+        "p50": 0.676,
+        "p75": 0.836,
+        "p90": 1.041,
+        "p99": 1.642,
+        "max": 2.828
+      },
+      "hs_distribution_pct": {
+        "<0.5": 13.3,
+        "0.5-1.3": 83.5,
+        "1.3-2": 2.8,
+        "2-3": 0.4,
+        ">3": 0.0
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 16.667
+      },
+      "ta_s": {
+        "mean": 8.702,
+        "p25": 7.421,
+        "p50": 8.386,
+        "p75": 9.691
+      },
+      "dp_deg_true": {
+        "circular_mean": 199.2,
+        "resultant_length": 0.989,
+        "p10": 190.856,
+        "p50": 196.828,
+        "p90": 212.393
+      },
+      "dp_rose_pct": {
+        "S": 12.5,
+        "SSW": 79.2,
+        "SW": 8.2,
+        "WSW": 0.0
+      }
+    },
+    "May": {
+      "n_hours": 18585,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.644,
+        "p10": 0.434,
+        "p25": 0.516,
+        "p50": 0.617,
+        "p75": 0.736,
+        "p90": 0.87,
+        "p99": 1.258,
+        "max": 2.066
+      },
+      "hs_distribution_pct": {
+        "<0.5": 21.8,
+        "0.5-1.3": 77.3,
+        "1.3-2": 0.8,
+        "2-3": 0.0,
+        ">3": 0.0
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 16.667
+      },
+      "ta_s": {
+        "mean": 8.489,
+        "p25": 7.054,
+        "p50": 8.077,
+        "p75": 9.634
+      },
+      "dp_deg_true": {
+        "circular_mean": 197.2,
+        "resultant_length": 0.988,
+        "p10": 189.829,
+        "p50": 193.704,
+        "p90": 213.589
+      },
+      "dp_rose_pct": {
+        "S": 22.9,
+        "SSW": 67.3,
+        "SW": 9.8,
+        "WSW": 0.0
+      }
+    },
+    "June": {
+      "n_hours": 18000,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.607,
+        "p10": 0.431,
+        "p25": 0.501,
+        "p50": 0.587,
+        "p75": 0.689,
+        "p90": 0.805,
+        "p99": 1.08,
+        "max": 1.699
+      },
+      "hs_distribution_pct": {
+        "<0.5": 24.8,
+        "0.5-1.3": 75.0,
+        "1.3-2": 0.2,
+        "2-3": 0.0,
+        ">3": 0.0
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 16.667
+      },
+      "ta_s": {
+        "mean": 8.391,
+        "p25": 6.966,
+        "p50": 7.882,
+        "p75": 9.442
+      },
+      "dp_deg_true": {
+        "circular_mean": 196.5,
+        "resultant_length": 0.987,
+        "p10": 189.722,
+        "p50": 193.103,
+        "p90": 213.813
+      },
+      "dp_rose_pct": {
+        "S": 25.5,
+        "SSW": 64.4,
+        "SW": 9.9,
+        "WSW": 0.2
+      }
+    },
+    "July": {
+      "n_hours": 18600,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.539,
+        "p10": 0.392,
+        "p25": 0.447,
+        "p50": 0.515,
+        "p75": 0.603,
+        "p90": 0.715,
+        "p99": 0.987,
+        "max": 1.251
+      },
+      "hs_distribution_pct": {
+        "<0.5": 44.8,
+        "0.5-1.3": 55.2,
+        "1.3-2": 0.0,
+        "2-3": 0.0,
+        ">3": 0.0
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 16.667
+      },
+      "ta_s": {
+        "mean": 8.491,
+        "p25": 7.0,
+        "p50": 8.131,
+        "p75": 9.561
+      },
+      "dp_deg_true": {
+        "circular_mean": 193.6,
+        "resultant_length": 0.993,
+        "p10": 188.902,
+        "p50": 192.25,
+        "p90": 197.786
+      },
+      "dp_rose_pct": {
+        "S": 34.5,
+        "SSW": 61.5,
+        "SW": 4.0,
+        "WSW": 0.1
+      }
+    },
+    "August": {
+      "n_hours": 18540,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.499,
+        "p10": 0.358,
+        "p25": 0.408,
+        "p50": 0.473,
+        "p75": 0.571,
+        "p90": 0.674,
+        "p99": 0.897,
+        "max": 1.224
+      },
+      "hs_distribution_pct": {
+        "<0.5": 58.9,
+        "0.5-1.3": 41.1,
+        "1.3-2": 0.0,
+        "2-3": 0.0,
+        ">3": 0.0
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 16.667
+      },
+      "ta_s": {
+        "mean": 8.459,
+        "p25": 7.117,
+        "p50": 8.176,
+        "p75": 9.587
+      },
+      "dp_deg_true": {
+        "circular_mean": 193.5,
+        "resultant_length": 0.994,
+        "p10": 188.821,
+        "p50": 192.394,
+        "p90": 197.887
+      },
+      "dp_rose_pct": {
+        "S": 33.6,
+        "SSW": 63.3,
+        "SW": 3.0,
+        "WSW": 0.1
+      }
+    },
+    "September": {
+      "n_hours": 17928,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.584,
+        "p10": 0.405,
+        "p25": 0.464,
+        "p50": 0.548,
+        "p75": 0.676,
+        "p90": 0.802,
+        "p99": 1.171,
+        "max": 1.695
+      },
+      "hs_distribution_pct": {
+        "<0.5": 36.5,
+        "0.5-1.3": 63.0,
+        "1.3-2": 0.5,
+        "2-3": 0.0,
+        ">3": 0.0
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 16.667
+      },
+      "ta_s": {
+        "mean": 9.097,
+        "p25": 7.516,
+        "p50": 8.768,
+        "p75": 10.398
+      },
+      "dp_deg_true": {
+        "circular_mean": 195.0,
+        "resultant_length": 0.992,
+        "p10": 189.327,
+        "p50": 192.848,
+        "p90": 205.911
+      },
+      "dp_rose_pct": {
+        "S": 29.6,
+        "SSW": 66.0,
+        "SW": 4.3,
+        "WSW": 0.0
+      }
+    },
+    "October": {
+      "n_hours": 18569,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.683,
+        "p10": 0.447,
+        "p25": 0.526,
+        "p50": 0.631,
+        "p75": 0.782,
+        "p90": 0.97,
+        "p99": 1.503,
+        "max": 2.908
+      },
+      "hs_distribution_pct": {
+        "<0.5": 19.2,
+        "0.5-1.3": 78.3,
+        "1.3-2": 2.3,
+        "2-3": 0.2,
+        ">3": 0.0
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 16.667
+      },
+      "ta_s": {
+        "mean": 9.507,
+        "p25": 7.988,
+        "p50": 9.252,
+        "p75": 10.833
+      },
+      "dp_deg_true": {
+        "circular_mean": 197.5,
+        "resultant_length": 0.991,
+        "p10": 190.303,
+        "p50": 194.81,
+        "p90": 208.584
+      },
+      "dp_rose_pct": {
+        "S": 17.6,
+        "SSW": 78.3,
+        "SW": 4.0
+      }
+    },
+    "November": {
+      "n_hours": 18000,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.757,
+        "p10": 0.435,
+        "p25": 0.53,
+        "p50": 0.666,
+        "p75": 0.886,
+        "p90": 1.167,
+        "p99": 2.02,
+        "max": 4.712
+      },
+      "hs_distribution_pct": {
+        "<0.5": 19.2,
+        "0.5-1.3": 74.0,
+        "1.3-2": 5.7,
+        "2-3": 0.9,
+        ">3": 0.2
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 12.3,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 18.182
+      },
+      "ta_s": {
+        "mean": 9.386,
+        "p25": 7.89,
+        "p50": 9.106,
+        "p75": 10.571
+      },
+      "dp_deg_true": {
+        "circular_mean": 201.7,
+        "resultant_length": 0.99,
+        "p10": 191.109,
+        "p50": 202.437,
+        "p90": 211.581
+      },
+      "dp_rose_pct": {
+        "S": 10.5,
+        "SSW": 82.6,
+        "SW": 6.8,
+        "WSW": 0.0
+      }
+    },
+    "December": {
+      "n_hours": 18600,
+      "n_years": 25,
+      "hs_m": {
+        "mean": 0.971,
+        "p10": 0.48,
+        "p25": 0.615,
+        "p50": 0.84,
+        "p75": 1.185,
+        "p90": 1.616,
+        "p99": 2.863,
+        "max": 4.417
+      },
+      "hs_distribution_pct": {
+        "<0.5": 12.0,
+        "0.5-1.3": 69.0,
+        "1.3-2": 14.4,
+        "2-3": 3.8,
+        ">3": 0.7
+      },
+      "tp_s": {
+        "_warning": "band-quantised, see method.tp_is_quantised",
+        "p25": 13.333,
+        "p50": 14.286,
+        "p75": 15.385,
+        "p90": 18.182
+      },
+      "ta_s": {
+        "mean": 9.657,
+        "p25": 7.857,
+        "p50": 9.418,
+        "p75": 11.192
+      },
+      "dp_deg_true": {
+        "circular_mean": 202.8,
+        "resultant_length": 0.99,
+        "p10": 191.253,
+        "p50": 204.851,
+        "p90": 211.348
+      },
+      "dp_rose_pct": {
+        "S": 10.0,
+        "SSW": 83.4,
+        "SW": 6.6,
+        "WSW": 0.0
+      }
+    }
+  }
+}

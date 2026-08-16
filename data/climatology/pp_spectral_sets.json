@@ -1,0 +1,120 @@
+{
+  "source": {
+    "dataset": "MOPv1.1_SC116 hindcast, directional spectra",
+    "spectra_used": 218975,
+    "years": "2000-2024",
+    "swell_band": {
+      "f_max_hz": 0.125,
+      "n_bands": 13,
+      "period_min_s": 8.0
+    }
+  },
+  "closure_check_m": 1e-06,
+  "resolution": {
+    "grid_spacing_hz": 0.005,
+    "smallest_resolvable_df_hz": 0.01,
+    "model_df_hz": 0.006,
+    "verdict": "MODEL.md's Delta f is BELOW the grid's resolution floor. Two swell peaks 0.006 Hz apart fall in adjacent bands and cannot show a trough, so this dataset can neither confirm nor refute the authored value. It is not a measurement problem that more processing fixes."
+  },
+  "partitioning": {
+    "thresholds": {
+      "peak_min_frac": 0.25,
+      "trough_max_frac": 0.7
+    },
+    "threshold_caveat": "The ABSOLUTE level is threshold-dependent (3.2%-39.3% across a 3x3 grid of peak/trough thresholds and three band cutoffs) and should not be quoted alone. What survives every combination is that bimodality is a MINORITY state, and the decline with size below is measured at fixed thresholds so the choice cancels.",
+    "bimodal_pct_by_size": [
+      {
+        "hs_min_m": 0.0,
+        "n_hours": 218975,
+        "bimodal_pct": 23.8
+      },
+      {
+        "hs_min_m": 1.0,
+        "n_hours": 33039,
+        "bimodal_pct": 12.6
+      },
+      {
+        "hs_min_m": 1.5,
+        "n_hours": 9498,
+        "bimodal_pct": 11.1
+      },
+      {
+        "hs_min_m": 2.0,
+        "n_hours": 3039,
+        "bimodal_pct": 8.9
+      }
+    ],
+    "df_hz": {
+      "p10": 0.015,
+      "p50": 0.03,
+      "p90": 0.045
+    },
+    "implied_set_period_s": {
+      "p10": 22.2,
+      "p50": 33.3,
+      "p90": 66.7
+    },
+    "direction_separation_deg": {
+      "p50": 11.4081,
+      "p90": 23.4009
+    }
+  },
+  "spectral_width": {
+    "verdict": "UNUSABLE AS A BRIDGE \u2014 do not retune dF from these.",
+    "why": "nu and the absolute width sigma_f = nu * m1/m0 look like the natural continuous stand-in for the two-component Delta f, and they are stable across sea state (sigma_f p50 moves 0.0185 -> 0.0188 Hz from all hours to Hs >= 1.5 m). They are NOT stable across the one choice that is arbitrary: where the swell band ends. m2 is dominated by the highest frequency retained, so sigma_f swings 6x with the cutoff (see cutoff_sensitivity). Picking 0.125 Hz says the model's Delta f is 3x too long; picking 0.090 Hz says it is nearly right. That is a statement about the analyst, not the ocean.",
+    "cutoff_sensitivity": [
+      {
+        "cutoff_hz": 0.09,
+        "period_s": 11.1,
+        "sigma_f_hz": 0.0082,
+        "implied_set_s": 121.7,
+        "qp": 4.986
+      },
+      {
+        "cutoff_hz": 0.1,
+        "period_s": 10.0,
+        "sigma_f_hz": 0.0104,
+        "implied_set_s": 95.8,
+        "qp": 4.191
+      },
+      {
+        "cutoff_hz": 0.11,
+        "period_s": 9.1,
+        "sigma_f_hz": 0.0154,
+        "implied_set_s": 65.1,
+        "qp": 3.3
+      },
+      {
+        "cutoff_hz": 0.125,
+        "period_s": 8.0,
+        "sigma_f_hz": 0.0187,
+        "implied_set_s": 53.4,
+        "qp": 2.936
+      },
+      {
+        "cutoff_hz": 0.16,
+        "period_s": 6.2,
+        "sigma_f_hz": 0.0275,
+        "implied_set_s": 36.3,
+        "qp": 2.403
+      },
+      {
+        "cutoff_hz": 0.25,
+        "period_s": 4.0,
+        "sigma_f_hz": 0.0441,
+        "implied_set_s": 22.7,
+        "qp": 1.953
+      },
+      {
+        "cutoff_hz": 0.4,
+        "period_s": 2.5,
+        "sigma_f_hz": 0.05,
+        "implied_set_s": 20.0,
+        "qp": 1.883
+      }
+    ],
+    "qp_swing": 2.65,
+    "sigma_f_swing": 6.1,
+    "qp_note": "Goda Qp is the least cutoff-sensitive of the three (see the two swing figures above) and is where a groupiness bridge should start if one is attempted \u2014 but it is dimensionless and does not convert to a Delta f without an assumption that would smuggle the answer back in."
+  }
+}

@@ -64,6 +64,15 @@ California, Hutt/Black/Mead, Battjes, McCowan, Storlazzi et al.). Those are
 referenced and paraphrased under normal citation practice; none of their text
 is reproduced at length here, and none of it is relicensed by this repository.
 
+**CDIP (Scripps / US federal) is a different case — it is redistributed.**
+`data/climatology/pp_cdip_climatology.json` holds statistics derived from the
+CDIP MOP v1.1 SC116 hindcast, obtained from thredds.cdip.ucsd.edu. CDIP data is
+publicly funded and carries no redistribution restriction; CDIP asks for
+acknowledgement, which this repository gives here, in
+`data/climatology/README.md`, and in `docs/research/PP_CDIP_CLIMATOLOGY.md`.
+The raw pull itself is not committed (gitignored, regenerable) — that is a
+repository-size decision, not a licence one.
+
 **surf-forecast.com.** `data/climatology/pp_surfforecast_climatology.json` and
 `docs/research/PP_SWELL_CLIMATOLOGY.md` hold numeric readings transcribed from
 surf-forecast.com's published break-statistics graphs, with attribution. The
