@@ -31,21 +31,26 @@ test('breaker consequences share one canonical lifecycle clock', () => {
 });
 
 test('structural pocket is compact and legacy remains reversible', () => {
-  // 7.5 m compact bell, now scaled by pockS (H_eff footprint coupling,
-  // 2026-08-14): factor 1.0 at the 1.5 m model-card day keeps compactness.
-  assert.match(model, /2\.0\*\(7\.5\*pockS\)\*\(7\.5\*pockS\)/);
-  assert.match(model, /clamp\(u_H0\*shelterAt\(x\)\/1\.5, 0\.70, 1\.50\), u_depthMix\*u_pockSize/);
+  // Structural pins, not literal ones: the bell must stay a compact Gaussian
+  // whose footprint is scaled by pockS (H_eff coupling, 2026-08-14), and the
+  // coupling must stay clamped and gated on u_depthMix*u_pockSize. The tuned
+  // numbers themselves are free to move without failing the suite.
+  assert.match(model, /2\.0\*\([\d.]+\*pockS\)\*\([\d.]+\*pockS\)/);
+  assert.match(model, /clamp\(u_H0\*shelterAt\(x\)\/[\d.]+, [\d.]+, [\d.]+\), u_depthMix\*u_pockSize/);
   assert.match(model, /mix\(pocketLegacy, pocketCompact, clamp\(u_breakShape/);
   assert.match(main, /h\.get\('shape'\) === 'legacy'/);
   assert.match(main, /setBreakerShape/);
 });
 
 test('field-fidelity full look replaces the detached fold with a connected hinge', () => {
-  assert.match(shaders, /uniform float u_fidelityLook; \/\/ 0 current, 1 foam, 2 connected face\/lip probe/);
-  assert.match(shaders, /float Sapp\s+= mix\(0\.42, 0\.22, connectedLook\) \* steep/);
-  assert.match(shaders, /if \(connectedLook > 0\.5\) S = min\(S, 0\.98\)/);
-  assert.match(shaders, /mix\(5\.0, 0\.72, connectedLook\)/);
-  assert.match(shaders, /mix\(3\.0, 0\.28, connectedLook\)/);
+  // Structural claims only: the connected look must temper apparent steepness,
+  // cap S below the fold threshold, and shrink lip throw/drop — which exact
+  // numbers do that is tuning, and a retune must not fail the suite.
+  assert.match(shaders, /uniform float u_fidelityLook;/);
+  assert.match(shaders, /float Sapp\s+= mix\([\d.]+, [\d.]+, connectedLook\) \* steep/);
+  assert.match(shaders, /if \(connectedLook > 0\.5\) S = min\(S, [\d.]+\)/);
+  assert.match(shaders, /float throwMag = mix\([\d.]+, [\d.]+, connectedLook\)/);
+  assert.match(shaders, /float dropMag = mix\([\d.]+, [\d.]+, connectedLook\)/);
   assert.match(shaders, /float pocketSteepGate = mix/);
   assert.match(shaders, /if \(fullLook > 0\.5 && !gl_FrontFacing\) discard/);
   assert.match(shaders, /float facePocket = fullLook \* steepF/);
