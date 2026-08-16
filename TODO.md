@@ -1,5 +1,42 @@
 # TODO
 
+## Now / Next (2026-08-16)
+
+The distilled open state. Everything below this section is the lab notebook,
+kept in full as the record; blockers are marked here.
+
+**The screensaver read (mission #1)**
+- [ ] Hero read FAILED 2026-08-14, partially recovered since (#head comet
+      gradient, #pock pocket scaling; `#look=current|foam|full` fidelity probe
+      2026-08-15). Default stays `current` pending a live verdict. Open
+      mechanisms: per-stripe lifecycle clock for the inner re-breaking stripes,
+      the kelp-mottle contrast budget, the 4a' tide-area re-measure.
+- [ ] Track 1b scene identity — map view spec'd (`docs/MAP_VIEW_SPEC.md`), not
+      built; publication blocked on characterising the DEM terrace/track-line
+      artifacts. Also open: the ~110° headland corner, kelp-wedge value
+      polarity, crowd scatter, cliff-path land-scale cues, the bake-seam hunt.
+- [ ] Break-line V at Sharks, layer 3 of 3: bridge the baked z across section
+      gaps for the RENDER anchor only (instruments keep the honest V).
+
+**Geometry & conditions**
+- [ ] Track 3 (direction as a condition) is BLOCKED on B_spot, which is blocked
+      on straightening the break line (perpendicular rms 23–50 m on 113–312 m
+      stages; `pp_bspot.json` rms is the acceptance metric). Note the
+      2026-08-13 retarget may have hit the wrong constraint (MODEL.md §2.6.2a).
+- [ ] 4b wind/sky as data · 4c decide the live clamps (Hs 3.0 m / Tp 18 s) ·
+      4d season+conditions panel — 4d gated on 3c, hence on B_spot.
+- [ ] 6a group speed 3.9× too slow (set band 375 m vs 1464 m physical) — the
+      fix is M6 parts 1+3, not a local patch.
+
+**Validation (largest gap)**
+- [ ] USGS shore-camera peel-angle derivation (OFR 2007-1270 stills) — the
+      measurement that would settle the α-target question.
+- [ ] First validation pass: a model residual against an independent record of
+      a real day. Partial capture 2026-08-15; prerequisite instrument is the
+      temporal audit harness (Track 6).
+
+---
+
 ## Phase 0 — model on paper (current)
 - [x] Core parametrization written (`docs/MODEL.md`)
 - [x] Shader-ready zipper sketch (`glsl/zipper.md`)
