@@ -21,3 +21,12 @@ export function parseSpeedParam(value, fallback = 1) {
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(Math.max(parsed, 0), 4);
 }
+
+// Renderer-only visual-fidelity probe. The default stays the shipped image;
+// named values make matched captures reviewable without numeric flag lore.
+export function parseFidelityLook(value) {
+  const key = String(value || '').toLowerCase();
+  if (key === 'foam') return 1;
+  if (key === 'full') return 2;
+  return 0;
+}

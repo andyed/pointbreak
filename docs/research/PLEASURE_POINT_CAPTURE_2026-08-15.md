@@ -1,11 +1,11 @@
-# Pleasure Point observation and social capture — 2026-08-15
+# Pleasure Point field observations and visual-fidelity probe — 2026-08-15
 
-This note records the conditions used for the 2026-08-15 Pointbreak social
-capture and fixes the evidence boundary around the accompanying Pleasure Point
-webcam recording. The render is a reproducible model configuration, not a
-validation result.
+This note records the morning conditions used for the 2026-08-15 Pointbreak
+social capture, the larger afternoon field recording, and the first reversible
+renderer comparison derived from it. The renders are reproducible model
+configurations, not validation results.
 
-## Observations supplied with the recording
+## Morning observation supplied with the social capture
 
 The field reference was a screen recording titled
 `Screen Recording 2026-08-15 at 7.36.25 AM.mov`. The recorded page periodically
@@ -69,26 +69,130 @@ The video is a social artifact and is intentionally not committed to this
 repository. The simulator URL, source clock, and encoding facts above are the
 reproduction record.
 
-## What the recording can establish about periodicity
+## Afternoon field recording
+
+The larger-wave reference is the screen recording
+`Screen Recording 2026-08-15 at 3.28.48 PM.mov`. The original remains outside
+the repository on the capture machine.
+
+| Property | Original | Clean unique derivative |
+|---|---|---|
+| Filename | `Screen Recording 2026-08-15 at 3.28.48 PM.mov` | `pointbreak-pleasure-point-2026-08-15-1528-unique-clean.mp4` |
+| Duration | 320.490125 s | 60.833333 s |
+| Size | 1,334,915,124 bytes | 56,658,381 bytes |
+| Video | H.264, 2288 by 1286, variable frame rate | H.264, 2288 by 1286, 30 fps |
+| SHA-256 | `adab8793bab2b2e4dc7687eded12101d94606168e39f853449d7265d59255f92` | `11428e3fa283bea0834c724c7a6c79d6bb6b506ae9e0885525d43ee08e962695` |
+
+The supplied/visible afternoon conditions were 3–5 ft observed surf (waist to
+head, oily/fair), 3 ft at 16 s from SSW 202 degrees, 2 ft at 6 s from WNW 289
+degrees, 0.3 ft at 11 s from W 271 degrees, SW wind at 7 kt cross-shore, and a
+4.0 ft tide after a 5.2 ft high at 1:22 pm.
+
+### Viewer defect and clean derivative
+
+The five-minute file does **not** contain five independent minutes of ocean
+motion. The page auto-scrolls and its viewer restarts the same approximately
+61-second camera clip. Scroll intervals detected at 10 fps were:
+
+- 38.6–40.7 s;
+- 101.9–103.4 s;
+- 164.7–168.1 s;
+- 229.8–231.5 s;
+- 292.8–294.4 s.
+
+The clean derivative retains source interval 40.9–101.7 s. A 10 fps scroll
+detector found no remaining page-motion frames. Do not join crest intervals
+across the raw file's scrolls or treat its repeated viewer loops as new sets.
+
+## What the afternoon recording establishes about periodicity
 
 There are two different periods in play:
 
-1. **Carrier period:** the interval between successive wave crests. The buoy
-   reports a dominant 17 s period and the render is configured to `T=17`.
+1. **Carrier period:** the interval between successive wave crests. The
+   afternoon page reports a 16 s primary swell; the morning buoy and social
+   render use 17 s.
 2. **Set cadence:** the slower group envelope. Pointbreak currently authors
    this through `dF`; the supplied condition snapshots do not measure it.
 
-The screen recording can independently test carrier periodicity only after the
-original file is available for frame measurement. Use a fixed image-space
-transect, timestamp at least four comparable crest passages, and report the
-individual intervals plus median and spread. Treat each auto-scroll-free span
-as a separate segment; never close an interval across an auto-scroll or stitch
-gap. The recording can test set cadence only if its uninterrupted ocean spans
-cover multiple complete groups, which a roughly one-minute page cycle is
-unlikely to provide.
+The measurement uses fixed horizontal image-space transects through the outer
+swell and initial breaking band, detrended and band-passed over 9–24 s. The
+strongest transect, source-image `y=580`, has 16 s recurrence correlation
+`r=0.942`. Comparable crests passed at source times 50.0, 65.9, and 82.5 s:
+intervals of 15.9 and 16.6 s, mean 16.25 s. Neighboring high-coherence
+transects returned 15.4–16.8 s.
 
-Until that pass is run, the precise claim is: **the model was configured to the
-reported 17 s buoy period; the field video comparison remains unmeasured.**
+The supported claim is therefore: **this field clip independently supports an
+approximately 16-second carrier, consistent with the reported 3 ft at 16 s SSW
+primary swell.** It contains only two measured intervals and no multiple
+independent groups, so it cannot estimate or validate set cadence.
+
+## Least-faithful moments
+
+These source/simulator pairs are the visual regression brief for downstream
+agents. They are deliberately selected where the current renderer is least
+faithful, not as representative beauty shots. The simulator stills use one
+camera and forcing hash:
+
+```text
+preset=secondpeak&cam=cliff&day=big&h0=1.4&tide=0.732&controls=0&q=high&speed=0
+```
+
+| Fidelity target | Field evidence | Current simulator evidence | Defect to preserve in view |
+|---|---|---|---|
+| One dominant breaking subject | ![Field clip at 35 s: one active crest over quieter lanes](assets/pleasure-point-2026-08-15/field_035_single-wave-subject.jpg) | ![Current renderer at sim 42: several equal bands and folds](assets/pleasure-point-2026-08-15/sim_current_042_parallel-bands.jpg) | Real: one active wave, dark lane, subordinate aftermath. Current: several equal-value parallel bands compete. |
+| Granular foam that ages into lace | ![Field clip at 50 s: textured whitewater with holes](assets/pleasure-point-2026-08-15/field_050_granular-whitewater.jpg) | ![Current renderer at sim 48: broad cloudy foam](assets/pleasure-point-2026-08-15/sim_current_048_cloudy-foam.jpg) | Real: aerated clumps and dark perforations. Current: broad low-frequency blur with little material distinction. |
+| Dark face under a narrow broken lip | ![Field clip at 10 s: dark face and thin luminous lip](assets/pleasure-point-2026-08-15/field_010_dark-face-thin-lip.jpg) | ![Current renderer at sim 58: smooth face and dark folded ribbon](assets/pleasure-point-2026-08-15/sim_current_058_fold-lip.jpg) | Real: readable sloped face and thin irregular edge. Current: smooth pale face plus a dark folded ribbon/polygon. |
+
+The surfers, rail, and vegetation in the field stills are also strong scale and
+place cues. They are not part of this renderer probe; do not mistake their
+absence for a foam or wave-timing defect.
+
+## Reversible renderer probe
+
+`#look=` exposes three non-destructive states; the default remains the shipped
+renderer:
+
+| Hash | Meaning | Evidence |
+|---|---|---|
+| `look=current` or omitted | Shipped/current renderer | ![Current renderer](assets/pleasure-point-2026-08-15/sim_current_048_cloudy-foam.jpg) |
+| `look=foam` | Domain-warped isotropic cellular foam; age opens holes into lace | ![Foam material probe](assets/pleasure-point-2026-08-15/sim_foam_048_cellular-material.jpg) |
+| `look=full` | Foam plus lifecycle hierarchy and the connected face/thin-lip treatment below | ![Full fidelity probe at the strongest fold moment](assets/pleasure-point-2026-08-15/sim_full_042_connected-face-lip.jpg) |
+
+Run `node scripts/capture_fidelity_ab.mjs [outdir]` to capture all three looks
+at simulation times 42, 48, 54, and 58 in the fixed 1440 by 900 cliff view. The
+script asserts clock, look, camera, and viewport provenance in `manifest.json`.
+
+### Connected face / thin lip follow-up
+
+The strongest mismatch in the first full probe was the breaker silhouette:
+the dark pocket split into isolated black ribbons or manta-like polygons. A
+diagnostic render proved those ribbons were back-facing fragments from the
+broad, self-intersecting thrown sheet. The large pale wall at the right-hand
+peak was front-facing, so it was a separate value/shape problem.
+
+The revised `look=full` treatment is deliberately visual and reversible:
+
+- keep the convergence just below the cusp and replace most of the thrown
+  sheet with a wider, shallower face-to-crest hinge;
+- reduce only the full state's broad approach convergence from `0.42` to
+  `0.22`, while retaining pocket-owned break sharpening; this stops several
+  shore-normal rows bunching into the front-facing planar wall;
+- reject back-facing fold fragments in the full material, removing the
+  detached silhouettes without changing `current` or `foam`;
+- darken the surviving steep front face after pocket tinting, then lay a fine
+  crest-derived white edge directly over it.
+
+Matched Cliff captures at simulation times 42, 48, 54, and 58 remove the
+isolated black undersides without exposing visible holes. The result is closer
+to the field frame's one dark face / one light lip hierarchy. At the strongest
+sim-42 moment, reducing approach convergence replaces the front-facing planar
+wall with a rounded sloping face; the other three clocks retain the connected
+silhouette. This is still not a full geometry validation: the lip remains
+cleaner and less aerated than the footage.
+
+This is an experiment, not a default decision. The cellular material produces
+a more perforated band and the full state reduces equal-weight aftermath and
+detached fold silhouettes. Scale cues and aerated foam volume remain open gaps.
 
 ## Social copy
 

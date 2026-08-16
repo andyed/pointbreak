@@ -274,7 +274,16 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       comet default is OFF (#head=1 re-arms it). The mechanism stack (model
       cometFoam + aftermath thinning + post-threshold carve) stays in the
       code for iteration; whatever reads worse is in the tuning, not
-      necessarily the idea. STILL OPEN: (a) the INNER re-breaking stripes have no along-crest clock —
+      necessarily the idea. SUPERSEDED DEFAULT NOTE: a clean-load rematch on
+      2026-08-14 restored #head=1 as the default; #head=0 remains the revert.
+      FIDELITY PROBE 2026-08-15: `#look=current|foam|full` now isolates cellular
+      foam material from material + lifecycle hierarchy + face/lip staging.
+      The full state now keeps convergence sub-cusp, rejects DoubleSide fold
+      undersides (the diagnosed source of the black manta/ribbons), darkens
+      the surviving front face, and draws a fine crest-derived lip;
+      matched Cliff captures and field stills are in
+      `docs/research/PLEASURE_POINT_CAPTURE_2026-08-15.md`. Default remains
+      `current` pending a live verdict. STILL OPEN: (a) the INNER re-breaking stripes have no along-crest clock —
       life.x anchors at the break line only — so they band uniformly and
       dominate wide frames; per-stripe lifecycle is the next mechanism.
       (b) kelp mottle still owns the upper-half contrast budget. (c) the 4a'
@@ -309,6 +318,11 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
 - [ ] Headland: the ~110° corner cannot appear in the per-spot re-centered
       coastline — build the real shoreline from data/osm (audit: no frame
       reads as Pleasure Point at any altitude)
+- [ ] LAND SCALE CUES: add the cliff-top walking path and its fence/rail to the
+      rendered land. Align the path to mapped geometry where available and keep
+      the fence human-scaled and sparse enough to establish wave/cliff scale
+      without becoming the focal subject. Verify from the Cliff camera against
+      the 2026-08-15 field stills before adding more generic terrain detail.
 - [ ] Kelp wedge: DARK, tracking the reef (sim currently paints the reef
       tongue bright — value polarity inverted vs the NAIP ortho)
 - [ ] Crowd scatter (sitting riders bobbing; near-free realism + rider scale
@@ -389,11 +403,19 @@ No parity port. Consequences to carry honestly:
       (unconfined "fresh" measured null — every inner bore is fresh behind
       its own crest). Argmax-to-line discriminator: first-break frame 100%
       within 20 m; active frames improve; late-set frames gated on 6c.
-- [ ] Remaining foam gaps: aging texture (chunky→lace→gray), the shore-normal
+- [~] Remaining foam gaps: aging texture (chunky→lace→gray) has a reversible
+      renderer probe at `#look=foam`; material + lifecycle hierarchy is
+      `#look=full`. Neither is default pending live A/B. Still open: the shore-normal
       streaks house texture (legacy/bore terms still carry it; the 4a′ boost
       already dropped it), swash-band brightness vs the head at low tide
-- [ ] Face darkening tuning from a LOW camera against VISUAL_GROUND_TRUTH
-      stills (current verification is top-down; the money view is the cliff)
+- [~] Face/lip tuning from the Cliff camera against VISUAL_GROUND_TRUTH:
+      deterministic sim 42/48/54/58 captures now remove the detached black
+      fold undersides in `#look=full` and attach a thin crest edge to the dark
+      front face. The diagnosed front-facing planar wall is also corrected in
+      the full probe: approach convergence drops 0.42→0.22 while pocket-owned
+      break sharpening stays intact, turning the sim-42 slab into a rounded
+      slope without regressing the other captured clocks. Still open before
+      any default decision: the lip lacks the field footage's aerated volume.
 
 ### Track 6 — instrumentation (cheap; start anytime — now the acceptance path
 ### since the twin instruments are deprecated)
@@ -714,9 +736,11 @@ precedent) — do not decide now.
       contemporaneous condition snapshots are logged in
       `docs/research/PLEASURE_POINT_CAPTURE_2026-08-15.md`; the social render
       reproducibly matches the reported 17 s buoy period. This is not yet a
-      validation pass: the original recording still needs fixed-transect crest
-      timestamps, excluding its roughly 60 s page auto-scroll interludes, and
-      no breaking-position or face-height residual has been measured.
+      validation pass: the afternoon recording's clean unique minute measures
+      15.9 s and 16.6 s crest intervals (mean 16.25 s, strongest-transect
+      recurrence r=0.942), consistent with its 16 s primary report. It is too
+      short and viewer-repeated to estimate set cadence, and no breaking-position
+      or face-height residual has been measured.
 - [ ] PEEL ANGLE FROM THE USGS SHORE CAMERA — new 2026-08-13, and the thing
       that would settle 1c'-c.6. Literature search establishes there is NO
       measured peel angle for ANY Santa Cruz break (SURF_SCIENCE_REFS 2.3.1,

@@ -28,7 +28,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../web/js/cdip.js';
-import { readHashParams, shouldShowControls, parseSpeedParam } from './url-params.js';
+import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook } from './url-params.js';
 import { create as createFisheyeMenu } from '../vendor/fisheye/fisheye-menu.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 
@@ -184,6 +184,9 @@ const uniforms = {
   u_matte:      { value: 1 },
   u_wwArea:     { value: 1 },  // 4a' whitewater-area coupling; #wwarea=0 is the pre-fix A/B
   u_crestRead:  { value: 1 },  // Track 5 crest-first read (face darkening + fresh core); #crest=0 reverts
+  // Field-video fidelity probe: 0 shipped/current, 1 foam material only,
+  // 2 foam + per-wave hierarchy + tightened face/lip. #look= names the A/B.
+  u_fidelityLook: { value: 0 },
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -1296,6 +1299,7 @@ function applyHashParams() {
   if (h.get('wwarea') === '0') uniforms.u_wwArea.value = 0;
   // Track 5 crest-first read defaults ON; #crest=0 is the pre-Track-5 A/B
   if (h.get('crest') === '0') uniforms.u_crestRead.value = 0;
+  uniforms.u_fidelityLook.value = parseFidelityLook(h.get('look'));
   // world-collision clamp defaults ON; #noclip=1 restores x-ray debugging
   if (h.get('noclip') === '1') noclipEnabled = true;
   // section-gap masking defaults ON; #gap=0 is the pre-fix A/B (the V returns)
@@ -1354,6 +1358,7 @@ window.__pointbreak = {
   m4Ride: () => m4Ride,
   // perf A/B: set huge to disable the land-vertex skip, 6.0 to restore
   setLandSkip: (m) => { uniforms.u_landSkipM.value = m; },
+  setFidelityLook: (look) => { uniforms.u_fidelityLook.value = parseFidelityLook(look); },
   // Where does a crest FIRST meet the break line? m4RideSolve takes the takeoff
   // as argmin S over the stage. When that minimum is INTERIOR, crests satisfy
   // the criterion in both directions from it and the peak splits into a left

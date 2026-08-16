@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { readHashParams, shouldShowControls, parseSpeedParam } from '../web-three/js/url-params.js';
+import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook } from '../web-three/js/url-params.js';
 
 test('permalink state is read from the hash payload', () => {
   const params = readHashParams('#preset=firstpeak&controls=1&section=1');
@@ -27,4 +27,12 @@ test('speed accepts a real zero and clamps finite values', () => {
   assert.equal(parseSpeedParam('-2'), 0);
   assert.equal(parseSpeedParam('9'), 4);
   assert.equal(parseSpeedParam('nope', 1.25), 1.25);
+});
+
+test('visual-fidelity look names the reversible three-way comparison', () => {
+  assert.equal(parseFidelityLook(null), 0);
+  assert.equal(parseFidelityLook('current'), 0);
+  assert.equal(parseFidelityLook('foam'), 1);
+  assert.equal(parseFidelityLook('FULL'), 2);
+  assert.equal(parseFidelityLook('unknown'), 0);
 });

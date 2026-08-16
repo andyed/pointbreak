@@ -40,6 +40,18 @@ test('structural pocket is compact and legacy remains reversible', () => {
   assert.match(main, /setBreakerShape/);
 });
 
+test('field-fidelity full look replaces the detached fold with a connected hinge', () => {
+  assert.match(shaders, /uniform float u_fidelityLook; \/\/ 0 current, 1 foam, 2 connected face\/lip probe/);
+  assert.match(shaders, /float Sapp\s+= mix\(0\.42, 0\.22, connectedLook\) \* steep/);
+  assert.match(shaders, /if \(connectedLook > 0\.5\) S = min\(S, 0\.98\)/);
+  assert.match(shaders, /mix\(5\.0, 0\.72, connectedLook\)/);
+  assert.match(shaders, /mix\(3\.0, 0\.28, connectedLook\)/);
+  assert.match(shaders, /float pocketSteepGate = mix/);
+  assert.match(shaders, /if \(fullLook > 0\.5 && !gl_FrontFacing\) discard/);
+  assert.match(shaders, /float facePocket = fullLook \* steepF/);
+  assert.match(shaders, /float connectedLip = max\(vPocket/);
+});
+
 test('airborne whitewater is a separate deterministic render pass', () => {
   assert.match(main, /let seed = 0x51f15e/);
   assert.match(main, /new THREE\.Points\(makeSprayGeometry\(\), sprayMat\)/);

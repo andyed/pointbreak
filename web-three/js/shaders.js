@@ -192,6 +192,7 @@ vec3 skyColor(vec3 rd, float t){
 export const GRID_VERT = `
 uniform float u_time;   // simulation seconds (speed-scaled, pausable, JS-side)
 uniform vec2  u_cell;   // core grid cell size in metres (x, z) — normal FD step
+uniform float u_fidelityLook; // 0 current, 1 foam, 2 connected face/lip probe
 ${VARYINGS}
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
@@ -288,11 +289,23 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float KsQ     = clamp(sqrt((G*u_T/(4.0*PI))/sqrt(G*depQ)), 0.7, 2.6);
   float excessQ = (u_H0*KsQ) / max(GAMMA*depQ, 0.05);
   float sizeGate = mix(1.0, clamp(excessQ, 0.0, 1.5), u_depthMix);
+  float connectedLook = step(1.5, u_fidelityLook);
   // S calibrated against the old convergence at the 1.5 m model-card day
-  // (approach ~0.42, full pocket on plunging ~1.4 before the gate).
-  float Sapp   = 0.42 * steep;                       // sharpening on the way in
+  // (approach ~0.42, full pocket on plunging ~1.4 before the gate). Field
+  // diagnosis at the sim-42 Cliff peak showed that the shared 0.42 approach
+  // term still bunched several shore-normal rows into a hard planar wall even
+  // with structural anatomy and plunge disabled. Full keeps the pocket-owned
+  // break sharpening but halves the broad approach compression, restoring a
+  // curved lead-in to the hinge. Current/foam retain the authored 0.42 path.
+  float Sapp   = mix(0.42, 0.22, connectedLook) * steep;
   float Sover  = (0.15 + 1.30*plunge) * pocket * sizeGate;
   float S      = clamp(Sapp + Sover, 0.0, 1.8);      // >1 folds; cap guards the mesh
+  // Field-fidelity probe: the old full over-cusp range produced a broad
+  // self-intersecting sheet. From the cliff camera its DoubleSide underside
+  // read as several detached black manta polygons, not one wave face. Keep
+  // the authored fold untouched for current/foam; full stops just before the
+  // cusp so the crest can hinge visually without becoming a separate ribbon.
+  if (connectedLook > 0.5) S = min(S, 0.98);
   float lam    = S / (aEst * kk * kk);
 
   vec2 off = lam * grad;
@@ -304,9 +317,12 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float thetaRaw = 2.0*PI/u_T*t - rayPhase(xz0);
   float frontPhase = smoothstep(0.02, 0.78, -sin(thetaRaw))
                    * smoothstep(-0.35, 0.82, cos(thetaRaw));
-  float hingeBand = exp(-(d*d)/(2.0*9.0*9.0))*reefWindow(xz0.x);
+  float hingeSigma = mix(9.0, 16.0, connectedLook);
+  float hingeBand = exp(-(d*d)/(2.0*hingeSigma*hingeSigma))*reefWindow(xz0.x);
   float anatomy = clamp(u_breakShape, 0.0, 1.0)*plunge;
-  h -= 0.34*u_H0*VIS*frontPhase*hingeBand*anatomy;
+  // Full trades the narrow/deep cut for a wider, shallower sloping face. The
+  // dark pocket therefore belongs to the face all the way up to the lip.
+  h -= mix(0.34, 0.20, connectedLook)*u_H0*VIS*frontPhase*hingeBand*anatomy;
 
   // lip throw & curl: toward-crest convergence folds the crest symmetrically;
   // a plunging lip is thrown SHOREWARD (+z) and curled DOWNWARD (-y).
@@ -326,7 +342,9 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float lipJit = 0.65 + 0.7*vnoise2(vec2(xz0.x*0.11, t*0.45));
 
   float lipTip = mix(1.0, 1.0 + 0.65*frontPhase, anatomy);
-  float throwMag = 5.0 * pocket * plunge * hM * lipJit * lipTip;
+  lipTip = mix(lipTip, 1.0 + 0.18*frontPhase*anatomy, connectedLook);
+  float throwMag = mix(5.0, 0.72, connectedLook)
+                 * pocket * plunge * hM * lipJit * lipTip;
   off.y += throwMag;
 
   // Curl downward. LINEAR in face height — the first metre-calibration kept
@@ -335,7 +353,8 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // more screen than the 1.5 m one. A fall distance scales like the height
   // fallen from, not its square. 3.0*hM matches the old drop at the 1.5 m
   // model-card day (3.5*hN^2 = 5.9 m ~ 3.0*1.95).
-  float dropMag = 3.0 * pocket * plunge * hM * lipJit
+  float dropMag = mix(3.0, 0.28, connectedLook)
+                * pocket * plunge * hM * lipJit
                 * mix(1.0, 0.72 + 0.82*frontPhase, anatomy);
   h -= dropMag;
 
@@ -469,6 +488,7 @@ ${KELP_GLSL}
 uniform float u_camUnder;   // 1 when the eye is below the water surface
 uniform float u_matte;      // 1 = matte the unmodeled world (#matte=0 reverts)
 uniform float u_crestRead;  // Track 5 crest-first read (face darkening + fresh-foam core); #crest=0 reverts
+uniform float u_fidelityLook; // 0 current, 1 foam material, 2 + lifecycle/face/lip (#look=)
 const float FOG_DENSITY = 0.0011;
 const float HAZE_H      = 70.0;
 
@@ -640,6 +660,13 @@ void main() {
   float wA = 2.0*PI/u_T;
   float tSince = mod(wA*t - rayPhase(xz), 2.0*PI)/wA;
   float ageK = smoothstep(1.2, 0.62*u_T, tSince);   // 0 fresh -> 1 aftermath
+  float foamLook = step(0.5, u_fidelityLook);
+  float fullLook = step(1.5, u_fidelityLook);
+  // The folded grid is DoubleSide for the shipped renderer, but its underside
+  // is exactly the detached manta/ribbon silhouette seen from the cliff. Full
+  // treats the pitching edge as a visual hinge: show the continuous front
+  // face and let the thin white crest below describe the lip.
+  if (fullLook > 0.5 && !gl_FrontFacing) discard;
   // advect the erosion lattice shoreward with age: the aftermath pattern
   // smears with the swash instead of sitting on a static noise grid. The
   // mod() jump in tSince lands on the crest line, where foam is fresh and the
@@ -647,6 +674,31 @@ void main() {
   vec2 axz = xz - vec2(0.0, 1.1)*min(tSince, 7.0);
   float er = vnoise2(axz*0.35 + vec2(t*0.08, -t*0.05))*0.65
            + vnoise2(axz*0.90 + vec2(t*0.10, -t*0.07))*0.35;
+  // FIELD-VIDEO PROBE (2026-08-15): real whitewater is a perforated material,
+  // not a smooth translucent blur. Domain-warp three isotropic scales into
+  // clumps, cells and pores. Fresh foam keeps mostly connected white mass;
+  // aging raises the threshold so holes merge into lace. fwidth keeps the
+  // threshold antialiased at the cliff camera instead of aliasing into glitter.
+  vec2 cellQ = axz;
+  float foamCell = 0.5;
+  float materialCoverage = 1.0;
+  // Uniform branch: the shipped/current renderer pays none of the five extra
+  // noise samples. The experimental paths accept the fragment cost explicitly.
+  if (foamLook > 0.5) {
+    vec2 cellP = mat2(0.80, -0.60, 0.60, 0.80) * axz;
+    vec2 cellWarp = vec2(
+      vnoise2(cellP*0.12 + vec2(8.3, t*0.035)),
+      vnoise2(cellP*0.12 + vec2(-5.7, -t*0.028))) - 0.5;
+    cellQ = cellP + 5.5*cellWarp;
+    foamCell = vnoise2(cellQ*0.24 + vec2(t*0.08, -t*0.04))*0.52
+             + vnoise2(cellQ*0.72 - vec2(t*0.05,  t*0.03))*0.32
+             + vnoise2(cellQ*1.85 + vec2(-t*0.03, t*0.02))*0.16;
+    float cellCut = mix(0.40, 0.60, ageK);
+    float cellAA = max(fwidth(foamCell)*1.5, 0.018);
+    float cellInk = smoothstep(cellCut - cellAA, cellCut + cellAA, foamCell);
+    materialCoverage = mix(0.52 + 0.48*cellInk,
+                           0.12 + 0.88*cellInk, ageK);
+  }
   float foamM = clamp(vFoam, 0.0, 1.0);
   // SATURATION (ice-floe critique, 2026-08-11): where fresh sources overlap
   // (impact mound + bore + lip foam landing on the same spot) the summed mask
@@ -703,6 +755,16 @@ void main() {
                       smoothstep(xz.y - 3.0, xz.y + 3.0, lifeC.y));
   float onStripe = exp(-pow((xz.y - zbC)/25.0, 2.0));
   foamM *= mix(1.0, 0.45 + 0.55*exp(-foamAge/9.0), onStripe*u_headRead);
+  // Probe 1 changes only the material response. Probe 2 additionally spends
+  // the contrast budget on one live head: the line-attached zipper and its
+  // current bore stay bright while re-breaking stripes resolve as dim film.
+  // This is downstream shading over the canonical lifecycle, never a new clock.
+  foamM *= mix(1.0, materialCoverage, foamLook);
+  float liveHead = onStripe * exp(-lifeC.x/3.2);
+  float liveBore = exp(-pow((xz.y - lifeC.y)/13.0, 2.0)) * exp(-lifeC.x/5.5);
+  float hierarchy = mix(0.48 + 0.20*(1.0 - ageK), 1.0,
+                        clamp(max(liveHead, 0.78*liveBore), 0.0, 1.0));
+  foamM *= mix(1.0, hierarchy, fullLook);
 
   // ---- 1. detail spectrum: fragment-stage normal perturbation ----
   // damped where foam owns the surface and over the boil slick; wind chop
@@ -729,14 +791,16 @@ void main() {
   // darkening below (VISUAL_GROUND_TRUTH: the face must darken as it
   // steepens) — unblocked by #psi landing, since tuning this against
   // under-steepened geometry would have baked in a compensation.
-  // FRONT FACES ONLY, and faded out of the pocket: the M2 folding lip
-  // self-intersects by design (accepted z-fight), and darkening its flipped
-  // steep normals painted the fold as a camera-dependent BLACK POLYGON
-  // (Andy, live, 2026-08-13). The fold's glassy look was fine; keep it.
-  float steepF = clamp((1.0 - Ng.y) * 5.0, 0.0, 1.0)
+  // FRONT FACES ONLY, and faded out of the pocket: current/foam retain M2's
+  // authored folded lip, while full narrows it geometrically above. Darkening
+  // flipped steep normals would still paint any remaining underside as a
+  // camera-dependent black polygon, so the face cue stays on the front face.
+  float pocketSteepGate = mix(1.0 - clamp(vPocket*1.2, 0.0, 1.0),
+                              1.0 - 0.25*clamp(vPocket, 0.0, 1.0), fullLook);
+  float steepF = clamp((1.0 - Ng.y) * mix(5.0, 6.2, fullLook), 0.0, 1.0)
                * smoothstep(0.4, 1.6, vWorldPos.y) * u_crestRead
                * (gl_FrontFacing ? 1.0 : 0.0)
-               * (1.0 - clamp(vPocket*1.2, 0.0, 1.0));
+               * pocketSteepGate;
 
   // foam roughness normal (used for foam's own lighting below); influence kept
   // low — foam under a marine layer is lit mostly ambiently, strong normal
@@ -798,7 +862,7 @@ void main() {
   // tone-inversion the 2026-08-11 audit measured). Light crossing a steep
   // face travels a longer diagonal path through more water — stretch the
   // Beer-Lambert path with steepness and the sand return dies on the face.
-  float pathM = max(vDepth, 0.0) * 2.0 * (1.0 + 2.5*steepF);   // down and back up
+  float pathM = max(vDepth, 0.0) * 2.0 * (1.0 + mix(2.5, 3.2, fullLook)*steepF);   // down and back up
   vec3 bedAlb = mix(vec3(0.60, 0.53, 0.41), vec3(0.035, 0.062, 0.048), kelp);
   vec3 bottomLit = bedAlb * (0.35 + 0.45*clamp(dot(Ng, sunDir), 0.0, 1.0));
   vec3 through = bottomLit * exp(-kExt * pathM);
@@ -811,7 +875,7 @@ void main() {
   // Track 5 face darkening, part 2: the water body itself — a steep face is
   // lit by less sky (it sees the horizon, not the zenith dome) and its
   // volume backscatter drops with the grazing illumination.
-  base *= 1.0 - 0.30*steepF;
+  base *= 1.0 - mix(0.30, 0.40, fullLook)*steepF;
   // ---- 2. fresnel + glitter ----
   // Schlick, F0 ~ 0.02: near-black looking straight down, mirror at grazing.
   // cosV comes from the GEOMETRIC normal: the ripple perturbation saturates
@@ -865,8 +929,29 @@ void main() {
   // thrown-lip spray for plunging waves, both kept from web/
   vec3 pocketCol = mix(vec3(0.15, 0.38, 0.36), vec3(0.10, 0.30, 0.33), clamp(u_xi*0.4, 0.0, 1.0));
   col = mix(col, pocketCol, clamp(vPocket*1.4, 0.0, 0.55));
-  float lip = smoothstep(0.5, 1.5, u_xi) * vPocket;
-  col = mix(col, vec3(0.97), clamp(lip*1.2*vnoise2(xz*0.6 + t), 0.0, 0.9));
+  // Pocket tint happens after the base face lighting, so re-establish the
+  // field-reference value structure here: one dark sloping front, followed
+  // immediately by one fine white lip. This is front-face only because full
+  // has already rejected the opaque underside above.
+  float facePocket = fullLook * steepF;
+  col *= 1.0 - 0.44*facePocket;
+  float connectedLip = max(vPocket,
+                           0.34*smoothstep(0.48, 0.82, vCrest)
+                           * smoothstep(0.35, 1.35, vWorldPos.y));
+  float lip = smoothstep(0.5, 1.5, u_xi)
+            * mix(vPocket, connectedLip, fullLook);
+  float lipOld = vnoise2(xz*0.6 + t);
+  float lipTexture = 1.2*lipOld;
+  if (fullLook > 0.5) {
+    float lipCells = vnoise2(cellQ*0.58 + vec2(17.0, -9.0));
+    // A narrow continuous hinge, with cell noise breaking its opacity rather
+    // than breaking the line into isolated white pieces.
+    lipTexture = (0.38 + 0.67*smoothstep(0.38, 0.66, lipCells))
+               * smoothstep(0.26, 0.68, vCrest)
+               * (0.42 + 0.58*exp(-lifeC.x/3.0));
+  }
+  float lipMask = lip * lipTexture;
+  col = mix(col, vec3(0.98), clamp(lipMask, 0.0, mix(0.9, 0.96, fullLook)));
 
   // ---- 4. foam IN the surface ----
   // web/'s two-octave clump texture, but lit mostly ambiently: under a marine
@@ -876,6 +961,7 @@ void main() {
   // Structure (bore, streaks, lace, spray, crumb) arrives inside vFoam.
   float ftex = 0.58 + 0.42*(vnoise2(xz*0.35 + vec2(t*0.15, -t*0.1))*0.6
                           + vnoise2(xz*1.15 - vec2(t*0.08, t*0.05))*0.4);
+  ftex = mix(ftex, 0.42 + 0.58*foamCell, foamLook);
   float lamF = clamp(dot(Nf, sunDir), 0.0, 1.0);
   // fresh whitewater is the brightest thing in frame (tonal ceiling, raised
   // from 0.93 as part of the value-range stretch); with age it grades to a
