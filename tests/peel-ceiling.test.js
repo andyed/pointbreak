@@ -40,9 +40,9 @@ function peelCeilingDeg(T, hBreak, hShelf) {
   return r >= 1 ? null : Math.asin(r) * 180 / Math.PI;
 }
 
-// The bank is imported live (web/js/params.js), not copied: the whole point of
+// The bank is imported live (shared/params.js), not copied: the whole point of
 // this test is that the next person to edit an alpha target finds out here.
-import { PRESETS } from '../web/js/params.js';
+import { PRESETS } from '../shared/params.js';
 const BANK = Object.entries(PRESETS).map(([key, p]) =>
   ({ key, alpha: p.alpha, T: p.T, H0: p.H0 }));
 

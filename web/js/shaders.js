@@ -7,7 +7,7 @@
 // lives in model-glsl.js so web-three/ can splice the identical string —
 // this file owns only the raymarch renderer (shading, views, surfer SDF).
 
-import { MODEL_GLSL } from './model-glsl.js';
+import { MODEL_GLSL } from '../../shared/model-glsl.js';
 
 export const VERT = `#version 300 es
 layout(location=0) in vec2 a_pos;

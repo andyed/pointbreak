@@ -47,7 +47,7 @@ const server = createServer(async (req, res) => {
   } catch { res.writeHead(404).end('not found'); }
 });
 
-const presets = (await readFile(join(ROOT, 'web/js/params.js'), 'utf8'))
+const presets = (await readFile(join(ROOT, 'shared/params.js'), 'utf8'))
   .match(/export const PRESETS = \{[\s\S]*?\n\};/)[0]
   .split('\n').slice(1, -1)
   .map((l) => (l.match(/^\s*(\w+):/) || [])[1]).filter(Boolean);

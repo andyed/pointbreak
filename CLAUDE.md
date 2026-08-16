@@ -16,20 +16,17 @@ do not maintain it, do not fix its rendering, and do not read its breakage as a
 regression signal. (It is currently broken — `u_reefWin` is never set, so the
 wave never breaks. That is now expected, not a bug to fix.)
 
-`web/` is NOT a deletable directory. Three modules under `web/js/` are
-load-bearing for web-three and stay maintained:
+The shared model modules live in `shared/` at repo root (moved out of
+`web/js/` 2026-08-16) and stay maintained:
 
 | file | role |
 |---|---|
-| `web/js/model-glsl.js` | **THE shared GPU model** — source of truth for the wave math |
-| `web/js/params.js` | the preset bank (imported by `bed.js` and `main.js`) |
-| `web/js/cdip.js` | the SC116 live-ocean fetch |
+| `shared/model-glsl.js` | **THE shared GPU model** — source of truth for the wave math |
+| `shared/params.js` | the preset bank (imported by `bed.js` and `main.js`) |
+| `shared/cdip.js` | the SC116 live-ocean fetch |
 
-Raymarch-only, and therefore dead: `web/index.html`, `web/js/main.js`,
-`web/js/ui.js`, `web/js/shaders.js`.
-
-The layout implies `web/` is alive when it is not; moving the three shared
-modules to a neutral `shared/` is the obvious cleanup, not yet done.
+Everything left under `web/` is raymarch-only, and therefore dead:
+`web/index.html`, `web/js/main.js`, `web/js/ui.js`, `web/js/shaders.js`.
 
 ## Conventions
 

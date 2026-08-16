@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { makeState, applyPreset } from '../web/js/params.js';
+import { makeState, applyPreset } from '../shared/params.js';
 import { swellPhi } from '../web-three/js/model-js.js';
 
-const model = readFileSync(new URL('../web/js/model-glsl.js', import.meta.url), 'utf8');
+const model = readFileSync(new URL('../shared/model-glsl.js', import.meta.url), 'utf8');
 const shaders = readFileSync(new URL('../web-three/js/shaders.js', import.meta.url), 'utf8');
 const main = readFileSync(new URL('../web-three/js/main.js', import.meta.url), 'utf8');
 

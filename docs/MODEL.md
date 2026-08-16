@@ -502,7 +502,7 @@ set-to-set period, with the wave count inside each set unchanged. See
 > still does exactly what §2.3/§2.4 describe: one authored per-spot `alpha`
 > serves as the swell incidence, no observed direction reaches any uniform, and
 > `applyOcean` carries CDIP's `waveDp` into an inert state field
-> (`state.swellDpObserved`, `web/js/cdip.js:80`) that no consumer reads. **The gate is Track 1 — the
+> (`state.swellDpObserved`, `shared/cdip.js:80`) that no consumer reads. **The gate is Track 1 — the
 > reef owning the break line.** Until the break line stops being DEM noise, a
 > 4–8° direction signal cannot be observed on screen, let alone validated; see
 > §2.6.5. Do not wire any of this early, and do not read the tables below as
@@ -512,7 +512,7 @@ set-to-set period, with the wave count inside each set unchanged. See
 cannot hold. A swell direction is something the ocean does on a given morning,
 and Sewers and Private's — 1.6 km apart on the same point — face the same
 physical swell; but the bank authors 38° at Sewers and 70° at Private's
-(`web/js/params.js:61-67`). One symbol is carrying a site's identity and an
+(`shared/params.js:61-67`). One symbol is carrying a site's identity and an
 hour's weather at once. That is the §4.5 failure mode exactly: two sources of
 truth for one quantity, with no rule for which wins.
 
@@ -806,7 +806,7 @@ These survive the change or the change is wrong.
    `B_spot` values disagree about its handedness (Sewers, above) is rejected
    before anything renders. The current implementation enforces handedness by
    clamping instead: `clamp(asin(...), 0.04, 1.45)` in `swellPhi()`
-   (`web/js/model-glsl.js:186-192`, mirrored in `web-three/js/model-js.js`).
+   (`shared/model-glsl.js:186-192`, mirrored in `web-three/js/model-js.js`).
    A clamp turns a left into a near-closeout silently. Under the split it has
    to become a rejection at bake time naming the spot, not a clamp in the hot
    path.
@@ -909,7 +909,7 @@ these are no longer preconditions — `bakeBreakLine`'s cache key now carries th
 peel direction (`web-three/js/bed.js:702-707`); the `#swell=` dead knob was
 removed rather than half-wired (`web-three/js/main.js:800-807`); and
 `applyOcean` now carries `o.dp` into `state.swellDpObserved` as an explicitly
-inert field (`web/js/cdip.js:73-81`), with the old doctrine comment — "peel
+inert field (`shared/cdip.js:73-81`), with the old doctrine comment — "peel
 geometry is a property of the shelf, not the swell" — rewritten to point here.
 
 **Failure modes if wired early, in ascending severity.**
@@ -919,7 +919,7 @@ nothing observable, and the audit's finding — direction is real but
 second-order behind the root defect — gets re-buried under a green checkbox.
 
 *Double refraction.* `swellPhi()` refracts from **deep water** —
-`c0 = G*u_T/(2*PI)`, `web/js/model-glsl.js:189`. Feeding SC116's `D_p` into `u_alpha`
+`c0 = G*u_T/(2*PI)`, `shared/model-glsl.js:189`. Feeding SC116's `D_p` into `u_alpha`
 unchanged would apply the reference→break Snell step to an angle that has
 already been refracted from deep water to 15 m. At Second Peak that turns the
 correct φ_b = 16.2° into ~8.5°, and the derived α with it — an error larger
@@ -1146,7 +1146,7 @@ then Track 3c.*
   heaviness as the wave outside. The named source for direction is the **MOP
   SC116 nowcast** (nearshore, ~1 km off the break at −15 m), not the deep-water
   buoy: §2.6 shows the deep angle is not recoverable at the break. Today T and
-  H₀ are applied and `D_p` is carried inert (`web/js/cdip.js:73-81`); wiring it
+  H₀ are applied and `D_p` is carried inert (`shared/cdip.js:73-81`); wiring it
   is gated on Track 1. See `research/CDIP_LIVE_DATA.md`.
 - **Musical mapping** (for the eventual Psychodeli port) — the ride is a *phrase*
   (moving locus of intensity), a barrel section is a sustained intense passage, a

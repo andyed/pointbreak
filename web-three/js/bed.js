@@ -15,7 +15,7 @@
 
 import * as THREE from 'three';
 import { PP_DEPTH_DATA } from '../../data/model/pp_depth_patches.js';
-import { PRESETS, reefWindowKnots } from '../../web/js/params.js';
+import { PRESETS, reefWindowKnots } from '../../shared/params.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 import {
   alongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,

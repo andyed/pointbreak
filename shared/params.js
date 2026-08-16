@@ -1,7 +1,7 @@
 // Model parameters + spot presets. Single source of truth for the UI and shader
 // uniforms. Values trace to docs/MODEL.md (model card + preset taxonomy).
 
-import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
+import { PP_GEO_DATA } from '../data/model/pp_geo_profiles.js';
 
 // ---------- the finite-reef envelope ----------
 // reefWindow(x) fades the wave in and out at the ends of the shelf. Its four

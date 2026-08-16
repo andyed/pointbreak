@@ -3,7 +3,7 @@
 // the only clock the shader sees.
 
 import { VERT, FRAG } from './shaders.js';
-import { makeState } from './params.js';
+import { makeState } from '../../shared/params.js';
 import { buildUI } from './ui.js';
 
 const canvas = document.getElementById('gl');

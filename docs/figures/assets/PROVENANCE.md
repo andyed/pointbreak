@@ -12,7 +12,7 @@ node scripts/capture_presets.mjs      # writes cliff_<key>.png here
 python3 docs/figures/gen_week.py      # rebuilds fig-week.svg from them
 ```
 
-The capture script reads the site keys straight out of `web/js/params.js` and
+The capture script reads the site keys straight out of `shared/params.js` and
 asserts the requested preset actually applied before screenshotting, so the
 frames cannot silently drift from the bank. `gen_week.py` reads the same file
 for the parameter line under each panel.

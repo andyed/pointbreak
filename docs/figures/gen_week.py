@@ -4,7 +4,7 @@
 Replaces the hand-built contact sheet that carried three borrowed west-side
 names. Every panel is now a real site on this point, ordered apex -> down-point
 (the golden-rule gradient), with its parameters read straight out of
-web/js/params.js so the caption can never drift from what the model runs.
+shared/params.js so the caption can never drift from what the model runs.
 
 Captures come from scripts/capture_presets.mjs. Run that first:
   node scripts/capture_presets.mjs
@@ -14,7 +14,7 @@ import json, re, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PARAMS = ROOT / 'web/js/params.js'
+PARAMS = ROOT / 'shared/params.js'
 ASSETS = ROOT / 'docs/figures/assets'
 OUT = ROOT / 'docs/figures/fig-week.svg'
 

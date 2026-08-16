@@ -25,7 +25,7 @@ then retires.
   (`web-three/vendor/three.module.js`, pinned version noted in a VENDOR.md).
 - **Shared math**: extract the model GLSL (`coastCurve`, `breakLine`,
   `reefWindow`, `setEnv`, the zipper/foam field logic of `ocean()`) into
-  `web/js/model-glsl.js` exported as a string; both renderers include it.
+  `shared/model-glsl.js` exported as a string; both renderers include it.
   MODEL.md remains the source of truth; this file is its one executable form.
 - Geometry: `PlaneGeometry` grid, ~512×384 over the ~600×500 m stage, displaced
   in the vertex shader. Static camera-independent LOD is fine at this scale;

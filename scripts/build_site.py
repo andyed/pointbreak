@@ -2,7 +2,7 @@
 """Assemble the public Pleasure Point page + simulation into a deploy bundle.
 
 The simulator is not self-contained: web-three/ imports the shared model and
-preset bank from web/js/, which in turn imports the generated geo/depth data
+preset bank from shared/, which in turn imports the generated geo/depth data
 from data/model/. So the bundle mirrors that relative layout rather than
 flattening it — the import specifiers stay untouched and the deployed app is
 byte-identical to the local one.
@@ -11,7 +11,7 @@ byte-identical to the local one.
   <out>/og-card.png           social preview (gen_og.py -> render_check.mjs)
   <out>/fig-*.svg, assets/    figures (fig-week references assets/ at runtime)
   <out>/sim/web-three/        the app
-  <out>/sim/web/js/           params.js + model-glsl.js (imported by web-three)
+  <out>/sim/shared/           params.js + model-glsl.js (imported by web-three)
   <out>/sim/data/model/       generated geo profiles + depth patches
 
 Usage:
@@ -39,9 +39,9 @@ ITEMS = [
     ('web-three/js',                   'sim/web-three/js'),
     ('web-three/css',                  'sim/web-three/css'),
     ('web-three/vendor',               'sim/web-three/vendor'),
-    ('web/js/params.js',               'sim/web/js/params.js'),
-    ('web/js/model-glsl.js',           'sim/web/js/model-glsl.js'),
-    ('web/js/cdip.js',                 'sim/web/js/cdip.js'),
+    ('shared/params.js',               'sim/shared/params.js'),
+    ('shared/model-glsl.js',           'sim/shared/model-glsl.js'),
+    ('shared/cdip.js',                 'sim/shared/cdip.js'),
     ('data/model/pp_geo_profiles.js',  'sim/data/model/pp_geo_profiles.js'),
     ('data/model/pp_depth_patches.js', 'sim/data/model/pp_depth_patches.js'),
 ]

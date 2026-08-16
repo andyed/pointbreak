@@ -10,7 +10,7 @@ const RESERVED = new Set(['flat', 'smooth', 'noperspective', 'sample', 'patch',
   'readonly', 'writeonly', 'centroid', 'invariant', 'subroutine', 'common',
   'partition', 'active', 'filter', 'resource', 'input', 'output']);
 
-const files = ['web/js/model-glsl.js', 'web-three/js/shaders.js', 'web/js/shaders.js'];
+const files = ['shared/model-glsl.js', 'web-three/js/shaders.js', 'web/js/shaders.js'];
 let bad = 0;
 for (const f of files) {
   const lines = readFileSync(f, 'utf8').split('\n');

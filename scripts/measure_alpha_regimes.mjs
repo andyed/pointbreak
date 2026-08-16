@@ -80,7 +80,7 @@ for (const spot of SPOTS) {
   const r = await page.evaluate(async ({ spot, tide, LIFT_EPS, MARCH_MAX }) => {
     const bed = await import('/web-three/js/bed.js');
     const disp = await import('/web-three/js/dispersion.js');
-    const { PRESETS } = await import('/web/js/params.js');
+    const { PRESETS } = await import('/shared/params.js');
     const card = PRESETS[spot];
     // bed.js keys on the OSM canon name (state.geoSpot), NOT the preset key.
     const audit = window.__pointbreak.reefAudit();

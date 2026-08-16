@@ -53,7 +53,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PP_GEO_DATA } from '../data/model/pp_geo_profiles.js';
-import { PRESETS as BANK } from '../web/js/params.js';
+import { PRESETS as BANK } from '../shared/params.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 8195;   // not 8194 (measure_alpha_profile) or 8127 (the dev server)

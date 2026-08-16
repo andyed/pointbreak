@@ -1,8 +1,8 @@
 // Control panel. Plain DOM, no framework. All readable text >= 8:1 contrast
 // against the panel background (verified in css/style.css comments).
 
-import { PARAM_DEFS, PRESETS, applyPreset, describeGeoState } from './params.js';
-import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from './cdip.js';
+import { PARAM_DEFS, PRESETS, applyPreset, describeGeoState } from '../../shared/params.js';
+import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../shared/cdip.js';
 
 export function buildUI(state, onChange) {
   const panel = document.getElementById('panel');

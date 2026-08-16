@@ -9,7 +9,7 @@ for why its swell half is unusable.
 
 Source: CDIP MOP v1.1 alongshore transect SC116, hourly hindcast, delivered over
 OPeNDAP from thredds.cdip.ucsd.edu. Endpoint grammar and the CORS/index gotchas
-are documented in `docs/research/CDIP_LIVE_DATA.md`; `web/js/cdip.js` already
+are documented in `docs/research/CDIP_LIVE_DATA.md`; `shared/cdip.js` already
 speaks the same protocol against the *nowcast* twin of this file.
 
 What makes it the right source and the offshore ones wrong:

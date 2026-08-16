@@ -1,5 +1,5 @@
 // web-three shaders — displaced-grid renderer over the SAME model GLSL as
-// web/ (spliced from web/js/model-glsl.js; MODEL.md is the source of truth).
+// web/ (spliced from shared/model-glsl.js; MODEL.md is the source of truth).
 // Written GLSL1-style (varying / gl_FragColor) on purpose: three.js
 // ShaderMaterial prefixes translate those for WebGL2, so the shared chunk
 // stays version-agnostic and identical between renderers.
@@ -19,7 +19,7 @@
 // model-glsl: the grid shapes the face/lip/impact mound, while a sparse point
 // pass gives only the impact its airy volume.
 
-import { MODEL_GLSL } from '../../web/js/model-glsl.js';
+import { MODEL_GLSL } from '../../shared/model-glsl.js';
 
 // Varyings the spec names: world pos, displaced normal, foam, pocket, crest,
 // brk — plus the boil slick (recomputed in the vertex stage; ocean() keeps it

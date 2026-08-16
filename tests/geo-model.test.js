@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 
 import { PP_GEO_DATA } from '../data/model/pp_geo_profiles.js';
-import { PRESETS, applyPreset, makeState } from '../web/js/params.js';
+import { PRESETS, applyPreset, makeState } from '../shared/params.js';
 import { coastCurve, reefWindow, surferState } from '../web-three/js/model-js.js';
 
 

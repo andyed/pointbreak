@@ -2,7 +2,7 @@
 // A small authored bank of named condition-days spanning the character space:
 // each day is a point in the six-knob swell/tide space (H0, T, tide, chop, dF;
 // alpha/xi stay with the SITE preset — peel geometry is a property of the
-// shelf, not the day). Values sit inside PARAM_DEFS ranges (web/js/params.js)
+// shelf, not the day). Values sit inside PARAM_DEFS ranges (shared/params.js)
 // and tides inside TIDE_RANGE (bed.js), so a day can never ask the model for
 // conditions the sliders themselves forbid.
 //
