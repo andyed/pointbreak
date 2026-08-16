@@ -40,19 +40,28 @@ test('visual-fidelity look names the reversible three-way comparison', () => {
 
 test('the permalink writer emits only round-trip controls, in table order', () => {
   const hash = writeHashParams({
-    tide: '-0.500', preset: 'firstpeak', month: 'january', cam: 'cliff',
+    tide: '-0.500', preset: 'firstpeak', month: 'december', cam: 'cliff',
     m4: '0', sim: '42', reefamp: '3.2',       // boot-only: must not appear
   });
-  assert.equal(hash, 'preset=firstpeak&cam=cliff&month=january&tide=-0.500');
+  assert.equal(hash, 'preset=firstpeak&cam=cliff&month=december&tide=-0.500');
 });
 
 test('a default view serialises to a bare URL', () => {
   assert.equal(writeHashParams({
     surfer: '0', section: '0', audio: '0', speed: '1', bed: 'reef',
-    preset: 'secondpeak', cam: 'free', month: '',
+    preset: 'secondpeak', cam: 'free', month: 'january',
   }), '');
   // and with nothing supplied at all
   assert.equal(writeHashParams({}), '');
+});
+
+test('January is the default month; the site card is the explicit state', () => {
+  // The shipped ocean (month=january) must not appear in a copied link…
+  assert.equal(writeHashParams({ month: 'january' }), '');
+  // …while stepping OFF the default onto the site card must be written,
+  // because a bare URL now means January, not "no month".
+  assert.equal(writeHashParams({ month: 'card' }), 'month=card');
+  assert.equal(writeHashParams({ month: 'card', h0: '1.40' }), 'month=card&h0=1.40');
 });
 
 test('the writer keeps real zeroes that a truthiness check would drop', () => {

@@ -71,7 +71,7 @@ const median = (a) => {
 
 const out = [];
 for (const preset of PRESETS) {
-  const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0`
+  const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0&month=card`
             + (SMOOTH ? '&smooth=1' : '');
   await page.goto(url, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });

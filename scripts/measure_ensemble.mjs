@@ -98,7 +98,7 @@ const browser = await chromium.launch({ args: ['--use-angle=metal'] });
 const errors = [];
 
 async function measure(page, preset, flags, h0) {
-  let url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0`;
+  let url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0&month=card`;
   // Explicit state for EVERY flag — see the header note. A config's `flags`
   // list is the set that should be ON; everything else is forced OFF.
   for (const f of FLAGS) url += `&${f}=${flags.includes(f) ? 1 : 0}`;

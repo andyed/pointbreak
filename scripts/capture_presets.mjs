@@ -62,7 +62,7 @@ page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 for (const key of presets) {
-  const url = `http://localhost:${PORT}/web-three/#preset=${key}&cam=drone&hud=0&sim=${SIM_T}`;
+  const url = `http://localhost:${PORT}/web-three/#preset=${key}&cam=drone&hud=0&sim=${SIM_T}&month=card`;
   await page.goto(url, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });     // hash-only nav wouldn't re-init
   await page.waitForTimeout(2600);              // shader compile + first frames

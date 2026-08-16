@@ -77,7 +77,7 @@ const rows = [];
 for (const amp of AMPS) {
   for (const flank of FLANKS) {
     for (const preset of PRESETS) {
-      const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0`
+      const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0&month=card`
                 + `&reefamp=${amp}&reefflank=${flank}`;
       await page.goto(url, { waitUntil: 'load' });
       await page.reload({ waitUntil: 'load' });

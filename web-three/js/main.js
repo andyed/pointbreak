@@ -98,6 +98,9 @@ const DRIFT_PERIOD_S = 300;
 let activeDayKey = null;     // conditions.js key currently applied (drift cursor)
 let activeDayLabel = null;   // HUD suffix; also set by day=live from the nowcast
 let activeMonthKey = null;   // climatological month currently applied (#month=)
+// The shipped ocean. January is the seasonal peak (p75 Hs 1.22 m at SC116 vs
+// 0.57 m in August); `#month=card` is the explicit way back to the site card.
+const DEFAULT_MONTH_KEY = 'january';
 let lastWrittenHash = null;  // what writeHash() last put in the URL (see hashchange)
 // Boot reads the hash, then flips this. Without the gate the first
 // refreshHUD() would serialise the default view over the author's link
@@ -548,7 +551,7 @@ function syncControlUI() {
     tideValue.textContent = `${tide >= 0 ? '+' : ''}${tide.toFixed(2)} m · ${tideLabel(tide)}`;
   }
   if (monthControl) {
-    monthControl.value = activeMonthKey || '';
+    monthControl.value = activeMonthKey || 'card';
     if (monthValue) {
       const m = activeMonthKey ? getMonthlyOcean(activeMonthKey) : null;
       monthValue.textContent = m
@@ -686,8 +689,19 @@ function clearActiveMonth() {
 // that month at SC116, already de-shoaled to the deep-water H0 the shader
 // re-shoals from (see pp_monthly_ocean.js). Size only — the month deliberately
 // does not touch T, tide, chop or dF. Returns the month or null.
+//
+// 'card' (or empty) means the site card's own authored ocean. If a month was
+// on, its H0 must be handed back too — clearing only the label would leave
+// the HUD saying "preset ocean" over January's water.
 function setMonth(key) {
-  if (!key) {
+  if (!key || key === 'card') {
+    if (activeMonthKey) {
+      const card = state.preset ? PRESETS[state.preset] : null;
+      if (card) {
+        state.H0 = card.H0;
+        if (uniforms?.u_H0) uniforms.u_H0.value = card.H0;
+      }
+    }
     clearActiveMonth();
     refreshHUD();
     return null;
@@ -1331,7 +1345,19 @@ function applyLiveParams(h, { shapeChanged = false } = {}) {
   // #month= rides on the preset like #day= does, and loses to an explicit
   // #h0= below for the same reason #day= loses to #tide=: the specific value
   // in the permalink is the one the author meant.
-  if (h.has('month')) setMonth(h.get('month')); else clearActiveMonth();
+  //
+  // January is the shipped ocean (decided 2026-08-16): August at Pleasure
+  // Point has recorded ZERO hours over Hs 1.3 m in 25 years of SC116 hindcast,
+  // and a screensaver that boots into the flattest month of the year shows an
+  // empty stage. The default applies only when nothing in the URL claims the
+  // ocean — an explicit month, a condition-day, or a pinned h0 (measurement
+  // rigs pin `month=card` so their recorded numbers keep the card basis).
+  if (h.has('month') || h.has('day') || h.has('h0')) {
+    const m = h.get('month');
+    setMonth(m && m !== 'card' ? m : null);
+  } else {
+    setMonth(DEFAULT_MONTH_KEY);
+  }
   if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, TIDE_RANGE[0]), TIDE_RANGE[1]);
   // M5 bed modes: reef (default, 0), plane (1), measured/no-reef (2)
   if (h.get('bed') === 'plane') state.bedShape = 1;
@@ -1359,7 +1385,9 @@ function applyLiveParams(h, { shapeChanged = false } = {}) {
 
 function applyHashParams() {
   const h = readHashParams();
-  if (!h.toString()) return 0;
+  // A bare URL still gets the shipped January ocean — the default lives in
+  // applyLiveParams' month branch, and this early return would skip it.
+  if (!h.toString()) { setMonth(DEFAULT_MONTH_KEY); return 0; }
   // Track 1c'-c.3 reef-shape sweep (`#reefamp=`, `#reefflank=`). FIRST, before
   // the preset: applyPreset -> applyBed builds the reefed composite, so a shape
   // set afterwards would fit and bake against one bed while the GPU drew
@@ -1447,7 +1475,10 @@ function currentHashSnapshot() {
     preset: state.preset || null,
     cam: CAM_PRESETS[camIdx]?.name.toLowerCase() || null,
     day: activeDayKey,
-    month: activeMonthKey,
+    // No month under a day (the day claims the ocean); 'card' is written
+    // explicitly when no month is on, because with January as the shipped
+    // default a bare URL now MEANS January — silence no longer spells "card".
+    month: activeDayKey ? null : (activeMonthKey || 'card'),
     // A month or a day already implies its own H0; writing h0 as well would
     // pin the size and make the named ocean unfalsifiable on reload.
     h0: (activeDayKey || activeMonthKey) ? null : state.H0?.toFixed(2),

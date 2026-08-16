@@ -70,7 +70,7 @@ page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 async function measure(preset, frac, mode) {
-  let url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0`;
+  let url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0&month=card`;
   // toFixed(3): the bare string "1" is the TUNED shorthand in main.js's hash
   // parser (nose=1 -> 0.25), so a whole-number fraction must carry decimals to
   // be read as a fraction. Caught by the f=1.0 rows coming back bit-identical
