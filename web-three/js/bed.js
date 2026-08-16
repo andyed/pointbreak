@@ -847,7 +847,6 @@ const DLINE_SIGMA_M = 6;
 // literal Topanga reading, no anchor knife-edge; slew limit still applies).
 let densityLineOn = 0;
 export function setDensityLine(mode) { densityLineOn = Number(mode) || 0; }
-export function getDensityLine() { return densityLineOn; }
 
 function densityCandidates(spotName, x, opts) {
   const { z0, z1 } = PP_DEPTH_DATA.grid;

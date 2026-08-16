@@ -76,9 +76,6 @@ try {
 // nothing at landscape scale (same rationale as web/)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 
-// Initialize audio on first click anywhere on the page (browser policy)
-
-
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xdfe3e5);   // horizon grey fallback behind the sky dome
 
@@ -1166,6 +1163,10 @@ function frame(now) {
         swellDeg: state.alpha, xRef: 0,
       });
   uniforms.u_psiMix.value = refr ? 1 : 0;
+  // MODEL-TWIN of the shader's rayPhase(): kappa*x + Psi(contourZ). Null off
+  // the Psi path, which makes rayPhase() fall back to the frozen-LAM plane
+  // wave. Captured against a P WITHOUT phaseFn (contourZ never reads it, but
+  // building modelP() inside its own field would recurse).
   psiPhaseFn = refr
     ? (x, z) => {
         const xx = state.aframe ? Math.abs(x) : x;
@@ -1180,11 +1181,6 @@ function frame(now) {
       refreshHUD();
     }
   }
-  // MODEL-TWIN of the shader's rayPhase(): kappa*x + Psi(contourZ). Null off
-  // the Psi path, which makes rayPhase() fall back to the frozen-LAM plane
-  // wave. Captured against a P WITHOUT phaseFn (contourZ never reads it, but
-  // building modelP() inside its own field would recurse).
-
   // ---- M4: bake the emergent break line ----
   // Cached on (site, swell, tide, bed) — recomputed only when one of those
   // changes, never per frame. The A-frame keeps the authored fold: it mirrors
