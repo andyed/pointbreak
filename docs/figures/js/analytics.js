@@ -53,14 +53,38 @@
   // than a single .prose block so the figure captions and the limitations list
   // are measured too — on this page a reader lingering in a figure caption is
   // exactly the signal worth having.
+  // This guard used to `return` silently, and that cost a full investigation on
+  // 2026-08-16: reading_doppler_* went quiet after launch day while the sibling
+  // capture below (`sim embed loaded`, same script, same posthog) kept arriving
+  // daily. An instrument that fails into an ABSENCE is indistinguishable from an
+  // audience that did not read, so the failure is now itself an event, and a
+  // successful start is too — "started but never flushed" and "never started"
+  // are different diagnoses and the data has to be able to tell them apart.
   function startReading() {
     var lib = window.ReadingDopplerLib;
     var container = document.querySelector('main');
-    if (!lib || !lib.ReadingDoppler || !lib.createPostHogAdapter || !container) return;
+    var missing = !lib ? 'lib'
+      : !lib.ReadingDoppler ? 'tracker'
+      : !lib.createPostHogAdapter ? 'adapter'
+      : !container ? 'container'
+      : null;
+    if (missing) {
+      try { window.posthog.capture('reading_doppler_unavailable', { rd_missing: missing }); }
+      catch (e) { /* diagnostics must never break the page */ }
+      return;
+    }
 
     var adapter = lib.createPostHogAdapter(window.posthog);
     var rd = new lib.ReadingDoppler({ onFlush: adapter.onFlush });
     rd.observe(container);
+    // One per pageview. At this page's volume that is a rounding error, and it
+    // is the only way to know the tracker was alive on a visit that never
+    // reached the 10 s flush tick.
+    try {
+      window.posthog.capture('reading_doppler_started', {
+        rd_paragraphs: container.querySelectorAll('p').length,
+      });
+    } catch (e) { /* as above */ }
 
     var done = false;
     function finish() {
