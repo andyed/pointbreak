@@ -44,6 +44,8 @@ ITEMS = [
     ('shared/cdip.js',                 'sim/shared/cdip.js'),
     ('data/model/pp_geo_profiles.js',  'sim/data/model/pp_geo_profiles.js'),
     ('data/model/pp_depth_patches.js', 'sim/data/model/pp_depth_patches.js'),
+    ('data/climatology/pp_monthly_ocean.js',
+     'sim/data/climatology/pp_monthly_ocean.js'),
 ]
 
 # Verification renders and capture scripts are development artefacts; the
