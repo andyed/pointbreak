@@ -130,3 +130,88 @@ test('every authored alpha target sits inside its own per-spot ceiling', () => {
   assert.ok(sharks.alpha < sewers.alpha,
     'the bank must ask the smaller spot for the LOWER target — the pre-retarget contradiction resolved');
 });
+
+// ---------------------------------------------------------------------------
+// Direction sensitivity (added 2026-08-16, Track 3 prerequisite)
+// ---------------------------------------------------------------------------
+// The bound above is evaluated at sin(theta_s) = 1 — grazing incidence at the
+// shelf. The FULL relation carries the incidence:
+//
+//       sin(alpha) = (c_b / c_s) * sin(theta_s)
+//
+// so an authored alpha implicitly DEMANDS an incidence. Inverting it turns the
+// preset bank into a statement about the swell it assumes, which is exactly the
+// quantity Track 3 wants to make an input.
+//
+// The measured operating band is now real, not estimated: CDIP MOP SC116, 25
+// years, D_p p10-p90 = 188.8-213.8 deg = 25.0 deg wide, R = 0.989
+// (docs/research/PP_CDIP_CLIMATOLOGY.md). With B_spot fixed per spot, a swing
+// in D_p moves theta_s one-for-one.
+//
+// What this test pins, and why it matters more than it looks:
+// the 2026-08-13 retarget moved every alpha to its own ceiling. A spot AT its
+// ceiling is at grazing incidence, and sin() is flat there — so those spots are
+// nearly IMMUNE to swell direction. The retarget bought physical defensibility
+// and spent the dynamic range that Track 3c exists to exploit. That trade was
+// never stated; this test states it.
+const DP_BAND_HALF_DEG = 12.5;   // half of the measured 25.0 deg p10-p90 band
+
+function demandedSinTheta(spot) {
+  const hb = breakingDepth(spot.H0, spot.T);
+  const hs = shelfDepthFor(spot);
+  const r = celerity(spot.T, hb) / celerity(spot.T, hs);
+  return { r, sinTs: Math.sin(spot.alpha * Math.PI / 180) / r };
+}
+
+// Spots whose authored alpha demands sin(theta_s) > 1 — unreachable under the
+// straight-contour bound. Named, not silent, exactly like MEASURED_EXEMPT.
+// firstpeak is separately exempt (apex rotation); the other three sit inside
+// the ceiling test's 0.5 deg rounding headroom and so pass it while still
+// asking for more incidence than exists.
+const OVER_GRAZING = new Set(['firstpeak', 'jacks', 'sharks', 'privates']);
+
+test('every authored alpha demands a physically reachable incidence', () => {
+  const over = [];
+  for (const spot of BANK) {
+    const { sinTs } = demandedSinTheta(spot);
+    if (sinTs > 1) over.push(spot.key);
+  }
+  assert.deepEqual(new Set(over), OVER_GRAZING,
+    `spots demanding sin(theta_s) > 1 changed: ${over.join(', ')}. `
+    + 'Either a target moved or the wedge geometry did. Update OVER_GRAZING '
+    + 'deliberately — this set is the list of spots the straight-contour bound '
+    + 'cannot supply, and it should be shrinking, not growing.');
+});
+
+test('direction sensitivity is bimodal, and MODEL.md 2.6.2 understates the spread', () => {
+  // alpha swing across the measured 25 deg band, anchored at each spot's own
+  // demanded incidence (clamped to grazing where it is unreachable).
+  const swing = {};
+  for (const spot of BANK) {
+    const { r, sinTs } = demandedSinTheta(spot);
+    const ts = Math.asin(Math.min(sinTs, 1)) * 180 / Math.PI;
+    const at = (t) => Math.asin(Math.min(r * Math.sin(
+      Math.min(Math.max(t, 0), 90) * Math.PI / 180), 1)) * 180 / Math.PI;
+    const vals = [at(ts - DP_BAND_HALF_DEG), at(ts), at(Math.min(ts + DP_BAND_HALF_DEG, 90))];
+    swing[spot.key] = Math.max(...vals) - Math.min(...vals);
+  }
+  // Sewers is the ONLY spot with real headroom below its ceiling (theta_s 56.9
+  // deg), and it is 4x more direction-sensitive than every other spot. The
+  // others are pinned near grazing where d(alpha)/d(theta_s) -> 0.
+  assert.ok(swing.sewers > 10,
+    `sewers should stay the direction-sensitive spot, got ${swing.sewers.toFixed(1)} deg`);
+  for (const key of ['firstpeak', 'jacks', 'sharks', 'privates', 'thehook']) {
+    assert.ok(swing[key] < 2.5,
+      `${key} sits at its ceiling and should be direction-insensitive, `
+      + `got ${swing[key].toFixed(1)} deg — if this rose, the bank gained headroom `
+      + '(good for Track 3c) and MODEL.md 2.6.2 needs recomputing.');
+  }
+  // MODEL.md 2.6.2 claims "4-8 deg across the 90% band" for every spot. Six of
+  // seven fall outside that, in both directions. Recorded as a standing check
+  // so the doc and the bank cannot drift apart again.
+  const inClaim = Object.values(swing).filter((s) => s >= 4 && s <= 8).length;
+  assert.equal(inClaim, 0,
+    'MODEL.md 2.6.2 says 4-8 deg for every spot; measured swings are 0.8-3.0 '
+    + '(ceiling-pinned) or 12.5 (sewers). If any spot has entered 4-8, the bank '
+    + 'has been re-anchored and MODEL.md 2.6.2 should be revisited.');
+});

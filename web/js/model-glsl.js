@@ -542,8 +542,9 @@ float setEnv(float s, float t){
 // bigger days pile more water up the beach — another emergent size cue.
 // 0.3 is the TOP of the observed 0.15-0.3*H_break shoreline-setup band;
 // raised from 0.2 on 2026-08-11 because the resulting ~8 m waterline breathe
-// read as too subtle at drone distance (MODEL.md 2.5 still quotes 0.2 — a
-// doc follow-up, not a disagreement about mechanism). Gated by u_depthMix
+// read as too subtle at drone distance. (The "MODEL.md 2.5 still quotes 0.2"
+// follow-up this comment used to carry is DONE — MODEL.md 2.5 says 0.3*H0*envS;
+// verified 2026-08-16.) Gated by u_depthMix
 // like every bathymetry-derived term (synthetic presets have no measured
 // shoreline to move).
 float setupPeakM(){ return 0.3*u_H0*u_depthMix; }

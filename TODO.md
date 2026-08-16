@@ -345,6 +345,59 @@ No parity port. Consequences to carry honestly:
       cameras off the BAKED emergent line data (CPU-side bake already exists)
 
 ### Track 3 — direction becomes a condition (doc NOW, wire AFTER Track 1)
+- [x] 3b DONE ALREADY (verified 2026-08-16, entry was stale): bakeBreakLine's
+      cache key has carried `peelPhi` since the peel work (bed.js:912-914);
+      `#swell=` was removed 2026-08-11 with a do-not-re-add note (main.js:1407);
+      applyOcean carries `dp` as `state.swellDpObserved` (cdip.js:80). Nothing
+      to do here.
+- [!] 3-PREREQ FOUND 2026-08-16 — **the bank is authored at grazing incidence,
+      so direction has almost nothing to modulate.** Inverting
+      sin(α) = (c_b/c_s)·sin(θ_s) over the bank: sewers demands θ_s 56.9°,
+      secondpeak 82.5°, thehook 88.0°, and firstpeak/jacks/sharks/privates
+      demand sin θ_s > 1 — unreachable. A spot at its ceiling is at grazing
+      incidence and sin() is FLAT there, so over the measured 25.0° D_p band the
+      α swing is **0.8–3.0° at six spots and 12.5° at Sewers**. MODEL.md's
+      "4–8° for every spot" is wrong in both directions; §2.6.2a added, §2.6.2
+      and §2.6.4 rule 2 corrected, `tests/peel-ceiling.test.js` now pins both the
+      demanded-incidence set and the bimodal swing (41/41 pass).
+      **The 2026-08-13 retarget bought defensibility and spent the dynamic range
+      3c exists to exploit.** DECISION NEEDED before 3c: re-anchor each α to a
+      reference incidence inside the band (median D_p, θ_s ≈ 65–70°) so α sits
+      BELOW its ceiling with headroom both ways — or accept that direction is a
+      Sewers-only effect and scope 3c accordingly.
+- [!] RE-ANCHOR AUTHORISED 2026-08-16 AND STOPPED, unexecuted. Carrying it out
+      needs a reference incidence; deriving one from measured D_p through this
+      repo's own phi_ref chain (validated: it reproduces MODEL.md 2.6.2's cos phi
+      0.74->0.34 to within 0.01) gives alpha 17-29 deg across the bank against
+      31-50 authored. Those are CLOSEOUTS — the bank is not what fails, the
+      straight-contour identity theta_b = alpha is. It holds only when the break
+      line follows the contours; here the contours ARE near-parallel (normal
+      144.9-148.9 deg) but the break line runs along the POINT, oblique to them,
+      and that obliquity is B_spot and is the whole peel mechanism.
+      **So sin(alpha_max) = c_b/c_s bounds theta_b, not alpha** — which means the
+      2026-08-13 retarget may have retargeted five spots against the wrong
+      constraint. Recorded in MODEL.md 2.6.2a. NO PRESET CHANGED. B_spot is now
+      the hard blocker for everything in Track 3, not an optional refinement.
+- [!] B_spot DERIVATION ATTEMPTED 2026-08-16 — `scripts/measure_bspot.mjs`,
+      `data/model/pp_bspot.json`, `docs/research/BSPOT_DERIVATION_2026-08-16.md`.
+      The method is sound (stageAlongENU IS the NCEI contour tangent — verified
+      against Sewer Peak's published 11.2 deg — so one rotation gives a compass
+      bearing). **The line cannot supply one.** Perpendicular rms 23-50 m on
+      113-312 m stages; end-to-end and TLS estimators disagree by up to 18.5
+      deg; and the obliquity to the contour is **~0-5 deg, not the 30-45 the
+      peel implies**. Cross-checked: these reproduce measure_alpha_profile.mjs's
+      own bearing column exactly, so the measurement is right.
+      **This also kills the 2.6.2a reconciliation.** That section proposed
+      break-line obliquity as the reason alpha (31-50) exceeds what measured
+      incidence gives (17-29). Measured, the obliquity is ~0-5 deg. So neither
+      geometric route supports the bank; the 36-50 the HUD reports comes from
+      the LOCAL FIT, whose window covers 10-28% of the stage — exactly what
+      measure_alpha_profile.mjs's header warns certifies the fit, not the wave.
+      Narrow reading only: alpha is a property of the fit, not of the line's
+      global geometry. It does NOT follow that the render looks wrong — that is
+      a VISUAL_GROUND_TRUTH/cam question this does not answer.
+      NEXT: straighten the break line. `rms` in pp_bspot.json is the acceptance
+      metric and is already instrumented. B_spot, and all of Track 3, waits on it.
 - [ ] 3a. MODEL.md §2.4/§4.5 amendment NOW: split α into site character
       (authorship) vs incident swell direction (ocean state); per-spot
       compass→contour constants from PP_MAP_GEOMETRY tangent tables.
@@ -483,6 +536,81 @@ No parity port. Consequences to carry honestly:
       records back to 2000. Still UNRUN: no residual measured against a real day.
 - [x] Method lessons collected: `docs/research/MEASUREMENT_LESSONS.md` — read
       before trusting any measurement in this repo.
+- [x] CLIMATOLOGY LANDED 2026-08-16 — `data/climatology/pp_cdip_climatology.json`
+      + `build_cdip_climatology.py` + `docs/research/PP_CDIP_CLIMATOLOGY.md`.
+      25 y hourly SC116, 218,975 QC-passed records, whole years 2000–2024.
+      Single-peaked winter season: Jan Hs p50 0.86 m vs Aug 0.47 m; 21.5% of Jan
+      hours ≥1.3 m vs **zero hours in Jul/Aug across 25 years**. Direction
+      collimated to a 25°-wide band about 198.6 °T (R=0.989) with a 9.5°
+      seasonal rotation — which SIZES Track 3a: the α-split answers to a 25°
+      band, not a free direction input. Also settles the two consumer sources:
+      surf-forecast ρ=−0.77 (inverted, direction-gated — falsified outright in
+      December, agrees to 1.9 pts in August), spitcast.com ρ=+0.06 (no signal;
+      rejected, not transcribed). Trap found: `waveTp` is band-quantised to 19
+      values, use `waveTa`. NOT done: the 20-band directional spectrum
+      (`waveEnergyDensity`/`waveMeanDirection`), which is the measured
+      replacement for the invented two-component set beat.
+- [x] SPECTRAL SET STRUCTURE 2026-08-16 — `build_spectral_sets.py` +
+      `pp_spectral_sets.json` + `docs/research/PP_SPECTRAL_SETS.md`. **A negative
+      result, and the honest one.** The 20-band MOP grid is 0.005 Hz through the
+      swell range, so the smallest RESOLVABLE Δf is 0.010 Hz and MODEL.md's
+      0.006 Hz is below the floor: this instrument can neither confirm nor
+      refute it, and no processing changes that. Spectral width (ν, σ_f) looked
+      like the continuous substitute — stable across sea state — and is a cutoff
+      artifact: 6.1× swing across defensible band cutoffs, so 0.125 Hz says the
+      model is 3× wrong and 0.090 Hz says it is nearly right. NOT published as a
+      number; the sensitivity table is the finding. **Do not retune dF from it.**
+      What IS established: (a) bimodality is a minority state that thins with
+      size — 23.8% of all hours, 12.6% above Hs 1 m, 8.9% above 2 m (absolute
+      level is threshold-dependent 3–39%, the trend is at fixed thresholds);
+      (b) when two components exist they arrive within 11.4° (p90 23.4°), which
+      MEASURES and vindicates the directionless scalar beat — drop any plan for
+      a directional two-component model. Script self-checks closure (Hm0 vs
+      waveHs, 0.0000 m over 221k records) and fails loudly if band weighting
+      breaks.
+      **RETRACTION, same day:** this entry originally claimed MODEL.md's
+      parameter row was self-inconsistent (`Δf ~0.006 Hz` → 11.3 waves/set vs
+      its own "sets of ~5–7"). That was an analysis error, not a defect.
+      `setEnv` is the full envelope cycle INCLUDING the lull, so `1/Δf` is the
+      set-to-SET period while "5–7" counts waves inside one set — half the
+      cosine above `envS` 0.5 is 6.0 waves at the card values, and consumers
+      square the envelope. Confirmed empirically by the temporal audit's
+      **120.5 s measured vs 125.0 s authored** at Sewers (Δf 0.008), a 3.6%
+      miss on the set-to-set period. MODEL.md **§2.5.1** added 2026-08-16 so the
+      next reader does not repeat it.
+- [x] MODEL.md housekeeping 2026-08-16 — §2.5.1 added (above); and the stale
+      `MODEL.md 2.5 still quotes 0.2` follow-up in `model-glsl.js` setupPeakM is
+      cleared, because §2.5 has said `0.3·H₀·envS` since the 2026-08-11 raise.
+- [x] MONTH SELECTOR LANDED 2026-08-16 — drawer `<select>` + `#month=january…december`
+      (CONTROLS.md). Sets **H₀ only**, from `pp_monthly_ocean.js`: the p75 of Hs
+      at SC116, de-shoaled by the shader's own Ks convention so the renderer
+      does not double-shoal what MOP already transformed. Percentile is NAMED in
+      the HUD ("January · p75 climatology") — a stated editorial choice, not
+      tuning. Period is deliberately not varied: measured interpolated spectral
+      peak is 14.4–15.2 s in EVERY month (range 0.79 s, non-monotonic — Sep
+      longest, Nov shortest), which also corroborates the card periods. A month
+      restores the site card's T/chop/dF, overrides H₀, and leaves tide alone;
+      month and condition-day are mutually exclusive in both directions. 34/34
+      tests pass.
+- [x] PERMALINK ROUND-TRIP LANDED 2026-08-16 — closes the boot-only-hash-params
+      defect for the **control** half of the contract. Controls now write back
+      (debounced 120 ms, `replaceState`, defaults omitted so a default view is a
+      bare URL); hand-edits re-apply live; boot-only params typed into a URL
+      survive control changes. Everything else stays boot-only by design:
+      re-running `applyHashParams()` would re-bake the reef, re-arm audio and
+      re-seed the sim clock. Split into `applyLiveParams()` so boot and hash-edit
+      run the SAME code — the two drifting apart is how a permalink starts
+      describing a view that is not on screen. Contract in CONTROLS.md;
+      `writeHashParams`/`bootOnlyParams`/`needsReloadForHash` are pure and
+      tested (39/39).
+      Two bugs the live verification caught, neither visible in a static read:
+      (1) coalescing was on rAF, which is SUSPENDED in a hidden tab — the same
+      hidden-tab rAF trap that faked the `#cam=drone` failure on 2026-08-14;
+      moved to a timer, since writing a permalink is not a rendering operation.
+      (2) the reload guard inspected only the NEW hash, so hand-editing
+      `#month=july&m4=0` down to `#month=august` applied live and left the app
+      at `m4=0` while the URL claimed the default. The guard now compares the
+      boot-only SET across the edit, in both directions.
 
 Priority order (STATUS 2026-08-11, after the workflow sprint 6709530 —
 superseded by the PLAN above, kept for landed-status history):

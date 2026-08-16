@@ -1,0 +1,88 @@
+{
+  "generated": "scripts/measure_bspot.mjs",
+  "note": "B_spot derived from the emergent M4 break line; see MODEL.md 2.6.1/2.6.3.",
+  "conditions": "each preset at its own card ocean, #sim=42, default flags",
+  "noFrame": [
+    "privates"
+  ],
+  "spots": [
+    {
+      "preset": "sewers",
+      "geoSpot": "Sewer Peak",
+      "stageM": 256.79999999999995,
+      "stations": 128,
+      "contourTangentDeg": 11.2,
+      "obliquityEndDeg": -5.209495737252661,
+      "obliquityTlsDeg": -23.680455695227447,
+      "bSpotEndDeg": 83.99220176367231,
+      "bSpotTlsDeg": 102.46316172164711,
+      "straightnessRmsM": 49.769798154768196,
+      "alphaTarget": 38
+    },
+    {
+      "preset": "firstpeak",
+      "geoSpot": "First Peak",
+      "stageM": 112.6,
+      "stations": 56,
+      "contourTangentDeg": 48.8,
+      "obliquityEndDeg": 0.2957294374777461,
+      "obliquityTlsDeg": 13.692489210056461,
+      "bSpotEndDeg": 40.91463896974841,
+      "bSpotTlsDeg": 27.51787919716969,
+      "straightnessRmsM": 30.82011760720589,
+      "alphaTarget": 50
+    },
+    {
+      "preset": "secondpeak",
+      "geoSpot": "Second Peak",
+      "stageM": 193.7,
+      "stations": 97,
+      "contourTangentDeg": 46.6,
+      "obliquityEndDeg": 1.5000084670711493,
+      "obliquityTlsDeg": 19.535132277450096,
+      "bSpotEndDeg": 41.865795663960455,
+      "bSpotTlsDeg": 23.830671853581464,
+      "straightnessRmsM": 22.70390622769404,
+      "alphaTarget": 41
+    },
+    {
+      "preset": "jacks",
+      "geoSpot": "38th",
+      "stageM": 311.5,
+      "stations": 156,
+      "contourTangentDeg": 37.7,
+      "obliquityEndDeg": 3.9454808639915075,
+      "obliquityTlsDeg": 18.226439697142908,
+      "bSpotEndDeg": 48.33380805832468,
+      "bSpotTlsDeg": 34.052849225173304,
+      "straightnessRmsM": 34.04298740977587,
+      "alphaTarget": 37
+    },
+    {
+      "preset": "thehook",
+      "geoSpot": "The Hook",
+      "stageM": 288.4,
+      "stations": 144,
+      "contourTangentDeg": 40.9,
+      "obliquityEndDeg": -4.512938233580872,
+      "obliquityTlsDeg": -7.571478376529082,
+      "bSpotEndDeg": 53.66066989859837,
+      "bSpotTlsDeg": 56.7192100415466,
+      "straightnessRmsM": 49.134293947474504,
+      "alphaTarget": 41
+    },
+    {
+      "preset": "sharks",
+      "geoSpot": "Shark's Cove",
+      "stageM": 303.29999999999995,
+      "stations": 151,
+      "contourTangentDeg": 55.2,
+      "obliquityEndDeg": -0.0946713141886478,
+      "obliquityTlsDeg": 11.67719086904383,
+      "bSpotEndDeg": 34.88538281462519,
+      "bSpotTlsDeg": 23.113520631392703,
+      "straightnessRmsM": 29.640940153712823,
+      "alphaTarget": 36
+    }
+  ]
+}

@@ -473,6 +473,29 @@ Implementation (`setupLiftM` in the shared GLSL):
   take `max(bed, water)`, so the shoreline advances and retreats for free —
   no repainted texture, no second waterline.
 
+
+#### 2.5.1 Reading Δf: two numbers, not one
+
+`Δf` is routinely misread, including by careful readers, because the parameter
+table's two figures look contradictory and are not. Stated once, plainly:
+
+- **`1/Δf` is the set-to-set period** — the full envelope cycle, *lull included*.
+  `setEnv = ½ + ½·cos(2π·Δf·(t − s/c_g))` runs one complete cycle in `1/Δf`. At
+  the model-card Δf = 0.006 Hz that is 167 s, or 11.9 wave intervals at T = 14 s.
+- **"Sets of ~5–7" is the count of waves *inside* one set**, which is the upper
+  part of the same cycle. Half the cosine sits above `envS = 0.5`, giving 6.0
+  waves at the card values; the consumers square the envelope (`env*env`, "lulls
+  really disappear") so the visible set is if anything tighter than half.
+
+So a Δf of 0.006 Hz means **a set of about six waves every ~167 s**, not a
+167-second-long set. Dividing 1/Δf by T and expecting the set length is the
+error; that ratio is the number of waves per *cycle*, roughly twice the set.
+
+This is measured, not just argued. The temporal audit recovered the set peak at
+**120.5 s** in the foam residual (r = 0.74) and **120.8 s** in mean luma at
+Sewers, whose authored Δf = 0.008 Hz predicts **125.0 s** — a 3.6% miss on the
+set-to-set period, with the wave count inside each set unchanged. See
+`docs/WEB_THREE_SPEC.md` and TODO.md's cadence entry.
 ### 2.6 Direction is a condition, not a character (2026-08-11)
 
 > **STATUS: DOCUMENTED, NOT WIRED.** Nothing in this section runs. The runtime
@@ -531,11 +554,12 @@ Three rules, in force order.
 
 2. **Direction modulates, it does not constitute.** `D_p` enters twice:
 
-   - *Peel*, through the crest bearing at the break — **4–8° across the 90%
-     band** (§2.6.3, measured; the range is the N_ref uncertainty, not spread
-     between spots). Second-order in size, but real, monotone, and ~1.5–2×
-     the peel's sensitivity to a ±0.3 m change in H₀, which is the argument
-     for wiring it at all.
+   - *Peel*, through the crest bearing at the break. This was estimated at
+     **4–8° across the 90% band**, uniform across spots. **Superseded
+     2026-08-16 — see §2.6.2a.** With the band now measured (25.0° p10–p90 at
+     SC116) and the α bank retargeted to each spot's ceiling, the real swing is
+     **bimodal: 0.8–3.0° at the six ceiling-pinned spots and 12.5° at Sewers**.
+     No spot falls in 4–8°. `tests/peel-ceiling.test.js` pins this.
    - *Exposure*, through the cross-shore energy-flux factor `cos φ`. This is
      the first-order channel: over the same band `cos φ` falls by about half
      (0.74 → 0.34 at N_ref = 146°, a 54% drop; 0.81 → 0.44, 46%, at
@@ -555,6 +579,103 @@ Three rules, in force order.
    which is the defect this section exists to remove. Same for handedness: the
    site is declared a right, so a derivation that returns a left over the
    operating band is an invalid derivation, not a wave.
+
+#### 2.6.2a The bank is authored at grazing incidence (measured 2026-08-16)
+
+The bound in §2.6 is evaluated at sin(θ_s) = 1. The full relation carries the
+incidence:
+
+    sin(α) = (c_b / c_s) · sin(θ_s)
+
+so an authored α **demands** an incidence. Inverting the bank:
+
+| spot | α | ceiling | demanded θ_s | α swing over the 25° band |
+|---|---|---|---|---|
+| sewers | 38 | 47.3° | **56.9°** | **12.5°** |
+| firstpeak | 50 | 44.0° | unreachable (sin θ_s = 1.10) | 1.3° |
+| secondpeak | 41 | 41.4° | 82.5° | 3.0° |
+| jacks | 37 | 36.9° | unreachable (1.001) | 1.0° |
+| thehook | 41 | 41.0° | 88.0° | 1.6° |
+| sharks | 36 | 35.8° | unreachable (1.006) | 1.0° |
+| privates | 31 | 30.8° | unreachable (1.006) | 0.8° |
+
+Two consequences, neither previously stated:
+
+1. **Four of seven spots demand an incidence that does not exist.** `firstpeak`
+   is the named apex exemption (§2.6, `MEASURED_EXEMPT`); `jacks`, `sharks` and
+   `privates` merely sit inside the ceiling test's 0.5° rounding headroom and so
+   pass it while still asking for sin θ_s > 1.
+
+2. **A spot at its ceiling is at grazing incidence, and sin() is flat there.**
+   `d α / d θ_s → 0` as θ_s → 90°, so the ceiling-pinned spots are nearly
+   *immune* to swell direction. The 2026-08-13 retarget bought physical
+   defensibility and, as an unremarked side effect, **spent the dynamic range
+   Track 3c exists to exploit**. Sewers — the only spot with real headroom
+   (θ_s 56.9°) — is 4× more direction-sensitive than any other.
+
+**This is a decision, not a defect.** Wiring `D_p` against the current bank
+would change almost nothing at six spots. If direction is meant to be visible,
+the bank has to be re-anchored so each α sits at a reference incidence *inside*
+the measured band (median D_p, θ_s ≈ 65–70°) rather than at its physical edge —
+which lowers every α below its ceiling, restores headroom in both directions,
+and keeps `tests/peel-ceiling.test.js` passing with margin instead of by
+rounding. That re-anchor is a prerequisite for 3c, not a consequence of it.
+
+Band source: `docs/research/PP_CDIP_CLIMATOLOGY.md` — CDIP MOP SC116, 25 years,
+D_p p10–p90 188.8–213.8°, R = 0.989, seasonal mean swing 9.5°.
+
+##### The re-anchor was attempted and STOPPED (2026-08-16)
+
+Anchoring the bank to the *measured* incidence was authorised and then abandoned
+mid-flight, because carrying it out produced a result that indicts the framework
+rather than the bank.
+
+The chain is this document's own: `φ_ref = wrap180(D_p − N_ref)` at the 10 m
+contour, then one Snell step to each spot's `h_s`. It is **validated against
+§2.6.2's own exposure numbers** — measured D_p p10–p90 gives φ_ref 42.8–67.8°
+at N_ref = 146°, hence cos φ 0.73 → 0.38, against the 0.74 → 0.34 printed there
+(and 0.80 → 0.47 vs 0.81 → 0.44 at N_ref = 152°). The chain is right.
+
+Run it forward through the straight-contour identity and the bank becomes:
+
+| spot | θ_s at median D_p | α the identity gives | α authored |
+|---|---|---|---|
+| sewers | 41.0° | 28.8° | 38 |
+| firstpeak | 39.4° | 26.2° | 50 |
+| secondpeak | 38.3° | 24.2° | 41 |
+| jacks | 36.7° | 21.1° | 37 |
+| thehook | 38.2° | 24.0° | 41 |
+| sharks | 36.3° | 20.3° | 36 |
+| privates | 35.6° | **17.3°** | 31 |
+
+**Those are closeouts.** A 17–29° bank does not describe Pleasure Point, which
+is a long peeling right on the days this model exists to draw. So the identity
+is what fails, not the bank.
+
+Where it fails is identifiable. Henriquez's `θ_b = α` holds *"for straight
+parallel contours"* — because then the break line follows the contour, and the
+peel angle and the incidence at breaking are the same angle. Here the **contours
+are near-parallel** (seaward normal 144.9–148.9° at six of seven spots, above)
+but the **break line is not contour-parallel**: it runs along the point, oblique
+to those contours. That obliquity is `B_spot`, and it is the entire peel-making
+mechanism of a point break. With the break line oblique, α and θ_b are different
+angles and `sin α_max = c_b/c_s` bounds θ_b, **not α**.
+
+**Consequence for prior work, stated plainly:** the 2026-08-13 retarget
+(TODO 1c′-c.7) moved five α targets onto that ceiling. If the ceiling bounds
+θ_b rather than α, those targets were retargeted against the wrong constraint.
+This does not automatically make them wrong — they may still be right for other
+reasons, and the reef-shape sweep that motivated them measured a real saturation
+— but the justification recorded for them does not survive this reading.
+
+**Nothing has been changed in the bank pending a decision.**
+`tests/peel-ceiling.test.js` still enforces the old constraint and still passes;
+its two new direction-sensitivity tests are descriptive and are correct under
+either reading. What is needed before any re-anchor is `B_spot` — the break-line
+bearing — because α is a function of it, and every calculation on this page that
+tried to avoid it produced an answer contradicted by the wave that is visibly
+there.
+
 
 #### 2.6.3 The compass-to-contour-frame conversion
 
@@ -693,8 +814,10 @@ These survive the change or the change is wrong.
 2. **|α| becomes genuinely conditions-dependent.** Today it is not: α changes
    only with `spotName`. After the split ∂φ_ref/∂D_p = 1 exactly, and derived α
    must move monotonically with D_p at every spot, more southerly → larger α →
-   mellower. Target **4–8° across the 90% band**. A wired path producing 0° of
-   swing is not wired; one producing 40° is the root defect wearing a new hat.
+   mellower. Target ~~4–8° across the 90% band~~ — **revised, see §2.6.2a**: the
+   ceiling-pinned spots can only deliver 0.8–3.0°, and demanding more of them is
+   demanding incidence that does not exist. A wired path producing 0° of swing
+   is still not wired; one producing 40° is still the root defect in a new hat.
 
 3. **The 43° swing must not come back.** `scripts/capture_audit_matrix.mjs:28`
    labels the H₀ 1.5→1.8 m pair "the 43-degree alpha swing pair". No derivation
@@ -901,7 +1024,7 @@ Canonical parameter values (the reference instance):
 | break-line bearing | B_spot | provisional, ~25–80° per spot | **site character**, authored, one per spot (§2.6.3). Not yet defensible — gated on Track 1. |
 | peak period | T | 12–15 s | narrow-band |
 | deep-water height | H₀ | 1–2.5 m | head-high days |
-| spectral bandwidth | Δf | ~0.006 Hz | sets of ~5–7 |
+| spectral bandwidth | Δf | ~0.006 Hz | **set-to-set period 1/Δf ≈ 167 s**; the *visible* set is the upper half of that cycle, so **sets of ~5–7 waves** at T = 14 s. The two numbers describe different things — see §2.5.1 |
 | shelf slope | s | ~1:50 | gentle mudstone |
 | shelf tilt vs swell | θ | 30–45° | the master knob |
 | peel angle | α / α_target | 55–65° | α_target is the declaration; α is derived and reported (§2.6.1) |
