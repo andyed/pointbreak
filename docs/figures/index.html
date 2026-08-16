@@ -442,7 +442,11 @@
     <figcaption>
       <strong>Live model, work in progress.</strong> First Peak from a camera
       placed on the measured cliff, about 14 m above the water. This is a
-      kinematic model, not footage or a validated forecast.
+      kinematic model, not footage or a validated forecast. It boots the
+      January ocean &mdash; the p75 swell height of the biggest month in
+      25 years of hourly hindcast at this break (deep-water
+      H<sub>0</sub>&nbsp;1.25&nbsp;m) &mdash; because August, when this page
+      was written, is the flattest.
       <a href="sim/web-three/#preset=firstpeak&amp;cam=cliff" target="_blank" rel="noopener">Open the full simulator &#8599;</a>
     </figcaption>
   </figure>
@@ -830,18 +834,20 @@ depth and exposure.</desc>
   <section class="essay-part">
     <h2><span class="num">04</span> Breaking character along the point</h2>
     <p class="prose">
-      The first two figures come from survey data. The third is renders.
-      Across the seven sites the model runs peel angles from
-      &alpha; = 70&deg; at the sheltered end to 38&deg; at the apex: a
-      feathering shoulder at one end, a hollow and heavily sectioned lip at
-      the other. That range was not tuned frame by frame &mdash; but it
-      should be read with a disclosure. The angles came from translating
+      The first two figures come from survey data. The third is renders
+      &mdash; and it is kept deliberately as a <em>before</em> picture. The
+      frames below run the original peel-angle bank, translated from
       surf-guide language (&ldquo;mellow&rdquo;, &ldquo;softer-breaking&rdquo;,
-      &ldquo;longboard-favored&rdquo;) into degrees, because no one has ever
-      published a measured peel angle for this coastline &mdash; or, it turns
-      out, for any Santa Cruz break. Checked against the refraction physics
-      the model itself implements, five of these seven numbers are too high
-      to be real. Section 06 walks through both halves of that sentence.
+      &ldquo;longboard-favored&rdquo; became &alpha; = 58&ndash;70&deg; at the
+      down-point spots) because no one has ever published a measured peel
+      angle for this coastline &mdash; or, it turns out, for any Santa Cruz
+      break. Checked against the refraction physics the model itself
+      implements, five of those seven numbers were too high to be real, and
+      in mid-August 2026 the bank was retargeted to each spot&rsquo;s own
+      physical ceiling &mdash; the current bank runs 31&ndash;50&deg;, and
+      the mellowness the guides describe now rides in an explicit sheltering
+      field rather than the angle. Section 06 walks through the whole arc,
+      from translation to refutation to retarget.
     </p>
     <p class="prose">
       Six of the seven run on surveyed NCEI bathymetry through their OSM surf
@@ -871,7 +877,7 @@ depth and exposure.</desc>
 <text class="week-wk-title" x="40" y="58">SEVEN SITES — one point, apex to down-point</text>
 <rect class="week-wk-badge" x="1340" y="42" width="236" height="22" rx="3"/>
 <text class="week-wk-badge-t" x="1351" y="57">WORK-IN-PROGRESS RENDER</text>
-<text class="week-wk-sub" x="40" y="84">Simulated frames from the pointbreak model — not photographs, and not validated against this break.</text>
+<text class="week-wk-sub" x="40" y="84">Simulated frames from the pointbreak model — not photographs, not validated, and running the since-retired guide-derived bank (see §06; the retargeted bank runs α 31–50°).</text>
 <clipPath id="week-wk-clip0"><rect x="40" y="100" width="366" height="206" rx="3"/></clipPath>
 <g clip-path="url(#week-wk-clip0)"><svg x="40" y="100" width="366" height="206" viewBox="141.1 79.2 997.8 561.6" preserveAspectRatio="xMidYMid slice"><image xlink:href="assets/cliff_sewers.png" href="assets/cliff_sewers.png" x="0" y="0" width="1280" height="720"/></svg></g>
 <rect class="week-wk-frame" x="40" y="100" width="366" height="206" rx="3"/>
@@ -1098,7 +1104,12 @@ depth and exposure.</desc>
       This section is a real-time WebGL model built on the data above, and it
       is unfinished. It is here because it makes one claim testable: if the
       shape of the seabed sets where a wave breaks, replacing the seabed
-      should change the wave.
+      should change the wave. That is the standing optimization of the whole
+      project &mdash; explanatory and demonstration power. Walking the line
+      between simulation and aesthetic recreation is not a tension to be
+      managed; it is the product definition: physics owns the field,
+      authorship owns the character, and a frame earns its place by showing
+      the mechanism that produced it.
     </p>
     <p class="prose">
       The model is kinematic, not a fluid solver. A phase travels along a
@@ -1366,9 +1377,9 @@ depth and exposure.</desc>
       2000</a>). Run on this model&rsquo;s own dispersion code at each
       site&rsquo;s own breaking depth, the bound lands at roughly
       35&ndash;54&deg; across the mapped spots &mdash; and five of the seven
-      authored targets sit above it. The two that clear it, Sewers (38&deg;)
-      and First Peak (50&deg;), are exactly the two the simulation
-      reproduces on target. The Topanga model agrees from a completely
+      guide-derived targets sat above it. The two that cleared it, Sewers
+      (38&deg;) and First Peak (50&deg;), were exactly the two the simulation
+      already reproduced on target. The Topanga model agrees from a completely
       different direction: across twelve scenarios and three sections of that
       point, its section-averaged peel angles run <strong>31 to
       53&deg;</strong> and never once exceed 53&deg;. A bound derived from
@@ -1385,10 +1396,17 @@ depth and exposure.</desc>
       forbids the high angles this page asked of them. The mellowness locals
       describe is real, but it is <em>sheltering</em> &mdash; smaller,
       weaker waves as the point&rsquo;s corner shadows the swell &mdash; not
-      a slower-hinging peel. The model currently encodes that mellowness in
-      the wrong variable, and fixing it (lower angles, with an explicit
-      sheltering field carrying the character instead) is open work in the
-      repository&rsquo;s TODO.
+      a slower-hinging peel. The model encoded that mellowness in the wrong
+      variable until mid-August 2026. The bank now carries each spot&rsquo;s
+      own ceiling, derived from the model&rsquo;s own geometry
+      (31&ndash;50&deg; across the seven) and pinned by a test that fails if
+      any target is ever raised back above its bound; an explicit sheltering
+      field, calibrated from the preset bank&rsquo;s own down-point
+      swell-height gradient, carries the character instead. How faithfully
+      the drawn break line delivers those angles is measured and still being
+      litigated in the repository &mdash; the honest current answer is that
+      the instruments certify the reef fit more confidently than they
+      certify the wave.
     </p>
     <p class="prose">
       The measurement itself is now tractable, which is the invitation this
@@ -1416,7 +1434,7 @@ depth and exposure.</desc>
     <div class="credit-row"><span class="credit-label">Ground-truth guides:</span> <a href="https://www.surfer.com/culture/a-visitors-guide-to-longboarding-pleasure-point" target="_blank" rel="noopener">Surfer.com, &ldquo;A Visitor's Guide to Longboarding Pleasure Point&rdquo;</a> &middot; <a href="https://sunnycalifornia.com/blogs/news/beginners-guide-surfing-pleasure-point" target="_blank" rel="noopener">Sunny California, &ldquo;A Beginner's Guide to Surfing Pleasure Point&rdquo;</a>.</div>
     <div class="credit-row"><span class="credit-label">Surf science:</span> Walker (1974, Look Laboratory TR-30) &middot; Hutt, Black &amp; Mead (2001, <em>JCR</em> SI&nbsp;29) &middot; Mead (2000, PhD, Waikato) &middot; Henriquez (2004, MSc, TU Delft) &middot; Scarfe, Healy &amp; Rennie (2009, <em>JCR</em> 25(3)) &middot; Thompson et al. (2021, <em>Remote Sensing</em> 13:3372) &middot; Atkin, McIntosh &amp; Bryan (2022, ICCE) &middot; Integral Consulting (2023, Topanga Surf Quality Impact Assessment). Full citations, verbatim-checked quotes and the search record: <span class="mono">docs/research/SURF_SCIENCE_REFS.md</span> in the repository.</div>
     <div class="credit-row"><span class="credit-label">Licence:</span> Code, writing and figures MIT; OpenStreetMap-derived data ODbL 1.0; NOAA NCEI bathymetry public domain. Source and the full breakdown in the <span class="mono">pointbreak</span> repository.</div>
-    <div class="credit-row"><span class="credit-label">Renders:</span> the pointbreak wave-model renderer, preset bank as of 2026-08-09.</div>
+    <div class="credit-row"><span class="credit-label">Renders:</span> the pointbreak wave-model renderer. The seven-site figure runs the guide-derived preset bank of 2026-08-09, kept as the before picture; the live embeds run the current retargeted bank (2026-08-13).</div>
     <div class="colophon"><a href="https://mindbendingpixels.com/">Mind Bending Pixels</a> &middot; an adventure in experiential science</div>
   </footer>
 
