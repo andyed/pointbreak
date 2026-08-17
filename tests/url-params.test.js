@@ -50,19 +50,23 @@ test('the permalink writer emits only round-trip controls, in table order', () =
 test('a default view serialises to a bare URL', () => {
   assert.equal(writeHashParams({
     surfer: '0', section: '0', audio: '0', speed: '1', bed: 'reef',
-    preset: 'secondpeak', cam: 'free', month: 'january',
+    preset: 'secondpeak', cam: 'free',
   }), '');
   // and with nothing supplied at all
   assert.equal(writeHashParams({}), '');
 });
 
-test('January is the default month; the site card is the explicit state', () => {
-  // The shipped ocean (month=january) must not appear in a copied link…
-  assert.equal(writeHashParams({ month: 'january' }), '');
-  // …while stepping OFF the default onto the site card must be written,
-  // because a bare URL now means January, not "no month".
-  assert.equal(writeHashParams({ month: 'card' }), 'month=card');
-  assert.equal(writeHashParams({ month: 'card', h0: '1.40' }), 'month=card&h0=1.40');
+test('the site card is the default ocean; any month is a written choice', () => {
+  // REPLACES 'January is the default month' (2026-08-16). While a global
+  // DEFAULT_MONTH_KEY shipped, january was omitted from links as the default
+  // and `month=card` was the explicit escape. That default was reverted — it
+  // replaced all seven per-spot card H0s and removed the SHELTER_* calibration
+  // input — so the polarity flips: a month is now always a reader's choice and
+  // must survive a copied link.
+  assert.equal(writeHashParams({ month: 'january' }), 'month=january');
+  assert.equal(writeHashParams({ month: 'august', h0: '1.40' }), 'month=august&h0=1.40');
+  // A bare view carries no month at all.
+  assert.equal(writeHashParams({}), '');
 });
 
 test('the writer keeps real zeroes that a truthiness check would drop', () => {
@@ -106,4 +110,58 @@ test('CONTROLS.md documents exactly the hash params main.js reads', () => {
   for (const k of ['controls', 'hud', 'q']) parsed.add(k);
   const documented = new Set([...doc.matchAll(/^\| `([a-z0-9]+)` \|/gm)].map((m) => m[1]));
   assert.deepEqual([...parsed].sort(), [...documented].sort());
+});
+
+// ---------------------------------------------------------------------------
+// The default ocean is the site card's (regression, 2026-08-16)
+// ---------------------------------------------------------------------------
+// A global DEFAULT_MONTH_KEY shipped briefly and replaced all seven per-spot
+// card H0s with one climatological value. That is not a size tweak: model-glsl
+// SHELTER_* is calibrated by log-linear fit of the card bank's own H0 gradient
+// (2.2 m at Sewers to 0.7 m at Private's, r^2 = 0.81), so one global H0 removes
+// the calibration input. Measured, it collapsed the peel at the spots furthest
+// from it — Sewers alpha 38 -> 5, First Peak 50 -> 1.
+//
+// It passed a green suite because every headless rig pinned `&month=card`,
+// so the whole test surface read the card basis while the app booted January.
+// This test is source-shaped on purpose: the invariant lives in a branch that
+// no pure unit can reach, and the repo already pins doc-runtime parity the
+// same way.
+const MAIN_JS = readFileSync(
+  new URL('../web-three/js/main.js', import.meta.url), 'utf8');
+
+test('no module-level default month overrides the per-spot card oceans', () => {
+  // Comments may DESCRIBE the reverted constant; code must not declare one.
+  const code = MAIN_JS.split('\n')
+    .filter((l) => !l.trim().startsWith('//')).join('\n');
+  assert.ok(!/DEFAULT_MONTH|MONTH_DEFAULT/.test(code),
+    'a default-month constant is back. The default ocean must be each spot\'s '
+    + 'card H0 — see shared/model-glsl.js SHELTER_*, whose calibration input IS '
+    + 'the card H0 gradient. A seasonal default has to SCALE the card values by '
+    + "the month's ratio, never replace them.");
+});
+
+test('a month is applied only when the hash asks for one', () => {
+  const code = MAIN_JS.split('\n')
+    .filter((l) => !l.trim().startsWith('//')).join('\n');
+  const calls = [...code.matchAll(/setMonth\(([^)]*)\)/g)].map((m) => m[1].trim());
+  // Expected: the hash branch, the drawer select, and setMonth's own recursion
+  // guard are all fine; what must NOT exist is a bare literal month key.
+  const literals = calls.filter((a) => /^['"][a-z]+['"]$/.test(a));
+  assert.deepEqual(literals, [],
+    `setMonth() is called with a hard-coded month: ${literals.join(', ')}. `
+    + 'A month is opt-in via #month=; nothing may apply one on the reader\'s behalf.');
+});
+
+test('headless rigs are not pinned to a basis the app does not ship', () => {
+  // The pin is what hid the regression. An instrument must measure the default
+  // the product actually boots, or a green suite means nothing.
+  for (const rig of ['measure_alpha_profile.mjs', 'measure_bspot.mjs']) {
+    const src = readFileSync(new URL(`../scripts/${rig}`, import.meta.url), 'utf8');
+    const code = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    assert.ok(!/month=card/.test(code),
+      `${rig} pins month=card. That is how the 2026-08-16 default-ocean `
+      + 'regression passed a green suite — every rig read the card basis while '
+      + 'the app booted January. Measure what ships.');
+  }
 });

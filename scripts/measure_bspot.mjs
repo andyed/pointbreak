@@ -121,7 +121,10 @@ function toCompass(geoSpot, psiRad) {
 const out = [];
 for (const preset of SPOTS) {
   // sim=42 is the house probe clock; hud=0 keeps the panel out of the render.
-  const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0&month=card`;
+  // NOT pinned to a month. An instrument pinned to a basis the product does
+  // not ship is how the 2026-08-16 default-ocean regression passed a green
+  // suite: every rig read `month=card` while the app booted January.
+  const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0`;
   await page.goto(url, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(1600);

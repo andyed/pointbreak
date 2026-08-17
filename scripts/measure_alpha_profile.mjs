@@ -71,7 +71,10 @@ const median = (a) => {
 
 const out = [];
 for (const preset of PRESETS) {
-  const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0&month=card`
+  // NOT pinned to a month. An instrument pinned to a basis the product does
+  // not ship is how the 2026-08-16 default-ocean regression passed a green
+  // suite: every rig read `month=card` while the app booted January.
+  const url = `http://localhost:${PORT}/web-three/#preset=${preset}&sim=42&hud=0`
             + (SMOOTH ? '&smooth=1' : '');
   await page.goto(url, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });

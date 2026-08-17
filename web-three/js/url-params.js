@@ -48,12 +48,15 @@ export const ROUND_TRIP_PARAMS = [
 // it changes meaning too. That is the cost of short, honest links, and it is
 // why anything an author pins deliberately (a capture, an essay embed) should
 // keep writing the value explicitly rather than relying on the default.
-// That cost was paid once already: month defaulted to the site card until
-// 2026-08-16 and defaults to January now, so a pre-change bare link gained
-// the January H0. Measurement rigs pin `month=card` for exactly this reason.
+// Month is deliberately NOT in this table — see the note inside it.
 const OMIT_WHEN = {
   surfer: '0', section: '0', audio: '0', speed: '1', bed: 'reef',
-  preset: 'secondpeak', cam: 'free', month: 'january',
+  preset: 'secondpeak', cam: 'free',
+  // NO month entry, deliberately. The default ocean is the site card, so ANY
+  // month is a reader's choice and must survive a copied link. A january
+  // entry sat here while a global default month shipped (2026-08-16,
+  // reverted) and would now silently drop January from every permalink
+  // that deliberately chose it.
 };
 
 // `snapshot` is a plain {param: value} bag; null/undefined/'' means "not set".
