@@ -404,7 +404,34 @@ No parity port. Consequences to carry honestly:
       moves to capture-based instruments (Track 6).
 - [ ] Rider stays garnish behind its toggle; known to stand off the drawn
       surface under #m4 default — do not tune rider items until/unless the
-      twin returns
+      twin returns.
+      MEASURED 2026-08-18 (`scripts/measure_rider_surface.mjs`; live-uniform
+      JS mirror of the GPU height path vs the rider mesh's world position,
+      instrument proved to 1e-3 m against still water and mesh motion).
+      The sign is the opposite of the live read: the rider is not floating
+      ON TOP, he is BURIED — board 1.3–2.7 m BELOW the drawn surface at
+      secondpeak sims 36/42/48/54, head at or under it at all four, and he
+      is invisible in three of the four captures. Blame, in order:
+      (1) TWIN HEIGHT +1.9–2.1 m at every clock — model-js `oceanH` has no
+      depth path, so `growSyn` peaks at the AUTHORED contour while the GPU's
+      `growGeo` (shoaling + depth-limited breaking) peaks at the BAKED line,
+      69–121 m away; the drawn wave is ~1.9x the twin's there. Deprecated
+      rideMetric now reads 0.29–0.38 vs its pre-M4 0.81–0.87 — the twin no
+      longer agrees with itself. (2) CHOPPY OFFSET 2–5 m (GPU displaces the
+      source point 6.3–8.9 m shoreward, twin 2.2–6.8) — that is the
+      "behind the crest" z-error. (3) SET PHASE: ZERO — the runtime P DOES
+      carry the #arm anchor (matches anchored phase to 1e-4, misses the
+      legacy phase by 1.3–1.7 m). #arm did not desync the rider; it raised
+      env^2 at the house clocks from 0.02–0.16 to 0.88–1.00, so a height
+      error that scales with env got 2.5–7x more visible. Independent
+      corroboration that the anchor does what 6b's fix claims.
+      RECOMMENDED IF EVER PICKED UP (not implemented, Andy unbothered
+      2026-08-18): take rider VERTICAL from a live-uniform height sampler
+      and keep m4RideSolve for (x,z) — it already sits on the baked line to
+      the mm. The camera-aim precedent; ~120 lines, ~9 height evals/frame
+      against the ~35 rayS evals u_setRef already spends. Explicitly NOT a
+      constant shim (burial varies with env — MEASUREMENT_LESSONS 8) and
+      NOT full twin parity (the foam path never moves geometry).
 - [ ] sound.js keyed to the authored line (audio ~7–20 s late vs drawn crash,
       replica-derived estimate) — accept for now; revisit with a GPU-side
       break signal, not a twin repair
