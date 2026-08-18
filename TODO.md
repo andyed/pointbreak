@@ -573,6 +573,25 @@ No parity port. Consequences to carry honestly:
       break sharpening stays intact, turning the sim-42 slab into a rounded
       slope without regressing the other captured clocks. Still open before
       any default decision: the lip lacks the field footage's aerated volume.
+- [~] 2026-08-18: AERATED LIP landed behind `#lip=1` (default OFF pending
+      Andy's live verdict). Live report (wide cam, surfer on): "feels like
+      the wave is curling not the foam?" — the fold/lip displacement is pure
+      geometry, every foam term paints the band BEHIND the line, so with
+      #arm putting a cresting set on the line the naked glassy curl is on
+      permanent display. Diagnosis first (scripts/capture_lip_ab.mjs +
+      measure_lip_luma.py — model-anchored loci: head from m4Ride, line from
+      lineProbe, projected through the live camera): at the hero drone state
+      the lip band is NOT the brightest thing — sewers sim 42 lip 60.0 vs
+      face 58.0, sim 48 lip 176.6 vs face 206.8 (the face wins). Mechanism:
+      a vertex-stage mask on the fold's own variables — cusp parameter
+      S = Sapp+Sover and applied throwMag normalized by face height
+      (plunging curtain, BOTH faces of the thrown ribbon, which also covers
+      the dark fold-underside facet class honestly) plus
+      0.30·pocket·(1−plunge) (spilling crest crumble) — H_eff-scaled,
+      section-gap masked, read post-carve in GRID_FRAG with #arm-metric
+      freshness (85 m e-fold behind the head). OFF→ON numbers at the pinned
+      clocks: CONTROLS.md `lip` row. Judge live from drone AND cliff before
+      any default flip.
 
 ### Track 6 — instrumentation (cheap; start anytime — now the acceptance path
 ### since the twin instruments are deprecated)

@@ -34,6 +34,7 @@ varying float vBrk;
 varying float vLand;   // 1 where the seabed surfaced above the water
 varying float vDepth;  // still-water depth at this point, m (99 = no bathymetry)
 varying float vBoil;
+varying float vAerLip; // aerated-lip mask, keyed to the fold geometry (#lip=1)
 `;
 
 // ---------- detail spectrum (renderer-side; the model stays in model-glsl) ----------
@@ -257,8 +258,9 @@ float farFadeAt(vec2 xz){
 // slope), so nothing here depends on grid resolution.
 // Outs are the model's bookkeeping at the SOURCE point (Tessendorf: material
 // properties travel with the displaced point), already far-faded.
-vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest){
+vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer){
   float fade = farFadeAt(xz0);
+  aer = 0.0;
   if (fade <= 0.001) {   // deep in the skirt: flat calm, skip 5 ocean() evals
     foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0;
     return vec3(xz0.x, 0.0, xz0.y);
@@ -393,6 +395,40 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
                 * mix(1.0, 0.72 + 0.82*frontPhase, anatomy);
   h -= dropMag;
 
+  // ---- aerated lip (#lip=1, read by GRID_FRAG through u_lipAer) ----------
+  // The curl was CLEAN GLASS: the fold above is pure geometry, every foam
+  // term paints the surface band behind the line, and in field footage the
+  // plunging lip is the whitest thing in frame — aerated water, born AT the
+  // lip (Andy, 2026-08-18 live; hero-read criterion 3, "curl locatable").
+  // Keyed to the fold's own mechanism variables, not to a screen-space band:
+  //  * curtain — plunging overturn. Gated on the cusp parameter S = Sapp +
+  //    Sover (pre-cap: the cap protects the mesh, not the physics claim) so
+  //    aeration begins where convergence actually approaches the fold, and
+  //    weighted by the applied lip throw normalized by the physical face
+  //    height, which puts full white exactly on the thrown ribbon — BOTH
+  //    sides of it, so the documented #look=full dark fold-underside facets
+  //    (the "manta" class) are covered by the honest aerated curtain.
+  //  * spill — low-xi crests aerate gently at the crest instead of throwing
+  //    a curtain (Battjes): a capped pocket term, no S gate, so Sharks/
+  //    Privates crumble white at ~a third of Sewers' curtain.
+  // pocket carries env2/reef (lulls stay dark — no standing white stripe)
+  // and the H_eff footprint; aerSize re-applies the sheltered-height
+  // brightness the hM normalization divided out (identity at the 1.5 m
+  // model-card day, the sizeAmp contract). breakMask: a section gap is line
+  // transport, not a breaking crest — no aerated lip there. Early-out keeps
+  // the texture fetches off the ~99% of vertices with no pocket.
+  float aerCurtain = smoothstep(0.80, 1.15, Sapp + Sover)
+                   * clamp(throwMag / max(1.2*hM, 0.5), 0.0, 1.0);
+  float aerSpill   = 0.30 * pocket * (1.0 - plunge);
+  aer = max(aerCurtain, aerSpill);
+  if (aer > 0.003) {
+    float aerSize = mix(1.0, clamp(u_H0*shelterAt(xz0.x)/1.5, 0.70, 1.40), u_depthMix);
+    aer = clamp(aer * aerSize, 0.0, 1.0) * breakMask(xz0.x);
+  } else {
+    aer = 0.0;
+  }
+  if (!(aer == aer)) aer = 0.0;   // NaN guard (house rule)
+
   // guards: bounded (foam-front FD spikes must not shred the mesh), finite,
   // and faded with the skirt exactly like the height
   float offLen = length(off);
@@ -402,6 +438,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   foam   *= fade;
   pocket *= fade;
   crest  *= fade;
+  aer    *= fade;
   return vec3(xz0.x + off.x*fade, h*fade, xz0.y + off.y*fade);
 }
 
@@ -425,7 +462,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
 uniform float u_landSkipM;   // = CREST_CEIL_M; huge value disables the skip
 
 vec3 surfacePos(vec2 xz0, float t, out float foam, out float pocket,
-                out float brk, out float crest, out float land){
+                out float brk, out float crest, out float land, out float aer){
   // Bed FIRST (2026-08-12 perf). This used to run choppyPos — five ocean()
   // evaluations — and only then discover the bed was above it and throw the
   // whole result away, on every vertex over dry land, three times per vertex
@@ -437,16 +474,16 @@ vec3 surfacePos(vec2 xz0, float t, out float foam, out float pocket,
   // wave: bit-identical output, minus the work.
   float bedY = mix(-999.0, bedElevM(xz0) - u_waterLevel, u_depthMix);
   if (bedY > u_landSkipM) {
-    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0;
+    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0; aer = 0.0;
     land = 1.0;
     return vec3(xz0.x, bedY, xz0.y);
   }
-  vec3 P = choppyPos(xz0, t, foam, pocket, brk, crest);
+  vec3 P = choppyPos(xz0, t, foam, pocket, brk, crest, aer);
   land = 0.0;
   if (bedY > P.y) {
     P = vec3(xz0.x, bedY, xz0.y);
     land = 1.0;
-    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0;  // no surf on dry sand
+    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0; aer = 0.0;  // no surf on dry sand
   }
   return P;
 }
@@ -456,16 +493,16 @@ void main() {
   // position.xz IS the model coordinate — no extra transform to keep in sync
   vec2 xz = position.xz;
 
-  float foam, pocket, brk, crest, land;
-  vec3 P = surfacePos(xz, u_time, foam, pocket, brk, crest, land);
+  float foam, pocket, brk, crest, land, aer;
+  vec3 P = surfacePos(xz, u_time, foam, pocket, brk, crest, land, aer);
 
   // normals by finite differences on the DISPLACED positions (spec M2) — the
   // height-only FD of M1 is blind to the fold. Forward differences at one
   // core cell: central would push the (already 3x M1) vertex cost to 5x for
   // a half-cell phase shift invisible at ~1.2 m cells.
-  float f2, p2, b2, c2, l2;
-  vec3 Px = surfacePos(xz + vec2(u_cell.x, 0.0), u_time, f2, p2, b2, c2, l2);
-  vec3 Pz = surfacePos(xz + vec2(0.0, u_cell.y), u_time, f2, p2, b2, c2, l2);
+  float f2, p2, b2, c2, l2, a2;
+  vec3 Px = surfacePos(xz + vec2(u_cell.x, 0.0), u_time, f2, p2, b2, c2, l2, a2);
+  vec3 Pz = surfacePos(xz + vec2(0.0, u_cell.y), u_time, f2, p2, b2, c2, l2, a2);
   vec3 N = cross(Pz - P, Px - P);            // +y up for an unfolded surface
   if (!(dot(N, N) > 1e-12)) N = vec3(0.0, 1.0, 0.0);   // degenerate fold cell
   N = normalize(N);
@@ -503,6 +540,7 @@ void main() {
   vBoil     = boil;
   vLand     = land;
   vDepth    = mix(99.0, waterDepthM(xz), u_depthMix);
+  vAerLip   = aer;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
 }
 `;
@@ -523,6 +561,7 @@ ${KELP_GLSL}
 uniform float u_camUnder;   // 1 when the eye is below the water surface
 uniform float u_matte;      // 1 = matte the unmodeled world (#matte=0 reverts)
 uniform float u_crestRead;  // Track 5 crest-first read (face darkening + fresh-foam core); #crest=0 reverts
+uniform float u_lipAer;     // aerated lip/curl whitening on the fold geometry; #lip=1 arms it (default OFF)
 uniform float u_fidelityLook; // 0 current, 1 foam material, 2 + lifecycle/face/lip (#look=)
 const float FOG_DENSITY = 0.0011;
 const float HAZE_H      = 70.0;
@@ -1075,6 +1114,31 @@ void main() {
   // head owns the stripe's brightness (comet read, same A/B as the tail carve)
   foamCol = mix(foamCol, filmCol, (0.55 + 0.13*u_headRead)*ageK);
   col = mix(col, foamCol, clamp(foamM*mix(1.15, 0.90, ageK), 0.0, 0.97));
+
+  // ---- 4.7 aerated lip (#lip=1, default OFF) ----
+  // The curl itself, whitened where the FOLD is: vAerLip is computed in the
+  // vertex stage from the fold's own mechanism variables (cusp parameter S,
+  // the applied lip throw, pocket/plunge/H_eff — see choppyPos), so this
+  // paints the pitching crest and the thrown curtain's BOTH faces — which is
+  // also the honest cover for the documented dark fold-underside facets —
+  // never a screen-space band. Applied AFTER the foam threshold and carves,
+  // deliberately outside their pipeline: the comet/stripe carves dissolve
+  // whitewater TAILS, and the lip is not a tail — at the live head lifeC.x
+  // ~ 0 anyway, so ordering and mechanism agree. A mix, not an add, so
+  // stacking on the comet head brightens toward one white ceiling instead of
+  // doubling. lipFresh is the metric #arm family: metres behind the
+  // traveling breakpoint (behindC above), e-fold 85 m between the model
+  // tail's 55 and the carve's 110 — the lip is freshest at the head, and its
+  // trailing curtain grades into the bore's whitewater instead of cutting
+  // off. Floor 0.40: a curling crest a tail-length behind the head is still
+  // aerated water, just not the subject.
+  if (u_lipAer > 0.5) {
+    float lipFresh = 0.40 + 0.60*exp(-behindC/85.0);
+    float aerM = clamp(vAerLip, 0.0, 1.0) * lipFresh;
+    // ftex modulation keeps the curtain aerated water, not paper white
+    vec3 aerCol = vec3(0.97, 0.985, 1.0) * (0.88 + 0.12*ftex);
+    col = mix(col, aerCol, clamp(aerM, 0.0, 0.95));
+  }
 
   // swash-band blend into the fragment-exact land colour computed above:
   // partial landF fragments are the widened shoreline crossing. Pre-fog on

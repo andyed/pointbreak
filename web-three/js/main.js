@@ -179,6 +179,8 @@ const uniforms = {
   u_stripeLife: { value: 0 },   // per-stripe along-crest lifecycle clock; #slife=1 arms it
                                 // (feature flag, OFF pending a live verdict — repo convention
                                 // for unverified visual mechanisms)
+  u_lipAer:     { value: 0 },   // aerated lip/curl whitening keyed to the fold geometry;
+                                // #lip=1 arms it (feature flag, OFF pending a live verdict)
   u_breakMix:   { value: 0 },
   u_breakX:     { value: new THREE.Vector2(-300, 300) },
   u_breakZ:     { value: new THREE.Vector2(BREAK_Z_MIN, BREAK_Z_MAX) },
@@ -1610,6 +1612,11 @@ function applyHashParams() {
   // live verdict); #slife=1 arms it — inner re-breaking stripes gain the
   // phase-lagged copy of the zipper's along-crest age (model-glsl stripeMod)
   if (h.get('slife') === '1') uniforms.u_stripeLife.value = 1;
+  // aerated lip/curl (feature flag, default OFF pending live verdict);
+  // #lip=1 arms it — the plunging fold whitens on its own geometry (cusp
+  // parameter + lip throw in GRID_VERT choppyPos) instead of rendering as
+  // clean glass; spilling sites get the gentler crest crumble
+  if (h.get('lip') === '1') uniforms.u_lipAer.value = 1;
   // The #arm pair defaults ON (the peel arm lights at the house capture
   // clocks): set-envelope anchor + metric comet tail. `arm=0` reverts both;
   // `arm=anchor` / `arm=tail` keep only the named half, for bisection.
