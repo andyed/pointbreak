@@ -71,6 +71,7 @@ it can be measured across a range; it defaults to the shipped value.
 | `cam` | `free` `cliff` `lineup` `drone` `point` `follow` `tour` | `free` | camera preset; `tour` is the screensaver auto-cut | control |
 | `q` | `high` `medium` `low` `potato` | auto | pins the quality tier (grid density — the app is vertex-bound) and disables auto-fallback | control |
 | `m4` | `0` | on | A/B revert: `0` = authored break line instead of the emergent H₀Kₛ ≥ γh locus | A/B revert |
+| `aim` | `0` | on | A/B revert: `0` = cameras aim via the authored `breakLineJS` proxy (pre-2026-08-18 rigs). On, Cliff/Lineup/Drone (and their Tour legs) frame the **baked** line's action centroid — stage stations, section gaps excluded — smoothed over ~6 s of sim time so a tide-moved bake glides the frame; grabbing the orbit hands the framing back to the reader until the next camera choice. No bake (unmapped site, A-frame, `m4=0`) falls back to the authored rigs | A/B revert |
 | `matte` | `0` | on | A/B revert: `0` = disable the modeled-domain matte (water and land) | A/B revert |
 | `shape` | `legacy` / `structural` | `structural` | A/B revert: `legacy` = pre-anatomy breaker shading | A/B revert |
 | `noclip` | `1` | off | disable the world-collision camera clamp (x-ray debugging) | debug |

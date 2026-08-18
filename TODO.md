@@ -393,8 +393,18 @@ No parity port. Consequences to carry honestly:
 - [ ] sound.js keyed to the authored line (audio ~7–20 s late vs drawn crash,
       replica-derived estimate) — accept for now; revisit with a GPU-side
       break signal, not a twin repair
-- [ ] Camera aim via authored breakLineJS (5–9° error) — cheap partial: aim
-      cameras off the BAKED emergent line data (CPU-side bake already exists)
+- [x] Camera aim via authored breakLineJS (5–9° error) — LANDED 2026-08-18:
+      Cliff/Lineup/Drone (and their Tour legs) aim at the BAKED line's action
+      centroid (stage stations, section gaps excluded via breakGapAt), smoothed
+      first-order in SIM seconds (τ=6 s — a +0.7 m tide step moves the raw
+      centroid 69 m in one frame at Second Peak; the camera glides ≤2.9 m per
+      250 ms). Snap on preset switch; tracking stops when the user grabs the
+      orbit. `#aim=0` reverts to the authored rigs; Follow untouched (the rider
+      already rides the bake). Measured (scripts/measure_cam_aim.mjs, sim=42,
+      `__pointbreak.aimProbe().errDeg` vs the raw centroid): drone 1.8–13.6°
+      → 0.0°, cliff 1.9–18.9° → 0.4–0.8° across the six mapped spots
+      (Privates has no bake — authored fallback by design). sound.js stays on
+      the authored line (its own Track 2 item above).
 
 ### Track 3 — direction becomes a condition (doc NOW, wire AFTER Track 1)
 - [x] 3b DONE ALREADY (verified 2026-08-16, entry was stale): bakeBreakLine's

@@ -366,6 +366,61 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.maxDistance = 2000;
 
+// ---------- camera aim: the BAKED line owns "where to look" ----------
+// TODO Track 2 cheap partial. The rigs aimed via authored breakLineJS while
+// the drawn line is the baked H0*Ks >= gamma*h locus (bed.js bakeBreakLine),
+// which sits elsewhere — 5-9 deg of aim error. MODEL.md 4.5 assigns break
+// LOCATION to physics, and the camera is a consumer of location, so the rigs
+// now frame the bake's ACTION CENTROID: the mean (x, z) of the baked line over
+// the stage with section-gap stations excluded (a gap is a withdrawn breaking
+// claim — aiming at one frames water that deliberately does nothing).
+//
+// STABILITY over accuracy: the centroid is smoothed with a first-order lag in
+// SIM seconds (rate independence — pause freezes it, speed scales it with the
+// waves), because a camera that twitches when the tide moves the bake reads
+// worse than a slightly-off camera. A preset switch SNAPS instead: gliding the
+// aim across a re-centered world would pan through 100s of metres of nothing.
+// #aim=0 is the A/B revert (authored-line aim, bit-identical to the old rigs).
+let aimEnabled = true;
+const AIM_TAU_S = 6;                  // aim glide time constant, sim seconds
+const AIM_STEP_M = 5;                 // centroid sampling step along the stage
+const aimState = { x: 0, z: 0, ok: false, preset: null };
+
+// Raw (unsmoothed) action centroid of the current bake, or null without one.
+// Same stage restriction as stageAlpha(): the bake's flat flanks are not surf.
+function bakedAimCentroid() {
+  if (!lastBaked) return null;
+  const P = modelP();
+  const lo = (P.stageStart ?? -110) + 10, hi = (P.stageEnd ?? 290) - 10;
+  let sx = 0, sz = 0, n = 0;
+  for (let x = lo; x <= hi; x += AIM_STEP_M) {
+    if (breakGapAt(x, lastBaked.x0, lastBaked.x1)) continue;
+    const z = breakZAt(x, lastBaked.x0, lastBaked.x1);
+    if (!Number.isFinite(z)) continue;
+    sx += x; sz += z; n++;
+  }
+  return n ? { x: sx / n, z: sz / n } : null;
+}
+
+function updateAim(simDt) {
+  if (!aimEnabled || !lastBaked) { aimState.ok = false; return; }
+  const c = bakedAimCentroid();
+  if (!c || !Number.isFinite(c.x) || !Number.isFinite(c.z)) { aimState.ok = false; return; }
+  if (!aimState.ok || aimState.preset !== state.preset) {
+    aimState.x = c.x; aimState.z = c.z;
+    aimState.ok = true; aimState.preset = state.preset;
+    return;
+  }
+  // First-order lag: k depends only on elapsed sim seconds, never on frame
+  // rate — 63% of a tide-moved line is absorbed after AIM_TAU_S seconds
+  // whether that took 60 frames or 600.
+  const k = 1 - Math.exp(-Math.max(simDt, 0) / AIM_TAU_S);
+  aimState.x += (c.x - aimState.x) * k;
+  aimState.z += (c.z - aimState.z) * k;
+}
+
+const aimOn = () => aimEnabled && aimState.ok;
+
 // Cliff = web/'s cliff camera (16 m over the point, shooting the lineup);
 // Lineup = low telephoto water view used to judge face/lip negative space;
 // Drone = high near-top-down matching web/'s ortho drone window (~±170 m in
@@ -405,9 +460,23 @@ const CAM_PRESETS = [
   // eye level, so a shot along the shore toward x=-120 keeps that bluff in
   // half the frame at every mapped spot. Telephoto (30) crops the foreground
   // the same way Follow's zoom does.
-  { name: 'Cliff',  pos: () => cliffStation(cliffStationX()),                 target: () => [-30, 2, breakLineJS(-30) - 25], fov: 30 },
-  { name: 'Lineup', pos: () => [35, 8.5, breakLineJS(35) - 30],               target: () => [0, 4.0, breakLineJS(0) + 2], fov: 32 },
-  { name: 'Drone',  pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
+  // Cliff/Lineup/Drone aim at the baked line's action centroid when a bake
+  // exists (see "camera aim" above); each closure keeps its authored-line
+  // framing as the fallback (unmapped site, A-frame, #m4=0) and as the #aim=0
+  // A/B revert. Lineup and Drone translate their whole rig with the aim point
+  // so the pos/target geometry (and therefore the shot's character) is
+  // unchanged — only where it is parked moves.
+  { name: 'Cliff',  pos: () => cliffStation(cliffStationX()),
+    target: () => aimOn() ? [aimState.x, 2, aimState.z]
+                          : [-30, 2, breakLineJS(-30) - 25], fov: 30 },
+  { name: 'Lineup', pos: () => aimOn() ? [aimState.x + 35, 8.5, aimState.z - 30]
+                                       : [35, 8.5, breakLineJS(35) - 30],
+    target: () => aimOn() ? [aimState.x, 4.0, aimState.z + 2]
+                          : [0, 4.0, breakLineJS(0) + 2], fov: 32 },
+  { name: 'Drone',  pos: () => aimOn() ? [aimState.x, 365, aimState.z + 40]
+                                       : [0, 365, STAGE_Z0 + 40],
+    target: () => aimOn() ? [aimState.x, 0, aimState.z]
+                          : [0, 0, STAGE_Z0] },
   // The headland shot. Round-2 finding (ROUND2_FINDINGS_2026-08-11): Sewer
   // Peak's DEM patch already carries 111.5 deg of coastline rotation including
   // the OSM apex — the Drone framing just crops it (footprint ends z=+173 m,
@@ -428,8 +497,18 @@ const TOUR_SHOTS = ['Drone', 'Cliff', 'Follow'];
 const TOUR_CUT_S = 24;
 let tourLeg = -1;   // last leg applied; -1 forces a cut on the first frame
 
+// Aim tracking stops the moment the user grabs the orbit and stays off until
+// the next explicit camera choice: the reader's framing outranks the rig's.
+let userOrbited = false;
+controls.addEventListener('start', () => { userOrbited = true; });
+// The shots that follow the aim point per frame while the user has not taken
+// over. Follow is deliberately absent — it tracks the rider, who already rides
+// the baked line (m4RideSolve), so it aims off the bake by construction.
+const AIM_SHOTS = new Set(['Cliff', 'Lineup', 'Drone']);
+
 function applyCam(i) {
   camIdx = i;
+  userOrbited = false;
   const p = CAM_PRESETS[i];
   camera.position.set(...p.pos());
   controls.target.set(...p.target());
@@ -445,6 +524,7 @@ function applyCam(i) {
 
 // hard cut to a named shot (Tour legs reuse the presets' own framing)
 function cutToShot(name) {
+  userOrbited = false;
   const p = CAM_PRESETS.find((c) => c.name === name);
   camera.position.set(...p.pos());
   controls.target.set(...p.target());
@@ -1203,6 +1283,10 @@ function frame(now) {
             ? { phiRad: swellPhi(peelP), curveAt: (x) => coastCurve(x, peelP) }
             : null });
   lastBaked = baked;
+  // Advance the smoothed camera aim point from THIS frame's bake. Sim-time
+  // delta, mirroring the simTime advance above: pause freezes the aim glide
+  // with everything else, speed scales it with the waves.
+  updateAim((!state.paused && Number.isFinite(dt)) ? dt * state.speed : 0);
   uniforms.u_breakMix.value = baked ? 1 : 0;
   if (baked) {
     if (uniforms.u_breakTex.value !== baked.texture) {
@@ -1260,6 +1344,24 @@ function frame(now) {
   if (surferGroup.visible || following) {
     const sWorld = updateSurfer(surferGroup, simTime, modelP());
     if (following) updateFollowCam(sWorld);
+  }
+
+  // ---------- aim tracking (see "camera aim" above) ----------
+  // The active aim-driven shot re-poses from its own closures every frame, so
+  // a tide-moved bake GLIDES the frame (the closures read the smoothed aim
+  // point) instead of leaving the camera staring at where the line used to be.
+  // Stops for good once the user grabs the orbit; Follow frames are excluded
+  // (the rider track owns them); with #aim=0 or no bake, aimOn() is false and
+  // the rigs keep their set-once authored framing exactly as before.
+  if (!following && aimOn() && !userOrbited) {
+    const shot = touring ? TOUR_SHOTS[tourLeg] : CAM_PRESETS[camIdx].name;
+    if (AIM_SHOTS.has(shot)) {
+      const p = CAM_PRESETS.find((c) => c.name === shot);
+      camera.position.set(...p.pos());
+      controls.target.set(...p.target());
+      // Tour skips controls.update() below, so orient explicitly there.
+      if (touring) camera.lookAt(controls.target);
+    }
   }
 
   // OrbitControls.update() re-derives position from its spherical state and
@@ -1413,6 +1515,8 @@ function applyHashParams() {
   applyLiveParams(h, { shapeChanged });
   if (h.get('drift') === '1') driftEnabled = true;
   if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
+  // camera aim off the baked line (default on; #aim=0 = authored-line aim)
+  if (h.has('aim')) aimEnabled = h.get('aim') !== '0';
   if (h.has('psi')) psiEnabled = h.get('psi') === '1';
   if (h.has('peeldir')) peelDirEnabled = h.get('peeldir') === '1';
   if (h.has('smooth')) smoothEnabled = h.get('smooth') === '1';
@@ -1585,6 +1689,28 @@ window.__pointbreak = {
   // can be told apart from "the bake does this everywhere".
   // The baked line itself plus its derived alpha, for headless measurement.
   // Foam is a weak instrument; the LINE is the claim (audit 2026-08-11).
+  // Camera-aim instrument (read-only): where the active camera is actually
+  // looking vs the baked line's raw action centroid. `errDeg` is the angle
+  // between the camera's forward direction and the eye->centroid direction —
+  // the acceptance number for the baked-line aim (TODO Track 2). Present
+  // regardless of #aim so before/after runs use the SAME instrument.
+  aimProbe: () => {
+    const raw = bakedAimCentroid();
+    const fwd = camera.getWorldDirection(new THREE.Vector3());
+    let errDeg = null;
+    if (raw) {
+      const to = new THREE.Vector3(raw.x, 0, raw.z).sub(camera.position).normalize();
+      errDeg = Math.acos(Math.min(Math.max(fwd.dot(to), -1), 1)) * 180 / Math.PI;
+    }
+    return {
+      enabled: aimEnabled, ok: aimState.ok,
+      aim: aimState.ok ? { x: aimState.x, z: aimState.z } : null,
+      raw, errDeg,
+      cam: CAM_PRESETS[camIdx].name,
+      camPos: camera.position.toArray(),
+      target: controls.target.toArray(),
+    };
+  },
   lineProbe: (step = 5) => {
     if (!lastBaked) return null;
     const out = [];
