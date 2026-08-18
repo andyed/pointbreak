@@ -530,17 +530,28 @@ No parity port. Consequences to carry honestly:
       Control confirms it — measured carrier phase speed 6.18–6.64 m/s matches
       LAM/T = 6.00, not √(g·h_b) = 5.26. **This is M6 parts 1+3**, now with a
       temporal argument on top of the steepness one. Fix there, not here.
-- [ ] 6b. SEPARATE THE α DISAGREEMENT before acting on it. Pixel α reads
-      4.3–8.8° across rigs vs 38° authored / 38° stageAlpha, but the detector's
-      break-line fit is R² = 0.00–0.05 over a 378 m-wide activity band — it has
-      no line to fit, so none of those numbers is a measurement. Three
-      unseparated causes: (a) the render doesn't express the peel (Track 5 foam
-      attachment), (b) the detector is captured by a brighter non-break feature,
-      (c) 38° is real but buried. **Discriminator is ONE capture**: overlay
-      `lineProbe()` on a frame and look at where the baked line falls relative
-      to the bright bins. Consistent with the 2026-08-11 audit's independent
-      "α collapses to ~8–10° visible crest angle" — two instruments now say the
-      picture doesn't show the geometry's peel.
+- [x] 6b. RESOLVED 2026-08-18 — the discriminator ran
+      (`scripts/measure_peel_visibility.mjs`, hero state sewers/drone/sim=42):
+      **(a) is the root cause, (b) its downstream symptom, (c) refuted.** Over
+      the rideable stage (x ∈ [−191, 66], stageAlpha 36.4–37.5°) the baked
+      line's median local luma is 57.5 = the frame's **19th percentile**;
+      brightest station 135.8, under the L≥180 foam threshold; at sim=48 the
+      stage max (82.4) ≈ frame median (79.1) — nothing at the line to recover.
+      All top-luma clusters sit 115–390 m SHOREWARD in 3–4 shore-parallel
+      bore/swash bands (#1 at z=+153 m, luma 165), which is what the pixel
+      detector fits — hence 4.3–8.8° at R²≈0. The ONE line-attached bright
+      feature is a ~100 px peak-255 patch at the takeoff kink; the 38° arm
+      downstream carries zero foam. Defect is #look-INDEPENDENT (same in
+      current/foam/full), so the #look call and the arm fix are separable.
+      Instrument checks: project↔unproject round-trip 0.000 m, look-at →
+      frame center exactly, three cold loads bit-identical. Curiosity: at
+      Second Peak the first bore band parallels the line's bump 30–60 px
+      shoreward — geometry survives one band back; at Sewers it doesn't.
+      Rig trap for future scripts: warm-page hash-only goto races the app's
+      needsReloadForHash reload — navigate via about:blank between configs.
+      NEXT: attach foam to the peel arm (Track 5) — diagnose which factor
+      (env2/brk off-takeoff, life.x aging, band width sub-pixel at altitude,
+      material path) kills the arm, then fix THAT, not brightness.
 - [x] 6c. RESOLVED 2026-08-13 late night — the "persists 4× authored" reading
       was INSTRUMENT SEMANTICS (spec "6c re-derived"). The Lagrangian tracker
       follows the bore, and what stays correlated in that frame is the
