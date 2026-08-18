@@ -790,6 +790,31 @@ void main() {
                       smoothstep(xz.y - 3.0, xz.y + 3.0, lifeC.y));
   float onStripe = exp(-pow((xz.y - zbC)/25.0, 2.0));
   foamM *= mix(1.0, 0.45 + 0.55*exp(-foamAge/9.0), onStripe*u_headRead);
+  // PER-STRIPE CARVE (#slife=1, default OFF — hero read open item (a)). The
+  // comet carve above exists because the foam threshold re-saturates dense
+  // masks to the same white; the INNER re-breaking stripes hit the identical
+  // wall, so they get the same post-threshold treatment, extended inward on
+  // the canonical per-stripe clock (stripeAgeAt in model-glsl — derivation,
+  // and the falsified model-side placement, at its definition). alongF/lagF
+  // is the exact decomposition of that age into the within-stripe
+  // along-crest ramp (e-fold T/3, the comet's period-relative family) and
+  // the whole-period stripe lag (e-fold 2.4*tau, the trail/lace foam-decay
+  // family). Confined to the inner field — the 25 m line band already
+  // belongs to the comet — and capped at 1.0: a carve dissolves tails, the
+  // head keeps full white, so the freshest stripe stays the subject. Each
+  // stripe's head is the alongF wrap seam, a step that travels at Vp: the
+  // traveling breakpoint, per stripe, pointing the same way as the comet
+  // because both ride the same phase field. Downstream shading over the
+  // canonical clock, never a new clock.
+  if (u_stripeLife > 0.5) {
+    float stripeAgeF = stripeAgeAt(xz, t);
+    float alongF = mod(stripeAgeF, u_T);
+    float lagF = stripeAgeF - alongF;
+    float stripeCarve = (0.45 + 0.55*exp(-alongF/max(0.33*u_T, 1.0)))
+                      * (0.55 + 0.45*exp(-lagF/max(2.4*u_tau, 1.0)));
+    float innerF = smoothstep(zbC + 12.0, zbC + 34.0, xz.y);
+    foamM *= mix(1.0, min(stripeCarve, 1.0), innerF);
+  }
   // Probe 1 changes only the material response. Probe 2 additionally spends
   // the contrast budget on one live head: the line-attached zipper and its
   // current bore stay bright while re-breaking stripes resolve as dim film.

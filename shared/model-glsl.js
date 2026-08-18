@@ -59,6 +59,7 @@ uniform float u_breakMix;   // 1 = emergent line, 0 = authored tan(alpha) line
 uniform float u_gapMask;    // 1 = honor baked section gaps, 0 = #gap=0 A/B revert
 uniform float u_headRead;   // 1 = comet-head whitewater aging, 0 = #head=0 A/B revert
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
+uniform float u_stripeLife; // 1 = per-stripe along-crest lifecycle clock (#slife=1), default 0
 uniform vec2 u_breakX;      // x range the texture spans
 uniform vec2 u_breakZ;      // decode window for z
 // Rider solved CPU-side against the same baked line and passed in: with an
@@ -644,6 +645,49 @@ vec4 breakerLifecycleAtX(float x, float t){
   float impact = activity*impactAge*(0.18 + 0.82*plunge)*sizeAmp;
   float bore = activity*boreAge*(0.72 + 0.28*(1.0 - plunge))*sizeAmp;
   return vec4(age, frontZ, impact, bore);
+}
+
+// ---------- the per-stripe lifecycle clock (#slife, hero read item (a)) ----
+// WHEN DID THIS COLUMN'S WAVE FIRST BREAK? The inner re-breaking stripes band
+// uniformly because every clock they run on is flat ALONG the stripe: tSince
+// is constant along a crest by construction (a foam band is a level set of
+// theta), and life.x anchors at the break line only — so 3-4 parallel bands
+// read as static texture with no along-crest freshness and no legible peel
+// direction (the 2026-08-14 hero read, criteria 1+2).
+// The honest along-crest clock: the crest now tSince behind this point
+// crossed the break line at this station phaseLag/w seconds before that,
+// phaseLag = rayPhase(here) - rayPhase(line) being the phase the wave
+// accumulated travelling line -> here. So
+//     stripeAge = tSince + phaseLag/w
+// reduces exactly to the zipper's clock AT the line (phaseLag = 0; tSince
+// equals life.x there — see cometFoam), and along any inner stripe (theta
+// constant) it equals thetaBreak(x)/w + const: a phase-lagged copy of the
+// zipper's along-crest ramp, slope 1/Vp per metre (Vp = c/sin alpha via
+// rayPhase), the lag being that stripe's re-break delay. Nothing new is
+// authored, and the gradient direction matches the break-line comet by
+// construction — same phase field, same handedness.
+// The exact decomposition stripeAge = mod(stripeAge, T) + kT separates the
+// within-stripe along-crest ramp (identically the line clock continued
+// inward) from the whole-period stripe lag (how many crests stand between
+// this water and the line); consumers read the two at different e-folds
+// because one lambda cannot serve a ~12 s along-frame ramp and a 15-45 s
+// stripe-age spread at once (measured 2026-08-18: a single unwrapped e-fold
+// left every visible stripe on its floor, along-crest gradient ~5%).
+// CANONICAL and CONSUMED IN THE FRAGMENT (GRID_FRAG per-stripe carve), not
+// multiplied into ocean()'s foam terms. That placement was BUILT AND
+// FALSIFIED (2026-08-18): a pre-threshold multiplication reaches the pixels
+// only through the fragment's soft-knee + erosion nonlinearity, so it
+// measured invisible at set-peak clocks (OFF-ON dimming 0.000-0.02 luma at
+// sim 48/54), and stacked with the fragment carve it double-crushed the
+// heads (sim-36 ON: no stripe brighter than lace). Same discipline as the
+// comet: the model owns the clock, the post-threshold carve owns the read.
+// All seconds; clamp + max() guards keep downstream exp() finite.
+float stripeAgeAt(vec2 xz, float t){
+  float w = 2.0*PI/u_T;
+  float zb = breakLine(xz.x);
+  float tSince = mod(w*t - rayPhase(xz), 2.0*PI)/w;
+  float phaseLag = max(rayPhase(xz) - rayPhase(vec2(xz.x, zb)), 0.0);
+  return clamp(tSince + phaseLag/max(w, 1e-4), 0.0, 240.0);
 }
 
 // Sharpened crest profile: q=1 sinusoid-ish, q>2 peaked (Gerstner cusp stand-in)

@@ -329,6 +329,21 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       `current` pending a live verdict. STILL OPEN: (a) the INNER re-breaking stripes have no along-crest clock —
       life.x anchors at the break line only — so they band uniformly and
       dominate wide frames; per-stripe lifecycle is the next mechanism.
+      MECHANISM LANDED 2026-08-18 behind `#slife=1` (default OFF pending the
+      live verdict): canonical clock `stripeAgeAt` in model-glsl
+      (tSince + phaseLag/ω = time since this column's wave broke at the line,
+      the phase-lagged copy of the zipper's along-crest age), read as a
+      post-threshold GRID_FRAG carve (comet discipline, extended inward) —
+      within-stripe freshness at T/3, stripe-to-stripe lag at 2.4τ. Verified
+      2026-08-18: the rendered carve field matches the derivation r=0.995
+      (twin instrument, scripts/measure_stripe_life.mjs); zeroing the carve
+      removes the inner stripes entirely, so it multiplies exactly the pixels
+      that band. Falsified along the way (recorded at stripeAgeAt and in the
+      instrument header): a single unwrapped e-fold (every stripe lands on
+      its floor), the model-side pre-threshold multiplication (invisible at
+      set-peak clocks, crushes heads stacked with the carve), and four
+      instrument variants (luma dilution, transect k-jumps, sawtooth vs
+      linear fit, glint compensation via the foam-damped ripple field).
       (b) RESOLVED 2026-08-18 — kelp dark-wedge polarity (`#kelp=0` reverts,
       Track 1b entry below): upper-half mottle std down 41%/21%, break-band
       contrast ratio up at both mapped drone states. (c) the 4a'

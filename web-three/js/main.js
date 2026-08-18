@@ -176,6 +176,9 @@ const uniforms = {
                                 // judged on a drifted OrbitControls camera; the clean-load rematch
                                 // (2026-08-14 night) went to #head=1. #head=0 stays the A/B revert.
   u_pockSize:   { value: 1 },   // pocket footprint ~ H_eff ON; #pock=0 is the A/B revert
+  u_stripeLife: { value: 0 },   // per-stripe along-crest lifecycle clock; #slife=1 arms it
+                                // (feature flag, OFF pending a live verdict — repo convention
+                                // for unverified visual mechanisms)
   u_breakMix:   { value: 0 },
   u_breakX:     { value: new THREE.Vector2(-300, 300) },
   u_breakZ:     { value: new THREE.Vector2(BREAK_Z_MIN, BREAK_Z_MAX) },
@@ -1568,6 +1571,10 @@ function applyHashParams() {
   if (h.get('head') === '0') uniforms.u_headRead.value = 0;
   // pocket-footprint size coupling defaults ON; #pock=0 is the pre-fix A/B
   if (h.get('pock') === '0') uniforms.u_pockSize.value = 0;
+  // per-stripe along-crest lifecycle clock (feature flag, default OFF pending
+  // live verdict); #slife=1 arms it — inner re-breaking stripes gain the
+  // phase-lagged copy of the zipper's along-crest age (model-glsl stripeMod)
+  if (h.get('slife') === '1') uniforms.u_stripeLife.value = 1;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 

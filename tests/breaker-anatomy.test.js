@@ -64,6 +64,37 @@ test('airborne whitewater is a separate deterministic render pass', () => {
   assert.match(shaders, /export const SPRAY_FRAG/);
 });
 
+test('per-stripe lifecycle clock is canonical, phase-lagged, and flag-gated', () => {
+  // Structural pins only (retunes must not fail the suite):
+  // 1. the canonical clock lives in the shared model (stripeAgeAt): tSince
+  //    plus the line->here travel phase — the phase-lagged copy of the
+  //    zipper's along-crest clock;
+  // 2. the READ is the fragment's post-threshold carve consuming that clock,
+  //    decomposed age = alongF + lagF: the within-stripe along-crest ramp on
+  //    a period-relative e-fold (a u_T multiple), the stripe lag on the foam
+  //    clock family (a u_tau multiple) — all in seconds, never frames — and
+  //    capped at 1.0 (a carve dissolves tails, never brightens);
+  // 3. ocean() must NOT multiply its foam terms by this clock — that
+  //    placement was built and falsified 2026-08-18 (see stripeAgeAt's
+  //    header): pre-threshold it is invisible at set-peak clocks and stacked
+  //    with the carve it crushes the heads;
+  // 4. gated behind u_stripeLife (#slife=1, default OFF in main.js).
+  assert.match(model, /uniform float u_stripeLife;/);
+  assert.match(model, /float stripeAgeAt\(vec2 xz, float t\)/);
+  assert.match(model, /rayPhase\(xz\) - rayPhase\(vec2\(xz\.x, zb\)\)/);
+  assert.match(model, /tSince \+ phaseLag\/max\(w, [\de.-]+\)/);
+  assert.doesNotMatch(model, /stripeMod/);
+  assert.match(shaders, /if \(u_stripeLife > 0\.5\)/);
+  assert.match(shaders, /float stripeAgeF = stripeAgeAt\(xz, t\)/);
+  assert.match(shaders, /float alongF = mod\(stripeAgeF, u_T\)/);
+  assert.match(shaders, /float lagF = stripeAgeF - alongF/);
+  assert.match(shaders, /exp\(-alongF\/max\([\d.]+\*u_T, [\d.]+\)\)/);
+  assert.match(shaders, /exp\(-lagF\/max\([\d.]+\*u_tau, [\d.]+\)\)/);
+  assert.match(shaders, /min\(stripeCarve, 1\.0\)/);
+  assert.match(main, /u_stripeLife: \{ value: 0 \}/);
+  assert.match(main, /h\.get\('slife'\) === '1'/);
+});
+
 test('First Peak crash head and wake reveal the physics-owned zipper', () => {
   const state = makeState();
   applyPreset(state, 'firstpeak');
