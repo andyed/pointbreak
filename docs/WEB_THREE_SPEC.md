@@ -645,7 +645,11 @@ water moved to Ψ; `surferState`/`m4RideSolve`, `sound.js`'s crest solve and
 still on the constant-φ plane wave. That is step 1's declared boundary, not a
 regression — and it is why the default stays off.
 
-**Open defect — the group speed has two authorities (recorded 2026-08-12).**
+**Open defect — the group speed has two authorities (recorded 2026-08-12;
+RETIRED 2026-08-13 by the unification in "M6 part 3, closed out" below, and
+VERIFIED by measurement 2026-08-18 — see the addendum under that section. The
+text below is kept as the record of the defect; `#cg=0` re-arms the retired
+constant for A/B).**
 The model carries two irreconcilable values of `cg` at once:
 
 - **The set envelope and setup**: `setEnv` (model-glsl.js, mirrored in
@@ -1551,6 +1555,39 @@ the interior-takeoff proxy flags 5 spots vs base's 4 — but base's own count
 moved 3 → 4 across the retarget+sheltering session, and the proxy cannot
 distinguish a real A-frame from a sheltering-shifted takeoff. That question
 belongs to the Track 5 visual pass, not to more proxy sweeps.
+
+**Addendum (2026-08-18) — the unification, verified in pixels (`#cg=0`).**
+The cadence audit's group-speed defect was measured hours BEFORE the same-day
+unification and had never been re-measured after it, which is why TODO 6a
+stayed open. `capture_temporal` now carries a set-envelope propagation
+estimator ([2b] in the cadence report): the carrier control's
+complex-demodulation phase fit pointed at dF instead of 1/T, on mean-removed
+cross-shore rows — at ~4 beat cycles per 518 s window the DC leakage into the
+dF bin is not negligible the way it is at the carrier, hence the demean.
+Probe proven live first (MEASUREMENT_LESSONS 2) via the new `#cg=0` flag,
+which re-arms the retired `0.5·LAM/T` across the GLSL (`groupSpeedM()`, one
+authority for `setEnv` + `setupLiftM`) and both JS twins (model-js `setEnv`,
+sound.js's voice envelope, carried by `modelP().cgLegacy`); the default is
+the arithmetic identity, so the shipped image is untouched. Sewers cadence
+rig, 260 frames × 2 matched runs:
+
+| | envelope, foam residual | envelope, luma | set cadence | carrier control |
+|---|---|---|---|---|
+| `#cg=0` (retired 3.00 m/s) | **2.91 m/s** (R² 1.00) → 363 m band | 2.48 m/s → 310 m | 121.7 s | 5.61 m/s |
+| default (physical 11.71 m/s) | **9.42 m/s** (R² 1.00) → 1177 m band | 6.27 m/s → 783 m | 122.2 s | 5.61 m/s |
+
+The retired constant is reproduced to 3% when re-armed — the estimator sees
+exactly the 375 m-class band the audit measured — and the shipped envelope
+runs 3.2× faster, toward gT/4π with a low bias the instrument itself
+declares: the carrier control reads 5.61 m/s against a true 6.00 (z-projection
+and band attenuation), and the 3.1–3.2 m/s foam advection mixes into the dF
+bin, dragging the fast case down proportionally more (measured ratio 3.2×
+against the predicted 3.9×). Set cadence sits at 121.7–122.4 s vs 125.0
+authored in BOTH runs — the beat period at a fixed point is cg-independent,
+exactly the coupling argument made at unification time, now measured rather
+than derived. Hero A/B at sim=42 (drone): `#cg=0` lands each station at a
+different envelope phase, so the same clock shows a different set state; the
+default frame is the production image, unchanged.
 
 ### Whitewater ∝ broken area (2026-08-13, night) — 4a′ landed, `#wwarea`
 

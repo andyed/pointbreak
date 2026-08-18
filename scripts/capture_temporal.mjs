@@ -1009,6 +1009,49 @@ function analyze(manifest) {
     deepWaterCelerity_LAMoverT_m_per_s: 90 / st.T,
   };
 
+  // ---- 2b. SET-ENVELOPE PROPAGATION (6a verification, added 2026-08-18) ----
+  // The same complex-demodulation estimator as the carrier control, pointed at
+  // the SET frequency dF instead of 1/T: per cross-shore row, the phase of the
+  // dF component of the foam residual (raw luma as a second witness), fitted
+  // against z. The slope is the envelope's shoreward propagation speed — the
+  // quantity the 2026-08-13 group-speed unification changed, and the one thing
+  // the fixed-point cadence above is blind to by construction (the beat period
+  // at a station is cg-independent). Like the carrier control it reads the
+  // z-component of an obliquely propagating front, so it OVERSTATES the true
+  // along-ray speed by the same 1/cos factor the carrier control shows against
+  // LAM/T; consistency with a candidate cg is judged by that ratio, not by
+  // equality. Each row's series is mean-removed first: the window holds only
+  // ~4 beat cycles, so DC leakage into the dF bin is not negligible the way it
+  // is at the carrier frequency.
+  {
+    const times = manifest.frames.map((f) => f.sim);
+    const demeanRows = (profiles) => {
+      const nr = profiles[0].length, means = new Float64Array(nr);
+      for (const p of profiles) for (let i = 0; i < nr; i++) means[i] += p[i] / profiles.length;
+      return profiles.map((p) => p.map((v, i) => v - means[i]));
+    };
+    // Raw-luma rows over the same water bins as profB (resid rows), NaN-guarded.
+    const profL = [];
+    for (let i = 0; i < N; i++) {
+      const p = new Array(rows.length).fill(0);
+      for (let ri = 0; ri < rows.length; ri++) {
+        const iz = rows[ri]; let s = 0, c = 0;
+        for (let ix = 0; ix < grid.nx; ix++) {
+          const b = iz * grid.nx + ix;
+          if (!isWater[b] || !Number.isFinite(lumaT[i][b])) continue;
+          s += lumaT[i][b]; c++;
+        }
+        p[ri] = c ? s / c : 0;
+      }
+      profL.push(p);
+    }
+    out.cadence.envelope = {
+      method: 'cross-shore phase fit of the dF component (mean-removed rows); z-projection of the group speed',
+      foamResidual: phaseSpeed(demeanRows(profB), times, zsRows, st.dF),
+      waterLuma: phaseSpeed(demeanRows(profL), times, zsRows, st.dF),
+    };
+  }
+
   const advMed = median(advLags);
   const shiftBins = Number.isFinite(advMed) ? Math.round((advMed * dt) / binM) : 0;
   const maxK = Math.min(12, N - 1);
@@ -1115,6 +1158,14 @@ function report(m) {
   L.push(`    set peak, mean luma:     ${c.setPeak_luma_s ? f2(c.setPeak_luma_s.period_s, 1) + ' s (r=' + f2(c.setPeak_luma_s.r) + ')' : 'none found'}`);
   L.push(`    group speed SHIPPED gT/4pi = ${f2(c.groupSpeed_shipped_gTover4pi_m_per_s)} m/s -> set band ${f2(c.setBandLength_shipped_m, 0)} m`);
   L.push(`    (retired LAM/2T = ${f2(c.groupSpeed_retired_LAMover2T_m_per_s)} m/s -> ${f2(c.setBandLength_retired_m, 0)} m, ${f2(c.groupSpeed_shipped_gTover4pi_m_per_s / c.groupSpeed_retired_LAMover2T_m_per_s)}x short — unified 2026-08-13)`);
+  if (c.envelope) {
+    const ep = (label, e) => e
+      ? `    envelope phase speed (${label}): ${f2(e.speed_m_per_s)} m/s (R2 ${f2(e.r2)}, ${e.columnsUsed} rows over ${f2(e.span_m, 0)} m, ${f2(e.phaseRun_cycles, 3)} beat cycles) -> band ${f2(e.speed_m_per_s / c.authored_dF_Hz, 0)} m`
+      : `    envelope phase speed (${label}): n/a`;
+    L.push(`    [2b] set-envelope propagation, dF component cross-shore (z-projection; compare via the carrier control's own z/ray ratio):`);
+    L.push(ep('foam residual', c.envelope.foamResidual));
+    L.push(ep('water luma', c.envelope.waterLuma));
+  }
   const fo = m.foam;
   L.push(`\n[3] FOAM ADVECTION / PERSISTENCE`);
   L.push(`    shoreward advection ${f2(fo.advection_m_per_s.median)} m/s (IQR ${f2(fo.advection_m_per_s.p25)}..${f2(fo.advection_m_per_s.p75)}, ${fo.advection_m_per_s.pairsAccepted} pairs); shader front speed ${f2(fo.shaderFrontSpeed_m_per_s)} m/s`);

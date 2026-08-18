@@ -27,8 +27,12 @@ kept in full as the record; blockers are marked here.
       2026-08-13 retarget may have hit the wrong constraint (MODEL.md §2.6.2a).
 - [ ] 4b wind/sky as data · 4c decide the live clamps (Hs 3.0 m / Tp 18 s) ·
       4d season+conditions panel — 4d gated on 3c, hence on B_spot.
-- [ ] 6a group speed 3.9× too slow (set band 375 m vs 1464 m physical) — the
-      fix is M6 parts 1+3, not a local patch.
+- [x] 6a CLOSED 2026-08-18 — the fix was already M6p3's 2026-08-13 cg
+      unification (69fd820); what the item still owed was measurement. New
+      set-envelope estimator in capture_temporal ([2b]) + `#cg=0` A/B: the
+      retired constant measures 2.91 m/s (363 m band — the audit's defect,
+      reproduced), the shipped default 9.42 m/s toward gT/4π = 11.71; set
+      cadence 121.7–122.4 s unmoved in both runs. Details in Track 6 6a.
 
 **Validation (largest gap)**
 - [ ] USGS shore-camera peel-angle derivation (OFR 2007-1270 stills) — the
@@ -525,11 +529,31 @@ No parity port. Consequences to carry honestly:
       first (`--verify-clock`, mean |ΔLuma| 0.000). **Set cadence VERIFIED:
       120.5 s foam-residual / 120.8 s mean-luma vs 125.0 s authored, two
       estimators agreeing to 0.3 s.** Three defects surfaced, below.
-- [ ] 6a. GROUP SPEED 3.9× WRONG (measured): authored LAM/2T = 3.00 m/s vs
-      physical gT/4π = 11.71 m/s; set band 375 m where it should be 1464 m.
-      Control confirms it — measured carrier phase speed 6.18–6.64 m/s matches
-      LAM/T = 6.00, not √(g·h_b) = 5.26. **This is M6 parts 1+3**, now with a
-      temporal argument on top of the steepness one. Fix there, not here.
+- [x] 6a. GROUP SPEED — CLOSED 2026-08-18, VERIFIED BY MEASUREMENT. The
+      original reading: authored LAM/2T = 3.00 m/s vs physical gT/4π =
+      11.71 m/s; set band 375 m where it should be 1464 m (carrier control
+      6.18–6.64 m/s matched LAM/T = 6.00). The FIX was already M6p3's
+      2026-08-13 cg unification (69fd820, same day as the audit): setEnv
+      (GLSL + JS twin), setupLiftM and the audio envelope all run gT/4π, and
+      a grep audit (2026-08-18) finds NOTHING still carrying LAM/2T. What this
+      item still owed was measurement — the 375 m band was measured BEFORE the
+      same-day fix and never re-measured after. Done: capture_temporal gained
+      a set-envelope propagation estimator ([2b] in the cadence report — the
+      carrier control's phase fit pointed at dF, mean-removed rows), probe
+      proven live per MEASUREMENT_LESSONS 2 through the new `#cg=0` A/B flag
+      (re-arms the retired constant across GLSL + both JS twins; CONTROLS.md).
+      Sewers cadence rig, 260 frames × 2 runs: under #cg=0 the envelope
+      measures 2.91 m/s foam-residual / 2.48 m/s luma (R² 1.00) — the retired
+      3.00 m/s to 3%, band 363/310 m, the audit's defect reproduced; at the
+      shipped default the same rows read 9.42 / 6.27 m/s (R² 1.00/0.99) —
+      3.2× faster, toward gT/4π = 11.71 with a declared low bias (the carrier
+      control itself reads 5.61 vs 6.00 true; 3.1–3.2 m/s foam advection
+      mixes into the dF bin). Set cadence 121.7–122.4 s in BOTH runs vs
+      125.0 authored — the beat period at a fixed point is cg-independent,
+      exactly as the unification note argued, so the fix moved the band
+      without touching the verified cadence. M6 part 1 (S-form cusp) was
+      already landed/corrected 2026-08-11; nothing of M6 parts 1+3 remains
+      open. Spec: "M6 part 3, closed out" addendum.
 - [x] 6b. RESOLVED 2026-08-18 — the discriminator ran
       (`scripts/measure_peel_visibility.mjs`, hero state sewers/drone/sim=42):
       **(a) is the root cause, (b) its downstream symptom, (c) refuted.** Over
@@ -568,9 +592,10 @@ No parity port. Consequences to carry honestly:
 - [ ] Temporal audit harness: N-frame captures → zipper speed vs Vp=c/sin α,
       set cadence (is the 3.4× group-speed error visible?), foam advection.
       The audit's biggest blind spot: every visual claim was one frozen frame.
-      The 3.4× is now RECORDED as an open defect with the numbers in the
+      The 3.4× was RECORDED as an open defect with the numbers in the
       spec's M6 section (setEnv/setupLiftM 0.5·LAM/T ≈ 3.2 m/s vs shoaling
-      gT/4π ≈ 10.9 m/s at T=14) — fix gated on M6p3 steps 2–4.
+      gT/4π ≈ 10.9 m/s at T=14) — fixed by the 2026-08-13 unification and
+      verified in pixels 2026-08-18 (see 6a above).
 - [x] Swash standing check landed (c538dcf, scripts/check_swash.mjs): goo +
       breathe measured across a FULL set cycle, not one frame. Perf landed
       with it: quality tiers with auto-fallback — vertex-bound, not

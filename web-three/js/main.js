@@ -190,6 +190,7 @@ const uniforms = {
   // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
   u_matte:      { value: 1 },
   u_wwArea:     { value: 1 },  // 4a' whitewater-area coupling; #wwarea=0 is the pre-fix A/B
+  u_cgLegacy:   { value: 0 },  // 6a group-speed A/B; #cg=0 re-arms the retired 0.5*LAM/T envelope speed
   u_crestRead:  { value: 1 },  // Track 5 crest-first read (face darkening + fresh core); #crest=0 reverts
   u_kelpDark:   { value: 1 },  // kelp wedge dark over the reef (NAIP polarity); #kelp=0 reverts
   // Field-video fidelity probe: 0 shipped/current, 1 foam material only,
@@ -349,6 +350,8 @@ function modelP() {
     // rayPhase() fall back to the frozen-LAM plane wave — the branch the twin
     // has always run. Set once per frame by the refraction bake below.
     phaseFn: psiPhaseFn,
+    // 6a group-speed A/B (#cg=0): keeps the twins on the shader's envelope.
+    cgLegacy: uniforms.u_cgLegacy.value > 0.5,
   };
 }
 
@@ -1441,6 +1444,11 @@ function applyHashParams() {
   if (h.get('matte') === '0') uniforms.u_matte.value = 0;
   // 4a' whitewater-area coupling defaults ON; #wwarea=0 is the pre-fix A/B
   if (h.get('wwarea') === '0') uniforms.u_wwArea.value = 0;
+  // 6a group-speed A/B: the physical envelope cg = gT/4pi is the default
+  // (unified 2026-08-13); #cg=0 re-arms the retired 0.5*LAM/T so the set-band
+  // consequence stays measurable in one build. modelP() carries it to the JS
+  // twins (model-js setEnv, sound.js voice envelope) so rider/audio follow.
+  if (h.get('cg') === '0') uniforms.u_cgLegacy.value = 1;
   // Track 5 crest-first read defaults ON; #crest=0 is the pre-Track-5 A/B
   if (h.get('crest') === '0') uniforms.u_crestRead.value = 0;
   // kelp dark-wedge polarity (Track 1b) defaults ON; #kelp=0 is the pre-fix

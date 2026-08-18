@@ -135,7 +135,9 @@ export function reefWindow(x, P) {
 }
 
 function setEnv(s, t, P) {
-  const cg = G * P.T / (4 * PI);   // physical deep-water cg — see GLSL setEnv
+  // Physical deep-water cg — see GLSL setEnv/groupSpeedM. P.cgLegacy (#cg=0)
+  // re-arms the retired 0.5*LAM/T for the 6a A/B, mirroring u_cgLegacy.
+  const cg = P.cgLegacy ? 0.5 * LAM / P.T : G * P.T / (4 * PI);
   return 0.5 + 0.5 * Math.cos(2 * PI * P.dF * (t - s / cg));
 }
 

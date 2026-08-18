@@ -26,6 +26,7 @@ uniform float u_aframe;   // 0 point break, 1 A-frame (abs fold); no site sets 1
 uniform float u_surfer;   // 0 off, 1 riding
 uniform float u_breakShape;// 1 = structural breaker anatomy, 0 = legacy ridge A/B
 uniform float u_wwArea;   // 4a' whitewater-area coupling: 1 on (default), 0 = pre-fix A/B
+uniform float u_cgLegacy; // 6a A/B: 0 physical cg = gT/4pi (default), 1 = retired 0.5*LAM/T (#cg=0)
 uniform float u_geoMix;   // 1 = OSM/NCEI stage profile, 0 = synthetic fallback
 uniform vec2 u_contourFit;// NCEI equal-elevation contour: x2*x^2 + x3*x^3
 uniform vec2 u_stageBounds;// OSM canon-neighbor midpoints in local stage metres
@@ -509,8 +510,13 @@ float rayPhase(vec2 xz){
 // 1464 m), so sets crossed the stage at a crawl. The beat period 1/dF at a
 // fixed point is cg-independent — the VERIFIED 120.5 s cadence does not move.
 // JS twins: setEnv in model-js.js, the voice envelope in sound.js.
+// #cg=0 re-arms the retired constant for A/B measurement (u_cgLegacy = 1).
+float groupSpeedM(){
+  return mix(G*u_T/(4.0*PI), 0.5*LAM/u_T, u_cgLegacy);
+}
+
 float setEnv(float s, float t){
-  float cg = G*u_T/(4.0*PI);
+  float cg = groupSpeedM();
   return 0.5 + 0.5*cos(2.0*PI*u_dF*(t - s/cg));
 }
 
@@ -550,7 +556,7 @@ float setEnv(float s, float t){
 float setupPeakM(){ return 0.3*u_H0*u_depthMix; }
 
 float setupLiftM(vec2 xz, float t){
-  float cg = G*u_T/(4.0*PI);                       // group speed, as in setEnv
+  float cg = groupSpeedM();                        // group speed, as in setEnv
   float ph = 2.0*PI*u_dF*(t - rayS(xz)/cg);        // set-envelope phase at this station
   // Lag in set-cycle radians: base ~0.9 rad (~24 s of a 167 s cycle) keeps the
   // water level trailing the set that raised it; the +0.8*sin(ph) swing holds

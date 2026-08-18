@@ -210,7 +210,7 @@ export function updateAudio(camera, t, P, camUnder = false) {
     // cg = gT/4pi, same as setEnv() in the shared model (2026-08-13
     // unification). rayS(camX, zCrest) equals the legacy sCrest identically in
     // the plane-wave branch, and stays the envelope's metric label under Psi.
-    const cg = G * P.T / (4 * Math.PI);
+    const cg = P.cgLegacy ? 0.5 * LAM / P.T : G * P.T / (4 * Math.PI);   // #cg=0 = 6a A/B
     const sMetric = rayS(camX, zCrest, P);
     const env = 0.5 + 0.5 * Math.cos(2 * Math.PI * P.dF * (t - sMetric / cg));
 
