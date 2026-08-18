@@ -9,12 +9,14 @@ kept in full as the record; blockers are marked here.
 - [ ] Hero read FAILED 2026-08-14, partially recovered since (#head comet
       gradient, #pock pocket scaling; `#look=current|foam|full` fidelity probe
       2026-08-15). Default stays `current` pending a live verdict. Open
-      mechanisms: per-stripe lifecycle clock for the inner re-breaking stripes,
-      the kelp-mottle contrast budget, the 4a' tide-area re-measure.
+      mechanisms: per-stripe lifecycle clock for the inner re-breaking stripes
+      and the 4a' tide-area re-measure (kelp-mottle contrast budget resolved
+      2026-08-18 — see Track 1b kelp entry).
 - [ ] Track 1b scene identity — map view spec'd (`docs/MAP_VIEW_SPEC.md`), not
       built; publication blocked on characterising the DEM terrace/track-line
-      artifacts. Also open: the ~110° headland corner, kelp-wedge value
-      polarity, crowd scatter, cliff-path land-scale cues, the bake-seam hunt.
+      artifacts. Also open: the ~110° headland corner, crowd scatter,
+      cliff-path land-scale cues, the bake-seam hunt (kelp-wedge value
+      polarity landed 2026-08-18, `#kelp=0` reverts).
 - [ ] Break-line V at Sharks, layer 3 of 3: bridge the baked z across section
       gaps for the RENDER anchor only (instruments keep the honest V).
 
@@ -323,7 +325,9 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       `current` pending a live verdict. STILL OPEN: (a) the INNER re-breaking stripes have no along-crest clock —
       life.x anchors at the break line only — so they band uniformly and
       dominate wide frames; per-stripe lifecycle is the next mechanism.
-      (b) kelp mottle still owns the upper-half contrast budget. (c) the 4a'
+      (b) RESOLVED 2026-08-18 — kelp dark-wedge polarity (`#kelp=0` reverts,
+      Track 1b entry below): upper-half mottle std down 41%/21%, break-band
+      contrast ratio up at both mapped drone states. (c) the 4a'
       tide-area ratio (1.95x/2.17x) needs a capture_temporal re-measure
       under the deeper aftermath aging before the next conditions claim.
 - **DECIDED 2026-08-11 (Andy): Sewer Peak's A-frame is canon-true** — the
@@ -360,8 +364,15 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       the fence human-scaled and sparse enough to establish wave/cliff scale
       without becoming the focal subject. Verify from the Cliff camera against
       the 2026-08-15 field stills before adding more generic terrain detail.
-- [ ] Kelp wedge: DARK, tracking the reef (sim currently paints the reef
-      tongue bright — value polarity inverted vs the NAIP ortho)
+- [x] Kelp wedge: DARK, tracking the reef — LANDED 2026-08-18 (`#kelp=0`
+      reverts). The 2026-08-11 fix darkened the CLUMPS but at ~half coverage
+      the sand-lane return still made the tongue read bright; now the canopy
+      saturates over the depth band (clump thresholds 0.24/0.64 → 0.08/0.44)
+      and the lanes take a mudstone bed albedo on the same gates/ramps.
+      Measured at drone/sim=42: upper-half luma std 11.4→6.7 (sewers) /
+      16.4→13.0 (secondpeak); break-band/upper-half ratio 1.97→2.20 / 1.88→2.11
+      — the break line is now the brightest structure, releasing the
+      upper-frame contrast the 2026-08-14 hero read said the mottle owned.
 - [ ] Crowd scatter (sitting riders bobbing; near-free realism + rider scale
       calibration per VISUAL_GROUND_TRUTH) and cliff riprap/swash/houses
 - [ ] Hunt the vertical bake seam + fixed light wedge (cause unidentified;

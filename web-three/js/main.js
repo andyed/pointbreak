@@ -191,6 +191,7 @@ const uniforms = {
   u_matte:      { value: 1 },
   u_wwArea:     { value: 1 },  // 4a' whitewater-area coupling; #wwarea=0 is the pre-fix A/B
   u_crestRead:  { value: 1 },  // Track 5 crest-first read (face darkening + fresh core); #crest=0 reverts
+  u_kelpDark:   { value: 1 },  // kelp wedge dark over the reef (NAIP polarity); #kelp=0 reverts
   // Field-video fidelity probe: 0 shipped/current, 1 foam material only,
   // 2 foam + per-wave hierarchy + tightened face/lip. #look= names the A/B.
   u_fidelityLook: { value: 0 },
@@ -1442,6 +1443,9 @@ function applyHashParams() {
   if (h.get('wwarea') === '0') uniforms.u_wwArea.value = 0;
   // Track 5 crest-first read defaults ON; #crest=0 is the pre-Track-5 A/B
   if (h.get('crest') === '0') uniforms.u_crestRead.value = 0;
+  // kelp dark-wedge polarity (Track 1b) defaults ON; #kelp=0 is the pre-fix
+  // A/B (bright sand lanes over the reef tongue)
+  if (h.get('kelp') === '0') uniforms.u_kelpDark.value = 0;
   uniforms.u_fidelityLook.value = parseFidelityLook(h.get('look'));
   // world-collision clamp defaults ON; #noclip=1 restores x-ray debugging
   if (h.get('noclip') === '1') noclipEnabled = true;

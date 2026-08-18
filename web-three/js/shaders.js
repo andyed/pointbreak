@@ -126,9 +126,41 @@ vec2 detailGrad(vec2 p, float t){
 // not put a high-contrast boundary on a quantity whose ramp is narrower than
 // the error in the field under it.
 //
+// DENSITY (kelp polarity, part 2 — 2026-08-18, #kelp=0 reverts). The 2026-08-11
+// fix above got the CLUMP colour right and the WEDGE wrong: at ~half coverage
+// the un-kelped lanes between clumps still show the bright sand return, so the
+// tongue reads as bright teal with dark holes — net polarity still inverted vs
+// the ortho, and the 2026-08-14 hero read measured the cost (the upper-half
+// mottle owns the contrast budget while the break line is the least
+// differentiated stripe). The ortho wedge is near-continuous canopy with thin
+// open lanes, not clumps in bright lanes, so behind u_kelpDark the clump
+// thresholds drop (0.24->0.08, 0.64->0.44): the same three-octave field now
+// saturates over most of the band and the lanes shrink to channels. The band
+// gates and their 2.2-3.5 m ramps are untouched — the blocky-edge falsification
+// below was about ramp width vs DEM residual, and this changes neither.
+// Coupled lane fix (mudstone bed albedo) lives at the bedAlb code in GRID_FRAG.
+//
+// MEASURED (clock-pinned drone captures, sim=42, 1000x750, #kelp=0 vs default):
+// upper-half luma std (the mottle) 11.4->6.7 at sewers, 16.4->13.0 at
+// secondpeak; break-band / upper-half luma ratio 1.97->2.20 (sewers) and
+// 1.88->2.11 (secondpeak) — the break line is the brightest structure in both
+// frames now. The #kelp=0 revert reproduced the shipped frame to 4 px at
+// +-1 LSB (rasterization noise); secondpeak bit-identical.
+//
 // Anchored, so the noise is static in world space: holdfasts do not advect.
 // Requires MODEL_GLSL spliced first (vnoise2, waterDepthM, u_depthMix).
 const KELP_GLSL = `
+uniform float u_kelpDark;   // 1 = dark-wedge polarity (default); #kelp=0 reverts
+
+// The reef-band gate WITHOUT the clump noise: where the mudstone platform is,
+// canopy and lane alike. Same gates and ramps as kelpMask so it introduces no
+// new boundary (the blocky-edge lesson). Used by GRID_FRAG's bed albedo.
+float kelpBandMask(float depthM){
+  float scour = smoothstep(1.2, 3.4, depthM);
+  float outer = 1.0 - smoothstep(5.0, 8.5, depthM);
+  return scour * outer;
+}
+
 float kelpMask(vec2 xz, float depthM){
   // depthM is 99 where a preset has no bathymetry behind it, so the outer gate
   // alone switches the whole canopy off there; u_depthMix is belt-and-braces
@@ -152,7 +184,10 @@ float kelpMask(vec2 xz, float depthM){
           + vnoise2(xz*0.190 + vec2(21.7,  5.3))*0.14;
   // NOTE: not named "patch" — that is a reserved word in GLSL ES 3.0
   // (tessellation), and three.js's WebGL2 prefix makes this file ES 3.0.
-  float clump = smoothstep(0.24, 0.64, p);
+  // Thresholds mix on u_kelpDark: shipped 0.24/0.64 (~half coverage), dark
+  // wedge 0.08/0.44 (canopy saturates, lanes become channels) — see header.
+  float clump = smoothstep(mix(0.24, 0.08, u_kelpDark),
+                           mix(0.64, 0.44, u_kelpDark), p);
   float k = scour * outer * clump * clamp(u_depthMix, 0.0, 1.0);
   if (!(k == k)) k = 0.0;   // NaN guard (house rule)
   return clamp(k, 0.0, 1.0);
@@ -863,7 +898,17 @@ void main() {
   // face travels a longer diagonal path through more water — stretch the
   // Beer-Lambert path with steepness and the sand return dies on the face.
   float pathM = max(vDepth, 0.0) * 2.0 * (1.0 + mix(2.5, 3.2, fullLook)*steepF);   // down and back up
-  vec3 bedAlb = mix(vec3(0.60, 0.53, 0.41), vec3(0.035, 0.062, 0.048), kelp);
+  // KELP polarity, part 2 (2026-08-18, #kelp=0 reverts; density half at
+  // KELP_GLSL): the LANES between canopy clumps sit over the same mudstone
+  // platform the kelp roots in, not over open beach sand — the Purisima
+  // shelf here is dark rock under algal turf. Painting them with the beach's
+  // sand albedo is what kept the tongue bright between clumps (ortho lanes
+  // measure ~open-water value, not sandy-teal). Gated on the SAME depth band
+  // and ramps as the canopy (kelpBandMask), so no new boundary is introduced
+  // and the sub-1.2 m swash keeps its genuine sand return.
+  float reefBand = kelpBandMask(vDepth) * clamp(u_depthMix, 0.0, 1.0) * u_kelpDark;
+  vec3 laneAlb = mix(vec3(0.60, 0.53, 0.41), vec3(0.20, 0.185, 0.14), reefBand);
+  vec3 bedAlb = mix(laneAlb, vec3(0.035, 0.062, 0.048), kelp);
   vec3 bottomLit = bedAlb * (0.35 + 0.45*clamp(dot(Ng, sunDir), 0.0, 1.0));
   vec3 through = bottomLit * exp(-kExt * pathM);
   base = mix(base, base + through, u_depthMix * (1.0 - 0.85*foamM));
