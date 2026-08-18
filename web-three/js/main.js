@@ -16,7 +16,7 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
-         oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
+         rayS, oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, breakGapAt, BREAK_Z_MIN, BREAK_Z_MAX,
@@ -190,6 +190,14 @@ const uniforms = {
   u_refrZ:      { value: new THREE.Vector2(REFR_ZC_MIN, REFR_ZC_MAX) },
   u_refrPsi:    { value: new THREE.Vector2(0, 1) },
   u_refrKappa:  { value: 0 },
+  // Set-envelope anchor (2026-08-18): u_setRef = stage-median rayS of the
+  // live break line (recomputed each frame below); u_setAnchor gates the
+  // whole re-reference — #arm=0 is the A/B revert to the legacy phase, under
+  // which the house capture clocks (sim 36-54) sample a set lull at the line
+  // (the 6b arm diagnosis; see model-glsl.js u_setRef header).
+  u_setRef:     { value: 0 },
+  u_setAnchor:  { value: 1 },
+  u_armRead:    { value: 1 },   // comet tail in metres behind the head; #arm bisects
   // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
   u_matte:      { value: 1 },
   u_wwArea:     { value: 1 },  // 4a' whitewater-area coupling; #wwarea=0 is the pre-fix A/B
@@ -355,6 +363,10 @@ function modelP() {
     phaseFn: psiPhaseFn,
     // 6a group-speed A/B (#cg=0): keeps the twins on the shader's envelope.
     cgLegacy: uniforms.u_cgLegacy.value > 0.5,
+    // Set-envelope anchor: the uniforms are the one source (updated in the
+    // frame sync below), so twin heights and GPU foam agree about when the
+    // set is on the line. See model-js setEnv.
+    setRef: uniforms.u_setRef.value, setAnchor: uniforms.u_setAnchor.value,
   };
 }
 
@@ -1314,6 +1326,29 @@ function frame(now) {
   } else {
     m4Ride = null;
   }
+  // ---- set-envelope anchor: where the LIVE line sits in ray coordinate ----
+  // Stage-median rayS along the shipped break line. The baked emergent line
+  // sits 74-247 m seaward of the authored contour (Sewers), and the group
+  // envelope's legacy reference was the contour (s = 0) — so after the 6a cg
+  // fix the house capture clocks sampled a set NULL at the line (probe
+  // measurement in the model-glsl u_setRef header). Median over the stage,
+  // not the full bake: the flat flanks would dominate a bake-wide summary
+  // (MEASUREMENT_LESSONS 8c). ~35 closed-form evaluations per frame —
+  // cheaper than the rider solve that precedes it. Authored fallback keeps
+  // ref = 0 (its line IS the contour, where rayS ~ 0 already).
+  if (baked) {
+    const refP = modelP();
+    const rLo = (state.stageStart ?? -110) + 10, rHi = (state.stageEnd ?? 290) - 10;
+    const ss = [];
+    for (let x = rLo; x <= rHi; x += 8) {
+      const sRay = rayS(x, breakZAt(x, baked.x0, baked.x1), refP);
+      if (Number.isFinite(sRay)) ss.push(sRay);
+    }
+    ss.sort((a, b) => a - b);
+    uniforms.u_setRef.value = ss.length ? ss[Math.floor(ss.length / 2)] : 0;
+  } else {
+    uniforms.u_setRef.value = 0;
+  }
   // Underwater is a camera state, not a fragment test: sample the JS twin's
   // surface height under the eye. gl_FrontFacing would conflate "below the
   // water" with "under M2's folded lip", which is a different thing entirely.
@@ -1575,6 +1610,13 @@ function applyHashParams() {
   // live verdict); #slife=1 arms it — inner re-breaking stripes gain the
   // phase-lagged copy of the zipper's along-crest age (model-glsl stripeMod)
   if (h.get('slife') === '1') uniforms.u_stripeLife.value = 1;
+  // The #arm pair defaults ON (the peel arm lights at the house capture
+  // clocks): set-envelope anchor + metric comet tail. `arm=0` reverts both;
+  // `arm=anchor` / `arm=tail` keep only the named half, for bisection.
+  const armV = h.get('arm');
+  if (armV === '0') { uniforms.u_setAnchor.value = 0; uniforms.u_armRead.value = 0; }
+  else if (armV === 'anchor') uniforms.u_armRead.value = 0;
+  else if (armV === 'tail') uniforms.u_setAnchor.value = 0;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 

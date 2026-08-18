@@ -598,9 +598,39 @@ No parity port. Consequences to carry honestly:
       shoreward — geometry survives one band back; at Sewers it doesn't.
       Rig trap for future scripts: warm-page hash-only goto races the app's
       needsReloadForHash reload — navigate via about:blank between configs.
-      NEXT: attach foam to the peel arm (Track 5) — diagnose which factor
-      (env2/brk off-takeoff, life.x aging, band width sub-pixel at altitude,
-      material path) kills the arm, then fix THAT, not brightness.
+      DIAGNOSED AND FIXED 2026-08-18 (`#arm`, default ON). The peel-visibility
+      instrument (scripts/measure_peel_visibility.mjs) settled the split as
+      (a)+(b): at the hero state the line's stage-median luma was the frame's
+      19th percentile with every bright cluster 115–390 m shoreward. The
+      per-term probe (scripts/probe_arm_terms.mjs, a live-uniform JS mirror of
+      the GLSL foam path) then found the kill factors, in order:
+      (1) SET-PHASE STRANDING — the group envelope's spatial reference was the
+      pre-M4 authored contour (s = 0); the emergent line sits 74–247 m seaward
+      (s = −74..−247 at Sewers), and the 6a cg unification (3.00→11.71 m/s,
+      2026-08-13) stretched the band pattern 3.9×, so the house clocks
+      (sim 36–54) sampled a set NULL at the line: env 0.00–0.24, every
+      env²-gated line term ≤ 0.055 — while the env¹-keyed swash residue kept
+      the shoreward bands bright. Fix: setPhase() anchors the envelope to the
+      LIVE line (u_setRef = stage-median rayS of the bake) with a set cresting
+      there at t = SET_ANCHOR_S = 45 s. Cadence 1/Δf untouched.
+      (2) TEMPORAL COMET TAIL — the head's along-line speed varies ~13×
+      (43 m/s flank vs 3–8 m/s on the visible 40–70° arm), so the 2.5 s model
+      tail and 9 s fragment carve collapsed to 8–20 m exactly where the drone
+      looks. Fix: age converts to metres behind the head (age·ω/|dS/dx|),
+      decayed on 55 m (model) / 110 m (carve) e-folds; α→0 still closes out.
+      (3) ATTACHMENT WEIGHT — brk's −6..14 m inside ramp is 0.216 AT the line;
+      the comet now carries its own ramp (full weight at the line, same
+      reef/mask/depth permission via brkW).
+      Measured (pinned drone, corridor max over z ∈ [z_b−6, z_b+16], stage):
+      arm subset x ∈ [12,66] band-median pct 0.17–0.19 → 0.35–0.90, band max
+      65.9–66.8 → 212–239, stations ≥180: 0 → 4–18 at every house sim;
+      Second Peak's top cluster moved from +156 m shoreward to dz = −4.3 m
+      (on the line). `#arm=0` reproduces the legacy image bit-exact
+      (sim42 median 58.7/pct 0.21 = the 6b baseline); `#arm=anchor|tail`
+      bisect. Known pre-existing exposure: the fold-underside facets appear
+      at the tall V-bottom head whenever a set crosses it — same artifact at
+      legacy sim=110 with #arm=0, so it is the documented #look=full fold
+      class, not an #arm regression.
 - [x] 6c. RESOLVED 2026-08-13 late night — the "persists 4× authored" reading
       was INSTRUMENT SEMANTICS (spec "6c re-derived"). The Lagrangian tracker
       follows the bore, and what stays correlated in that frame is the

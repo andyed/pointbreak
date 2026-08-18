@@ -18,8 +18,7 @@
 //      A limiter now sits before output.
 //   5. the underwater test was `camera.y < 1.0`. main.js already computes the
 //      real thing against the JS twin of the surface; it is passed in.
-import { breakLine, reefWindow, coastCurve, rayS, rayPhase, swellPhi, LAM } from './model-js.js';
-import { G } from './dispersion.js';
+import { breakLine, reefWindow, coastCurve, rayS, rayPhase, swellPhi, setEnv, LAM } from './model-js.js';
 
 const VOICE_COUNT = 4;
 const BUFFER_SECONDS = 6;      // long enough that the loop is not audible
@@ -206,13 +205,14 @@ export function updateAudio(camera, t, P, camUnder = false) {
     const zb = breakLine(xZip, P);
     const brk = reefWindow(xZip, P) * smoothstep(-6, 14, zCrest - zb);
 
-    // group envelope rides the metric RAY coordinate at the physical deep-water
-    // cg = gT/4pi, same as setEnv() in the shared model (2026-08-13
-    // unification). rayS(camX, zCrest) equals the legacy sCrest identically in
-    // the plane-wave branch, and stays the envelope's metric label under Psi.
-    const cg = P.cgLegacy ? 0.5 * LAM / P.T : G * P.T / (4 * Math.PI);   // #cg=0 = 6a A/B
+    // group envelope rides the metric RAY coordinate through the ONE shared
+    // setEnv twin (2026-08-13 cg unification; 2026-08-18 set-phase anchor —
+    // the voice must swell when the drawn set does, so the anchor cannot be
+    // re-derived here). rayS(camX, zCrest) equals the legacy sCrest
+    // identically in the plane-wave branch, and stays the envelope's metric
+    // label under Psi.
     const sMetric = rayS(camX, zCrest, P);
-    const env = 0.5 + 0.5 * Math.cos(2 * Math.PI * P.dF * (t - sMetric / cg));
+    const env = setEnv(sMetric, t, P);
 
     // full 3-D distance: the along-shore term was missing, which made a crest
     // hundreds of metres up the point as loud as one directly in front

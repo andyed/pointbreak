@@ -46,7 +46,11 @@ if (!chromium) {
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter((a) => a.startsWith('--'))
-  .map((a) => a.replace(/^--/, '').split('=')));
+  .map((a) => {
+    const s = a.replace(/^--/, '');
+    const eq = s.indexOf('=');   // first '=' only: --extra=arm=0 keeps its value
+    return eq < 0 ? [s, undefined] : [s.slice(0, eq), s.slice(eq + 1)];
+  }));
 const OUT = resolve(args.filter((a) => !a.startsWith('--'))[0] || '/tmp/pointbreak-6b');
 const BASE = flags.base || 'http://localhost:8201/web-three/';
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
@@ -56,11 +60,20 @@ if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
 // controls=0 keeps UI luma out of the histogram, q=high pins the quality tier.
 const VIEW = { width: 1000, height: 750 };
 const COMMON = 'cam=drone&controls=0&q=high&speed=0';
-const CONFIGS = [
-  { name: 'sewers_sim42', preset: 'sewers', sim: 42 },
-  { name: 'sewers_sim48', preset: 'sewers', sim: 48 },
-  { name: 'secondpeak_sim42', preset: 'secondpeak', sim: 42 },
-];
+// --sims=36,42,48,54 --preset=sewers --extra=arm=0 --nopack: the arm-anchor
+// OFF/ON acceptance matrix (Track 5 / 6b follow-up) reuses this instrument
+// unchanged except for which configs it captures.
+const EXTRA = flags.extra || '';
+const CONFIGS = flags.sims
+  ? flags.sims.split(',').map((s) => ({
+      name: `${flags.preset || 'sewers'}_sim${s}${EXTRA ? '_' + EXTRA.replace(/[^a-z0-9]+/gi, '') : ''}`,
+      preset: flags.preset || 'sewers', sim: Number(s),
+    }))
+  : [
+      { name: 'sewers_sim42', preset: 'sewers', sim: 42 },
+      { name: 'sewers_sim48', preset: 'sewers', sim: 48 },
+      { name: 'secondpeak_sim42', preset: 'secondpeak', sim: 42 },
+    ];
 // The pending live-A/B verdict pack, all at the pinned hero state.
 const PACK = [
   { name: 'pack_sewers_sim42_look-current', extra: 'look=current', check: { u: 'u_fidelityLook', v: 0 } },
@@ -286,15 +299,41 @@ function probeAndProject() {
     return { x: o.x + d.x * t, z: o.z + d.z * t };
   };
   const line = pb.lineProbe(2);
+  // The GLSL breakLine() the foam attaches to is the BAKED line plus the
+  // sections term, which pulls patches up to sections*22 m SEAWARD.
+  // lineProbe() returns the bake only, so at sections = 0.4 (Sewers) the
+  // stations sampled up to ~40 px beside the drawn band (measured 2026-08-18,
+  // arm evidence: the band's py drift tracks this shift station for station).
+  // Mirror the shader's shift (model-js.js carries the same double-precision
+  // twin of the GLSL hash) and sample the line the model actually breaks on.
+  const fractf = (v) => v - Math.floor(v);
+  const hash11 = (p) => { p = fractf(p * 0.1031); p *= p + 33.33; return fractf((p + p) * p); };
+  const vnoise1 = (v) => {
+    const i = Math.floor(v); let f = v - i; f = f * f * (3 - 2 * f);
+    return hash11(i) + (hash11(i + 1) - hash11(i)) * f;
+  };
+  const secU = pb.uniforms.u_sections.value;
+  const secShift = (x) => secU >= 0.05
+    ? Math.min(secU * 55 * (vnoise1(x * 0.02 + 7.3) - 0.5) * 2, 0) : 0;
   const stations = (line || []).map((p) => {
-    const s0 = proj(p.x, 0, p.z);
-    const s3 = proj(p.x, 3, p.z);           // ~scaled crest height
+    const zg = p.z + secShift(p.x);         // the GLSL line (bake + sections)
+    const s0 = proj(p.x, 0, zg);
+    const s3 = proj(p.x, 3, zg);            // ~scaled crest height
+    // Attachment-corridor endpoints: the comet/impact band lives in
+    // z within [zb-6, zb+16] (front band + 22 m comet e-fold) and its bright
+    // core migrates inside that corridor as the front advances, so a single
+    // point sample under-reads attachment by construction. The band max over
+    // the corridor is the per-station attachment measure; projection is
+    // near-affine over 22 m, so two endpoints suffice.
+    const sA = proj(p.x, 0, zg - 6);
+    const sB = proj(p.x, 0, zg + 16);
     const rt = unproj(s0.px, s0.py);        // round-trip proof
     return {
-      x: p.x, z: p.z, a: p.a, gap: p.gap,
+      x: p.x, z: zg, zBaked: p.z, a: p.a, gap: p.gap,
       px: s0.px, py: s0.py,
+      pxA: sA.px, pyA: sA.py, pxB: sB.px, pyB: sB.py,
       dyPx: Math.hypot(s3.px - s0.px, s3.py - s0.py),
-      rtErrM: Math.hypot(rt.x - p.x, rt.z - p.z),
+      rtErrM: Math.hypot(rt.x - p.x, rt.z - zg),
       visible: s0.px >= 0 && s0.px < W && s0.py >= 0 && s0.py < H && s0.ndcZ < 1,
     };
   });
@@ -331,7 +370,7 @@ const manifest = {
 };
 
 for (const cfg of CONFIGS) {
-  const hash = `preset=${cfg.preset}&${COMMON}&sim=${cfg.sim}`;
+  const hash = `preset=${cfg.preset}&${COMMON}&sim=${cfg.sim}` + (EXTRA ? `&${EXTRA}` : '');
   await loadPinned(hash);
   const probe = await page.evaluate(probeAndProject);
   if (probe.sim !== cfg.sim) throw new Error(`${cfg.name}: clock mismatch ${probe.sim} != ${cfg.sim}`);
@@ -350,6 +389,17 @@ for (const cfg of CONFIGS) {
   for (const s of vis) {
     s.luma = +localMeanLuma(L, w, h, s.px, s.py).toFixed(1);
     s.lumaPct = +percentileOf(sortedL, s.luma).toFixed(4);
+    // attachment-corridor max: 12 samples along the projected [zb-6, zb+16]
+    // segment (see probeAndProject for why a point sample under-reads)
+    let bandMax = -Infinity;
+    for (let i = 0; i <= 11; i++) {
+      const f = i / 11;
+      const v = localMeanLuma(L, w, h, s.pxA + (s.pxB - s.pxA) * f,
+        s.pyA + (s.pyB - s.pyA) * f, 1);
+      if (Number.isFinite(v) && v > bandMax) bandMax = v;
+    }
+    s.lumaBand = Number.isFinite(bandMax) ? +bandMax.toFixed(1) : null;
+    s.lumaBandPct = s.lumaBand === null ? null : +percentileOf(sortedL, s.lumaBand).toFixed(4);
   }
 
   // Brightest clusters, world-located
@@ -411,6 +461,7 @@ for (const cfg of CONFIGS) {
     stations: vis.map((s) => ({
       x: s.x, z: +s.z.toFixed(1), a: +s.a.toFixed(1),
       px: +s.px.toFixed(1), py: +s.py.toFixed(1), luma: s.luma, lumaPct: s.lumaPct,
+      lumaBand: s.lumaBand, lumaBandPct: s.lumaBandPct,
     })),
     stageAlpha: probe.stage,
   };
@@ -424,7 +475,7 @@ for (const cfg of CONFIGS) {
 // ---------------------------------------------------------------------------
 // The matched #look / #head verdict pack (stills for the pending live A/B)
 // ---------------------------------------------------------------------------
-for (const p of PACK) {
+for (const p of 'nopack' in flags ? [] : PACK) {
   const hash = `preset=sewers&${COMMON}&sim=42&${p.extra}`;
   await loadPinned(hash);
   const state = await page.evaluate((uName) => ({

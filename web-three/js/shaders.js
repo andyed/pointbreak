@@ -789,7 +789,21 @@ void main() {
   float foamAge = mix(lifeC.x + u_T, lifeC.x,
                       smoothstep(xz.y - 3.0, xz.y + 3.0, lifeC.y));
   float onStripe = exp(-pow((xz.y - zbC)/25.0, 2.0));
-  foamM *= mix(1.0, 0.45 + 0.55*exp(-foamAge/9.0), onStripe*u_headRead);
+  // #arm (2026-08-18): the 9 s carve clock has the same defect the model's
+  // comet tail had — the head's along-line speed varies ~13x, so a temporal
+  // tail collapses to ~30 m where the head crawls (the visible oblique arm)
+  // and stretches ~390 m on the fast flank. Convert age to metres behind the
+  // head (age*w/|dS/dx| along the line, exactly as the model does) and carve
+  // on a 110 m e-fold — gentler than the model tail's 55 m, so the carve
+  // grades what the model term draws instead of re-eroding it. Legacy clock
+  // under #arm=0 / #arm=anchor.
+  float eC = 2.0;
+  float wC = 2.0*PI/u_T;
+  float dSdxC = abs(rayPhase(vec2(xz.x + eC, breakLine(xz.x + eC)))
+                  - rayPhase(vec2(xz.x - eC, breakLine(xz.x - eC)))) / (2.0*eC);
+  float behindC = foamAge * wC / max(dSdxC, 1e-3);
+  float carveTail = mix(exp(-foamAge/9.0), exp(-behindC/110.0), u_armRead);
+  foamM *= mix(1.0, 0.45 + 0.55*carveTail, onStripe*u_headRead);
   // PER-STRIPE CARVE (#slife=1, default OFF — hero read open item (a)). The
   // comet carve above exists because the foam threshold re-saturates dense
   // masks to the same white; the INNER re-breaking stripes hit the identical

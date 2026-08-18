@@ -95,6 +95,28 @@ uniform vec2 u_refrZ;       // contour-z range the table spans
 uniform vec2 u_refrPsi;     // decode window for Psi, radians
 uniform float u_refrKappa;  // alongshore wavenumber, rad/m (Snell invariant)
 
+// ---------- set-envelope anchor (2026-08-18, the 6b arm diagnosis) ----------
+// Stage-median rayS of the LIVE break line, metres (main.js, per frame; 0 on
+// the authored fallback, whose line is contourZ = 0 where rayS ~ 0 already).
+// The group envelope's spatial reference was implicitly the AUTHORED contour:
+// cos(2pi*dF*(t - s/cg)) peaks at s = 0 at t = 0, and the authored line lay at
+// s ~ 0. M4 moved the shipped line 74-247 m SEAWARD (s = -74..-247 at Sewers)
+// and the anchor never followed — then the 6a cg unification (3.00 -> 11.71
+// m/s, 2026-08-13) stretched the band pattern 3.9x. Measured consequence
+// (scripts/probe_arm_terms.mjs): at the house capture clocks sim 36-54 the
+// set peak sits ~490 m shoreward of the line, env at the line is 0.00-0.24,
+// and every line-attached foam term (all env^2-gated) is <= 0.055 before any
+// material threshold — the peel arm cannot light at the hero state while the
+// env^1-keyed swash residue still can, which is exactly the 6b luma split.
+// u_setRef re-references the envelope to the line; u_setAnchor is the #arm=0
+// A/B revert (0 = legacy phase, bit-identical).
+uniform float u_setRef;
+uniform float u_setAnchor;
+// Second arm factor, same #arm family: 1 = comet tail measured in metres
+// behind the traveling breakpoint (see the cometFoam block), 0 = the legacy
+// 2.5 s temporal tail. #arm=anchor / #arm=tail bisect the pair.
+uniform float u_armRead;
+
 // ---------- constants ----------
 // GPU SOURCE OF TRUTH for the shared physics constants. GLSL cannot import, so
 // the JS side carries exactly one mirror of each: G and GAMMA live in
@@ -129,6 +151,15 @@ const float BORE_END_S = 3.80;
 // keep numerically identical.
 const float SHELTER_X0 = 24.0;   // m, reef anchor: where the card H0 is true
 const float SHELTER_L  = 1675.0; // m, e-fold of the apex shadow at reference D_p
+// Seconds after boot at which the first set CRESTS on the break line. The
+// envelope's time origin is unowned authorship (no physics constrains which
+// instant of the set cycle t = 0 lands on); declared so the deterministic
+// house capture window (sim 36-54: the OG hero state and every pinned
+// instrument clock) samples an active set at the line — the regime those
+// clocks were chosen in before the 6a cg fix moved the sets out from under
+// them. Cadence (1/dF) and rate independence untouched: pure seconds.
+// JS twin: SET_ANCHOR_S in model-js.js — keep numerically identical.
+const float SET_ANCHOR_S = 45.0;
 
 // ---------- hash / noise ----------
 float hash11(float p){ p = fract(p*0.1031); p *= p+33.33; return fract((p+p)*p); }
@@ -516,9 +547,22 @@ float groupSpeedM(){
   return mix(G*u_T/(4.0*PI), 0.5*LAM/u_T, u_cgLegacy);
 }
 
-float setEnv(float s, float t){
+// The one set-cycle phase, radians — setEnv and setupLiftM must share it or
+// the whitewater and the shoreline breathe disagree about when the set is in.
+// tRef re-references the pattern so a set peaks AT THE LIVE LINE (s = u_setRef)
+// at t = SET_ANCHOR_S mod 1/dF (see the u_setRef header for the measurement
+// that forced this). u_setAnchor = 0 is the #arm=0 A/B revert: tRef = 0
+// reproduces the legacy phase bit-identically. cg comes through groupSpeedM
+// so #cg=0 and #arm compose: the legacy-cg A/B re-anchors consistently
+// (tRef and s/cg move together).
+float setPhase(float s, float t){
   float cg = groupSpeedM();
-  return 0.5 + 0.5*cos(2.0*PI*u_dF*(t - s/cg));
+  float tRef = (SET_ANCHOR_S - u_setRef/cg) * u_setAnchor;
+  return 2.0*PI*u_dF*(t - tRef - s/cg);
+}
+
+float setEnv(float s, float t){
+  return 0.5 + 0.5*cos(setPhase(s, t));
 }
 
 // ---------- wave setup / setdown: the minute-scale shoreline breath ----------
@@ -557,8 +601,8 @@ float setEnv(float s, float t){
 float setupPeakM(){ return 0.3*u_H0*u_depthMix; }
 
 float setupLiftM(vec2 xz, float t){
-  float cg = groupSpeedM();                        // group speed, as in setEnv
-  float ph = 2.0*PI*u_dF*(t - rayS(xz)/cg);        // set-envelope phase at this station
+  float ph = setPhase(rayS(xz), t);                // set-envelope phase at this station
+                                                   // (shared anchor — see setPhase)
   // Lag in set-cycle radians: base ~0.9 rad (~24 s of a 167 s cycle) keeps the
   // water level trailing the set that raised it; the +0.8*sin(ph) swing holds
   // the level high after the set peaks and releases it quickly when the next
@@ -759,6 +803,10 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // declaration), and letting it in here made the threshold ~3x too eager.
   float excess  = Hsh / max(Hlim, 0.05);
   float gate    = smoothstep(0.90, 1.25, excess);
+  // The break weight WITHOUT the inside ramp — brk below is inside*brkW
+  // exactly as before; factored out so the comet head (see cometFoam) can
+  // carry full weight AT the line, where inside is still only 0.216.
+  float brkW    = mix(reef*mask, max(reef*mask, gate), u_depthMix);
   // Depth owns PERMISSION, the zipper owns DIRECTION (MODEL.md 2.2) — but this
   // was max(brkZip, gate), a union, which lets permission alone break the
   // wave. Under the old tilted break line that was invisible: the zipper mask
@@ -770,7 +818,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // inside factors out, so depth still decides whether it breaks and the
   // shore break outside the reef window survives (reef = 0, gate = 1), but
   // nothing breaks before the wave has reached the line.
-  brk           = mix(brkZip, inside*max(reef*mask, gate), u_depthMix);
+  brk           = inside * brkW;   // == mix(brkZip, inside*max(reef*mask, gate), u_depthMix)
   float decay   = 1.0 - 0.68*brk;          // broken wave has dumped its energy
 
   // ---- the wave dies in the swash ----
@@ -928,7 +976,33 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // LINE is the discriminating signal). breakMask: no comet inside a section
   // gap. sizeFoam here because life.x is a clock, not a height — this term
   // is otherwise H0-free (calibration contract, factor 1.0 at 1.5 m).
-  float cometFoam = u_headRead * brk * env2 * exp(-life.x/2.5)
+  // COMET TAIL IN METRES (2026-08-18, the #arm diagnosis, factor 2 of 2).
+  // exp(-life.x/2.5) is a TEMPORAL tail, but the head's along-line speed is
+  // w/|dS/dx| (S = the line's phase label), which varies ~13x along the
+  // Sewers line: ~43 m/s on the near-shore-parallel up-point flank versus
+  // 3-8 m/s on the oblique down-point arm (realized alpha 40-70 deg) — the
+  // one segment the drone actually frames. There the 2.5 s clock collapses
+  // to 8-20 m of tail, 14-35 px from the drone: measured as the missing
+  // along-crest gradient (probe_arm_terms.mjs). The read needs a SPATIAL
+  // gradient, so convert age to metres behind the head (exact where S is
+  // locally linear) and decay on a 55 m e-fold. Rate independence holds:
+  // age stays in seconds, the conversion is pure geometry. Self-limiting:
+  // age wraps at T, so a tail can never reach past the previous head. The
+  // dSdx floor makes alpha -> 0 a closeout (whole line breaks at once,
+  // tail collapses), not a divide-by-zero. u_armRead=0 is the A/B revert.
+  float eA = 2.0;
+  float dSdxLine = abs(rayPhase(vec2(x + eA, breakLine(x + eA)))
+                     - rayPhase(vec2(x - eA, breakLine(x - eA)))) / (2.0*eA);
+  float behindM = life.x * w / max(dSdxLine, 1e-3);
+  float cometAge = mix(exp(-life.x/2.5), exp(-behindM/55.0), u_armRead);
+  // Attachment weight: brk's -6..14 m inside ramp is only 0.216 AT the line,
+  // which shaved the head's seaward half — the one part of the band that
+  // touches the line the term exists to mark (measured: line-station comet
+  // contribution ~4x under the band peak 8-14 m shoreward). The comet gets
+  // its own ramp reaching full weight ~at the line; brkW keeps reef/mask/
+  // depth permission identical to brk. Legacy weight under #arm revert.
+  float cometW = mix(brk, smoothstep(-5.0, 1.0, z - zb)*brkW, u_armRead);
+  float cometFoam = u_headRead * cometW * env2 * cometAge
                   * exp(-max(z - zb, 0.0)/22.0) * mask * sizeFoam;
   float structuralFoam = 1.55*impactFoam + 0.84*boreFoam
                        + 0.66*trailFoam + 0.42*trailLace

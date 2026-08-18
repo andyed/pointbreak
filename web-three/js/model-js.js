@@ -134,11 +134,22 @@ export function reefWindow(x, P) {
   return smoothstep(w[0], w[1], xx) * (1 - smoothstep(w[2], w[3], xx));
 }
 
-function setEnv(s, t, P) {
-  // Physical deep-water cg — see GLSL setEnv/groupSpeedM. P.cgLegacy (#cg=0)
-  // re-arms the retired 0.5*LAM/T for the 6a A/B, mirroring u_cgLegacy.
+// MODEL-TWIN: seconds after boot at which the first set crests on the break
+// line — see the GLSL SET_ANCHOR_S header for the 2026-08-18 measurement
+// (probe_arm_terms.mjs: env at the line 0.00-0.24 across the whole house
+// capture window after the 6a cg fix). Keep numerically identical to the GPU.
+export const SET_ANCHOR_S = 45.0;
+
+// MODEL-TWIN of GLSL setPhase/setEnv. P.setRef is the stage-median rayS of
+// the live break line (main.js computes it; the GPU gets it as u_setRef);
+// P.setAnchor mirrors u_setAnchor. Both default 0, so a P without them — the
+// node tests, and any caller predating the anchor — gets the legacy phase
+// bit-identically. P.cgLegacy (#cg=0) re-arms the retired 0.5*LAM/T for the
+// 6a A/B, mirroring u_cgLegacy/groupSpeedM; tRef and s/cg move together.
+export function setEnv(s, t, P) {
   const cg = P.cgLegacy ? 0.5 * LAM / P.T : G * P.T / (4 * PI);
-  return 0.5 + 0.5 * Math.cos(2 * PI * P.dF * (t - s / cg));
+  const tRef = (SET_ANCHOR_S - (P.setRef ?? 0) / cg) * (P.setAnchor ?? 0);
+  return 0.5 + 0.5 * Math.cos(2 * PI * P.dF * (t - tRef - s / cg));
 }
 
 function crestShape(phase, q) {
