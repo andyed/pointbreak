@@ -732,7 +732,11 @@ void main() {
   // ocean()'s residue decays on (rayS comes with the spliced MODEL_GLSL), so
   // the fragment ages in lockstep with the model's own foam decay.
   float wA = 2.0*PI/u_T;
-  float tSince = mod(wA*t - rayPhase(xz), 2.0*PI)/wA;
+  // crestClockS ramps the sawtooth across its wrap: ageK below is a 0/1 LOOK
+  // flip (erosion amplitude, threshold width, and a 2x aftermath multiplier),
+  // so the raw mod() drew the hardest edge in the frame along the crest line.
+  // See crestClockS in model-glsl.js for the measurement; #wrap=0 reverts.
+  float tSince = crestClockS(mod(wA*t - rayPhase(xz), 2.0*PI)/wA);
   float ageK = smoothstep(1.2, 0.62*u_T, tSince);   // 0 fresh -> 1 aftermath
   float foamLook = step(0.5, u_fidelityLook);
   float fullLook = step(1.5, u_fidelityLook);
@@ -825,7 +829,10 @@ void main() {
   // PREVIOUS wave — age it one period older instead of letting the wrap
   // repaint it; (2) tau 4->9 s and floor 0.30->0.45, so the tail dissolves in
   // place instead of visibly translating.
-  float foamAge = mix(lifeC.x + u_T, lifeC.x,
+  // Same wrap ramp as the model comet (crestClockS): the carve is a 2x
+  // multiplier, so a snap in lifeC.x prints a vertical seam on the stripe.
+  float lifeClk = crestClockS(lifeC.x);
+  float foamAge = mix(lifeClk + u_T, lifeClk,
                       smoothstep(xz.y - 3.0, xz.y + 3.0, lifeC.y));
   float onStripe = exp(-pow((xz.y - zbC)/25.0, 2.0));
   // #arm (2026-08-18): the 9 s carve clock has the same defect the model's

@@ -72,6 +72,16 @@ function probeInPage(step) {
     return s * s * (3 - 2 * s);
   };
   const modG = (a, b) => a - b * Math.floor(a / b);   // GLSL mod()
+  // crestClockS twin (model-glsl.js, 2026-08-18): the foam clocks are ramped
+  // across their wrap so nothing keyed to them draws a hard crest-line seam.
+  // Keep numerically identical or this probe mirrors a shader that is not
+  // running (MEASUREMENT_LESSONS 4).
+  const CREST_WRAP_S = 2.4;
+  const crestClockS = (ageS) => {
+    const Tp = Math.max(U.u_T, 1e-3);
+    const wrapW = Math.min(CREST_WRAP_S, 0.25 * Tp);
+    return ageS * (1 - smoothstep(Tp - wrapW, Tp, ageS) * (U.u_crestWrap ?? 0));
+  };
   function hash11(p) { p = fract(p * 0.1031); p *= p + 33.33; return fract((p + p) * p); }
   function hash21(x, y) {
     let qx = fract(x * 0.1031), qy = fract(y * 0.1031), qz = fract(x * 0.1031);
@@ -251,7 +261,7 @@ function probeInPage(step) {
     theta -= skew * Math.sin(theta);
     const env = setEnv(rayS(x, z), tt);
     const env2 = env * env;
-    const tSince = modG(theta, 2 * PI) / w;
+    const tSince = crestClockS(modG(theta, 2 * PI) / w);
     const tau = Math.max(U.u_tau, 0.5);
 
     const crestNear = smoothstep(0.55, 0.98, Math.cos(theta));
@@ -292,8 +302,9 @@ function probeInPage(step) {
     const eA = 2.0;
     const dSdxLine = Math.abs(rayPhase(x + eA, breakLine(x + eA))
       - rayPhase(x - eA, breakLine(x - eA))) / (2 * eA);
-    const behindM = life.age * w / Math.max(dSdxLine, 1e-3);
-    const cometAge = mix(Math.exp(-life.age / 2.5), Math.exp(-behindM / 55.0),
+    const cometClk = crestClockS(life.age);
+    const behindM = cometClk * w / Math.max(dSdxLine, 1e-3);
+    const cometAge = mix(Math.exp(-cometClk / 2.5), Math.exp(-behindM / 55.0),
       U.u_armRead ?? 0);
     const cometW = mix(brk, smoothstep(-5.0, 1.0, z - zb) * brkW, U.u_armRead ?? 0);
     const cometFoam = U.u_headRead * cometW * env2 * cometAge
@@ -317,7 +328,7 @@ function probeInPage(step) {
     foam *= 0.72 + 0.28 * vnoise1(x * 0.045 + 3.1);
 
     // ---- fragment stage, shipped look (shaders.js ~660-767) ----
-    const tSinceF = modG(w * tt - rayPhase(x, z), 2 * PI) / w;
+    const tSinceF = crestClockS(modG(w * tt - rayPhase(x, z), 2 * PI) / w);
     const ageK = smoothstep(1.2, 0.62 * U.u_T, tSinceF);
     const ax = x, az = z - 1.1 * Math.min(tSinceF, 7);
     const er = vnoise2(ax * 0.35 + tt * 0.08, az * 0.35 - tt * 0.05) * 0.65
@@ -330,10 +341,17 @@ function probeInPage(step) {
     foamM *= mix(1, mix(0.70, 0.50, U.u_headRead), ageK);
     foamM = Math.max(foamM, U.u_crestRead * 0.72 * clamp(pocket * 1.5, 0, 1));
     const lifeC = life;
-    const foamAge = mix(lifeC.age + U.u_T, lifeC.age,
+    const lifeClk = crestClockS(lifeC.age);
+    const foamAge = mix(lifeClk + U.u_T, lifeClk,
       smoothstep(z - 3, z + 3, lifeC.frontZ));
     const onStripe = Math.exp(-Math.pow((z - zb) / 25, 2));
-    foamM *= mix(1, 0.45 + 0.55 * Math.exp(-foamAge / 9), onStripe * U.u_headRead);
+    const eC = 2.0;
+    const dSdxC = Math.abs(rayPhase(x + eC, breakLine(x + eC))
+      - rayPhase(x - eC, breakLine(x - eC))) / (2 * eC);
+    const behindC = foamAge * w / Math.max(dSdxC, 1e-3);
+    const carveTail = mix(Math.exp(-foamAge / 9), Math.exp(-behindC / 110.0),
+      U.u_armRead ?? 0);
+    foamM *= mix(1, 0.45 + 0.55 * carveTail, onStripe * U.u_headRead);
 
     return {
       zb, d, reef, mask, inside, gate, excess, brk, env, env2,

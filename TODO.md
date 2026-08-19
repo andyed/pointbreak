@@ -54,7 +54,9 @@ kept in full as the record; blockers are marked here.
       built; publication blocked on characterising the DEM terrace/track-line
       artifacts. Also open: the ~110° headland corner, crowd scatter,
       cliff-path land-scale cues, the bake-seam hunt (kelp-wedge value
-      polarity landed 2026-08-18, `#kelp=0` reverts).
+      polarity landed 2026-08-18, `#kelp=0` reverts; the seam half of that
+      hunt was answered 2026-08-18 by `crestClockS` — see the Track 1b entry —
+      leaving only the fixed light wedge).
 - [ ] Break-line V at Sharks, layer 3 of 3: bridge the baked z across section
       gaps for the RENDER anchor only (instruments keep the honest V).
 
@@ -432,8 +434,18 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       upper-frame contrast the 2026-08-14 hero read said the mottle owned.
 - [ ] Crowd scatter (sitting riders bobbing; near-free realism + rider scale
       calibration per VISUAL_GROUND_TRUTH) and cliff riprap/swash/houses
-- [ ] Hunt the vertical bake seam + fixed light wedge (cause unidentified;
-      provably NOT the Ψ bake — it was off in every audit capture)
+- [~] Hunt the vertical bake seam + fixed light wedge — HALF IDENTIFIED
+      2026-08-18. It was never a BAKE seam. Every foam clock in the model is
+      `mod(phase, 2π)/ω`, a sawtooth that snaps from T to 0 at each crest, and
+      two of them draw seams: (a) `tSince`, whose wrap is a level set of
+      `rayPhase` — a crest line, near shore-parallel after refraction, so it
+      prints a straight hard edge sweeping shoreward (the 2026-08-18 live
+      report); (b) the comet's line clock `life.x`, whose wrap is a level set
+      in x — a genuinely VERTICAL hard edge, cometFoam jumping 0.845 across
+      0.25 m at Sewers. Both fixed by `crestClockS` (`#wrap=0` reverts);
+      measured on the drone hero frame at secondpeak/sim48, columns carrying a
+      ≥60-level one-pixel VERTICAL jump 20.8% → 5.7%. Still open: the FIXED
+      light wedge, which does not move and is therefore not this.
 
 ### Track 2 — CPU twin: ABANDONED for now (Andy, 2026-08-11)
 No parity port. Consequences to carry honestly:
@@ -715,6 +727,58 @@ No parity port. Consequences to carry honestly:
       at the tall V-bottom head whenever a set crosses it — same artifact at
       legacy sim=110 with #arm=0, so it is the documented #look=full fold
       class, not an #arm regression.
+- [x] 6b FOLLOW-UP, THE HARD FOAM EDGE — RESOLVED 2026-08-18 (`#wrap=0`
+      reverts, default ON as a defect fix). Live report: foam terminating
+      against straight edges that "paint diagonally late in the wave's life",
+      reproduced at `cam=lineup` (the low/close rig), sewers, sim 42/48.
+      The prime hypothesis — the 128-texel break bake reconstructed by
+      `mix()`, differentiated by the #arm metric tail's ±2 m stencil — is
+      REFUTED. Station spacing at Sewers is 4.72 m, `dSdx` is smooth over the
+      arm (max jump 0.013 per 0.25 m), and the bisect is unambiguous once its
+      confound is removed: `#arm=tail`/`#arm=0` show no edge because at these
+      clocks they show NO WAVE (flat water); `#arm=anchor`, `#gap=0` and
+      `#head=0` all keep the edge at full strength. What the anchor did was
+      make the frame legible enough for a long-standing seam to read.
+      CONVICTED: the crest clock. `tSince = mod(θ, 2π)/ω` snaps from T to 0 at
+      every crest, and the snap is a level set of `rayPhase` — with the swell
+      refracted to ~8–11° that is a near shore-parallel straight line. It was
+      only ever invisible while foam had decayed to nothing by tSince = T, and
+      it has not for a while: residue/lace/area taus run 1.6–2.4·τ against a
+      15 s period, and GRID_FRAG's `ageK` is not a decay but a 0/1 LOOK flip
+      (erosion amplitude, threshold width, and a 2× aftermath multiplier).
+      Measured with the probe_arm_terms twin at three stations across the seam
+      (0.25 m steps): model foam 0.90→0.42, 0.93→0.48, 0.85→0.20 and shipped
+      foamM 0.87→0.13, 0.89→0.16, 0.996→0.028. In pixels at the lineup rig,
+      91.6% of frame columns carried a ≥60-level ONE-PIXEL row jump.
+      FIX AT THE SOURCE: a crest does not inject foam along a mathematical
+      line. `crestClockS` ramps the clock back to zero over the last
+      CREST_WRAP_S = 2.4 s (≈14 m at c = Λ/T = 6 m/s) instead of snapping, so
+      every consumer — amplitudes and look selector alike — is continuous at
+      one place, for one smoothstep. Applied to ocean()'s tSince,
+      stripeAgeAt's tSince, the model comet's `life.x` and GRID_FRAG's tSince
+      and carve clock. AFTER: max Δ foamM per 0.25 m 0.745/0.723/0.968 →
+      0.099/0.071/0.057; columns with a ≥60-level row jump 91.6% → 1.5%
+      (sim 42) and 38.6% → 0.0% (sim 48); on the drone hero frame vertical
+      jumps 20.8% → 5.7% (secondpeak sim48). `#wrap=0` reproduces the pre-fix
+      frame bit-exact (identical p90/max/frac).
+      NO 6b REGRESSION: arm corridor x ∈ [12,66] band-median pct
+      Sewers 0.843–0.944 → 0.799–0.894, Second Peak 0.883–0.940 →
+      0.920–0.996; band max identical to 0.1 luma at all eight configs;
+      stations ≥ L180 7/3/16/6 → 8/5/17/6 (Sewers) and 12/11/14/14 →
+      15/14/14/16 (Second Peak); top cluster stays within a few metres of the
+      line. Cost: four smoothstep+multiply pairs on the foam path, no change
+      to any interpolant or texture fetch.
+      At the Second Peak lineup rig the same strip of far bands goes from
+      18.3–21.7% of rows carrying a ≥60-level one-pixel VERTICAL jump to 0.0%.
+      NOT FIXED, and deliberately: `#slife`'s `alongF` wrap (default OFF, and
+      its own header declares the step as the stripe head), and the
+      fold-underside facets at the tall V-bottom head, which are unchanged by
+      `#wrap` and remain the documented `#look=full` class.
+      NOT FIXED, and newly named: at `cam=lineup`/secondpeak/sim48 the loudest
+      hard edge left in frame is the SPRAY PLUME MESH — a faceted white solid
+      with polygon silhouettes, several metres across, sitting on the break.
+      It is geometry, not a foam field, so `#wrap` does not touch it; it is
+      the next hard-edge item if the low camera is going to be shipped.
 - [x] 6c. RESOLVED 2026-08-13 late night — the "persists 4× authored" reading
       was INSTRUMENT SEMANTICS (spec "6c re-derived"). The Lagrangian tracker
       follows the bore, and what stays correlated in that frame is the

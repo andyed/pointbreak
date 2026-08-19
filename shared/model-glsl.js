@@ -117,6 +117,12 @@ uniform float u_setAnchor;
 // 2.5 s temporal tail. #arm=anchor / #arm=tail bisect the pair.
 uniform float u_armRead;
 
+// ---------- crest-clock continuity (2026-08-18, the hard-foam-edge report) ---
+// 1 = the crest clock is ramped across its wrap (shipped), 0 = the raw
+// sawtooth (#wrap=0 A/B revert, bit-identical to the pre-fix build).
+// See crestClockS() for the measurement.
+uniform float u_crestWrap;
+
 // ---------- constants ----------
 // GPU SOURCE OF TRUTH for the shared physics constants. GLSL cannot import, so
 // the JS side carries exactly one mirror of each: G and GAMMA live in
@@ -160,6 +166,9 @@ const float SHELTER_L  = 1675.0; // m, e-fold of the apex shadow at reference D_
 // them. Cadence (1/dF) and rate independence untouched: pure seconds.
 // JS twin: SET_ANCHOR_S in model-js.js — keep numerically identical.
 const float SET_ANCHOR_S = 45.0;
+// Width of the crest's foam injection, seconds. See crestClockS(). No JS
+// twin: model-js.js carries the height/envelope path, not the foam clocks.
+const float CREST_WRAP_S = 2.4;
 
 // ---------- hash / noise ----------
 float hash11(float p){ p = fract(p*0.1031); p *= p+33.33; return fract((p+p)*p); }
@@ -691,6 +700,44 @@ vec4 breakerLifecycleAtX(float x, float t){
   return vec4(age, frontZ, impact, bore);
 }
 
+// ---------- the crest clock, made continuous (2026-08-18) ----------
+// THE HARD FOAM EDGE. Every foam clock in this model is mod(phase, 2pi)/w:
+// a sawtooth that runs 0 -> T and then SNAPS back to 0 when the next crest
+// arrives. Anything keyed to it inherits that snap, and the snap lands on a
+// level set of rayPhase — a crest line. Refraction lands the swell at ~11 deg,
+// so a crest line is very nearly shore-parallel: the snap draws a STRAIGHT
+// HARD EDGE that sweeps shoreward with the wave and terminates the foam
+// instead of dissolving it.
+//
+// It stayed invisible only while foam had decayed to nothing by tSince = T.
+// It has not for a while: the residue/lace/area taus are 1.6-2.4*tau (up to
+// 14.4 s against a 15 s period), and GRID_FRAG's ageK is not a decay at all
+// but a 0/1 LOOK flip carrying a 2x brightness step. Measured (lineup camera,
+// sewers, sim 42, JS mirror of the shipped foam path, 0.25 m steps across the
+// seam at three stations): model foam 0.90 -> 0.42, 0.93 -> 0.48, 0.85 -> 0.20
+// and the SHIPPED foamM 0.87 -> 0.13, 0.89 -> 0.16, 0.996 -> 0.028 — a
+// ~100-luma one-pixel step across 916 of 1029 frame columns.
+//
+// The 2026-08-18 #arm anchor did not create this; it made it visible, by
+// putting a live set on the line at the house clocks where the frame used to
+// be flat water. #arm=tail (anchor off) shows no seam because it shows no
+// wave.
+//
+// FIX AT THE SOURCE, not by blurring the output: a crest does not inject foam
+// along a mathematical line, it injects over the crest's own width. Ramp the
+// clock back to zero over the last CREST_WRAP_S seconds instead of snapping,
+// and EVERY consumer — the exp(-age/tau) amplitudes and the look selector
+// alike — becomes continuous at one place, for one smoothstep. 2.4 s at
+// c = LAM/T = 6 m/s is a ~14 m transition band riding ahead of the crest,
+// which is what the approaching bore does to the foam in front of it.
+// Clamped to a quarter period so a short-period preset cannot ramp for most
+// of its own cycle. u_crestWrap = 0 (#wrap=0) is the bit-identical revert.
+float crestClockS(float ageS){
+  float Tp = max(u_T, 1e-3);
+  float wrapW = min(CREST_WRAP_S, 0.25*Tp);
+  return ageS * (1.0 - smoothstep(Tp - wrapW, Tp, ageS)*u_crestWrap);
+}
+
 // ---------- the per-stripe lifecycle clock (#slife, hero read item (a)) ----
 // WHEN DID THIS COLUMN'S WAVE FIRST BREAK? The inner re-breaking stripes band
 // uniformly because every clock they run on is flat ALONG the stripe: tSince
@@ -729,7 +776,7 @@ vec4 breakerLifecycleAtX(float x, float t){
 float stripeAgeAt(vec2 xz, float t){
   float w = 2.0*PI/u_T;
   float zb = breakLine(xz.x);
-  float tSince = mod(w*t - rayPhase(xz), 2.0*PI)/w;
+  float tSince = crestClockS(mod(w*t - rayPhase(xz), 2.0*PI)/w);
   float phaseLag = max(rayPhase(xz) - rayPhase(vec2(xz.x, zb)), 0.0);
   return clamp(tSince + phaseLag/max(w, 1e-4), 0.0, 240.0);
 }
@@ -868,8 +915,9 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   h += chopG * 0.22 * (vnoise2(xz*0.11 + vec2(0.0, t*0.6)) - 0.5)
      + chopG * 0.10 * (vnoise2(xz*0.31 - vec2(t*0.9, 0.0)) - 0.5);
 
-  // time since last crest passed this point
-  float tSince = mod(theta, 2.0*PI)/w;
+  // time since last crest passed this point, ramped across the wrap so no
+  // foam term keyed to it draws a hard crest-line seam (see crestClockS)
+  float tSince = crestClockS(mod(theta, 2.0*PI)/w);
   float tau = max(u_tau, 0.5);
 
   // pocket: crest currently crossing the break line — the zipper's locus.
@@ -990,11 +1038,19 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // age wraps at T, so a tail can never reach past the previous head. The
   // dSdx floor makes alpha -> 0 a closeout (whole line breaks at once,
   // tail collapses), not a divide-by-zero. u_armRead=0 is the A/B revert.
+  // The lifecycle age wraps exactly as tSince does, but at the LINE, so its
+  // seam is a level set in x — a VERTICAL hard edge rather than a
+  // shore-parallel one. Neither tail decays to nothing by age = T on the
+  // slow-head arm (measured jump in cometFoam across 0.25 m: 0.85 with the
+  // metric tail, 0.78 with the legacy 2.5 s clock — the metric tail did not
+  // introduce this and is marginally the milder of the two), so the comet
+  // gets the same ramp as every other foam clock. Same #wrap A/B.
   float eA = 2.0;
   float dSdxLine = abs(rayPhase(vec2(x + eA, breakLine(x + eA)))
                      - rayPhase(vec2(x - eA, breakLine(x - eA)))) / (2.0*eA);
-  float behindM = life.x * w / max(dSdxLine, 1e-3);
-  float cometAge = mix(exp(-life.x/2.5), exp(-behindM/55.0), u_armRead);
+  float cometClk = crestClockS(life.x);
+  float behindM = cometClk * w / max(dSdxLine, 1e-3);
+  float cometAge = mix(exp(-cometClk/2.5), exp(-behindM/55.0), u_armRead);
   // Attachment weight: brk's -6..14 m inside ramp is only 0.216 AT the line,
   // which shaved the head's seaward half — the one part of the band that
   // touches the line the term exists to mark (measured: line-station comet

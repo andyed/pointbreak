@@ -200,6 +200,10 @@ const uniforms = {
   u_setRef:     { value: 0 },
   u_setAnchor:  { value: 1 },
   u_armRead:    { value: 1 },   // comet tail in metres behind the head; #arm bisects
+  // Crest-clock continuity (2026-08-18): the foam clocks are sawtooths whose
+  // snap lands on a crest line and drew a straight hard foam edge. Ramped by
+  // default; #wrap=0 restores the raw mod() (see crestClockS in model-glsl).
+  u_crestWrap:  { value: 1 },
   // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
   u_matte:      { value: 1 },
   u_wwArea:     { value: 1 },  // 4a' whitewater-area coupling; #wwarea=0 is the pre-fix A/B
@@ -1620,6 +1624,9 @@ function applyHashParams() {
   // The #arm pair defaults ON (the peel arm lights at the house capture
   // clocks): set-envelope anchor + metric comet tail. `arm=0` reverts both;
   // `arm=anchor` / `arm=tail` keep only the named half, for bisection.
+  // Crest-clock ramp defaults ON (defect fix, 2026-08-18); #wrap=0 restores
+  // the raw mod() sawtooth and its hard crest-line foam edge, bit-identical.
+  if (h.get('wrap') === '0') uniforms.u_crestWrap.value = 0;
   const armV = h.get('arm');
   if (armV === '0') { uniforms.u_setAnchor.value = 0; uniforms.u_armRead.value = 0; }
   else if (armV === 'anchor') uniforms.u_armRead.value = 0;
