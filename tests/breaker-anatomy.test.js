@@ -50,7 +50,11 @@ test('field-fidelity full look replaces the detached fold with a connected hinge
   assert.match(shaders, /float Sapp\s+= mix\([\d.]+, [\d.]+, connectedLook\) \* steep/);
   assert.match(shaders, /if \(connectedLook > 0\.5\) S = min\(S, [\d.]+\)/);
   assert.match(shaders, /float throwMag = mix\([\d.]+, [\d.]+, connectedLook\)/);
-  assert.match(shaders, /float dropMag = mix\([\d.]+, [\d.]+, connectedLook\)/);
+  // dropMag is a uniform branch since the 2026-08-18 re-scope (#drop=legacy),
+  // so the claim is made once per arm: BOTH must still shrink with the
+  // connected look. Same structural-not-tuned rule as the rest of this test.
+  assert.match(shaders, /dropMag = mix\([\d.]+, [\d.]+, connectedLook\)/);
+  assert.match(shaders, /dropMag = clamp\(mix\([\d.]+, [\d.]+, connectedLook\)/);
   assert.match(shaders, /float pocketSteepGate = mix/);
   assert.match(shaders, /if \(fullLook > 0\.5 && !gl_FrontFacing\) discard/);
   assert.match(shaders, /float facePocket = fullLook \* steepF/);
@@ -106,4 +110,44 @@ test('First Peak crash head and wake reveal the physics-owned zipper', () => {
   assert.ok(headM >= 12 && headM <= 18, `impact head ${headM.toFixed(1)} m`);
   assert.ok(wakeM >= 100 && wakeM <= 160, `foam wake ${wakeM.toFixed(1)} m`);
   assert.match(model, /1\.0 - smoothstep\(BORE_FADE_START_S, BORE_END_S, age\)/);
+});
+
+test('the lip drop cannot flatten the pocket crest', () => {
+  // The 2026-08-18 defect was structural, not a tuning miss: dropMag was
+  // proportional to hM = h/VIS — the height it is subtracted FROM — so it was a
+  // multiplicative shrink of the whole water column wherever pocket > 0, and it
+  // bit hardest at the crest. These pin the SHAPE of the repair, not its
+  // constants, so a retune stays free:
+  //  * the shipped arm is a FRACTION of the band above the bend line, clamped
+  //    below 1 (a drop that could exceed the band inverts the crest, which is
+  //    the failure mode being removed);
+  //  * it is gated on frontPhase, which is zero at the crest (theta = 0), so
+  //    the crest itself can never be pulled down;
+  //  * the bend line comes from crestCeilM, the depth-limited ceiling — the
+  //    same authority #curl bends from (MODEL.md 4.5: physics owns the cap).
+  assert.match(shaders, /float crestCeilM\(float dep, float Ks\)/);
+  assert.match(shaders, /float yBendD = [\d.]+\*crestCeilM\(depQ, KsQ\)/);
+  assert.match(shaders, /float dyD\s+= max\(h - yBendD, 0\.0\)/);
+  assert.match(shaders, /dropMag = clamp\(mix\([\d.]+, [\d.]+, connectedLook\)[\s\S]{0,120}?frontPhase, 0\.0, 0\.\d+\) \* dyD/);
+  assert.match(shaders, /uniform float u_legacyDrop;/);
+  assert.match(shaders, /if \(u_legacyDrop > 0\.5\)/);
+  assert.match(main, /u_legacyDrop: \{ value: 0 \}/);
+  assert.match(main, /h\.get\('drop'\) === 'legacy'/);
+  // #curl must keep reading the SAME ceiling, or the two mechanisms disagree
+  // about where the lip starts.
+  assert.match(shaders, /float hCrest = crestCeilM\(depQ, KsQ\)/);
+});
+
+test('the aeration curtain keys off the mechanism that is actually drawing the lip', () => {
+  // #lip and #curl contradicted each other until 2026-08-18: the curtain keyed
+  // off throwMag, which #curl computes and then never applies, so both flags on
+  // painted an aerated curtain across water with no lip in it. The key must
+  // switch with u_curl — vCurl (turns of overturn) when the bend is running,
+  // the applied throw when it is not.
+  assert.match(shaders, /float lipKey = u_curl > 0\.5 \? smoothstep\([\d.]+, [\d.]+, curl\)/);
+  assert.match(shaders, /clamp\(throwMag \/ max\([\d.]+\*hM, [\d.]+\), 0\.0, 1\.0\)/);
+  assert.match(shaders, /float aerCurtain = smoothstep\([\d.]+, [\d.]+, Sapp \+ Sover\) \* lipKey/);
+  // curl is written before the aeration block reads it, or the key is stale.
+  assert.ok(shaders.indexOf('curl   = th/PI;') < shaders.indexOf('float lipKey'),
+            'curl must be written before the aeration key reads it');
 });

@@ -6,6 +6,67 @@ The distilled open state. Everything below this section is the lab notebook,
 kept in full as the record; blockers are marked here.
 
 **The screensaver read (mission #1)**
+- [x] WAVE SHAPE, second cause — **`dropMag` FLATTENED THE POCKET** (fixed
+      2026-08-18, ships ON, `#drop=legacy` reverts; `scripts/measure_pocket_crest.mjs`
+      is the instrument, reading the crest back off the GPU through the shipped
+      SURFACE_GLSL). Independent of the forward-pitch defect below and present
+      at DEFAULT settings — `#curl` masked it only because `#curl` switches the
+      whole throw/drop pair off. What `dropMag` is FOR still stands: `throwMag`
+      translates the crest band shoreward at constant height, so the throw
+      alone leaves a flat shelf, and that is exactly what it was added to cure
+      (3e28d38, 2026-08-10). What was wrong was WHERE it applied. It was
+      `3.0·pocket·plunge·hM·lipJit` with `hM = h/VIS` — the height it is
+      subtracted FROM — so it was a multiplicative shrink of the whole water
+      column wherever `pocket > 0` (up to ~0.94·h), biting hardest at the
+      crest, the tallest point on it. MEASURED at Sewers q=high over 4 pinned
+      clocks × 36 stations: median crest / depth-limited ceiling `γh` **0.78 at
+      pocket stations against 1.05 one station away**, and monotone in `pocket`
+      (1.015 / 0.772 / 0.467 by bin). Sharks showed nothing, which is the
+      mechanism confirming itself — `plunge` = 0 at ξ 0.45, so the term was 0.
+      FIX: key it to `frontPhase` (zero at the crest, θ = 0; peaks ~0.9 rad
+      shoreward — the water that has already gone over) and scope it to the
+      band above the same `0.35·h_crest` bend line `#curl` uses, as a fraction
+      of that band clamped below 1 so it can never invert the crest. AFTER:
+      pocket fill **0.78 → 1.08** (1.05 is the calibrated norm — `crestCeilM`
+      is a reference height, not a clamp, and non-breaking water sits there
+      too); per clock 0.83/0.87/0.65/0.67 → 1.12/1.11/1.08/1.01. `#drop=legacy`
+      reproduces the pre-fix frame **bit-identical** (0 px over 16 frames,
+      2 spots × 2 cameras × 4 clocks); Sharks is bit-identical in both arms;
+      the change is confined to the crest band (diff bbox y 396–494 on the
+      cliff rig, nothing at the waterline). `check:swash` PASS, peel-arm
+      stations ≥ L180 36→41 / 58→58 / 32→31, line median luma unchanged.
+      ANDY OWES THIS A LIVE VERDICT — it changes the default silhouette on
+      every plunging wave.
+      TAIL, NOT FIXED and deliberately: 2 of 56 Sewers pocket stations now sit
+      at 1.4–1.7 × the ceiling (p95 1.23, `#curl` 1.16). Those are the choppy
+      fold at S = 1.8 plus the saturated 20 m displacement clamp, which the old
+      drop was burying by 6 m of subtraction — a pre-existing defect that this
+      uncovers rather than causes, and it belongs to the entry below (the
+      `plunge` cliff / 20 m clamp list), downstream of the skew fix.
+      INTERACTION TO WATCH: the even-skew forward pitch lands in `ocean()`'s
+      height path and will raise `h` on the front face. The new drop is a
+      fraction of `h − 0.35·h_crest` gated on `frontPhase`, so it scales with a
+      steeper face instead of fighting it — but the 0.80 coefficient was
+      calibrated against today's flatter face and should be re-measured with
+      the same instrument once the skew lands.
+- [x] `#curl` × `#lip` NOW COMPOSE (2026-08-18). They contradicted: the
+      aeration curtain keyed off `throwMag`, which `#curl` computes and then
+      never applies (the lip bends onto an arc instead), so `#curl=1&lip=1`
+      painted white across water with no lip in it. `vCurl` (θ/π, turns of
+      overturn) was already written for this and deliberately not consumed; it
+      is now the curtain key whenever `#curl` is on, and the `throwMag` key
+      stays when it is off. MEASURED over 288 Sewers stations: full white at
+      < 0.10 turns of overturn at 18 stations, **all 18 now suppressed, 0
+      strong-bend stations lost aeration**, 250 unchanged. All four flag
+      combinations verified distinct and coherent on cliff + drone at four
+      pinned clocks (`scripts/capture_drop_ab.mjs --matrix`); "both on" is the
+      best of the four — the detached pale slab at the pocket is replaced by an
+      aerated band lying on the bent lip.
+      RIG NOTE: `cam=lineup` sits at water level and at Sewers sims 48/54 the
+      camera ends up INSIDE the wave (flat white frame, every pixel differs
+      between arms for reasons unrelated to the arm). Kept out of the
+      coherence matrix; cliff is the profile view that carries a crest-height
+      claim.
 - [!] SCALE MEASURED 2026-08-18 — **the "dune" read is a DUTY CYCLE problem,
       and at the set peak the waves are TOO STEEP, not too flat.** Instrument
       `scripts/measure_wave_scale.mjs`: a dipstick occlusion probe (opaque

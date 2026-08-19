@@ -221,6 +221,12 @@ const uniforms = {
   // verdict: it replaces the shipped throw/drop pair with a rotation of the
   // crest band, which is a visible change to every plunging wave.
   u_curl:       { value: 0 },
+  // #drop=legacy: restore the pre-2026-08-18 dropMag, which was proportional to
+  // the height it was subtracted from and weighted only by `pocket`, so the
+  // wave came out flattest exactly at the breaking pocket (median crest /
+  // depth-limited ceiling 0.78 there against 1.05 one station away). The fix
+  // ships ON — this is the revert arm for the A/B, not a feature flag.
+  u_legacyDrop: { value: 0 },
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -1652,9 +1658,14 @@ function applyHashParams() {
   else if (armV === 'anchor') uniforms.u_armRead.value = 0;
   else if (armV === 'tail') uniforms.u_setAnchor.value = 0;
   // lip overturn defaults OFF; #curl=1 arms the crest-band rotation. It
-  // REPLACES the throw/drop pair the #lip aeration mask reads (see choppyPos),
+  // REPLACES the throw/drop pair the #lip aeration mask reads, and when it is
+  // on the mask keys off vCurl instead of the unapplied throw (see choppyPos),
   // so the two flags describe the same event through different geometry.
   if (h.get('curl') === '1') uniforms.u_curl.value = 1;
+  // #drop=legacy is a REVERT arm, not a feature flag: the re-scoped dropMag
+  // ships on, and this restores the term that flattened the pocket so the two
+  // silhouettes can be captured from one build.
+  if (h.get('drop') === 'legacy') uniforms.u_legacyDrop.value = 1;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -1769,6 +1780,7 @@ window.__pointbreak = {
   setLandSkip: (m) => { uniforms.u_landSkipM.value = m; },
   setFidelityLook: (look) => { uniforms.u_fidelityLook.value = parseFidelityLook(look); },
   setCurl: (on) => { uniforms.u_curl.value = on ? 1 : 0; },
+  setLegacyDrop: (on) => { uniforms.u_legacyDrop.value = on ? 1 : 0; },
   // ---- curlProbe: the displaced surface, as numbers ----
   // Reads back surfacePos() for a shore-normal transect at world x, sampling
   // the SOURCE coordinate z0 uniformly and returning the DISPLACED (x, y, z).
@@ -1784,11 +1796,15 @@ window.__pointbreak = {
     if (!Number.isFinite(x) || !(n > 1)) return null;
     if (!curlProbeRT || curlProbeRT.width !== n) {
       curlProbeRT?.dispose();
-      // Two rows: row 0 is the geometry (y, z, land, curl), row 1 the model
+      // Three rows: row 0 is the geometry (y, z, land, curl), row 1 the model
       // bookkeeping at the same source point (pocket, brk, foam, aer). The
       // second row is what tells a null apart from a miss — "no overturn here"
       // and "the pocket is not here" are different findings.
-      curlProbeRT = new THREE.WebGLRenderTarget(n, 2, {
+      // Row 2 is the CEILING the crest is allowed to reach (crestCeilM, the
+      // depth-limited height, shared with the #curl bend) and the depth it was
+      // computed from. Without it "the pocket crest is 5 m" has no denominator:
+      // a crest can only be judged short against what the water can carry.
+      curlProbeRT = new THREE.WebGLRenderTarget(n, 3, {
         type: THREE.FloatType, minFilter: THREE.NearestFilter,
         magFilter: THREE.NearestFilter, depthBuffer: false,
       });
@@ -1803,9 +1819,11 @@ window.__pointbreak = {
           '  float i = floor(gl_FragCoord.x);\n' +
           '  float zz = mix(u_probe.y, u_probe.z, i/max(u_probe.w - 1.0, 1.0));\n' +
           '  float f, p, b, c, l, a, k;\n' +
-          '  vec3 P = surfacePos(vec2(u_probe.x, zz), u_time, f, p, b, c, l, a, k);\n' +
-          '  gl_FragColor = gl_FragCoord.y < 1.0 ? vec4(P.y, P.z, l, k)\n' +
-          '                                      : vec4(p, b, f, a);\n' +
+          '  vec2 xz = vec2(u_probe.x, zz);\n' +
+          '  vec3 P = surfacePos(xz, u_time, f, p, b, c, l, a, k);\n' +
+          '  if (gl_FragCoord.y < 1.0)      gl_FragColor = vec4(P.y, P.z, l, k);\n' +
+          '  else if (gl_FragCoord.y < 2.0) gl_FragColor = vec4(p, b, f, a);\n' +
+          '  else gl_FragColor = vec4(crestCeilM(xz), modelDepthM(xz), c, 0.0);\n' +
           '}',
       });
       curlProbeQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), curlProbeMat);
@@ -1816,15 +1834,16 @@ window.__pointbreak = {
     const prev = renderer.getRenderTarget();
     renderer.setRenderTarget(curlProbeRT);
     renderer.render(curlProbeScene, curlProbeCam);
-    const buf = new Float32Array(n * 2 * 4);
-    renderer.readRenderTargetPixels(curlProbeRT, 0, 0, n, 2, buf);
+    const buf = new Float32Array(n * 3 * 4);
+    renderer.readRenderTargetPixels(curlProbeRT, 0, 0, n, 3, buf);
     renderer.setRenderTarget(prev);
     const out = [];
     for (let i = 0; i < n; i++) {
-      const g = i * 4, m = (n + i) * 4;
+      const g = i * 4, m = (n + i) * 4, c = (2 * n + i) * 4;
       out.push({ z0: z0 + (z1 - z0) * i / (n - 1), y: buf[g],
                  z: buf[g + 1], land: buf[g + 2], curl: buf[g + 3],
-                 pocket: buf[m], brk: buf[m + 1], foam: buf[m + 2], aer: buf[m + 3] });
+                 pocket: buf[m], brk: buf[m + 1], foam: buf[m + 2], aer: buf[m + 3],
+                 ceil: buf[c], depth: buf[c + 1], crest: buf[c + 2] });
     }
     return out;
   },

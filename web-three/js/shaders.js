@@ -35,13 +35,16 @@ varying float vLand;   // 1 where the seabed surfaced above the water
 varying float vDepth;  // still-water depth at this point, m (99 = no bathymetry)
 varying float vBoil;
 varying float vAerLip; // aerated-lip mask, keyed to the fold geometry (#lip=1)
-// HOOK for the lip-aeration path (2026-08-18): the angle this vertex's crest
-// band was rotated through by #curl, in turns (phi/PI, so 0.5 = the lip is
-// horizontal and 1.0 = it has come right over). Written by the vertex stage,
-// deliberately NOT read here — geometry owns the throw, the foam path owns the
+// The angle this vertex's crest band was rotated through by #curl, in turns
+// (phi/PI, so 0.5 = the lip is horizontal and 1.0 = it has come right over).
+// Written by the vertex stage; geometry owns the throw, the foam path owns the
 // whitening, and this varying is the one number that crosses between them.
-// With #curl=1 this is the honest overturn measure; vAerLip's throwMag/hM
-// proxy describes the throw that #curl switches off (see choppyPos).
+// WIRED 2026-08-18: it is now the aeration CURTAIN KEY whenever #curl is on
+// (choppyPos, lipKey). Before that the two flags contradicted each other —
+// vAerLip keyed off throwMag, which #curl computes and then does not apply, so
+// "#curl=1&lip=1" painted a curtain where no lip existed. The fragment stage
+// still reads only vAerLip; this stays available for shading that wants the
+// raw overturn angle rather than the aeration mask derived from it.
 varying float vCurl;
 `;
 
@@ -245,6 +248,8 @@ uniform float u_time;   // simulation seconds (speed-scaled, pausable, JS-side)
 uniform vec2  u_cell;   // core grid cell size in metres (x, z) — normal FD step
 uniform float u_fidelityLook; // 0 current, 1 foam, 2 connected face/lip probe
 uniform float u_curl;   // #curl=1: lip overturn (rotation, not throw). Default 0.
+uniform float u_legacyDrop; // #drop=legacy: restore the pre-2026-08-18 dropMag
+                            // (the one that flattened the pocket). A/B only.
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
 ${KELP_GLSL}
@@ -263,6 +268,26 @@ const vec2 STAGE_CENTER = vec2(0.0, 10.0);
 float farFadeAt(vec2 xz){
   vec2 dOut = max(abs(xz - STAGE_CENTER) - STAGE_HALF, vec2(0.0));
   return 1.0 - smoothstep(100.0, 800.0, length(dOut));
+}
+
+// Depth-limited DISPLAYED crest height at a station, metres above still water.
+// min(H0*Ks, gamma*h) is the wave height the water CAN carry (MODEL.md 2.2, and
+// 4.5: physics owns the cap). The sharpened crestShape puts ~0.8 of it above the
+// mean, and VIS is the viewing exaggeration the rest of the geometry is drawn
+// at — applied AFTER the physical threshold, never inside it (4.5's last row).
+// One authority: the #curl bend sizes itself off this, and the crest-height
+// instrument reads the same function back off the GPU rather than transcribing
+// it into JS (MEASUREMENT_LESSONS 4).
+//
+// Two entry points, one body: the (dep, Ks) overload is for callers that
+// already hold both, so the hot vertex path does not re-fetch the bed for a
+// number it computed four lines earlier.
+float crestCeilM(float dep, float Ks){
+  return clamp(0.8*VIS*min(u_H0*Ks, GAMMA*dep), 0.5, 14.0);
+}
+float crestCeilM(vec2 xz0){
+  float dep = modelDepthM(xz0);
+  return crestCeilM(dep, clamp(sqrt((G*u_T/(4.0*PI))/sqrt(G*dep)), 0.7, 2.6));
 }
 
 // ---- M2: choppy horizontal displacement (the reason web-three exists) ----
@@ -419,9 +444,67 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // more screen than the 1.5 m one. A fall distance scales like the height
   // fallen from, not its square. 3.0*hM matches the old drop at the 1.5 m
   // model-card day (3.5*hN^2 = 5.9 m ~ 3.0*1.95).
-  float dropMag = mix(3.0, 0.28, connectedLook)
-                * pocket * plunge * hM * lipJit
-                * mix(1.0, 0.72 + 0.82*frontPhase, anatomy);
+  //
+  // ---- RE-SCOPED 2026-08-18 (the pocket-crest audit). ------------------
+  // WHAT IT IS FOR, AND WHETHER THAT SURVIVES. dropMag was added
+  // 2026-08-10 (3e28d38) "so a plunging lip forms a cycloid-like barrel
+  // rather than a flat horizontal overhang": throwMag translates the crest
+  // band SHOREWARD at constant height, so the throw alone leaves a flat
+  // shelf. That defect is still live on the default path — #wrap is the foam
+  // clock, #arm is the peel arm, #lip is fragment colour, and #curl (the
+  // honest cure: a bend that lowers as it pitches) is flag-gated OFF. So the
+  // term is NOT retired: something has to bend the thrown ribbon down.
+  //
+  // WHAT WAS WRONG WAS WHERE IT APPLIED. It was proportional to
+  // hM = h/VIS — the height it is subtracted FROM — and weighted only by
+  // pocket. That makes it a MULTIPLICATIVE shrink of the whole water
+  // column wherever the wave is breaking: h -= (3.0/VIS)*pocket*plunge*... *h,
+  // i.e. up to ~0.94*h at pocket = 1. So the wave was FLATTEST EXACTLY WHERE
+  // THE DEPTH LIMIT SAYS IT MUST BE TALLEST. Measured before the fix
+  // (scripts/measure_pocket_crest.mjs, Sewers q=high, sims 36-54, 4 clocks x
+  // 36 stations): median crest / depth-limited ceiling = 0.78 at pocket
+  // stations against 1.05 away from the pocket, and monotone in pocket —
+  // 1.015 / 0.772 / 0.467 for pocket at apex in [0,0.2) / [0.2,0.4) /
+  // [0.4,0.6). Sharks (xi 0.45) showed no defect at all, which is the
+  // mechanism confirming itself: plunge = 0 there, so dropMag is 0.
+  //
+  // THE FIX, in two terms that were both already in this function:
+  //  * PROPORTIONAL TO frontPhase, which is ZERO AT THE CREST (it gates on
+  //    -sin(thetaRaw), and the crest is theta = 0) and peaks ~0.9 rad
+  //    SHOREWARD of it. That is the already-gone-over side — the water that
+  //    should fall. The crest line itself is what the depth limit says must
+  //    stand up, so nothing may pull it down. frontPhase was previously only
+  //    a weak modulator here (mix(1.0, 0.72+0.82*frontPhase, anatomy)) and
+  //    vanished entirely when u_breakShape = 0; the defect does not care
+  //    about breakShape, so neither does the fix.
+  //  * SCOPED TO THE BAND ABOVE THE BEND LINE and keyed to the height above
+  //    it, not to h. Same 0.35*h_crest line #curl bends from, from the same
+  //    crestCeilM authority, so the two mechanisms agree about where the lip
+  //    starts. Below it the face is untouched and keeps standing.
+  // Written as a FRACTION of that band, clamped below 1: a drop that could
+  // exceed the band would invert the crest, which is the failure mode being
+  // removed, not a stronger version of the effect. 0.80 is calibrated to
+  // land the same violence on the front face as the old term did at the card
+  // day (0.80*dyD ~ 3.9 m against 3.0*hM = 5.9 m) while leaving the crest at
+  // its ceiling; the 0.28/3.0 ratio of the #look=full arm is preserved.
+  // MEASURED AFTER: pocket fill 0.78 -> 1.08 (per clock 1.12/1.11/1.08/1.01),
+  // neighbours unchanged at 1.05 — which is the calibrated norm, not 1.0:
+  // crestCeilM is a reference height and non-breaking water sits just over it.
+  //
+  // #drop=legacy restores the pre-fix term verbatim for the A/B. Uniform
+  // branch, not a mix, so each arm is exact (the #curl precedent above).
+  float yBendD = 0.35*crestCeilM(depQ, KsQ);
+  float dyD    = max(h - yBendD, 0.0);
+  float dropMag;
+  if (u_legacyDrop > 0.5) {
+    dropMag = mix(3.0, 0.28, connectedLook)
+            * pocket * plunge * hM * lipJit
+            * mix(1.0, 0.72 + 0.82*frontPhase, anatomy);
+  } else {
+    dropMag = clamp(mix(0.80, 0.075, connectedLook)
+                    * pocket * plunge * lipJit * frontPhase, 0.0, 0.85) * dyD;
+  }
+  if (!(dropMag == dropMag)) dropMag = 0.0;   // NaN guard (house rule)
   h -= dropMag * legacyLip;
 
   // ---- #curl: the lip overturns (2026-08-18, flag-gated, default OFF) ----
@@ -469,12 +552,10 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // bit-identical, and the bend is only the identity to within float rounding.
   // The branch is uniform, so the default path pays nothing for this.
   if (u_curl > 0.5) {
-  // Displayed crest height at this station, from the SAME depth-limited
-  // quantities the excess gate above already computed (KsQ, depQ) — no new
-  // authority. min(Hsh, gamma*h) is the height the water can carry; the
-  // sharpened crestShape puts ~0.8 of it above the mean, and VIS is the
-  // viewing exaggeration the rest of the geometry is drawn at.
-  float hCrest = clamp(0.8*VIS*min(u_H0*KsQ, GAMMA*depQ), 0.5, 14.0);
+  // Displayed crest height at this station — the depth-limited ceiling, shared
+  // with the crest-height instrument and with dropMag's bend line above
+  // (crestCeilM). No new authority: the same KsQ/depQ the excess gate uses.
+  float hCrest = crestCeilM(depQ, KsQ);
   // WHERE THE BEND STARTS. Below this the face is untouched, so it keeps
   // standing while the lip goes over it; above it the water curves forward.
   float yBend  = 0.35*hCrest;
@@ -549,8 +630,22 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // model-card day, the sizeAmp contract). breakMask: a section gap is line
   // transport, not a breaking crest — no aerated lip there. Early-out keeps
   // the texture fetches off the ~99% of vertices with no pocket.
-  float aerCurtain = smoothstep(0.80, 1.15, Sapp + Sover)
-                   * clamp(throwMag / max(1.2*hM, 0.5), 0.0, 1.0);
+  // THE CURTAIN KEY: how much of the lip has actually gone over. Which term
+  // answers that depends on which mechanism is drawing the lip, and the two
+  // contradicted each other until 2026-08-18. With #curl OFF the lip IS the
+  // throw, so the applied throw normalized by face height is the honest key.
+  // With #curl ON, throwMag is still computed but NEVER APPLIED (legacyLip = 0
+  // — the lip bends onto an arc instead), so keying on it painted an aerated
+  // curtain across water that has no lip in it. curl = theta/PI, the turns of
+  // overturn the bend actually performed, is the same quantity measured on the
+  // mechanism that is running; the bend already writes it (as vCurl) and this
+  // is what it was written for. Full white by half a turn: past 90 deg the lip
+  // is over and its underside is the aerated face. The 0.10 floor keeps the
+  // long spilling tail of the bend (a few degrees, out where bandZ is dying)
+  // from painting a standing white smear.
+  float lipKey = u_curl > 0.5 ? smoothstep(0.10, 0.50, curl)
+                              : clamp(throwMag / max(1.2*hM, 0.5), 0.0, 1.0);
+  float aerCurtain = smoothstep(0.80, 1.15, Sapp + Sover) * lipKey;
   float aerSpill   = 0.30 * pocket * (1.0 - plunge);
   aer = max(aerCurtain, aerSpill);
   if (aer > 0.003) {
