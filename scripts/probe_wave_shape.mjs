@@ -52,8 +52,13 @@ for (const c of PW_CANDIDATES) {
 if (!chromium) { console.error('playwright not found'); process.exit(1); }
 
 const args = process.argv.slice(2);
-const flags = Object.fromEntries(args.filter((a) => a.startsWith('--'))
-  .map((a) => a.replace(/^--/, '').split('=')));
+// Split on the FIRST '=' only: --hash=pitch=0 must keep its whole value, and a
+// plain .split('=') silently drops it (which reads as "the A/B arm did nothing"
+// rather than as a parse bug — MEASUREMENT_LESSONS 2).
+const flags = Object.fromEntries(args.filter((a) => a.startsWith('--')).map((a) => {
+  const body = a.replace(/^--/, ''), i = body.indexOf('=');
+  return i < 0 ? [body, '1'] : [body.slice(0, i), body.slice(i + 1)];
+}));
 const OUT = resolve(args.filter((a) => !a.startsWith('--'))[0] || '/tmp/pointbreak-shape');
 const BASE = flags.base || 'http://localhost:8210/web-three/';
 const PRESETS = (flags.presets || 'sewers,secondpeak,sharks,jacks').split(',');
@@ -364,11 +369,17 @@ void main(){
     const decay = 1 - 0.68 * brk;
     const shoreFade = mix(1, smoothstep(0, 1.6, waterDepthM(x, z) + lift), U.u_depthMix);
     let theta = w * tt - rayPhase(x, z);
-    const skew = mix(0, clamp(excess * 0.62, 0, 0.8), U.u_depthMix);
+    // Forward pitch. u_pitchOdd = 1 is the #pitch=0 A/B revert to the ODD map
+    // (and its q schedule), which is symmetric by construction — see the GLSL.
+    const pOdd = U.u_pitchOdd || 0;
+    const skew = mix(0, clamp(excess * mix(0.82, 0.62, pOdd), 0, 0.8), U.u_depthMix);
     const thetaRaw = theta;
-    theta -= skew * Math.sin(theta);
+    theta -= skew * mix(1 - Math.cos(theta), Math.sin(theta), pOdd);
+    // locus phase: crestNear/tSince read the CARRIER, not the shape (see GLSL)
+    const thetaL = mix(thetaRaw, theta, pOdd);
     const env = setEnv(rayS(x, z), tt);
-    const q = 1.6 + 3.2 * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * U.u_xi);
+    const q = mix(2.2, 1.6, pOdd)
+            + mix(1.5, 3.2, pOdd) * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * U.u_xi);
     const amp = 0.5 * Heff * grow * decay * env * shoreFade;
     let h = amp * crestShape(-theta, q) * 2;
     h += lift;
@@ -381,7 +392,7 @@ void main(){
        + chopG * 0.10 * (vnoise2(x * 0.31 - tt * 0.9, z * 1) - 0.5);
     // NOTE: the chop noise arg packing above is the one place a hand port can
     // drift from the GLSL vec2 form; it is tiny and the GPU leg is primary.
-    const crestNear = smoothstep(0.55, 0.98, Math.cos(theta));
+    const crestNear = smoothstep(0.55, 0.98, Math.cos(thetaL));
     const pockS = mix(1, clamp(U.u_H0 * shelterAt(x) / 1.5, 0.70, 1.50), U.u_depthMix * U.u_pockSize);
     const pocket = crestNear * mix(Math.exp(-(d * d) / (2 * (22 * pockS) ** 2)),
       Math.exp(-(d * d) / (2 * (7.5 * pockS) ** 2)), clamp(U.u_breakShape, 0, 1)) * env * env * reef;
@@ -620,47 +631,72 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + 
 // map, and crestShape is EVEN in its argument, so h is an even function of
 // theta about the crest for ANY s. The transform cannot produce front/back
 // asymmetry; it can only redistribute crest vs trough sharpness.
+//
+// 2026-08-18: the shipped map is now the EVEN theta -> theta - s*(1 - cos theta)
+// (#pitch=0 reverts to the odd one), so this block sweeps BOTH and prints them
+// side by side. That is the whole falsification in one table: the odd column's
+// front/back is 1.000000 everywhere, the even column's is not.
+//
+// FACE LABELLING. The index axis here is theta increasing, i.e. a TIME record
+// at a fixed gauge. A wave travelling shoreward presents its FRONT (shoreward)
+// face to the gauge first, so the front face is the RISE and the back face the
+// FALL: frontOverBack = max(rise) / max(fall). The pre-2026-08-18 version of
+// this block divided the other way; with an odd map the ratio is 1 either way,
+// so the mislabelling was invisible until the map became asymmetric.
 {
   const LAM = 90.0, k = 2 * Math.PI / LAM;
   const crestShape = (ph, q) => Math.pow(Math.max(0.5 + 0.5 * Math.cos(ph), 0), q) - 0.5 / q;
+  const MAPS = {
+    even: (th, s) => th - s * (1 - Math.cos(th)),   // shipped
+    odd: (th, s) => th - s * Math.sin(th),          // #pitch=0
+  };
   const N = 4096;
   const rows = [];
-  for (const s of [0, 0.2, 0.4, 0.6, 0.8, 1.0]) {
-    for (const q of [1.6, 2.5, 3.5, 4.56, 6.0]) {
-      const prof = new Float64Array(N);
-      for (let i = 0; i < N; i++) {
-        const th = 2 * Math.PI * 4 * i / N;               // 4 wavelengths
-        const thp = th - s * Math.sin(th);
-        prof[i] = crestShape(-thp, q) * 2;                // == h/amp
+  for (const map of Object.keys(MAPS)) {
+    for (const s of [0, 0.2, 0.4, 0.6, 0.8, 1.0]) {
+      for (const q of [1.6, 2.5, 3.5, 4.56, 6.0]) {
+        const prof = new Float64Array(N);
+        for (let i = 0; i < N; i++) {
+          const th = 2 * Math.PI * 4 * i / N;               // 4 wavelengths
+          prof[i] = crestShape(-MAPS[map](th, s), q) * 2;   // == h/amp
+        }
+        // slope in units of amp*k: dz between samples is (4*2PI/N)/k
+        const dz = (4 * 2 * Math.PI / N) / k;
+        let rise = 0, fall = 0;
+        for (let i = 1; i < N; i++) {
+          const sl = (prof[i] - prof[i - 1]) / dz;
+          if (sl > 0 && sl > rise) rise = sl;
+          if (sl < 0 && -sl > fall) fall = -sl;
+        }
+        const st = shapeStats(Array.from(prof));
+        rows.push({
+          map, s, q,
+          slopePerAmpK: +(Math.max(rise, fall) / k).toFixed(4),  // max|dh/dz|/(amp*k)
+          frontSlopePerAmpK: +(rise / k).toFixed(4),
+          frontOverBack: +(rise / Math.max(fall, 1e-9)).toFixed(4),
+          Sk: +st.Sk.toFixed(3), As: +st.As.toFixed(4),
+          psiDeg: +(Math.atan2(st.As, st.Sk) * 180 / Math.PI).toFixed(1),
+          crestOverTroughAmp: +((Math.max(...prof)) / Math.abs(Math.min(...prof))).toFixed(3),
+        });
       }
-      // slope in units of amp*k: dz between samples is (4*2PI/N)/k
-      const dz = (4 * 2 * Math.PI / N) / k;
-      let mxF = 0, mxB = 0;
-      for (let i = 1; i < N; i++) {
-        const sl = (prof[i] - prof[i - 1]) / dz;
-        if (sl < 0 && -sl > mxF) mxF = -sl;
-        if (sl > 0 && sl > mxB) mxB = sl;
-      }
-      const st = shapeStats(Array.from(prof));
-      rows.push({
-        s, q, slopePerAmpK: +(mxF / k).toFixed(4),        // dh/dz / (amp*k)
-        frontOverBack: +(mxF / Math.max(mxB, 1e-9)).toFixed(4),
-        Sk: +st.Sk.toFixed(3), As: +st.As.toFixed(4),
-        crestOverTroughAmp: +((Math.max(...prof)) / Math.abs(Math.min(...prof))).toFixed(3),
-      });
     }
   }
   writeFileSync(join(OUT, 'representation_limit.json'), JSON.stringify({
-    note: 'h/amp = 2*crestShape(-(theta - s*sin theta), q); theta linear in z, k = 2PI/90.',
-    ranges: 'shipped skew = clamp(excess*0.62, 0, 0.8); shipped q = 1.6 + 3.2*exp(-|d|/55)*(0.6+0.5*xi)',
+    note: 'h/amp = 2*crestShape(-map(theta, s), q); theta linear, k = 2PI/90. '
+      + 'Index axis is theta increasing = a TIME record, so front face = rise.',
+    maps: { even: 'theta - s*(1 - cos theta)  [shipped 2026-08-18]',
+      odd: 'theta - s*sin theta  [#pitch=0; front/back == 1 for every (s,q)]' },
+    ranges: 'skew = clamp(excess*0.82, 0, 0.8) [odd: 0.62]; '
+      + 'q = 2.2 + 1.5*exp(-|d|/55)*(0.6+0.5*xi) [odd: 1.6 + 3.2*...]',
     rows,
   }, null, 1));
   console.log('\n[representation limit] h/amp profile, LAM = 90 m');
-  console.log('    s     q   max|dh/dz|/(amp*k)   front/back    Sk       As');
+  console.log('   map    s     q   max|dh/dz|/(amp*k)  front/(amp*k)  front/back    Sk       As     psi');
   for (const r of rows) {
-    console.log(`  ${String(r.s).padStart(3)} ${String(r.q).padStart(5)} ` +
-      `${String(r.slopePerAmpK).padStart(18)} ${String(r.frontOverBack).padStart(12)} ` +
-      `${String(r.Sk).padStart(7)} ${String(r.As).padStart(8)}`);
+    console.log(`  ${r.map.padStart(4)} ${String(r.s).padStart(3)} ${String(r.q).padStart(5)} ` +
+      `${String(r.slopePerAmpK).padStart(18)} ${String(r.frontSlopePerAmpK).padStart(14)} ` +
+      `${String(r.frontOverBack).padStart(11)} ` +
+      `${String(r.Sk).padStart(7)} ${String(r.As).padStart(8)} ${String(r.psiDeg).padStart(7)}`);
   }
 }
 
@@ -668,11 +704,18 @@ const summary = [];
 for (const preset of PRESETS) {
   for (const sim of SIMS) {
     await page.goto('about:blank');
-    await page.goto(`${BASE}#preset=${preset}&cam=drone&controls=0&q=high&speed=0&sim=${sim}${flags.look ? "&look=" + flags.look : ""}`,
+    // --hash= appends arbitrary extra hash params, so an A/B arm (#pitch=0,
+    // #cg=0, ...) can be measured with the same instrument in one build.
+    const extra = (flags.look ? `&look=${flags.look}` : '')
+      + (flags.hash ? `&${flags.hash.replace(/^[#&]/, '')}` : '');
+    await page.goto(`${BASE}#preset=${preset}&cam=drone&controls=0&q=high&speed=0&sim=${sim}${extra}`,
       { waitUntil: 'load' });
     await page.waitForTimeout(2800);
     const res = await page.evaluate(probeInPage, {});
     if (Math.abs(res.t0 - sim) > 1e-6) throw new Error(`clock mismatch ${res.t0} != ${sim}`);
+    // An A/B arm that silently fails to arm reads as "the change did nothing".
+    if (/(^|&)pitch=0(&|$)/.test(flags.hash || '') && res.U.u_pitchOdd !== 1)
+      throw new Error(`--hash asked for pitch=0 but u_pitchOdd = ${res.U.u_pitchOdd}`);
     if (!res.prov.modelInVert || !res.prov.sliceFound || !res.prov.sliceHasChoppyPos)
       throw new Error('GLSL provenance assertion failed: ' + JSON.stringify(res.prov));
     // A silently-failed probe shader reads back as a constant, which would look
@@ -711,6 +754,10 @@ for (const preset of PRESETS) {
       return {
         d: g.d, z: +g.z.toFixed(1), depth: +depth.toFixed(2),
         Sk: +st.Sk.toFixed(3), As: +st.As.toFixed(3), nWaves: st.n,
+        // Ruessink+12 biphase psi = atan2(As, Sk) and total nonlinearity
+        // B = hypot(Sk, As). Inner-surf-zone median psi ~ -59 deg.
+        psiDeg: +(Math.atan2(st.As, st.Sk) * 180 / Math.PI).toFixed(1),
+        B: +Math.hypot(st.Sk, st.As).toFixed(3),
         SkRange: +st.SkRange.toFixed(3), AsRange: +st.AsRange.toFixed(3),
         SkWhole: +stWhole.Sk.toFixed(3), AsWhole: +stWhole.As.toFixed(3),
         Hdisp: +H.toFixed(2), Hphys: +Hphys.toFixed(3),
@@ -955,6 +1002,7 @@ for (const preset of PRESETS) {
       phiDeg: +res.phiDeg.toFixed(2), zbAtXg: +res.zbAtXg.toFixed(1), xg: res.xg,
       depthMix: res.U.u_depthMix, breakShape: res.U.u_breakShape,
       psiMix: res.U.u_psiMix, breakMix: res.U.u_breakMix, fidelityLook: res.U.u_fidelityLook,
+      pitchOdd: res.U.u_pitchOdd,
       prov: res.prov, agree, sect: res.sect, terms: res.terms,
       gaugeStats, crestStats, spatialShape, spaceStats, shaderErr: res.shaderErr,
     };
@@ -971,10 +1019,11 @@ for (const preset of PRESETS) {
       `max ${agree.max.toExponential(2)} m over h in [${agree.rangeGPU[0].toFixed(2)}, ${agree.rangeGPU[1].toFixed(2)}]`);
     if (res.sect) console.log(`  section-view break depth ${JSON.stringify(res.sect.sectionCross)} ` +
       `vs probe ${JSON.stringify(res.sect.probeCross)}`);
-    console.log('    d    depth    Sk     As   (SkW   AsW)   H/h   Ur(HL2/h3)  Hdisp  c/t   brk');
+    console.log('    d    depth    Sk     As    psi      B   (SkW   AsW)   H/h   Ur(HL2/h3)  Hdisp  c/t   brk');
     for (const g of gaugeStats) {
       console.log(`${String(g.d).padStart(6)} ${String(g.depth).padStart(7)} ` +
-        `${String(g.Sk).padStart(6)} ${String(g.As).padStart(6)}  ` +
+        `${String(g.Sk).padStart(6)} ${String(g.As).padStart(6)} ` +
+        `${String(g.psiDeg).padStart(6)} ${String(g.B).padStart(6)}  ` +
         `${String(g.SkWhole).padStart(6)} ${String(g.AsWhole).padStart(6)}  ` +
         `${String(g.HoverH).padStart(6)} ${String(g.UrsellHL).padStart(9)} ` +
         `${String(g.Hdisp).padStart(7)} ${String(g.crestOverTrough).padStart(6)} ${String(g.brk).padStart(6)}`);

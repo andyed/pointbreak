@@ -168,9 +168,24 @@ and both vehicles bind it as `u_bed`.
   the code took a `max` until §2.3 corrected it.) A fully emergent break line — α as a
   consequence of contour-vs-swell geometry — is the obvious next step and is
   deliberately not taken here.
-- **Forward pitch.** Phase is skewed by `sin θ` in proportion to how far past
-  the breaking limit the wave is, so the shoreward face steepens. Symmetric
-  crests were most of what read as "moving bump" rather than "wave".
+- **Forward pitch.** The wave leans into its break: the shoreward face steepens
+  in proportion to how far past the breaking limit the water is. The mechanism
+  is a phase map `θ → θ′`, and it has one structural requirement. `crestShape()`
+  depends on its argument only through `cos`, so it is **even**; an even
+  function composed with an **odd** map is still even about the crest, so the
+  map must itself be **even** or it pitches nothing at all. The shipped form is
+      `θ′ = θ − s·(1 − cos θ)`,  `s = clamp(excess·0.82, 0, 0.8)`
+  which vanishes at the crest (θ = 0 stays the crest, so the pocket and foam
+  clocks downstream keep their meaning) and satisfies `θ′(θ+2π) = θ′(θ)+2π`, so
+  the field stays periodic. The 0.8 clamp is a hard guard, not taste:
+  `dθ′/dθ = 1 − s·sin θ`, so `s = 1` is a vertical face and `s > 1` makes the
+  map non-monotonic — the height field itself would go multivalued.
+  Crest peakedness `q` is a separate knob and was re-flattened with the fix
+  (`2.2 + 1.5·e^(−|d|/55)·(0.6 + 0.5ξ)`); see the acceptance numbers in §2.2a.
+  The skew transforms the *shape* of `h` only: the crest's **locus** — `tSince`
+  and the `crestNear` window that sets the pocket footprint — reads the
+  unskewed carrier phase, per §4.5's one-owner rule. `#pitch=0` reverts the map,
+  the `q` schedule and that separation together, so the A/B is exact.
 - **The shore is a consequence.** The mesh takes `max(bed, water)`, so the
   waterline is wherever depth crosses zero and the beach/cliff is data, not a
   backdrop card. Cameras derive the cliff top from the same field (~11 m at
@@ -201,6 +216,140 @@ to supply.
 This supersedes §5's "swash/backwash … texture, not structure" only for the
 static shoreline; currents and backwash remain out of scope. §5's rejection of
 a *shallow-water solver* stands — nothing here integrates a fluid.
+
+**Correction, 2026-08-18 — the forward-pitch bullet described behaviour the
+code never had.** From 2026-08-10 to 2026-08-18 the term shipped as
+
+    theta -= skew*sin(theta);          // skew = clamp(excess*0.62, 0, 0.8)
+
+and this section claimed it steepened the shoreward face. It did not, and could
+not, for any value of `skew`. `crestShape(p, q) = pow(0.5 + 0.5·cos p, q) − 0.5/q`
+sees its argument only through `cos`, so it is an **even** function of it;
+`s·sin θ` is an **odd** map; and an even function of an odd map is still even
+about the crest. The drawn wave was therefore *exactly* fore-aft symmetric —
+**front/back max-slope ratio 1.000000 and As −0.0001 over a 30-cell (s, q) sweep
+covering the entire reachable range**, not a small deficit but an identity. The
+claim was never measured until `scripts/probe_wave_shape.mjs` was written for
+this purpose; it survived eight days because a symmetric wave with a *broadened
+crest* looks changed, and the term did broaden the crest.
+
+That broadening was the second half of the harm. The odd map spent its whole
+budget redistributing crest against trough in the wrong direction, removing
+**Sk 0.66–0.82** at the shipped `q` — the model's own "rounded dune" complaint,
+caused by the term meant to fix it.
+
+**The term was not inert, and that is the part that nearly cost the fix.** Its
+phase derivative is `1 − s·cos θ`, which *at the crest* is `1 − s ≈ 0.4`: phase
+crawled there, so the `crestNear` window — nominally ±56.6° of carrier phase —
+actually spanned **±91°**. The pocket bell, and through it the fold's `S_over`,
+the lip throw and the `#lip` aeration mask, was calibrated on top of that 1.6×
+dilation. So a crest's *locus* and a crest's *shape* were two quantities sharing
+one variable: §4.5's defect class exactly. `tSince` and `crestNear` now read the
+carrier phase, which is the principled reading and **shrinks the pocket
+footprint** (measured area ×0.19–0.63 across the bank, median ≈0.56).
+
+That shrink is recorded, not compensated. Its visible cost is real and one-sided:
+at the **drone hero state and at the spilling site the read is unchanged to
+slightly crisper**, but in the **low profile view at Sewers — the most plunging
+spot, and the one already saturating the 20 m displacement clamp — the tube is
+markedly reduced**. If the footprint should be restored, the place to do it is
+the `0.55 / 0.98` `crestNear` thresholds, which were fitted while the phase
+feeding them was dilated; that is `#pock`/`#lip` calibration and was deliberately
+left alone here.
+
+Four method notes, in the spirit of `research/MEASUREMENT_LESSONS.md`:
+
+1. **A term that is present is not a term that works.** The line existed, was
+   scheduled off a physical quantity (`excess`), was clamped, and was commented.
+   None of that is evidence, and reading the code for intent found the intent,
+   not the identity.
+2. **Parity is checkable in one line and was never checked.** The falsification
+   needs no renderer and no bathymetry: compose the two functions and look at
+   the symmetry. `tests/forward-pitch.test.js` now pins it.
+3. **Numbers passed while the picture failed.** Every statistic in §2.2a
+   improved on the first landing, and the profile capture at the plunging spot
+   was visibly worse. The gauge statistics could not see the pocket coupling
+   because they measure `η(t)` at a point, and the pocket is a *footprint*. A
+   probe answers the question it was built for and no other.
+4. **The instrument's own labels needed calibrating first.** The probe's
+   Hilbert-based `As` was calibrated on a synthetic fast-rise/slow-fall sawtooth
+   (`instrument_calibration.json`, As = −1.186) rather than on a published sign
+   convention, because the conventions in the literature disagree. Negative As =
+   pitched forward, in this repo, by that calibration.
+
+#### 2.2a Shape acceptance: Sk, As and the biphase (2026-08-18)
+
+§2.2's forward pitch and the crest exponent `q` are the two knobs that own wave
+*shape*, so this is where shape claims are measured. The statistics are the
+standard ones for a shoaling wave, on the surface time series a fixed gauge
+would record: skewness `Sk = ⟨η³⟩/⟨η²⟩^1.5` (peaked crests over flat troughs),
+asymmetry `As = ⟨H[η]³⟩/⟨η²⟩^1.5` via the Hilbert transform (the pitched-forward
+face), total nonlinearity `B = √(Sk² + As²)` and the **biphase
+`ψ = atan2(As, Sk)`**, which is the one number that says *which kind* of
+nonlinearity the wave has: ψ ≈ 0 is pure skewness (a shoaling swell), ψ → −90°
+is pure asymmetry (a sawtooth bore). Targets are Ruessink et al. (2012)
+evaluated at each gauge's own local Ursell number, which is the parameterisation
+the field data supports; Elgar & Guza (1985) bracket the extremes at
+As −0.92/−1.24.
+
+Measured on the shipped `MODEL_GLSL` compiled against live uniforms
+(`probe_wave_shape.mjs`, drone rig, sims 42/48/54), at the break line at Second
+Peak (medians over the three clocks):
+
+| | Sk | As | ψ | B | front/back |
+|---|---|---|---|---|---|
+| `#pitch=0` (the odd map) | 0.28 | **+0.12** | **+24°** | 0.31 | **0.96** |
+| shipped | 0.24 | **−0.70** | **−71°** | 0.74 | **2.3** |
+| Ruessink+12 at that Ursell | 0.28 | −0.72 | −69° | 0.775 | — |
+
+Across the four measured spots the front/back face ratio near the line goes
+**0.77–1.05 → 2.2–2.5**. Note that the live field does not read exactly
+1.000000 on the odd map the way the bare height path does — chop, the boil, the
+bore band and the setup lift sit on top of the carrier — but it carries no
+*systematic* lean, which is the claim being tested. The face angle a protractor
+reads on a still (crest to half wave height, raw height field, displayed
+through `VIS = 3.2`): Sewers 15.0° → 22.1°, Second Peak 10.4° → 16.9°, Sharks
+8.0° → 13.6°, Jack's 6.0° → 11.8°.
+
+`#pitch=0` reproduces the pre-correction build **exactly**: 720 gauge
+statistics across four spots × three clocks match to 0.000000.
+
+`s` and `q` were tuned **as a pair**, not separately, and that is the whole
+subtlety: at the break line the old `Sk` already sat on its Ruessink target *by
+coincidence*, so any change that only maximises the pitch overshoots `Sk` while
+fixing `As`. Raising `s` alone (even map, shipped `q`) lands `As` −0.80 and
+ψ −59° but leaves `Sk` at 0.49, 1.7× its target. Flattening the `q` schedule
+from `1.6 + 3.2·e^(−|d|/55)` to `2.2 + 1.5·e^(−|d|/55)` puts both on target and
+also repairs an unrelated deficit this measurement exposed: offshore the old
+schedule left `q ≈ 1.8`, a near-sinusoid with `Sk ≈ 0.25` against a target of
+0.52. Weighted mean-square (Sk, As) error against the R12 targets over 44
+gauges: **0.398 shipped odd → 0.161 map-only → 0.021 retuned.**
+
+What remains unclaimed, stated so it is not rediscovered as a surprise: the
+physical face angle is still far below a real breaking wave. The steepest point
+of the front face at the line is **6.8–9.9° physical** (20.9–29.2° displayed),
+up from 4.3–8.9°, against Carini et al. (2021)'s 22° spilling / 30° plunging at
+breaking onset. The face is 30–75% steeper than before the correction and still
+2–4× too gentle; closing the rest needs the frozen 90 m wavelength (§2.6,
+`u_psiMix` — the wave never shortens as it shoals) and the 20 m displacement
+clamp, **not** more skew: `s` already sits at its monotonicity ceiling of 0.8 at
+the line, and the ceiling is structural.
+
+Wave height `H` is untouched by the `q` change — the crest sits 3% lower above
+the mean and the trough 3% deeper, and `H = 2·amp` either way — but the crest's
+*height above still water* does drop by that 3%.
+
+**Interaction with the fold (`choppyPos`), measured not assumed.** The vertex
+stage displaces horizontally by `lam·grad`, and `grad` is the height gradient
+this section just steepened on one side, so the convergence is now asymmetric
+too. Near the line: peak offset 12.1–12.3 m → 14.3–15.5 m at Second Peak /
+Sharks / Jack's, still clear of the 20 m clamp (clamped fraction 0.000 on both
+arms); Sewers already saturated the clamp and its clamped fraction fell slightly
+(0.089 → 0.076). Folded arc length went 10.6 → 7.2 m at Sewers and 4.4–5.6 →
+6.2–6.8 m at the other three. The **barrel opening rose everywhere**, 0.50–0.75
+→ 0.73–0.93 of the wave height: the lip now encloses more volume, because the
+face it is thrown over is concave sooner. Nothing in `choppyPos` was changed to
+achieve that.
 
 ### 2.3 The swell gets a direction (2026-08-10)
 

@@ -174,7 +174,15 @@ export function oceanH(x, z, t, P) {
   // the shader (2026-08-13 group-speed unification).
   const theta = w * t - rayPhase(x, z, P);
   const env   = setEnv(s, t, P), env2 = env * env;
-  const q     = 1.6 + 3.2 * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * P.xi);
+  // MODEL-TWIN of the GLSL q schedule (flattened 2026-08-18 with the forward-
+  // pitch correction; P.pitchOdd mirrors u_pitchOdd for the #pitch=0 A/B).
+  // The pitch term itself has no twin here BY CONSTRUCTION: `skew` is
+  // mix(0, ..., u_depthMix) and this twin is the synthetic depthMix = 0 path
+  // (no excess, no lift, no shoreFade), so skew is identically zero. If a depth
+  // path is ever added here, the EVEN map has to come with it — see the GLSL
+  // comment for why an odd one is symmetric no matter what it is scaled by.
+  const q     = (P.pitchOdd ? 1.6 : 2.2)
+              + (P.pitchOdd ? 3.2 : 1.5) * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * P.xi);
   const amp   = 0.5 * P.H0 * grow * decay * env;
   let h = amp * crestShape(-theta, q) * 2;
 

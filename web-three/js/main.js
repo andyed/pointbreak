@@ -210,6 +210,10 @@ const uniforms = {
   u_cgLegacy:   { value: 0 },  // 6a group-speed A/B; #cg=0 re-arms the retired 0.5*LAM/T envelope speed
   u_crestRead:  { value: 1 },  // Track 5 crest-first read (face darkening + fresh core); #crest=0 reverts
   u_kelpDark:   { value: 1 },  // kelp wedge dark over the reef (NAIP polarity); #kelp=0 reverts
+  // Forward pitch: the EVEN phase-skew map + its retuned q schedule (the
+  // 2026-08-10 odd map was fore-aft symmetric by construction). #pitch=0
+  // re-arms the odd form AND its q schedule together, so the A/B is exact.
+  u_pitchOdd:   { value: 0 },
   // Field-video fidelity probe: 0 shipped/current, 1 foam material only,
   // 2 foam + per-wave hierarchy + tightened face/lip. #look= names the A/B.
   u_fidelityLook: { value: 0 },
@@ -378,6 +382,9 @@ function modelP() {
     phaseFn: psiPhaseFn,
     // 6a group-speed A/B (#cg=0): keeps the twins on the shader's envelope.
     cgLegacy: uniforms.u_cgLegacy.value > 0.5,
+    // Forward-pitch A/B (#pitch=0): the twin has no skew (depthMix = 0 path)
+    // but DOES carry the q schedule, so it has to revert with the shader.
+    pitchOdd: uniforms.u_pitchOdd.value > 0.5,
     // Set-envelope anchor: the uniforms are the one source (updated in the
     // frame sync below), so twin heights and GPU foam agree about when the
     // set is on the line. See model-js setEnv.
@@ -1611,6 +1618,10 @@ function applyHashParams() {
   // kelp dark-wedge polarity (Track 1b) defaults ON; #kelp=0 is the pre-fix
   // A/B (bright sand lanes over the reef tongue)
   if (h.get('kelp') === '0') uniforms.u_kelpDark.value = 0;
+  // forward pitch (the EVEN skew map + retuned q) defaults ON — it restores
+  // documented intent the 2026-08-10 odd map never delivered; #pitch=0 re-arms
+  // the odd map and its q schedule together for the exact A/B
+  if (h.get('pitch') === '0') uniforms.u_pitchOdd.value = 1;
   uniforms.u_fidelityLook.value = parseFidelityLook(h.get('look'));
   // world-collision clamp defaults ON; #noclip=1 restores x-ray debugging
   if (h.get('noclip') === '1') noclipEnabled = true;

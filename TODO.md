@@ -92,6 +92,46 @@ kept in full as the record; blockers are marked here.
       (paywalled, never opened — its fitted relations are UNVERIFIED here);
       Ursell has three incompatible conventions, both forms are in
       `stats_gauges.csv`.
+  - [x] **PITCH LANDED 2026-08-18, `#pitch=0` reverts, DEFAULT ON — Andy still
+        owes it a live verdict.** The map is now the EVEN
+        `theta -= skew*(1 - cos theta)` with `skew = clamp(excess*0.82, 0, 0.8)`
+        and a flattened `q = 2.2 + 1.5*exp(-|d|/55)*(0.6 + 0.5*xi)`
+        (`shared/model-glsl.js`; the JS twin `model-js.js` carries the q half —
+        it has no depth path, so it has no skew to carry). The defect was
+        re-confirmed with a fresh probe run BEFORE the change: front/back
+        **1.000000** for the odd map in every one of 30 (s, q) cells. Measured
+        after, at the break line (secondpeak, drone, sims 42/48/54):
+        **As +0.12 → −0.70** (Ruessink+12 target −0.72), **ψ +24° → −71°**
+        (R12 −69°; inner-surf median −59°), **B 0.31 → 0.74** (R12 0.775),
+        **front/back 0.96 → 2.3** (2.2–2.5 across the bank), with Sk 0.28 → 0.24
+        (R12 0.28). Weighted
+        mean-square (Sk, As) error over 44 gauges **0.398 → 0.021**. s and q
+        were tuned as a PAIR: raising s alone fixes As and overshoots Sk 1.7×,
+        because the old Sk sat on its target by coincidence. Guard test
+        `tests/forward-pitch.test.js` pins the parity, the monotonicity ceiling
+        (s < 1, or the height field itself goes multivalued) and the pow()
+        trough. Docs: MODEL.md §2.2 bullet rewritten and the falsification
+        recorded; new §2.2a owns the shape acceptance numbers; CONTROLS.md row.
+        A/B rig `scripts/capture_pitch_ab.mjs`. **NOT closed by this**: the
+        physical face is still 9–10° against Carini+21's 22–30°, and the next
+        levers are the frozen 90 m wavelength (`u_psiMix`) and the 20 m
+        displacement clamp, not more skew — s is already at its 0.8 ceiling at
+        the line. Also open, and now measurable: ξ's authority over crest
+        peakedness halved with the flatter q schedule (spread 1.11 → 0.52
+        across the bank), so if ξ should still own "barrel-ness" it has to own
+        it through `plunge` and the fold, not through q.
+        **THE ONE THING THAT GOT WORSE, and the reason the live verdict
+        matters:** the odd map's phase crawled at the crest, so the `crestNear`
+        window spanned ±91° of carrier phase instead of its nominal ±56.6°, and
+        the pocket bell — with the fold's `S_over`, the lip throw and the `#lip`
+        mask on top of it — was calibrated on that 1.6× dilation. `tSince` and
+        `crestNear` now read the unskewed carrier phase (shape vs locus, §4.5),
+        which is principled and shrinks the pocket footprint ×0.19–0.63. Drone
+        hero and the spilling site read unchanged-to-crisper; **the low profile
+        view at Sewers loses much of its tube**. Not compensated here on
+        purpose: restoring the footprint means re-deriving the 0.55/0.98
+        `crestNear` thresholds, which is `#pock`/`#lip` calibration and collides
+        with the concurrent `#curl` work.
 - [ ] Hero read FAILED 2026-08-14, partially recovered since (#head comet
       gradient, #pock pocket scaling; `#look=current|foam|full` fidelity probe
       2026-08-15). Default stays `current` pending a live verdict. Open

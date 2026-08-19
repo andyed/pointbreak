@@ -257,14 +257,20 @@ function probeInPage(step) {
     const brk = inside * brkW;
 
     let theta = w * tt - rayPhase(x, z);
-    const skew = mix(0, clamp(excess * 0.62, 0, 0.8), U.u_depthMix);
-    theta -= skew * Math.sin(theta);
+    // Forward pitch: EVEN map (2026-08-18); u_pitchOdd = 1 is the #pitch=0 revert.
+    const pOdd = U.u_pitchOdd || 0;
+    const skew = mix(0, clamp(excess * mix(0.82, 0.62, pOdd), 0, 0.8), U.u_depthMix);
+    const thetaC = theta;
+    theta -= skew * mix(1 - Math.cos(theta), Math.sin(theta), pOdd);
+    // The foam terms below want the crest LOCUS, which is the carrier phase;
+    // #pitch=0 restores the old conflation with the shape-skewed phase.
+    const thetaL = mix(thetaC, theta, pOdd);
     const env = setEnv(rayS(x, z), tt);
     const env2 = env * env;
-    const tSince = crestClockS(modG(theta, 2 * PI) / w);
+    const tSince = crestClockS(modG(thetaL, 2 * PI) / w);
     const tau = Math.max(U.u_tau, 0.5);
 
-    const crestNear = smoothstep(0.55, 0.98, Math.cos(theta));
+    const crestNear = smoothstep(0.55, 0.98, Math.cos(thetaL));
     const pockS = mix(1, clamp(U.u_H0 * shelterAt(x) / 1.5, 0.70, 1.50),
       U.u_depthMix * U.u_pockSize);
     const shape = clamp(U.u_breakShape, 0, 1);

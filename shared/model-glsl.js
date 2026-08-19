@@ -60,6 +60,8 @@ uniform float u_gapMask;    // 1 = honor baked section gaps, 0 = #gap=0 A/B reve
 uniform float u_headRead;   // 1 = comet-head whitewater aging, 0 = #head=0 A/B revert
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
 uniform float u_stripeLife; // 1 = per-stripe along-crest lifecycle clock (#slife=1), default 0
+uniform float u_pitchOdd;   // 1 = #pitch=0 A/B revert: the pre-2026-08-18 ODD skew map
+                            // (and its q schedule), which cannot pitch at all. 0 = shipped.
 uniform vec2 u_breakX;      // x range the texture spans
 uniform vec2 u_breakZ;      // decode window for z
 // Rider solved CPU-side against the same baked line and passed in: with an
@@ -882,16 +884,61 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // spacing between those lines compresses with the depth (M6 part 3) instead
   // of staying frozen at LAM.
   float theta  = w*t - rayPhase(xz);
-  // ---- forward pitch ----
-  // Real shoaling waves are asymmetric: steep front face, gentle back. Skewing
-  // the phase by sin(theta) steepens the shoreward face, scaled by how close
-  // this water is to breaking. Symmetric crests are most of what reads as
-  // "moving bump" instead of "wave about to break".
-  float skew   = mix(0.0, clamp(excess*0.62, 0.0, 0.8), u_depthMix);
-  theta       -= skew*sin(theta);
+  // ---- forward pitch (corrected 2026-08-18; the shipped term pitched nothing) ----
+  // Real shoaling waves are asymmetric: steep front face, gentle back. The
+  // mechanism is a phase map theta -> theta', and it has ONE structural
+  // requirement, which the 2026-08-10 implementation missed for eight days:
+  //
+  //   crestShape() depends on theta only through cos(theta), so it is EVEN in
+  //   its argument. Compose an even function with an ODD map and the result is
+  //   still even about the crest. "theta -= skew*sin(theta)" is odd, so h was
+  //   EXACTLY fore-aft symmetric for every value of skew — measured front/back
+  //   max-slope ratio 1.000000 and As -0.0001 over the whole reachable (s,q)
+  //   plane (probe_wave_shape.mjs, representation_limit.json). Worse, the odd
+  //   map spends its whole budget broadening the crest and narrowing the
+  //   trough: it removed Sk 0.66-0.82, which IS the "rounded dune" read.
+  //
+  //   "1 - cos(theta)" is EVEN, vanishes at the crest (so theta = 0 stays the
+  //   crest and tSince/crestNear below keep their meaning), and satisfies
+  //   theta'(theta + 2pi) = theta'(theta) + 2pi, so the field stays periodic.
+  //
+  // The 0.8 clamp is a hard guard, not taste: dtheta'/dtheta = 1 - s*sin(theta),
+  // so s = 1 is a vertical face and s > 1 makes the map non-monotonic — h would
+  // go MULTIVALUED in the height field itself, not merely folded in choppyPos.
+  //
+  // s and q were retuned together against Ruessink et al. (2012) Sk/As at the
+  // local Ursell number (the audit's own per-gauge targets, stats_gauges.csv).
+  // Raising s alone fixes As and overshoots Sk 1.7x; flattening the q schedule
+  // (2.2 + 1.5*... instead of 1.6 + 3.2*...) puts BOTH on target and also
+  // repairs the offshore Sk deficit, where the old schedule left q ~ 1.8 and a
+  // near-sinusoid. Weighted mean-square (Sk, As) error vs R12 over 44 gauges:
+  // 0.398 shipped -> 0.161 map-only -> 0.021 retuned.
+  //
+  // SHAPE vs LOCUS (MODEL.md 4.5's rule, applied). The skew is a transform on
+  // the SHAPE of h. The crest's LOCUS — where and when a crest is here — is the
+  // carrier phase, and tSince and crestNear below want the locus, not the
+  // shape. The odd map conflated them, and not harmlessly: its
+  // dtheta'/dtheta = 1 - s*cos(theta) is 1 - s = 0.4 AT THE CREST, so phase
+  // crawled there and the crestNear window, nominally +-56.6 deg of carrier
+  // phase, actually spanned +-91 deg. The pocket bell — and through it the
+  // fold's S_over, the lip throw and the #lip aeration mask — was calibrated on
+  // top of that 1.6x dilation. Reading the carrier phase here removes the
+  // dilation, so the pocket FOOTPRINT shrinks (measured area x0.19-0.63 across
+  // the bank). That is a real, visible consequence, recorded in MODEL.md 2.2a
+  // rather than compensated for here: the place to restore the footprint, if it
+  // should be restored, is the 0.55/0.98 crestNear thresholds, which belong to
+  // the #pock/#lip calibration and not to this fix.
+  // #pitch=0 restores the conflation too, so the A/B stays bit-exact.
+  float thetaC = theta;                       // carrier phase = the crest locus
+  float skewGain = mix(0.82, 0.62, u_pitchOdd);
+  float skew   = mix(0.0, clamp(excess*skewGain, 0.0, 0.8), u_depthMix);
+  theta       -= skew*mix(1.0 - cos(theta), sin(theta), u_pitchOdd);
+  float thetaL = mix(thetaC, theta, u_pitchOdd);   // locus phase
   float env    = setEnv(rayS(xz), t);
   float env2   = env*env;                  // lulls really disappear
-  float q      = 1.6 + 3.2*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
+  float qBase  = mix(2.2, 1.6, u_pitchOdd);
+  float qGain  = mix(1.5, 3.2, u_pitchOdd);
+  float q      = qBase + qGain*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
   float amp    = 0.5*Heff * grow * decay * env * shoreFade;
   float h      = amp * crestShape(-theta, q) * 2.0;
 
@@ -915,16 +962,20 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   h += chopG * 0.22 * (vnoise2(xz*0.11 + vec2(0.0, t*0.6)) - 0.5)
      + chopG * 0.10 * (vnoise2(xz*0.31 - vec2(t*0.9, 0.0)) - 0.5);
 
-  // time since last crest passed this point, ramped across the wrap so no
-  // foam term keyed to it draws a hard crest-line seam (see crestClockS)
-  float tSince = crestClockS(mod(theta, 2.0*PI)/w);
+  // Time since last crest passed this point. Two corrections compose here:
+  // the clock reads the UNSKEWED carrier phase thetaL (LOCUS, not shape — a
+  // skewed phase moves where the clock thinks the crest is, which is what
+  // dilated the crestNear window 1.6x; see thetaL), and it is ramped across
+  // the wrap so no foam term keyed to it draws a hard crest-line seam
+  // (see crestClockS).
+  float tSince = crestClockS(mod(thetaL, 2.0*PI)/w);
   float tau = max(u_tau, 0.5);
 
   // pocket: crest currently crossing the break line — the zipper's locus.
   // The legacy 22 m bell reads as a raised ridge from the cliff. Structural
   // mode contracts it to a few posts so the face/lip transition has a visible
   // hinge rather than a broad cosmetic glow.
-  float crestNear = smoothstep(0.55, 0.98, cos(theta));
+  float crestNear = smoothstep(0.55, 0.98, cos(thetaL));
   // CURL FOOTPRINT ~ SIZE (2026-08-14, #pock=0 A/B): SIZE_AUDIT scaled the
   // crash's BRIGHTNESS with sheltered height but the pocket's spatial extent
   // stayed a constant bell, so from altitude a 2.5 m day carried the same

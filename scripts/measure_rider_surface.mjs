@@ -274,11 +274,17 @@ function probeInPage() {
     const decay = 1 - 0.68 * brk;
     const shoreFade = mix(1, smoothstep(0, 1.6, waterDepthM(x, z) + lift), U.u_depthMix);
     let theta = w * tt - rayPhase(x, z);
-    const skew = mix(0, clamp(excess * 0.62, 0, 0.8), U.u_depthMix);
-    theta -= skew * Math.sin(theta);
+    // Forward pitch: EVEN map + retuned q (2026-08-18). u_pitchOdd = 1 is the
+    // #pitch=0 revert to the odd map, which cannot pitch at all.
+    const pOdd = U.u_pitchOdd || 0;
+    const skew = mix(0, clamp(excess * mix(0.82, 0.62, pOdd), 0, 0.8), U.u_depthMix);
+    const thetaC = theta;
+    theta -= skew * mix(1 - Math.cos(theta), Math.sin(theta), pOdd);
+    const thetaL = mix(thetaC, theta, pOdd);   // crest LOCUS phase (see GLSL)
     const env = setEnv(rayS(x, z), tt, U.u_setAnchor);
     const env2 = env * env;
-    const q = 1.6 + 3.2 * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * U.u_xi);
+    const q = mix(2.2, 1.6, pOdd)
+            + mix(1.5, 3.2, pOdd) * Math.exp(-Math.abs(d) / 55) * (0.6 + 0.5 * U.u_xi);
     const amp = 0.5 * Heff * grow * decay * env * shoreFade;
     let h = amp * crestShape(-theta, q) * 2;
     h += lift;
@@ -289,7 +295,7 @@ function probeInPage() {
     const chopG = U.u_chop * (1 - 0.9 * boil);
     h += chopG * 0.22 * (vnoise2(x * 0.11, z * 0.11 + tt * 0.6) - 0.5)
        + chopG * 0.10 * (vnoise2(x * 0.31 - tt * 0.9, z * 0.31) - 0.5);
-    const crestNear = smoothstep(0.55, 0.98, Math.cos(theta));
+    const crestNear = smoothstep(0.55, 0.98, Math.cos(thetaL));
     const shape = clamp(U.u_breakShape, 0, 1);
     const pockS = mix(1, clamp(U.u_H0 * shelterAt(x) / 1.5, 0.70, 1.50),
       U.u_depthMix * U.u_pockSize);
