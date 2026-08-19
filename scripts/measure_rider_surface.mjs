@@ -215,7 +215,13 @@ function probeInPage() {
     const tRef = (45.0 - (U.u_setRef ?? 0) / cg) * anchor;
     return 2 * PI * U.u_dF * (tt - tRef - s / cg);
   }
-  const setEnv = (s, tt, anchor) => 0.5 + 0.5 * Math.cos(setPhase(s, tt, anchor));
+  // Modulation depth mirrors u_setDepth (2026-08-18 lull floor). Reads the live
+  // uniform so the instrument tracks #env; falls back to the legacy 0.5 so an
+  // older captured uniform dump still transcribes bit-identically.
+  const setEnv = (s, tt, anchor) => {
+    const m = U.u_setDepth ?? 0.5;
+    return (1 - m) + m * Math.cos(setPhase(s, tt, anchor));
+  };
   const setupPeakM = () => 0.3 * U.u_H0 * U.u_depthMix;
   function setupLiftM(x, z, tt) {
     const ph = setPhase(rayS(x, z), tt, U.u_setAnchor);

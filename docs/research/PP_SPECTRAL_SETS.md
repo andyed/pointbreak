@@ -17,6 +17,12 @@ The target is README.md's own admission:
 note that §5 is a RETRACTION of a claim this document made on 2026-08-16 and
 withdrew the same day.
 
+**But they CAN constrain the envelope's FLOOR** — a different quantity, added as
+§7 on 2026-08-18. The floor is the beating components' amplitude ratio, which is
+local to the spectral peak and therefore immune to the band-cutoff artifact that
+makes §4's σ_f unusable (1.28× swing vs 6.1×). That is the one number this
+dataset hands the model.
+
 ## 1. The authored Δf is below the instrument's resolution
 
 MOP's grid is **0.005 Hz** wide through the swell range. Two swell peaks must
@@ -150,6 +156,107 @@ measured against the spectra and stand unchanged.
    (`TEMPORAL_HARNESS_REVIEW.md`) measures crest recurrence directly from the
    rendered field, which is the only path that observes groups rather than
    inferring them from a spectrum.
+
+## 7. The envelope FLOOR, unlike Δf, this data CAN constrain (2026-08-18)
+
+Added after `scripts/measure_wave_scale.mjs` measured what the zero-floored
+envelope does to the render: over one 166.7 s beat at Second Peak x = 80 the
+drawn height swings **15.7×** (6.30 → 0.40 m) and the measured height
+exaggeration falls to **0.22×**, i.e. for a large part of every cycle the render
+draws water *flatter than the physical sea*. See MODEL.md §2.5.2.
+
+The floor is not a free parameter. For a two-component beat the envelope
+amplitude ranges |a₁−a₂| … (a₁+a₂), so
+
+    floor = |a₁ − a₂| / (a₁ + a₂)
+
+— the component **amplitude ratio**, which is zero only when the two components
+are exactly equal. That is a coincidence, not a sea state. Two estimators, both
+run against the same SC116 hindcast §§1–4 use.
+
+### 7.1 Estimator A — adjacent-band amplitude ratio
+
+The model's two components sit Δf = 0.006 Hz apart, which is **one grid step**.
+That does not ask the grid to resolve two peaks (§1's floor, which still stands)
+— it asks the **local shape of one peak**, which the grid does record. For each
+spectrum take the peak band's energy and a neighbour one step away, and
+ρ = √(E_n·bw_n / E_p·bw_p); floor = (1−ρ)/(1+ρ).
+
+Measured on surf hours (Hs ≥ 1.0 m, n = 33,039), median floor:
+
+| separation | nominal Δf | stronger neighbour | weaker neighbour |
+|---|---|---|---|
+| 1 band | 0.005 Hz | 0.058 | 0.134 |
+| 2 bands | 0.010 Hz | 0.143 | 0.281 |
+| 3 bands | 0.015 Hz | 0.210 | 0.439 |
+
+The model's Δf = 0.006 Hz sits between the first two rows; interpolating gives
+**0.075 (stronger neighbour) to 0.163 (weaker)**.
+
+**§4's failure mode does not reach this estimator, and that was checked, not
+assumed.** Every arbitrary choice was swept:
+
+| axis | swing in the median floor |
+|---|---|
+| swell-band cutoff 0.09 → 0.40 Hz (the axis that killed σ_f at **6.1×**) | **1.28×** |
+| sea-state gate Hs ≥ 0 … 2.5 m | 1.29× |
+| year, all 25 individually (0.041–0.081) | 1.95× |
+| **which neighbour** (stronger / weaker) | **2.33×** ← the dominant uncertainty |
+
+The cutoff cannot reach it because the quantity is *local to the peak* and never
+touches m₂. The residual ambiguity is genuinely a modelling choice — a
+two-component reduction of a broad peak has two candidate partners — and it is
+reported rather than hidden.
+
+### 7.2 Estimator B — match the measured lull DUTY CYCLE
+
+Estimator A idealises. This one does not: each hourly swell spectrum is realised
+as a random-phase linear sea, the analytic envelope A(t) is taken, and inside
+each 1/Δf = 166.7 s window (the model's own set cycle) the time fraction spent
+below a threshold × that window's maximum is recorded. 3,000 records, **108,000
+windows**. For the model's cosine the same fraction is analytic:
+P(env < x) = 1 − arccos((x − (1−m))/m)/π.
+
+| threshold | measured p50 | model, floor 0 | model, floor 0.15 |
+|---|---|---|---|
+| 0.15 | 0.066 | 0.253 | 0.000 |
+| 0.25 | 0.183 | 0.333 | 0.223 |
+| 0.35 | 0.333 | 0.403 | 0.322 |
+| 0.50 | 0.568 | 0.500 | 0.444 |
+
+The zero-floored model spends **3.8× too long** below 0.15 and 1.8× too long
+below 0.25 — the defect is precisely at the deep end, exactly where the dipstick
+found it. Least squares over the deep thresholds gives floor **0.143** (p50) /
+**0.140** (mean); over 0.25/0.35 only, 0.171; over 0.15/0.25 only, 0.144. The
+estimate is stable at **0.135–0.171** across every subset and both statistics.
+
+### 7.3 A negative result worth keeping
+
+The first version of §7.2 measured the envelope **minimum**, expecting the real
+sea's many components to *fill* the null and so justify a floor. They do not:
+median min(A)/max(A) per set cycle is **0.034**, p5 = 0.007. A many-component
+narrow-band envelope is Rayleigh and gets very close to zero within a 167 s
+window. **The depth of the model's null is not by itself unphysical.** What is
+unphysical is its *duration* — the model holds a deterministic broad trough
+every single cycle, where the ocean's deep nulls are brief and randomly timed.
+That is why §7.2 fits duty cycle and not depth, and it is why "raise the floor"
+is the right fix for the wrong-sounding reason.
+
+### 7.4 What this does and does not license
+
+- It licenses a floor of **0.15 (modulation depth m = 0.425)**, uncertainty
+  **0.075–0.171** (the union of §7.1's neighbour bracket at the model's Δf and
+  §7.2's fit spread); call it **0.05–0.20** as a working band. The landed value
+  sits inside both estimators, near the top of §7.1's and inside §7.2's.
+- It does **not** license retuning `dF`. §4 and §6.1 stand unchanged.
+- Estimator A's *resolved-bimodal* variant was computed and is **not** quoted as
+  the answer: `PEAK_MIN_FRAC = 0.25` forces ρ ≳ 0.5 and hence floor ≲ 0.333 **by
+  construction**, and its population is conditioned on Δf ≥ 0.015 Hz, which is
+  not the model's Δf. Its median (0.125, n = 4,063) is consistent with §7.1–7.2
+  and is recorded as corroboration only.
+- The realised-envelope estimators assume linear superposition with random
+  phases. That is the standard sea-surface model and is not neutral in the surf
+  zone; it is used here only in deep-ish water where the spectrum is defined.
 
 ## Rebuild
 

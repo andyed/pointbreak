@@ -119,6 +119,10 @@ components at f and f+Δf give a group envelope with period 1/Δf — free group
 a two-component swell. Δf ≈ 0.004–0.01 Hz yields set cycles of ~100–250 s with
 ~4–8 waves per set, matching observed rhythm. (Group velocity = ½ phase velocity in
 deep water — sets crawl relative to the waves in them, a real and visible effect.)
+The same two components fix the envelope's **floor**: its amplitude ranges from
+|a₁−a₂| to (a₁+a₂), so the normalised floor is the component amplitude ratio
+|a₁−a₂|/(a₁+a₂), which is zero only if the two components are exactly equal. The
+envelope is therefore **not** zero-floored — see §2.5.1.
 
 ### 2.1 The real-data stage profile
 
@@ -629,12 +633,60 @@ Implementation (`setupLiftM` in the shared GLSL):
 table's two figures look contradictory and are not. Stated once, plainly:
 
 - **`1/Δf` is the set-to-set period** — the full envelope cycle, *lull included*.
-  `setEnv = ½ + ½·cos(2π·Δf·(t − s/c_g))` runs one complete cycle in `1/Δf`. At
-  the model-card Δf = 0.006 Hz that is 167 s, or 11.9 wave intervals at T = 14 s.
+  `setEnv = (1−m) + m·cos(2π·Δf·(t − s/c_g))` runs one complete cycle in `1/Δf`.
+  At the model-card Δf = 0.006 Hz that is 167 s, or 11.9 wave intervals at
+  T = 14 s. (Modulation depth `m` does not enter the period — see §2.5.2.)
 - **"Sets of ~5–7" is the count of waves *inside* one set**, which is the upper
-  part of the same cycle. Half the cosine sits above `envS = 0.5`, giving 6.0
-  waves at the card values; the consumers square the envelope (`env*env`, "lulls
-  really disappear") so the visible set is if anything tighter than half.
+  part of the same cycle. Half the cosine sits above the envelope's midpoint,
+  giving 6.0 waves at the card values; the consumers square the envelope
+  (`env*env`) so the visible set is if anything tighter than half.
+
+#### 2.5.2 The envelope floor is derived, not tuned (2026-08-18)
+
+Until 2026-08-18 the envelope was `½ + ½·cos(…)`: **100% modulation depth,
+floored at exactly zero.** The dipstick instrument
+(`scripts/measure_wave_scale.mjs`) measured the consequence over one 166.7 s
+beat at Second Peak, x = 80 m: drawn wave height swings **15.7×** (6.30 m at the
+peak to 0.40 m in the lull) and the measured height exaggeration swings 3.21×
+down to **0.22×**. For 3 of 10 sampled clocks the render drew water *flatter
+than the physical sea it claims to be* — drawn H/L 0.006–0.013 against a
+physical 0.021. Meanwhile the same instrument found no steepness headroom at the
+set peak (drawn H/L is 1.6–3.0× the Miche depth limit; drawn H/h reaches 2.63
+against the model's own γ = 0.78). So the peak must not move and the lull must.
+
+An exact zero is the unphysical part, and the fix is a derivation rather than a
+number. Envelope amplitude for a two-component beat ranges |a₁−a₂| … (a₁+a₂), so
+
+    floor = |a₁ − a₂| / (a₁ + a₂)
+
+— the component amplitude ratio, zero only for exactly equal components.
+`docs/research/PP_SPECTRAL_SETS.md` §7 constrains it from the repo's own 25-year
+SC116 spectra by two independent estimators, which agree:
+
+| estimator | floor |
+|---|---|
+| adjacent-band amplitude ratio at the model's own Δf | 0.075–0.163 |
+| matching the measured lull **duty cycle** (108,000 set-cycle windows) | 0.135–0.171 |
+
+Landed: **floor 0.15**, i.e. modulation depth `m = 0.425`.
+
+The form is a modulation depth, not a clamp. `max(env, floor)` would flatten the
+waveform bottom and change the *shape* of the cadence; `(1−m) + m·cos` keeps the
+envelope sinusoidal, leaves the peak at exactly 1.0 for every `m` — so the set
+peak is untouched by construction — and raises only the trough, to `1 − 2m`. The
+set-to-set period is a property of Δf alone and does not move; the verified
+120.5–122.4 s cadence is unchanged. **Δf itself is not retuned**, and must not
+be: `PP_SPECTRAL_SETS.md` §4 shows the spectral-width bridge is set by the
+analyst's band cutoff, and that prohibition stands. The floor escapes that
+failure mode because it is a *local* property of the spectral peak — measured
+swing across the same cutoff range is 1.28×, against 6.1× for σ_f.
+
+`setupLiftM` deliberately keeps 100% depth: setup is radiation-stress release
+from *broken* waves, and the small waves of a lull do not break, so the piled
+water really does drain all the way. Coherence with the sets is a phase property
+and is preserved — both come off the shared `setPhase`.
+
+`#env=0` reverts to the zero-floored form, bit-identically, for A/B.
 
 So a Δf of 0.006 Hz means **a set of about six waves every ~167 s**, not a
 167-second-long set. Dividing 1/Δf by T and expecting the set length is the
@@ -1238,6 +1290,8 @@ declaration constrains the derivation — never the reverse.**
 | spot identity, stage extent | **authorship** — OSM canon | supplies the numbers, does not pick the spots |
 | swell conditions (H₀, T, tide, chop, incident direction `D_p`) | **authorship** — the bank, or CDIP live | `D_p` is observed ocean state and may never carry site character (§2.6.2 rule 1). Documented, not wired. |
 | visual exaggeration `VIS` | **authorship** | must never enter a physical threshold |
+| **set-envelope floor** (modulation depth `m`) | **physics** — it *is* the beating components' amplitude ratio \|a₁−a₂\|/(a₁+a₂), measured from the SC116 spectra (§2.5.2) | nothing. A zero floor was authorship by omission, and it drew water flatter than the sea it models. |
+| set period Δf | **authorship** — the bank | the spectra may not retune it: `PP_SPECTRAL_SETS.md` §4 shows the only continuous bridge is set by the analyst's band cutoff (6.1× swing) |
 
 *Three of those rows (α, `B_spot`, `D_p`) describe the arbitration §2.6 settles
 on paper. **The runtime has not moved**: it still authors α per spot and reads

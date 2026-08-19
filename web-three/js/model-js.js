@@ -140,16 +140,30 @@ export function reefWindow(x, P) {
 // capture window after the 6a cg fix). Keep numerically identical to the GPU.
 export const SET_ANCHOR_S = 45.0;
 
+// Set-envelope modulation depth. env = (1-m) + m*cos(...), so the peak is 1.0
+// for every m and the FLOOR is 1-2m. The shipped 0.425 puts the floor at 0.15,
+// derived from the SC116 spectra two ways in PP_SPECTRAL_SETS.md section 7 —
+// see the u_setDepth header in shared/model-glsl.js. Keep numerically identical
+// to the GPU. #env=0 restores 0.5 (floor 0), the pre-2026-08-18 behaviour.
+export const SET_DEPTH = 0.425;
+export const SET_DEPTH_LEGACY = 0.5;
+
 // MODEL-TWIN of GLSL setPhase/setEnv. P.setRef is the stage-median rayS of
 // the live break line (main.js computes it; the GPU gets it as u_setRef);
 // P.setAnchor mirrors u_setAnchor. Both default 0, so a P without them — the
 // node tests, and any caller predating the anchor — gets the legacy phase
 // bit-identically. P.cgLegacy (#cg=0) re-arms the retired 0.5*LAM/T for the
 // 6a A/B, mirroring u_cgLegacy/groupSpeedM; tRef and s/cg move together.
+// P.setDepth mirrors u_setDepth (modulation depth; floor = 1 - 2m). It defaults
+// to SET_DEPTH_LEGACY, not the shipped SET_DEPTH, for the same reason setRef
+// and setAnchor default to 0: a P without it — node tests, any caller predating
+// the floor — must reproduce the legacy envelope bit-identically. main.js and
+// sound.js pass the live uniform.
 export function setEnv(s, t, P) {
   const cg = P.cgLegacy ? 0.5 * LAM / P.T : G * P.T / (4 * PI);
   const tRef = (SET_ANCHOR_S - (P.setRef ?? 0) / cg) * (P.setAnchor ?? 0);
-  return 0.5 + 0.5 * Math.cos(2 * PI * P.dF * (t - tRef - s / cg));
+  const m = P.setDepth ?? SET_DEPTH_LEGACY;
+  return (1 - m) + m * Math.cos(2 * PI * P.dF * (t - tRef - s / cg));
 }
 
 function crestShape(phase, q) {

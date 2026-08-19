@@ -108,6 +108,160 @@ def _count_peaks(E: np.ndarray, nb: int) -> tuple[np.ndarray, np.ndarray]:
     return counts, dfs
 
 
+# --------------------------------------------------------------------------
+# The envelope FLOOR (2026-08-18) -- the one number this dataset CAN hand the
+# model. A two-component beat's envelope amplitude ranges |a1-a2| .. (a1+a2), so
+# the normalised floor IS the component amplitude ratio, zero only if the two
+# components are exactly equal. See docs/research/PP_SPECTRAL_SETS.md section 7
+# and MODEL.md section 2.5.2. This is NOT a route to retuning dF -- section 4's
+# prohibition stands; the floor survives the band-cutoff axis that killed
+# sigma_f precisely because it is LOCAL to the spectral peak.
+SET_DF_HZ = 0.006          # the model's authored beat, for the realised-envelope window
+ENV_SUBSAMPLE = 3000       # records for the random-phase realisation (section 7.2)
+ENV_DUR_S, ENV_DT_S = 6000.0, 0.5
+ENV_THRESHOLDS = (0.15, 0.25, 0.35, 0.50)
+
+
+def _floor(rho):
+    return np.abs(1.0 - rho) / (1.0 + rho)
+
+
+def _rho_adjacent(Ew, nb, step, side):
+    """Amplitude ratio of the peak band to a neighbour `step` bands away."""
+    p = Ew[:, :nb].argmax(1)
+    ar = np.arange(Ew.shape[0])
+    ep = Ew[ar, p]
+    def band(off):
+        j = p + off
+        ok = (j >= 0) & (j <= nb - 1)
+        return np.where(ok, Ew[ar, np.clip(j, 0, nb - 1)], np.nan)
+    elo, ehi = band(-step), band(step)
+    en = np.fmax(elo, ehi) if side == "strong" else np.fmin(elo, ehi)
+    with np.errstate(invalid="ignore"):
+        return np.sqrt(en / np.where(ep > 1e-9, ep, np.nan))
+
+
+def _analytic_envelope(x):
+    """|Hilbert| without scipy."""
+    X = np.fft.fft(x)
+    h = np.zeros(len(x))
+    h[0] = 1.0
+    if len(x) % 2 == 0:
+        h[len(x) // 2] = 1.0
+        h[1:len(x) // 2] = 2.0
+    else:
+        h[1:(len(x) + 1) // 2] = 2.0
+    return np.abs(np.fft.ifft(X * h))
+
+
+def _model_frac(x, m):
+    """P(env < x) for env = (1-m) + m*cos(phi), phi uniform -- the model's own."""
+    if x <= 1 - 2 * m:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    return float(1.0 - np.arccos((x - (1 - m)) / m) / np.pi)
+
+
+def envelope_floor(E, f, bw, keep, hs, nb, year=None, seed=20260818):
+    rng = np.random.default_rng(seed)
+    fb, bwb = f[:nb], bw[:nb]
+    Ew_all = E * bw                                  # band ENERGY, not density
+    surf = keep & (hs >= 1.0)
+    med = lambda a: round(float(np.nanmedian(a)), 4)
+
+    # ---- 7.1 adjacent-band ratio, and every arbitrary axis swept -------------
+    Ew = Ew_all[surf]
+    sep = [{"step": s, "df_hz_nominal": round(s * 0.005, 3),
+            "floor_strong_p50": med(_floor(_rho_adjacent(Ew, nb, s, "strong"))),
+            "floor_weak_p50": med(_floor(_rho_adjacent(Ew, nb, s, "weak")))}
+           for s in (1, 2, 3)]
+
+    cut = []
+    for fc in (0.09, 0.10, 0.11, 0.125, 0.16, 0.25, 0.40):
+        n = int((f <= fc).sum())
+        if n >= 4:
+            cut.append({"cutoff_hz": fc,
+                        "floor_p50": med(_floor(_rho_adjacent(Ew_all[surf], n, 1, "strong")))})
+    state = [{"hs_min_m": lo,
+              "floor_p50": med(_floor(_rho_adjacent(Ew_all[keep & (hs >= lo)], nb, 1, "strong")))}
+             for lo in (0.0, 0.5, 1.0, 1.5, 2.0, 2.5)]
+    sides = {s: med(_floor(_rho_adjacent(Ew, nb, 1, s))) for s in ("strong", "weak")}
+    swing = lambda v: round(max(v) / min(v), 3)
+    yearly = []
+    if year is not None:
+        for y in range(YEAR_MIN, YEAR_MAX + 1):
+            s = surf & (year == y)
+            if s.sum() >= 100:
+                yearly.append(med(_floor(_rho_adjacent(Ew_all[s], nb, 1, "strong"))))
+
+    # ---- 7.2/7.3 realised envelope: duty cycle, and the minimum ---------------
+    idx = np.flatnonzero(surf)
+    idx = rng.choice(idx, size=min(ENV_SUBSAMPLE, idx.size), replace=False)
+    n = int(ENV_DUR_S / ENV_DT_S)
+    tt = np.arange(n) * ENV_DT_S
+    w = int((1.0 / SET_DF_HZ) / ENV_DT_S)
+    frac = {th: [] for th in ENV_THRESHOLDS}
+    mins = []
+    for i in idx:
+        a = np.sqrt(2.0 * np.maximum(E[i, :nb], 0.0) * bwb)
+        if a.sum() <= 0:
+            continue
+        ph = rng.uniform(0, 2 * np.pi, nb)
+        eta = (a[None, :] * np.cos(2 * np.pi * fb[None, :] * tt[:, None] + ph[None, :])).sum(1)
+        A = _analytic_envelope(eta)
+        for k in range(n // w):
+            seg = A[k * w:(k + 1) * w]
+            mx = seg.max()
+            if mx <= 0:
+                continue
+            mins.append(seg.min() / mx)
+            for th in ENV_THRESHOLDS:
+                frac[th].append(float((seg < th * mx).mean()))
+
+    duty = [{"threshold": th,
+             "measured_p50": round(float(np.percentile(frac[th], 50)), 4),
+             "model_floor_0": round(_model_frac(th, 0.5), 4),
+             "model_floor_0p15": round(_model_frac(th, 0.425), 4)} for th in ENV_THRESHOLDS]
+    # least squares for m over the DEEP thresholds, where the defect lives
+    ms = np.arange(0.30, 0.5001, 0.0005)
+    rss = [sum((_model_frac(th, m) - np.percentile(frac[th], 50)) ** 2
+               for th in ENV_THRESHOLDS[:3]) for m in ms]
+    m_fit = float(ms[int(np.argmin(rss))])
+
+    return {
+        "derivation": ("A two-component beat's envelope amplitude ranges |a1-a2| .. (a1+a2), "
+                       "so the normalised floor IS the component amplitude ratio "
+                       "|a1-a2|/(a1+a2) -- zero only for exactly equal components."),
+        "adjacent_band": {"separation": sep, "neighbour_choice": sides,
+                          "band_cutoff_sensitivity": cut,
+                          "sea_state_sensitivity": state,
+                          "by_year_floor_p50": yearly,
+                          "swings": {"band_cutoff": swing([r["floor_p50"] for r in cut]),
+                                     "sea_state": swing([r["floor_p50"] for r in state]),
+                                     "neighbour": swing(list(sides.values())),
+                                     "year": swing(yearly) if yearly else None},
+                          "cutoff_note": ("1.17x against sigma_f's 6.1x over the SAME cutoff "
+                                          "range: the floor is LOCAL to the peak and never "
+                                          "touches m2, so section 4's artifact cannot reach it.")},
+        "realised_envelope": {"n_windows": len(mins), "window_s": round(1 / SET_DF_HZ, 1),
+                              "duty_cycle": duty,
+                              "fitted_modulation_depth": round(m_fit, 4),
+                              "fitted_floor": round(1 - 2 * m_fit, 4),
+                              "min_over_max_p50": round(float(np.percentile(mins, 50)), 4),
+                              "min_over_max_p5": round(float(np.percentile(mins, 5)), 4),
+                              "negative_result": (
+                                  "The measured envelope MINIMUM is 0.034 (p50), lower than any "
+                                  "two-component floor -- a many-component narrowband envelope is "
+                                  "Rayleigh and does approach zero. The model's null DEPTH is "
+                                  "therefore not the unphysical part; its DURATION is. Fit duty "
+                                  "cycle, not depth.")},
+        "landed": {"floor": 0.15, "modulation_depth": 0.425,
+                   "uncertainty": [0.05, 0.20],
+                   "does_not_license": "retuning dF. Section 4 stands."},
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("-o", "--out", type=Path, default=OUT_PATH)
@@ -269,6 +423,9 @@ def main() -> int:
             ),
         },
     }
+
+    print("  envelope floor (the one number this dataset CAN supply) ...")
+    out["envelope_floor"] = envelope_floor(E, f, bw, keep, hs, nb, year=year)
 
     args.out.write_text(json.dumps(out, indent=2) + "\n")
     print(f"wrote {args.out}")

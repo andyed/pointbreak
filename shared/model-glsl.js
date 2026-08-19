@@ -119,6 +119,36 @@ uniform float u_setAnchor;
 // 2.5 s temporal tail. #arm=anchor / #arm=tail bisect the pair.
 uniform float u_armRead;
 
+// ---------- set-envelope modulation depth (2026-08-18, the lull defect) ------
+// setEnv was 0.5 + 0.5*cos(...): 100% modulation, floored at EXACTLY ZERO.
+// Measured consequence (scripts/measure_wave_scale.mjs, secondpeak x = 80 over
+// one 166.7 s beat): drawn H swings 15.7x, 6.30 m down to 0.40 m, and the
+// height exaggeration swings 3.21x down to 0.22x — for 3 of 10 sampled clocks
+// the render draws water FLATTER than the physical sea it claims to be (drawn
+// H/L 0.006-0.013 against a physical 0.021). For a thing built to be watched
+// unattended that is dead water for a large part of every cycle.
+//
+// An exact zero is the unphysical part. A two-component beat has envelope
+// amplitude ranging |a1 - a2| .. (a1 + a2), so the envelope FLOOR IS the
+// component amplitude ratio, floor = |a1 - a2|/(a1 + a2), which vanishes only
+// when the two components are EXACTLY equal — a coincidence, not a sea state.
+// The floor is therefore derivable rather than tunable, and it is derived from
+// this repo's own 25-year SC116 spectra in docs/research/PP_SPECTRAL_SETS.md
+// section 7 by two independent estimators that agree:
+//   * adjacent-band amplitude ratio at the model's own dF -> floor 0.075-0.163;
+//   * matching the measured LULL DUTY CYCLE (time fraction below a threshold
+//     inside one 1/dF window, 108,000 windows) -> floor 0.135-0.171.
+// Landed value 0.15, i.e. modulation depth m = 0.425. See the doc for what the
+// spectra could NOT support and for the uncertainty this number carries.
+//
+// FORM: a modulation depth, NOT a clamp. max(env, floor) would flatten the
+// waveform bottom and change the shape of the cadence; (1-m) + m*cos keeps the
+// envelope sinusoidal, leaves the PEAK at exactly 1.0 for every m (so the set
+// peak — already too steep, same measurement — is untouched by construction),
+// and raises only the trough, to 1 - 2m.
+// #env=0 restores m = 0.5 and the zero floor, bit-identically.
+uniform float u_setDepth;
+
 // ---------- crest-clock continuity (2026-08-18, the hard-foam-edge report) ---
 // 1 = the crest clock is ramped across its wrap (shipped), 0 = the raw
 // sawtooth (#wrap=0 A/B revert, bit-identical to the pre-fix build).
@@ -572,8 +602,10 @@ float setPhase(float s, float t){
   return 2.0*PI*u_dF*(t - tRef - s/cg);
 }
 
+// Modulation depth u_setDepth (see its header): peak is (1-m)+m = 1 for every
+// m, trough is 1-2m. m = 0.425 -> floor 0.15; #env=0 -> m = 0.5, floor 0.
 float setEnv(float s, float t){
-  return 0.5 + 0.5*cos(setPhase(s, t));
+  return (1.0 - u_setDepth) + u_setDepth*cos(setPhase(s, t));
 }
 
 // ---------- wave setup / setdown: the minute-scale shoreline breath ----------
@@ -619,6 +651,12 @@ float setupLiftM(vec2 xz, float t){
   // the level high after the set peaks and releases it quickly when the next
   // set arrives. Always positive (0.1..1.7 rad), so the response never leads.
   float lagPh = 0.9 + 0.8*sin(ph);
+  // Deliberately NOT floored by u_setDepth (2026-08-18). Coherence with the
+  // sets is a PHASE property and it is preserved — both come off setPhase — but
+  // setup is radiation-stress release from BROKEN waves, and the small waves of
+  // a lull do not break, so the piled water really does drain all the way. Also
+  // practical: flooring here would shrink the shoreline breathe excursion,
+  // which was deliberately raised (0.2 -> 0.3) to survive drone distance.
   float envS  = 0.5 + 0.5*cos(ph - lagPh);         // smoothed+lagged set envelope, 0..1
   // Confined to the shoreward fringe. The 2 m outer edge is load-bearing (the
   // lineup, the break line and the takeoff never feel the lift); inside it the

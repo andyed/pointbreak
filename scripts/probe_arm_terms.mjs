@@ -205,7 +205,10 @@ function probeInPage(step) {
     return 2 * PI * U.u_dF * (tt - tRef - s / cg);
   }
   function setEnv(s, tt) {
-    return 0.5 + 0.5 * Math.cos(setPhase(s, tt));
+    // u_setDepth is the 2026-08-18 lull floor (env = (1-m) + m*cos, floor
+    // 1-2m). Legacy 0.5 fallback keeps an older uniform dump bit-identical.
+    const m = U.u_setDepth ?? 0.5;
+    return (1 - m) + m * Math.cos(setPhase(s, tt));
   }
   const setupPeakM = () => 0.3 * U.u_H0 * U.u_depthMix;
   function setupLiftM(x, z, tt) {

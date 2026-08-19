@@ -115,6 +115,56 @@ kept in full as the record; blockers are marked here.
       • Limits declared: Michell 0.142, Miche 0.142·tanh(kh), McCowan 0.78 were
         verified against multiple consistent secondary sources; the 1893/1894/
         1944 primaries were NOT obtained.
+- [x] SET-ENVELOPE FLOOR LANDED 2026-08-18 (`#env=0` reverts, **default ON**) —
+      the lull half of the SCALE finding above is closed. `setEnv` was
+      `0.5 + 0.5·cos(…)`: 100% modulation, floored at **exactly zero**. It is
+      now `(1−m) + m·cos(…)` with `m = 0.425`, so the **peak is 1.0 for every m
+      by construction** (the set peak has no steepness headroom, same finding)
+      and only the trough rises, to **0.15**.
+      • **DERIVED, NOT PICKED.** A two-component beat's envelope ranges
+        |a₁−a₂| … (a₁+a₂), so the floor IS the component amplitude ratio,
+        zero only for exactly equal components. Two independent estimators on
+        the repo's own 25-year SC116 spectra agree (`PP_SPECTRAL_SETS.md` §7,
+        regenerable from `build_spectral_sets.py`): **adjacent-band amplitude
+        ratio** at the model's own Δf → 0.075–0.163, and **matching the
+        measured lull DUTY CYCLE** over 108,000 set-cycle windows → 0.135–0.171.
+        Uncertainty recorded as 0.05–0.20; dominant axis is which neighbour of
+        the peak band counts as the second component (2.33×).
+      • **§4's artifact does not reach it, and that was checked.** The band
+        cutoff that swings σ_f by 6.1× moves this floor by **1.28×**, because
+        the floor is LOCAL to the spectral peak and never touches m₂. Sea state
+        1.29×, year-to-year 1.95×. **Δf is NOT retuned** — §4's prohibition
+        stands and nothing here touches it.
+      • NEGATIVE RESULT worth keeping: the measured envelope MINIMUM is 0.034
+        (p50 of min/max per set cycle), *lower* than any two-component floor —
+        a many-component narrowband envelope is Rayleigh and does approach
+        zero. So the null's DEPTH is not the unphysical part; its **DURATION**
+        is. The zero-floored model spends 3.8× too long below 0.15 and 1.8×
+        too long below 0.25 of its own cycle max. The fit is to duty cycle.
+      • MEASURED (dipstick, secondpeak x=80, the same sim 22…202 sweep):
+        worst lull H **0.40 → 1.02 m**, exaggeration **0.22× → 0.51×**, H/L
+        0.0063 → 0.0127, face 1.9° → 4.0°; whole-beat H swing **15.7× → 6.2×**.
+        The set-peak row (sim 202) is **bit-unchanged**: 6.30 m, 3.21×, 25.1°.
+      • **OPEN FOR ANDY — sets and lulls are mission-level, this owes a live
+        verdict.** Also: exaggeration ≥ 1.0 through the lull is NOT reachable
+        by derivation. It would need floor ≈ 0.31, twice the measured value and
+        outside both estimators. Note the metric's own limit — the dipstick's
+        `physH` is the *design* wave and carries no envelope, so demanding
+        exaggeration ≥ 1 in a lull is demanding the render never modulate below
+        its design height, which the measured ocean contradicts.
+      • Regressions all green: cadence **120.8 s / 120.9 s** (foam residual and
+        mean luma, r = 0.73; pinned band 120.5–122.4 s), peel-arm acceptance
+        unmoved at the hero clocks (line median luma 52.5/52.5, 58.2/58.1,
+        58.8/58.8 default vs `#env=0` — sims 42/48 sit at the set peak by the
+        `#arm` anchor, where the floor does nothing), `check:swash` PASS
+        (breathe 0.92%), npm test 55/55.
+      • Interactions, reported not absorbed: foam is env²-gated so the floor
+        raises baseline foam by 0.15² = **2.25%** — measured at the deepest
+        lull, frame p99 84 vs 74 against **224.5** at the set peak, i.e. the
+        lull does not become foamy. `setupLiftM` deliberately keeps 100% depth
+        (setup is broken-wave momentum flux; lull waves do not break) and stays
+        phase-coherent through the shared `setPhase`. Audio follows the same
+        twin: the voice now bottoms at **−16.5 dB** instead of digital silence.
 - [!] WAVE SHAPE — **THE FORWARD-PITCH TERM PITCHES NOTHING** (audited
       2026-08-18, `scripts/probe_wave_shape.mjs`; the probe compiles the
       SHIPPED MODEL_GLSL + the GRID_VERT choppyPos slice against the LIVE

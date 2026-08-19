@@ -16,7 +16,8 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
-         rayS, oceanH as oceanHJS, surferState as surferStateJS } from './model-js.js';
+         rayS, oceanH as oceanHJS, surferState as surferStateJS,
+         SET_DEPTH, SET_DEPTH_LEGACY } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, breakGapAt, BREAK_Z_MIN, BREAK_Z_MAX,
@@ -199,6 +200,11 @@ const uniforms = {
   // (the 6b arm diagnosis; see model-glsl.js u_setRef header).
   u_setRef:     { value: 0 },
   u_setAnchor:  { value: 1 },
+  // Set-envelope modulation depth (2026-08-18): the envelope was zero-floored
+  // at 100% depth, so the lull drew water flatter than the physical sea for a
+  // large part of every beat. Floor = 1 - 2m = 0.15, derived from the SC116
+  // spectra (PP_SPECTRAL_SETS section 7). #env=0 restores the zero floor.
+  u_setDepth:   { value: SET_DEPTH },
   u_armRead:    { value: 1 },   // comet tail in metres behind the head; #arm bisects
   // Crest-clock continuity (2026-08-18): the foam clocks are sawtooths whose
   // snap lands on a crest line and drew a straight hard foam edge. Ramped by
@@ -395,6 +401,9 @@ function modelP() {
     // frame sync below), so twin heights and GPU foam agree about when the
     // set is on the line. See model-js setEnv.
     setRef: uniforms.u_setRef.value, setAnchor: uniforms.u_setAnchor.value,
+    // Set-envelope modulation depth (#env). Same one-source rule: the twin
+    // heights, the audio voice envelope and the GPU surface must share a floor.
+    setDepth: uniforms.u_setDepth.value,
   };
 }
 
@@ -1653,6 +1662,11 @@ function applyHashParams() {
   // Crest-clock ramp defaults ON (defect fix, 2026-08-18); #wrap=0 restores
   // the raw mod() sawtooth and its hard crest-line foam edge, bit-identical.
   if (h.get('wrap') === '0') uniforms.u_crestWrap.value = 0;
+  // Set-envelope floor defaults ON (defect fix, 2026-08-18): the envelope was
+  // 100% modulated and zero-floored, and the dipstick measured the render
+  // drawing water FLATTER than the physical sea through the lull. #env=0
+  // restores modulation depth 0.5 and the exact-zero floor, bit-identically.
+  if (h.get('env') === '0') uniforms.u_setDepth.value = SET_DEPTH_LEGACY;
   const armV = h.get('arm');
   if (armV === '0') { uniforms.u_setAnchor.value = 0; uniforms.u_armRead.value = 0; }
   else if (armV === 'anchor') uniforms.u_armRead.value = 0;

@@ -116,5 +116,168 @@
     "qp_swing": 2.65,
     "sigma_f_swing": 6.1,
     "qp_note": "Goda Qp is the least cutoff-sensitive of the three (see the two swing figures above) and is where a groupiness bridge should start if one is attempted \u2014 but it is dimensionless and does not convert to a Delta f without an assumption that would smuggle the answer back in."
+  },
+  "envelope_floor": {
+    "derivation": "A two-component beat's envelope amplitude ranges |a1-a2| .. (a1+a2), so the normalised floor IS the component amplitude ratio |a1-a2|/(a1+a2) -- zero only for exactly equal components.",
+    "adjacent_band": {
+      "separation": [
+        {
+          "step": 1,
+          "df_hz_nominal": 0.005,
+          "floor_strong_p50": 0.0575,
+          "floor_weak_p50": 0.1341
+        },
+        {
+          "step": 2,
+          "df_hz_nominal": 0.01,
+          "floor_strong_p50": 0.1427,
+          "floor_weak_p50": 0.2805
+        },
+        {
+          "step": 3,
+          "df_hz_nominal": 0.015,
+          "floor_strong_p50": 0.2099,
+          "floor_weak_p50": 0.439
+        }
+      ],
+      "neighbour_choice": {
+        "strong": 0.0575,
+        "weak": 0.1341
+      },
+      "band_cutoff_sensitivity": [
+        {
+          "cutoff_hz": 0.09,
+          "floor_p50": 0.0636
+        },
+        {
+          "cutoff_hz": 0.1,
+          "floor_p50": 0.0602
+        },
+        {
+          "cutoff_hz": 0.11,
+          "floor_p50": 0.0508
+        },
+        {
+          "cutoff_hz": 0.125,
+          "floor_p50": 0.0575
+        },
+        {
+          "cutoff_hz": 0.16,
+          "floor_p50": 0.0505
+        },
+        {
+          "cutoff_hz": 0.25,
+          "floor_p50": 0.05
+        },
+        {
+          "cutoff_hz": 0.4,
+          "floor_p50": 0.0499
+        }
+      ],
+      "sea_state_sensitivity": [
+        {
+          "hs_min_m": 0.0,
+          "floor_p50": 0.0608
+        },
+        {
+          "hs_min_m": 0.5,
+          "floor_p50": 0.0591
+        },
+        {
+          "hs_min_m": 1.0,
+          "floor_p50": 0.0575
+        },
+        {
+          "hs_min_m": 1.5,
+          "floor_p50": 0.0613
+        },
+        {
+          "hs_min_m": 2.0,
+          "floor_p50": 0.0572
+        },
+        {
+          "hs_min_m": 2.5,
+          "floor_p50": 0.0474
+        }
+      ],
+      "by_year_floor_p50": [
+        0.055,
+        0.063,
+        0.0414,
+        0.0483,
+        0.0538,
+        0.071,
+        0.0662,
+        0.0533,
+        0.0684,
+        0.0645,
+        0.0631,
+        0.0809,
+        0.0527,
+        0.0483,
+        0.0514,
+        0.0505,
+        0.0428,
+        0.0571,
+        0.0538,
+        0.0763,
+        0.0698,
+        0.0616,
+        0.0598,
+        0.0621,
+        0.047
+      ],
+      "swings": {
+        "band_cutoff": 1.275,
+        "sea_state": 1.293,
+        "neighbour": 2.332,
+        "year": 1.954
+      },
+      "cutoff_note": "1.17x against sigma_f's 6.1x over the SAME cutoff range: the floor is LOCAL to the peak and never touches m2, so section 4's artifact cannot reach it."
+    },
+    "realised_envelope": {
+      "n_windows": 108000,
+      "window_s": 166.7,
+      "duty_cycle": [
+        {
+          "threshold": 0.15,
+          "measured_p50": 0.0661,
+          "model_floor_0": 0.2532,
+          "model_floor_0p15": 0.0
+        },
+        {
+          "threshold": 0.25,
+          "measured_p50": 0.1832,
+          "model_floor_0": 0.3333,
+          "model_floor_0p15": 0.2229
+        },
+        {
+          "threshold": 0.35,
+          "measured_p50": 0.3333,
+          "model_floor_0": 0.403,
+          "model_floor_0p15": 0.3224
+        },
+        {
+          "threshold": 0.5,
+          "measured_p50": 0.5676,
+          "model_floor_0": 0.5,
+          "model_floor_0p15": 0.4435
+        }
+      ],
+      "fitted_modulation_depth": 0.4285,
+      "fitted_floor": 0.143,
+      "min_over_max_p50": 0.0342,
+      "min_over_max_p5": 0.0067,
+      "negative_result": "The measured envelope MINIMUM is 0.034 (p50), lower than any two-component floor -- a many-component narrowband envelope is Rayleigh and does approach zero. The model's null DEPTH is therefore not the unphysical part; its DURATION is. Fit duty cycle, not depth."
+    },
+    "landed": {
+      "floor": 0.15,
+      "modulation_depth": 0.425,
+      "uncertainty": [
+        0.05,
+        0.2
+      ],
+      "does_not_license": "retuning dF. Section 4 stands."
+    }
   }
 }
