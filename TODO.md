@@ -6,6 +6,54 @@ The distilled open state. Everything below this section is the lab notebook,
 kept in full as the record; blockers are marked here.
 
 **The screensaver read (mission #1)**
+- [!] SCALE MEASURED 2026-08-18 — **the "dune" read is a DUTY CYCLE problem,
+      and at the set peak the waves are TOO STEEP, not too flat.** Instrument
+      `scripts/measure_wave_scale.mjs`: a dipstick occlusion probe (opaque
+      depth-tested rods of known world height injected every 2 m along a
+      shore-normal transect, viewed side-on at 70°; the lowest visible rod
+      height IS the drawn surface, so shading cannot move it). Proofs: look-at
+      to frame centre 0.000 px, project/unproject 1.7e-11 m, known 0/3/6 m
+      markers recover to 0.075/3.10/6.08, 70° vs 80° re-measure agrees to
+      median 0.32–0.50 m, and a `#psi=0` control reads the frozen LAM=90 as
+      90.0 m flat with no depth trend.
+      • WAVELENGTH IS RIGHT: drawn crest spacing 72 m @2.5 m depth → ~96 m
+        @6 m, pooled median ratio **0.992** vs the model's own L(h); the
+        shoaling is real (the psi=0 control shows none). Residue: 15–20%
+        short in the deepest bake water (5.5–6.5 m), and a T=17 s day has
+        <1 wavelength of unbroken water to measure (contourZ floor −260).
+      • HEIGHT EXAGGERATION IS DELIVERED AS DESIGNED: measured 2.85–3.38x at
+        the set peak, i.e. VIS=3.2 recovered off the screen. Consequence:
+        drawn H/L 0.077–0.100 = **1.6–3.0x the Miche depth limit**, 0.48–0.70
+        of Michell's 1/7, and drawn H/h up to **2.63** against GAMMA 0.78 —
+        a wave that cannot exist. Faces 17–27° where the physical H/L gives ~5°.
+      • THE LULL IS THE DEFECT: `setEnv = 0.5+0.5cos()` is zero-floored with
+        100% modulation depth. Over one 166.7 s beat at secondpeak x=80 the
+        drawn H swings **16x** (6.30 m → 0.40 m) and the height exaggeration
+        swings 3.21x → **0.22x** — for ~40–50% of every cycle the render draws
+        water FLATTER than the real ocean (H/L 0.006–0.013 vs physical 0.021).
+        Evidence frame `envelope/env_secondpeak_sim122_x80_annotated.png` is a
+        mirror-flat sea. **A floor on setEnv raises the lull without touching
+        the peak** — likely more value for the "is this water" read than any
+        shape work, and derivable: an envelope floor IS the amplitude ratio of
+        the two beating components, |a1−a2|/(a1+a2), which PP_SPECTRAL_SETS
+        can constrain instead of guessing.
+      • THEREFORE: shape work aimed at the SET PEAK is aimed at the wrong
+        target — there is no steepness headroom left there. If the peak still
+        reads wrong it is anatomy/shading, not scale. Open question for Andy:
+        VIS=3.2 is what pushes drawn H/h to 2.6 in 3 m of water, and that may
+        itself be part of what reads as unconvincing.
+      • INSTRUMENT LESSON (belongs in MEASUREMENT_LESSONS): the first build
+        triangulated a band-passed LUMA feature across three depression angles,
+        passed its own over-determination residual, and returned a surface
+        floating 5.5–10.9 m above still water everywhere — view-dependent
+        shading moves the luma feature to a different PHASE per view, and that
+        shift varies monotonically with view angle, so it mimics height and the
+        self-consistency check cannot see it. Luma is valid for SPACING (any
+        consistent phase marker has the right period; it agrees with the
+        dipstick to 1.018) and invalid for HEIGHT.
+      • Limits declared: Michell 0.142, Miche 0.142·tanh(kh), McCowan 0.78 were
+        verified against multiple consistent secondary sources; the 1893/1894/
+        1944 primaries were NOT obtained.
 - [!] WAVE SHAPE — **THE FORWARD-PITCH TERM PITCHES NOTHING** (audited
       2026-08-18, `scripts/probe_wave_shape.mjs`; the probe compiles the
       SHIPPED MODEL_GLSL + the GRID_VERT choppyPos slice against the LIVE
