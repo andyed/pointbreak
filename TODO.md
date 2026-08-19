@@ -6,6 +6,44 @@ The distilled open state. Everything below this section is the lab notebook,
 kept in full as the record; blockers are marked here.
 
 **The screensaver read (mission #1)**
+- [!] WAVE SHAPE — **THE FORWARD-PITCH TERM PITCHES NOTHING** (audited
+      2026-08-18, `scripts/probe_wave_shape.mjs`; the probe compiles the
+      SHIPPED MODEL_GLSL + the GRID_VERT choppyPos slice against the LIVE
+      uniforms, provenance asserted by substring, cross-checked against an
+      independent JS transcription to ≤4 cm and against the section view's
+      breaking depth to ≤4.2%). `theta -= skew*sin(theta)` (model-glsl:844)
+      is an ODD map of theta and `crestShape` is EVEN in its argument, so h
+      is even about the crest FOR EVERY skew: measured front/back max-slope
+      ratio **1.000000**, As **−0.0001** over a 30-cell (s,q) sweep spanning
+      the whole reachable range. Live model As −0.03…+0.21 vs Ruessink+12
+      −0.13…−0.75 and Elgar & Guza 1985 peaks −0.92/−1.24 — **As deficit
+      0.85 at the break line**; biphase psi +5° vs −59° (**64° gap**);
+      total nonlinearity B 0.42x the parameterized value. MODEL.md §2.2's
+      "Forward pitch" claim is FALSIFIED and must be corrected with the fix.
+      Worse, the term is actively harmful as written: it BROADENS the crest
+      and narrows the trough, removing Sk 0.66–0.82 (crest/trough ratio
+      1.29–1.77 shipped vs 2.76–3.20 at s=0) — literally the "rounded dune"
+      read. FIX (verified numerically before landing): make the skew EVEN,
+      `theta -= skew*(1 - cos(theta))` — at Second Peak's q=4.56 that gives
+      As −0.25/−0.59/−0.79 and front/back 1.46/2.19/2.84 at s=0.3/0.6/0.8,
+      raising the front face 50–60%, and lands the Ruessink As target at
+      s≈0.75. Downstream of this, NOT before it: the 20 m displacement
+      clamp (Sewers saturates it at every crest), the `plunge` cliff
+      (smoothstep(0.45,1.25,xi) zeroes lip AND curl at sharks/privates/jacks
+      and gives secondpeak 0.156), the frozen 90 m wavelength (u_psiMix=0,
+      so the wave never shortens as it shoals — 38% of face steepness left
+      unclaimed, and the eikonal bake already exists), and scheduling
+      skew/q against the Ursell number instead of `excess`/|d|.
+      Also measured: physical face 2.4–5.0° (displayed 7.4–15.0° via
+      VIS=3.2) against Carini+21's 22° spilling / 30° plunging at breaking
+      onset — the height field is 3–7x flatter than a breaking wave and only
+      reads steep because of the exaggeration. Field stills CANNOT settle
+      face slope (33 px of wave signature, ~1.9° depression angle; height
+      and cross-shore span alias onto the same image axis) — not faked,
+      recorded as a limit. Citations verified except Doering & Bowen 1995
+      (paywalled, never opened — its fitted relations are UNVERIFIED here);
+      Ursell has three incompatible conventions, both forms are in
+      `stats_gauges.csv`.
 - [ ] Hero read FAILED 2026-08-14, partially recovered since (#head comet
       gradient, #pock pocket scaling; `#look=current|foam|full` fidelity probe
       2026-08-15). Default stays `current` pending a live verdict. Open
