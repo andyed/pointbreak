@@ -12,7 +12,7 @@ import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS,
          reefWindowKnots } from '../../shared/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
-         SPRAY_VERT, SPRAY_FRAG } from './shaders.js';
+         SPRAY_VERT, SPRAY_FRAG, SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
@@ -213,6 +213,10 @@ const uniforms = {
   // Field-video fidelity probe: 0 shipped/current, 1 foam material only,
   // 2 foam + per-wave hierarchy + tightened face/lip. #look= names the A/B.
   u_fidelityLook: { value: 0 },
+  // Lip overturn (shaders.js choppyPos, "#curl"). DEFAULT OFF pending a live
+  // verdict: it replaces the shipped throw/drop pair with a rotation of the
+  // crest band, which is a visible change to every plunging wave.
+  u_curl:       { value: 0 },
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -220,6 +224,11 @@ const uniforms = {
   u_landSkipM:  { value: 6.0 },
 };
 applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
+
+// curlProbe scratch (see __pointbreak.curlProbe). Built lazily: a headless
+// measurement pays for it, a normal page load never allocates the target.
+let curlProbeRT = null, curlProbeMat = null, curlProbeQuad = null,
+    curlProbeScene = null, curlProbeCam = null;
 
 const mat = new THREE.ShaderMaterial({
   vertexShader: GRID_VERT,
@@ -1631,6 +1640,10 @@ function applyHashParams() {
   if (armV === '0') { uniforms.u_setAnchor.value = 0; uniforms.u_armRead.value = 0; }
   else if (armV === 'anchor') uniforms.u_armRead.value = 0;
   else if (armV === 'tail') uniforms.u_setAnchor.value = 0;
+  // lip overturn defaults OFF; #curl=1 arms the crest-band rotation. It
+  // REPLACES the throw/drop pair the #lip aeration mask reads (see choppyPos),
+  // so the two flags describe the same event through different geometry.
+  if (h.get('curl') === '1') uniforms.u_curl.value = 1;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -1744,6 +1757,66 @@ window.__pointbreak = {
   // perf A/B: set huge to disable the land-vertex skip, 6.0 to restore
   setLandSkip: (m) => { uniforms.u_landSkipM.value = m; },
   setFidelityLook: (look) => { uniforms.u_fidelityLook.value = parseFidelityLook(look); },
+  setCurl: (on) => { uniforms.u_curl.value = on ? 1 : 0; },
+  // ---- curlProbe: the displaced surface, as numbers ----
+  // Reads back surfacePos() for a shore-normal transect at world x, sampling
+  // the SOURCE coordinate z0 uniformly and returning the DISPLACED (x, y, z).
+  // That is the only way to answer "does it overhang": an overhang is a fold
+  // in the map z0 -> z, so the source parameter has to be visible.
+  //
+  // It runs the SHIPPED shader chunk (SURFACE_PRELUDE + SURFACE_GLSL, the same
+  // text GRID_VERT compiles) as a fragment pass over a float target, sharing
+  // this page's uniform objects — bed textures, tide, refraction bake and all.
+  // A JS re-derivation would be a second model of the same quantity, which is
+  // the mistake MEASUREMENT_LESSONS 4 is about.
+  curlProbe: (x = 0, z0 = -60, z1 = 60, n = 1024) => {
+    if (!Number.isFinite(x) || !(n > 1)) return null;
+    if (!curlProbeRT || curlProbeRT.width !== n) {
+      curlProbeRT?.dispose();
+      // Two rows: row 0 is the geometry (y, z, land, curl), row 1 the model
+      // bookkeeping at the same source point (pocket, brk, foam, aer). The
+      // second row is what tells a null apart from a miss — "no overturn here"
+      // and "the pocket is not here" are different findings.
+      curlProbeRT = new THREE.WebGLRenderTarget(n, 2, {
+        type: THREE.FloatType, minFilter: THREE.NearestFilter,
+        magFilter: THREE.NearestFilter, depthBuffer: false,
+      });
+    }
+    if (!curlProbeMat) {
+      curlProbeMat = new THREE.ShaderMaterial({
+        uniforms: Object.assign({ u_probe: { value: new THREE.Vector4() } }, uniforms),
+        vertexShader: 'void main(){ gl_Position = vec4(position.xy*2.0, 0.0, 1.0); }',
+        fragmentShader: `${SURFACE_PRELUDE}\n${SURFACE_GLSL}\n` +
+          'uniform vec4 u_probe;   // x, z0, z1, n\n' +
+          'void main(){\n' +
+          '  float i = floor(gl_FragCoord.x);\n' +
+          '  float zz = mix(u_probe.y, u_probe.z, i/max(u_probe.w - 1.0, 1.0));\n' +
+          '  float f, p, b, c, l, a, k;\n' +
+          '  vec3 P = surfacePos(vec2(u_probe.x, zz), u_time, f, p, b, c, l, a, k);\n' +
+          '  gl_FragColor = gl_FragCoord.y < 1.0 ? vec4(P.y, P.z, l, k)\n' +
+          '                                      : vec4(p, b, f, a);\n' +
+          '}',
+      });
+      curlProbeQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), curlProbeMat);
+      curlProbeScene = new THREE.Scene().add(curlProbeQuad);
+      curlProbeCam = new THREE.Camera();
+    }
+    curlProbeMat.uniforms.u_probe.value.set(x, z0, z1, n);
+    const prev = renderer.getRenderTarget();
+    renderer.setRenderTarget(curlProbeRT);
+    renderer.render(curlProbeScene, curlProbeCam);
+    const buf = new Float32Array(n * 2 * 4);
+    renderer.readRenderTargetPixels(curlProbeRT, 0, 0, n, 2, buf);
+    renderer.setRenderTarget(prev);
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const g = i * 4, m = (n + i) * 4;
+      out.push({ z0: z0 + (z1 - z0) * i / (n - 1), y: buf[g],
+                 z: buf[g + 1], land: buf[g + 2], curl: buf[g + 3],
+                 pocket: buf[m], brk: buf[m + 1], foam: buf[m + 2], aer: buf[m + 3] });
+    }
+    return out;
+  },
   // Where does a crest FIRST meet the break line? m4RideSolve takes the takeoff
   // as argmin S over the stage. When that minimum is INTERIOR, crests satisfy
   // the criterion in both directions from it and the peak splits into a left

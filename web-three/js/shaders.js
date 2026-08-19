@@ -35,6 +35,14 @@ varying float vLand;   // 1 where the seabed surfaced above the water
 varying float vDepth;  // still-water depth at this point, m (99 = no bathymetry)
 varying float vBoil;
 varying float vAerLip; // aerated-lip mask, keyed to the fold geometry (#lip=1)
+// HOOK for the lip-aeration path (2026-08-18): the angle this vertex's crest
+// band was rotated through by #curl, in turns (phi/PI, so 0.5 = the lip is
+// horizontal and 1.0 = it has come right over). Written by the vertex stage,
+// deliberately NOT read here — geometry owns the throw, the foam path owns the
+// whitening, and this varying is the one number that crosses between them.
+// With #curl=1 this is the honest overturn measure; vAerLip's throwMag/hM
+// proxy describes the throw that #curl switches off (see choppyPos).
+varying float vCurl;
 `;
 
 // ---------- detail spectrum (renderer-side; the model stays in model-glsl) ----------
@@ -225,15 +233,24 @@ vec3 skyColor(vec3 rd, float t){
 }
 `;
 
-export const GRID_VERT = `
+// Everything the displaced surface needs BEFORE the surface functions
+// themselves. Factored out of GRID_VERT (2026-08-18) together with
+// SURFACE_GLSL below so `curlProbe` (main.js) can evaluate the SHIPPED
+// geometry in a fragment pass rather than re-deriving it in JS —
+// MEASUREMENT_LESSONS 4: an instrument that scores a replica certifies the
+// replica. Composition is unchanged, so GRID_VERT compiles the same text it
+// always did.
+export const SURFACE_PRELUDE = `
 uniform float u_time;   // simulation seconds (speed-scaled, pausable, JS-side)
 uniform vec2  u_cell;   // core grid cell size in metres (x, z) — normal FD step
 uniform float u_fidelityLook; // 0 current, 1 foam, 2 connected face/lip probe
-${VARYINGS}
+uniform float u_curl;   // #curl=1: lip overturn (rotation, not throw). Default 0.
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
 ${KELP_GLSL}
+`;
 
+export const SURFACE_GLSL = `
 // stage rect for the far fade — mirrors STAGE_* in main.js
 const vec2 STAGE_HALF   = vec2(300.0, 250.0);
 const vec2 STAGE_CENTER = vec2(0.0, 10.0);
@@ -258,9 +275,10 @@ float farFadeAt(vec2 xz){
 // slope), so nothing here depends on grid resolution.
 // Outs are the model's bookkeeping at the SOURCE point (Tessendorf: material
 // properties travel with the displaced point), already far-faded.
-vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer){
+vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer, out float curl){
   float fade = farFadeAt(xz0);
   aer = 0.0;
+  curl = 0.0;
   if (fade <= 0.001) {   // deep in the skirt: flat calm, skip 5 ocean() evals
     foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0;
     return vec3(xz0.x, 0.0, xz0.y);
@@ -343,6 +361,12 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // the authored fold untouched for current/foam; full stops just before the
   // cusp so the crest can hinge visually without becoming a separate ribbon.
   if (connectedLook > 0.5) S = min(S, 0.98);
+  // #curl division of labour: the choppy term takes the crest TO the cusp and
+  // stops there (S = 1 is the vertical tangent, by construction above); the
+  // rotation below owns everything past it. Left uncapped, two mechanisms fold
+  // the same band and their overhangs compose into a self-intersection the
+  // grid cannot carry (S alone already reaches 1.8 at Sewers).
+  if (u_curl > 0.5) S = min(S, 1.0);
   float lam    = S / (aEst * kk * kk);
 
   vec2 off = lam * grad;
@@ -380,9 +404,14 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
 
   float lipTip = mix(1.0, 1.0 + 0.65*frontPhase, anatomy);
   lipTip = mix(lipTip, 1.0 + 0.18*frontPhase*anatomy, connectedLook);
+  // #curl replaces this pair (see the rotation below), it does not stack on
+  // top of them: throw/drop translate the crest band without preserving its
+  // thickness, which is precisely the "thin shell" read the rotation exists to
+  // fix. Blending rather than branching so the two are one continuum.
+  float legacyLip = 1.0 - clamp(u_curl, 0.0, 1.0);
   float throwMag = mix(5.0, 0.72, connectedLook)
                  * pocket * plunge * hM * lipJit * lipTip;
-  off.y += throwMag;
+  off.y += throwMag * legacyLip;
 
   // Curl downward. LINEAR in face height — the first metre-calibration kept
   // the old quadratic (1.55*hM^2) and the critique caught it eating the crest
@@ -393,7 +422,110 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float dropMag = mix(3.0, 0.28, connectedLook)
                 * pocket * plunge * hM * lipJit
                 * mix(1.0, 0.72 + 0.82*frontPhase, anatomy);
-  h -= dropMag;
+  h -= dropMag * legacyLip;
+
+  // ---- #curl: the lip overturns (2026-08-18, flag-gated, default OFF) ----
+  // WHY A BEND AND NOT MORE THROW. Everything above this line is a
+  // single-valued height field plus a horizontal offset. ocean()'s forward
+  // pitch is a PHASE SKEW (theta -= skew*sin(theta)): it can drive the front
+  // face toward vertical and can never pass it, because an overhang is
+  // multivalued in z and no reparametrisation of a single-valued h(theta) is.
+  // The choppy term CAN fold the MESH (that is what S > 1 means, and the
+  // shipped renderer does reach it at Sewers), but it folds symmetrically
+  // about the crest, and the throw/drop pair above then TRANSLATES the crest
+  // band without preserving its thickness — worse, dropMag subtracts up to
+  // ~3*hM at the pocket, so the shipped wave is at its FLATTEST exactly where
+  // it should be at its tallest. Measured at Sewers, x = -104, sim 36: the
+  // pocket crest stood 5.5 m against 8.3 m on the same wave one station away.
+  // That is the "smooth rounded dune / thin shell" read (Andy, 2026-08-18).
+  //
+  // A plunging lip is a BEND: the upper face curves forward onto a circular
+  // arc of radius R, the jet leaves the crest tangentially and comes over. The
+  // classical bend deformer is exact and cheap — a point dy above the bend
+  // line travels to arc angle th = dy/R:
+  //
+  //     dz = dy*(1 - cos th)/th ,   y = yBend + dy*sin(th)/th
+  //
+  // Three properties matter here, and they are why this replaces the rotation
+  // that was tried first (FALSIFIED, see below):
+  //   * it NEVER LIFTS. sin(th)/th <= 1, so no vertex ends higher than it
+  //     started; the crest lowers as it pitches, which is what a real one does.
+  //   * arc length is preserved, so the band KEEPS ITS THICKNESS — the curl
+  //     projects as a tube with volume rather than a zero-thickness sheet.
+  //   * it overhangs where the face is steeper than 1/sin(th). dz'/dz0 =
+  //     1 + sin(th)*dh/dz0, and dh/dz0 is strongly negative on a cusped face,
+  //     so past ~90 deg of bend the map z0 -> z folds by construction.
+  //
+  // FALSIFIED, 2026-08-18: a rigid rotation of the crest band about a pivot on
+  // the crest line (phi up to 2.35 rad, pivot 0.12-0.45*hCrest). A rotation
+  // lifts everything seaward of its pivot by -dz*sin(phi), and since h falls
+  // going seaward while that lever grows, the two nearly cancel — the crest
+  // came out as a FLAT-TOPPED SLAB, a rectangular block sitting on the water
+  // (scratchpad evidence/curl, sewers_cliff_sim36_curl-on). Narrowing the
+  // seaward tail to 0.55 sigma did not fix it (apex 8.8 -> 12.4 m, +41% over
+  // the depth-limited ceiling). The bend has no pivot and therefore no lever.
+  //
+  // UNIFORM BRANCH, not a mix: with the flag off the shipped image must be
+  // bit-identical, and the bend is only the identity to within float rounding.
+  // The branch is uniform, so the default path pays nothing for this.
+  if (u_curl > 0.5) {
+  // Displayed crest height at this station, from the SAME depth-limited
+  // quantities the excess gate above already computed (KsQ, depQ) — no new
+  // authority. min(Hsh, gamma*h) is the height the water can carry; the
+  // sharpened crestShape puts ~0.8 of it above the mean, and VIS is the
+  // viewing exaggeration the rest of the geometry is drawn at.
+  float hCrest = clamp(0.8*VIS*min(u_H0*KsQ, GAMMA*depQ), 0.5, 14.0);
+  // WHERE THE BEND STARTS. Below this the face is untouched, so it keeps
+  // standing while the lip goes over it; above it the water curves forward.
+  float yBend  = 0.35*hCrest;
+  if (h > yBend) {
+    float dyB = h - yBend;
+    // WHICH water bends: only near the crest line. The crest at this station
+    // is at theta = 0, and rayPhase grows shoreward at k, so the crest sits
+    // theta/k_z metres away in z. k_z is the SHORE-NORMAL component — crests
+    // are oblique by swellPhi, so the along-z spacing is k*cos(phi), floored
+    // (a 76 deg swell would otherwise put the crest at infinity).
+    float kz     = max(kk*cos(swellPhi()), 0.25*kk);
+    float thetaW = mod(thetaRaw + PI, 2.0*PI) - PI;    // wrapped to (-PI, PI]
+    float dzC    = -thetaW/max(kz, 1e-3);              // + shoreward of the crest
+    // xi sets CHARACTER, exactly as it does for the foam: a plunging lip is
+    // COMPACT and thrown clear of the face, a spilling one barely overturns
+    // and smears along the crest. Same Battjes 0.45-1.25 smoothstep the rest
+    // of the lip machinery uses. Scaled BY THE CREST HEIGHT rather than fixed
+    // in metres — a jet is a fraction of the wave it comes off, so a small day
+    // must not throw a curtain sized for a big one.
+    float sigZ  = clamp(mix(0.85, 0.50, plunge)*hCrest, 2.5, 10.0);
+    float bandZ = exp(-(dzC*dzC)/(2.0*sigZ*sigZ));
+    // HOW HARD it bends. 1/R in units of the crest height, so the barrel
+    // radius scales with the wave: 0.30 at pure spilling (a crest that rounds
+    // over, ~11 deg of bend at the top) and 2.60 at full plunge (R ~ 0.38
+    // hCrest, ~97 deg at the top — past vertical, the lip is over).
+    // HOW FAR PAST THE LIMIT the wave is — the same breaking excess the phase
+    // skew keys off (MODEL.md 2.2), so the overturn arrives when and where the
+    // model already says the wave is breaking, and takes its size dependence
+    // through the same route. pocket keeps it attached to the TRAVELLING
+    // breakpoint, so the lip peels down the point with the zipper.
+    // FALSIFIED FIRST CUT: smoothstep(0.95, 1.40, excessQ) as the gate. It
+    // reads like the right shape and is self-defeating — AT the break line
+    // excess is ~1.0 by construction (that locus IS H0*Ks = gamma*h), so it
+    // evaluated to 0.03 exactly where pocket = 1, and only reached 1.4 well
+    // inshore where pocket had already decayed. Measured at Second Peak,
+    // sim 36/48: best station pocket 0.99, overturn 3.4 deg. Linear clamp
+    // instead, the same idiom as sizeGate above.
+    float overGate = mix(1.0, clamp(excessQ, 0.0, 1.5), u_depthMix);
+    float kEff = (mix(0.30, 2.60, plunge)/max(hCrest, 0.5))
+               * overGate * pocket * bandZ * (0.80 + 0.30*lipJit);
+    float th   = clamp(dyB*kEff, 0.0, 2.30);   // 132 deg; the mesh backstop
+    if (!(th == th)) th = 0.0;                 // NaN guard (house rule)
+    // Stable arc form: the (1-cos th)/th and sin(th)/th factors are written
+    // over th, not over kEff, so kEff -> 0 is the identity with no divide.
+    float sTh = th > 1e-4 ? sin(th)/th : 1.0;
+    float cTh = th > 1e-4 ? (1.0 - cos(th))/th : 0.0;
+    off.y += dyB*cTh;
+    h      = yBend + dyB*sTh;
+    curl   = th/PI;   // hook for the lip-aeration path: turns of overturn
+  }
+  }
 
   // ---- aerated lip (#lip=1, read by GRID_FRAG through u_lipAer) ----------
   // The curl was CLEAN GLASS: the fold above is pure geometry, every foam
@@ -462,7 +594,8 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
 uniform float u_landSkipM;   // = CREST_CEIL_M; huge value disables the skip
 
 vec3 surfacePos(vec2 xz0, float t, out float foam, out float pocket,
-                out float brk, out float crest, out float land, out float aer){
+                out float brk, out float crest, out float land,
+                out float aer, out float curl){
   // Bed FIRST (2026-08-12 perf). This used to run choppyPos — five ocean()
   // evaluations — and only then discover the bed was above it and throw the
   // whole result away, on every vertex over dry land, three times per vertex
@@ -474,35 +607,44 @@ vec3 surfacePos(vec2 xz0, float t, out float foam, out float pocket,
   // wave: bit-identical output, minus the work.
   float bedY = mix(-999.0, bedElevM(xz0) - u_waterLevel, u_depthMix);
   if (bedY > u_landSkipM) {
-    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0; aer = 0.0;
+    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0; aer = 0.0; curl = 0.0;
     land = 1.0;
     return vec3(xz0.x, bedY, xz0.y);
   }
-  vec3 P = choppyPos(xz0, t, foam, pocket, brk, crest, aer);
+  vec3 P = choppyPos(xz0, t, foam, pocket, brk, crest, aer, curl);
   land = 0.0;
   if (bedY > P.y) {
     P = vec3(xz0.x, bedY, xz0.y);
     land = 1.0;
-    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0; aer = 0.0;  // no surf on dry sand
+    // No surf on dry sand — and no overturn either: max(bed, water) is what
+    // keeps the shoreline a consequence, so a thrown lip that lands below the
+    // bed is clamped to the bed here exactly like every other wave term.
+    foam = 0.0; pocket = 0.0; brk = 0.0; crest = 0.0; aer = 0.0; curl = 0.0;
   }
   return P;
 }
+`;
+
+export const GRID_VERT = `
+${SURFACE_PRELUDE}
+${VARYINGS}
+${SURFACE_GLSL}
 
 void main() {
   // geometry is authored in world metres on the XZ stage (see main.js), so
   // position.xz IS the model coordinate — no extra transform to keep in sync
   vec2 xz = position.xz;
 
-  float foam, pocket, brk, crest, land, aer;
-  vec3 P = surfacePos(xz, u_time, foam, pocket, brk, crest, land, aer);
+  float foam, pocket, brk, crest, land, aer, curl;
+  vec3 P = surfacePos(xz, u_time, foam, pocket, brk, crest, land, aer, curl);
 
   // normals by finite differences on the DISPLACED positions (spec M2) — the
   // height-only FD of M1 is blind to the fold. Forward differences at one
   // core cell: central would push the (already 3x M1) vertex cost to 5x for
   // a half-cell phase shift invisible at ~1.2 m cells.
-  float f2, p2, b2, c2, l2, a2;
-  vec3 Px = surfacePos(xz + vec2(u_cell.x, 0.0), u_time, f2, p2, b2, c2, l2, a2);
-  vec3 Pz = surfacePos(xz + vec2(0.0, u_cell.y), u_time, f2, p2, b2, c2, l2, a2);
+  float f2, p2, b2, c2, l2, a2, k2;
+  vec3 Px = surfacePos(xz + vec2(u_cell.x, 0.0), u_time, f2, p2, b2, c2, l2, a2, k2);
+  vec3 Pz = surfacePos(xz + vec2(0.0, u_cell.y), u_time, f2, p2, b2, c2, l2, a2, k2);
   vec3 N = cross(Pz - P, Px - P);            // +y up for an unfolded surface
   if (!(dot(N, N) > 1e-12)) N = vec3(0.0, 1.0, 0.0);   // degenerate fold cell
   N = normalize(N);
@@ -539,6 +681,7 @@ void main() {
   vBrk      = brk;
   vBoil     = boil;
   vLand     = land;
+  vCurl     = curl;   // aeration hook (see VARYINGS); 0 unless #curl=1
   vDepth    = mix(99.0, waterDepthM(xz), u_depthMix);
   vAerLip   = aer;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);

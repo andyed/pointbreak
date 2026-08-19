@@ -642,6 +642,48 @@ No parity port. Consequences to carry honestly:
       freshness (85 m e-fold behind the head). OFF→ON numbers at the pinned
       clocks: CONTROLS.md `lip` row. Judge live from drone AND cliff before
       any default flip.
+- [~] 2026-08-18: LIP OVERTURN as GEOMETRY landed behind `#curl=1` (default
+      OFF pending Andy's live verdict), the vertex-path half of the same
+      complaint ("the curl is a thin shell, not water with volume").
+      DIAGNOSIS FIRST, and it moved the target twice.
+      (a) Overturn was NOT missing. The model's h field cannot overhang — the
+      forward pitch is a phase skew, `theta -= skew*sin(theta)`, and no
+      reparametrisation of a single-valued h(theta) is multivalued — but the
+      RENDERER already folds the mesh through the Tessendorf offset, and does
+      reach S > 1 at Sewers. New instrument `scripts/measure_curl.mjs` +
+      `__pointbreak.curlProbe` (reads the SHIPPED SURFACE_GLSL chunk back off
+      the GPU as a fragment pass, so it scores the surface that ships, not a
+      JS twin): the shipped build already produces multivalued lips.
+      (b) The real defect is WHERE the height goes. `dropMag` subtracts up to
+      ~3*hM AT THE POCKET, so the wave is flattest exactly where it should be
+      tallest: median pocket crest 5.16 m against 8.3 m one station away on
+      the same wave (Sewers, q=high, sims 36/42/48/54).
+      MECHANISM: replace throw+drop with the classical BEND. Water above
+      0.35*h_crest curves onto an arc of radius R = h_crest/mix(0.30, 2.60,
+      plunge); `dz = dy*(1-cos th)/th`, `y = y_bend + dy*sin(th)/th`. Never
+      lifts, preserves arc length (thickness = volume), overhangs where the
+      face is steeper than 1/sin(th). NUMBERS (Sewers q=high): max bend 132
+      deg, median pocket crest 5.16 -> 7.88 m, stray trough folds 20.4 ->
+      14.2 m (S capped at the cusp), swash `goo 0 / breathe 5.96%` identical
+      OFF and ON. Sharks (xi 0.45) moves 12 deg — spilling barely overturns,
+      which is the xi contract.
+      FALSIFIED, both measured, both noted at the call site: (i) a rigid
+      ROTATION of the crest band about the crest line — a rotation lifts
+      everything seaward of its pivot and the lift nearly cancels the falling
+      h, so the crest rendered as a FLAT-TOPPED SLAB (crest 8.3 -> 12.4 m);
+      narrowing the seaward tail did not fix it, because the lever is the
+      mechanism. (ii) `smoothstep(0.95, 1.40, excessQ)` as the "past the
+      limit" gate — AT the break line excess is ~1.0 by construction, so it
+      evaluated to 0.03 exactly where pocket = 1 (Second Peak best station:
+      pocket 0.99, overturn 3.4 deg). Linear `clamp(excessQ, 0, 1.5)`, the
+      same idiom as sizeGate.
+      STILL OPEN: the ~15 m median "overhang" the probe reports in BOTH arms
+      is the documented trough-crease pathology (`lam = S/(a*k^2)` amplifying
+      chop where the amplitude estimate bottoms out), not a lip — it is the
+      next thing to fix if the fold is judged noisy. HOOK for #lip: `vCurl`
+      (turns of overturn) is the honest key when #curl is on; the shipped
+      `aerCurtain` reads `throwMag`, which #curl computes but no longer
+      applies. Judge live from cliff AND lineup before any default flip.
 
 ### Track 6 — instrumentation (cheap; start anytime — now the acceptance path
 ### since the twin instruments are deprecated)
