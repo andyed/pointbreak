@@ -5,6 +5,53 @@
 The distilled open state. Everything below this section is the lab notebook,
 kept in full as the record; blockers are marked here.
 
+## ▶ LIVE VERDICT QUEUE (2026-08-18) — nine flags waiting on Andy's eye
+
+Nothing below has been judged live. Every one is instrumented, tested and
+A/B-revertible; what none of the instruments can decide is whether it LOOKS
+right. Defaults chosen per the house rule — defect fixes ship ON, new looks
+ship OFF. Base state for all of them:
+`#preset=sewers&cam=drone&sim=42&speed=0&controls=0` (and `cam=cliff` for the
+profile calls; NOTE `cam=lineup` puts the camera inside the wave at sewers
+sims 48/54 — use cliff for anything that claims a crest height).
+
+Shipping ON — append the flag to REVERT and compare:
+- `#pitch=0` — the even-map forward pitch. Faces ~60% steeper, As −0.70 vs
+  target −0.72. **Costs Sewers much of its tube in profile** (pocket footprint
+  x0.19–0.63; the old odd map was dilating the crest window 1.6x and the
+  pocket/fold/lip were calibrated on that). THE consequential call here.
+- `#drop=legacy` — pocket crest 5.34 → 7.79 m, fill 0.72 → 1.07 of the depth
+  ceiling. Changes the silhouette of every PLUNGING wave (sewers, first/second
+  peak, thehook, jacks); spilling spots bit-identical.
+- `#env=0` — set-envelope floor 0.15. Lull H 0.40 → 1.02 m, whole-beat swing
+  15.7x → 6.2x, peak row unchanged, cadence 120.8 s. Mission-level behaviour.
+- `#wrap=0` — continuous crest clock. Hard foam edges: 91.6% → 1.5% of frame
+  columns. Expect no aesthetic downside; verify anyway.
+- `#arm=0` (also `anchor` / `tail` to bisect) — the peel arm lights.
+- `#kelp=0` — dark canopy over the reef.
+- `#aim=0` — cameras framing the baked line. At Sewers the cliff cam takes on
+  more foreground bluff; that one is taste.
+- `#cg=0` — group speed (A/B for measurement; default is correct).
+
+Shipping OFF — append to TRY:
+- `#lip=1` — aerated curl. Lip goes from LOSING to the face (202 vs 211) to
+  leading it by 44–132 luma at sewers; ≤+3 at sharks (spilling, correct).
+- `#curl=1` — the lip BENDS onto an arc instead of being thrown. Sewers bends
+  132°, sharks 12°.
+- `#slife=1` — per-stripe along-crest lifecycle; inner stripes stop banding.
+- **`#lip=1&curl=1` is the combination that answers "the wave is curling, not
+  the foam"** — measured as the best of the four, an aerated band lying on the
+  bent lip instead of a detached pale slab.
+
+Known-open after all of it: the SPRAY PLUME MESH is now the loudest hard edge
+at a low camera (faceted white solid, geometry not foam — `#wrap` does not
+touch it); the trough-crease fold pathology (63/68 transects fold somewhere,
+`lam = S/(a k^2)` amplifying chop where the amplitude estimate bottoms out);
+`throwMag` 12–19 m against a 5 m crest band, saturating its own 20 m clamp;
+2/56 pocket stations 1.4–1.7x over the ceiling (uncovered by the drop fix, not
+caused by it — the old drop was burying it); and the new drop coefficient 0.80
+wants re-measuring now that #pitch made faces steeper.
+
 **The screensaver read (mission #1)**
 - [x] WAVE SHAPE, second cause — **`dropMag` FLATTENED THE POCKET** (fixed
       2026-08-18, ships ON, `#drop=legacy` reverts; `scripts/measure_pocket_crest.mjs`
