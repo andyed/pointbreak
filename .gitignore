@@ -41,3 +41,9 @@ docs/drafts/
 # ad-hoc review screenshots do not belong at the root (see docs/figures/ for
 # generated, referenced figures)
 /*.png
+
+# QA contact sheets — HTML + ~125 PNGs regenerated in minutes by
+# `node scripts/build_qa_sheets.mjs`. The generator is the artifact; the frames
+# are not (commit b013197 removed 6.7 MB of unreferenced screenshots, and this
+# is exactly the class of thing it removed).
+qa/
