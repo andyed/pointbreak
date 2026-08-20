@@ -50,7 +50,12 @@
                                                 on the kelp-dark background anywhere
                                                 on this page (rule enforced by only
                                                 using .accent inside .prose / .bg, never
-                                                inside .card)
+                                                inside .card). Same rule is why the
+                                                .qa-note block is background-backed
+                                                rather than kelp-backed: it carries a
+                                                sand link, which needs the 8.31:1 row.
+    dim   #cccbbb on bg #0f1216    -> 11.47:1   .qa-note body
+    foam  #eef2f3 on bg #0f1216    -> 16.66:1   .qa-note label
     teal  #4a8f85 on bg #0f1216   ->  4.97:1   decorative rule/underline only, no text
     slate #6b7f8c on bg #0f1216   ->  4.51:1   decorative rule only, no text
   All body/caption text on this page sets 16px as its floor (1rem @ 16px base);
@@ -413,6 +418,35 @@
   .limits li { margin-bottom: 0.55rem; }
   .limits strong { color: #e6e4d2; }
   h3.sub { font-size: 1.15rem; margin: 2rem 0 0.4rem 0; color: #e6e4d2; }
+
+  /* Outbound pointer to the published QA contact sheets, injected by
+     scripts/build_site.py --with-qa (see the QA_LINK_BEGIN block in section 05).
+     Deliberately NOT .callout: that card is kelp-backed, and sand links on kelp
+     are 6.51:1 — below the floor. This sits on the page background, where sand
+     is 8.31:1 like every other link. The teal edge is decorative; no text on it. */
+  .qa-note {
+    max-width: 70ch;
+    margin: 1.8rem 0 0 0;
+    padding: 1rem 1.2rem;
+    background: var(--mg-bg);
+    border: 1px solid rgba(230,228,210,0.16);
+    border-left: 3px solid var(--mg-teal);
+    border-radius: 5px;
+    color: #cccbbb;
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+  .qa-note .label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mg-foam);
+    font-weight: 700;
+  }
+  .qa-note p { margin: 0 0 0.6rem 0; }
+  .qa-note p:last-child { margin-bottom: 0; }
 
   /* Source + licence, directly under the deck: people ask 'is this open?'
      before they ask anything else about a model. */
@@ -1286,6 +1320,37 @@ depth and exposure.</desc>
       <span class="mono">pointbreak</span> repository. The figures above are
       generated from the same committed data files the simulation reads.
     </p>
+<!-- QA_LINK_BEGIN
+     Outbound link to the published QA contact sheets. It is COMMENTED OUT in
+     this source file on purpose: the sheets live in git ignored qa/, and
+     scripts/build_site.py copies them only under its `with-qa` flag. That
+     script uncomments this block when it does, so a bundle built without the
+     flag carries no link rather than a link to a directory that is not there.
+     Do not "fix" this by uncommenting it here.
+     Contrast: .qa-note sits on the page background (#0f1216), not on kelp, so
+     its sand links keep the 8.31:1 they have everywhere else on the page; sand
+     on kelp is 6.51:1 and fails the floor. Body text is dim #cccbbb at 11.47:1,
+     the label foam #eef2f3 at 16.66:1. Keep this block free of double hyphens:
+     they close an HTML comment early, which would leak it onto the page.
+    <aside class="qa-note">
+      <span class="label">Current QA contact sheets</span>
+      <p>
+        Every claim on this page about what the model does is checked by scanning
+        frames. Those frames are published:
+        <a href="qa/">the current QA contact sheets</a> are deterministic
+        captures at clocks the model itself picks &mdash; one wave through its
+        break, and one full set cycle from lull to peak and back &mdash; each
+        cell labelled with the exact URL that reproduces it and linked into the
+        simulator at that state.
+      </p>
+      <p>
+        They are current as of the date and commit stamped at the top of each
+        sheet, and they are a QA instrument, not a validation: they test the
+        model against itself, not against measured surf. The first limitation
+        listed above still stands.
+      </p>
+    </aside>
+QA_LINK_END -->
   </section>
 
   <section class="essay-part">

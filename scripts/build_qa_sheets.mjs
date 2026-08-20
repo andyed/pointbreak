@@ -12,39 +12,41 @@
 //   node scripts/build_qa_sheets.mjs --base=http://localhost:8127/  # reuse a server
 //   node scripts/build_qa_sheets.mjs --limit=1                      # 1 row/group, smoke
 //   node scripts/build_qa_sheets.mjs --html-only                    # re-render from JSON
-//   node scripts/build_qa_sheets.mjs --mode=published --note='…'    # a publishable snapshot
+//   node scripts/build_qa_sheets.mjs --mode=published --note='…'    # the published set
 // Serves the repo itself via scripts/serve.py (cache OFF — see that file) on
 // --port and kills it on exit, unless --base is given.
 //
-// PUBLISHING (2026-08-20)
-//   These sheets back the visual essay at https://mindbendingpixels.com/pleasurepoint/,
-//   so a published one has to survive leaving this laptop. Three things follow.
+// PUBLISHING — CURRENT STATE, NOT AN ARCHIVE (2026-08-20)
+//   These sheets back the visual essay at https://mindbendingpixels.com/pleasurepoint/.
+//   There is exactly ONE published set, at qa/published/, and a new publish
+//   REPLACES it. No dated directories, no manifest, no retention policy: the
+//   question a reader has is "what does the model do now", and an archive
+//   answers a question nobody asked while costing 54 MB a copy.
 //
-//   1. PROVENANCE. --mode=published (or --snapshot) stamps every page and every
-//      JSON sidecar with the build date, the capture timestamp, the commit
-//      (short + full), the branch, whether the tree was DIRTY, and an app
-//      digest — a SHA-256 over the exact files build_site.py ships as sim/.
-//      There is no version string in the app to read, so the digest is the app
-//      build's identity: it moves when the shipped bytes move, which a commit
-//      sha does not do on a dirty tree. A dirty build says so in a red banner
-//      at the top of every sheet, because a published QA artifact built from
-//      uncommitted code cannot be reproduced from its own stamp.
+//   1. PROVENANCE. A current-state page needs its stamp MORE than an archive
+//      would, because "current" is meaningless without saying current as of
+//      WHAT. Every page and every JSON sidecar carries the build date, the
+//      capture timestamp, the commit (short + full), the branch, whether the
+//      tree was DIRTY, and an app digest — a SHA-256 over the exact files
+//      build_site.py ships as sim/. There is no version string in the app to
+//      read, so the digest is the app build's identity: it moves when the
+//      shipped bytes move, which a commit sha does not do on a dirty tree. A
+//      dirty build says so in a red banner at the top of every sheet, because a
+//      published QA artifact built from uncommitted code cannot be reproduced
+//      from its own stamp.
 //   2. LINKS. --mode=local (default) points cell links at the house dev port;
-//      --mode=published points them at ../../sim/, the path the essay bundle
+//      --mode=published points them at ../sim/, the path the essay bundle
 //      mirrors the app to. --linkbase= overrides either. A published page whose
 //      links only resolve on one laptop is broken for every other reader.
-//   3. SNAPSHOTS. Publishing is periodic, so snapshots accumulate rather than
-//      overwrite: qa/snapshots/<YYYY-MM-DD>-<shortsha>/ per run, with
-//      qa/snapshots/index.html listing them newest-first from
-//      qa/snapshots/manifest.json. RETENTION: the newest --keep=N (default 4)
-//      snapshots keep their frames; older ones are deleted from disk and stay
-//      in the manifest as RETIRED rows carrying date, commit and note. The
-//      index is therefore complete as a record and bounded as a payload.
-//      MEASURED: a full snapshot is 125 PNGs / 54 MB, against a 9.9 MB essay
-//      bundle — so an unbounded qa/ would be the deploy, and the default
-//      keep=4 caps it near 216 MB. The commit stamp is what makes a retired
-//      snapshot regenerable rather than lost. The manifest lives in gitignored
-//      qa/, so it is the publishing machine's record, not the repo's.
+//   3. SUBSAMPLING. Local mode is the working instrument and keeps the FULL
+//      matrix (125 frames). Published mode emits a slim view of the same
+//      instrument — see PUB_ROWS below for which rows survive and why. The
+//      columns are never cut: on the break sheet the sequence IS the artifact,
+//      and on the set sheet lull→peak→lull is the whole demonstration.
+//   4. FRAME BUDGET. Published frames are downscaled and WebP-encoded in-browser
+//      (canvas.toDataURL) rather than shipped at capture resolution. The essay
+//      bundle is 9.9 MB; the published QA set has to sit under that, not beside
+//      it. --pubwidth / --pubquality tune it; the run prints the achieved total.
 //
 // WHY THE CLOCKS ARE DERIVED, NOT PICKED
 //   Sheet 1 (break progression) columns span ONE WAVE PERIOD T, anchored on a
@@ -167,25 +169,47 @@ function digestApp() {
 }
 const APP_DIGEST = digestApp();
 
-// A snapshot is dated + shortsha so two builds on one day at two commits do not
-// collide, and so the directory name alone says what it is.
-const SNAP_ID = `${new Date().toISOString().slice(0, 10)}-${COMMIT}`;
 const MODE = flags.mode === 'published' ? 'published' : 'local';
-const SNAPSHOT = MODE === 'published' || flags.snapshot === 'true' || Boolean(flags.snapshot);
-const SNAP_ROOT = resolve(ROOT, flags.out || 'qa', 'snapshots');
-const OUT = SNAPSHOT ? join(SNAP_ROOT, SNAP_ID) : resolve(ROOT, flags.out || 'qa');
+// ONE published set, replaced in place. qa/ (local) is the full working
+// instrument; qa/published/ is what build_site.py ships.
+const QA_ROOT = resolve(ROOT, flags.out || 'qa');
+const OUT = MODE === 'published' ? join(QA_ROOT, 'published') : QA_ROOT;
 const IMG = join(OUT, 'img');
-const KEEP = Math.max(1, Number(flags.keep || 4));
 const NOTE = flags.note || '';
+
+// Published frame raster. MEASURED on two representative frames (a busy
+// big-day cliff view and the subtle August lull at Second Peak, which is the
+// hard case — faint structure on flat water):
+//
+//   encoding                    busy     subtle    x55 frames
+//   source PNG 1000x625        217 KB    561 KB     11.7-30.1 MB
+//   600x375  webp q0.82        6.9 KB   10.6 KB      0.37-0.57 MB
+//   800x500  webp q0.88       13.0 KB   23.4 KB      0.70-1.26 MB
+//   800x500  jpeg q0.85       26.4 KB   34.8 KB      1.42-1.87 MB
+//
+// WebP over JPEG on data, not preference: at 800 px it is 33-45% SMALLER than
+// JPEG at a LOWER quality tier. Support is universal in any browser that can
+// run the WebGL sim this page links into, so it costs no reader anything.
+//
+// 800 px over 600 px on legibility. 600 stays under budget too, but the fine
+// foam speckle and the thin dark break line visibly soften there, and judging
+// those is what a contact sheet is FOR — a cell too compressed to read is
+// worthless however small it is. 800 is 2.7x the ~301 px a cell occupies in
+// the 1760 px grid, so it is retina-sharp where it is displayed and still
+// useful opened on its own. The whole published set lands near 1.2 MB against
+// a 9.9 MB essay bundle, so the headroom is better spent here than saved.
+const PUB_W = Math.max(120, Number(flags.pubwidth || 800));
+const PUB_H = Math.round((PUB_W * VIEW.height) / VIEW.width);
+const PUB_QUALITY = Math.min(1, Math.max(0.3, Number(flags.pubquality || 0.88)));
 
 // Where the CELL LINKS point. Deliberately NOT the capture server: captures run
 // on their own short-lived port so they never touch the dev server you are
 // reading the sheet on, but a link into a dead port is useless.
 //   local     — 8127, the house dev port (scripts/serve.py default).
-//   published — ../../sim/, relative from qa/<snap-id>/sheet.html up to the
-//               essay bundle root, where build_site.py mirrors the app. Kept
-//               relative so the bundle survives a domain or path move.
-const LINK_DEFAULT = MODE === 'published' ? '../../sim/' : 'http://localhost:8127/';
+//   published — ../sim/, relative from qa/<sheet>.html up to the essay bundle
+//               root, where build_site.py mirrors the app. Kept relative so the
+//               bundle survives a domain or path move.
+const LINK_DEFAULT = MODE === 'published' ? '../sim/' : 'http://localhost:8127/';
 const LINK_BASE = (flags.linkbase || LINK_DEFAULT).replace(/\/?$/, '/');
 
 const ESSAY_URL = 'https://mindbendingpixels.com/pleasurepoint/';
@@ -218,7 +242,7 @@ const PROVENANCE = {
   dirty: DIRTY, dirtyCount: DIRTY_FILES.length,
   dirtyFiles: DIRTY_FILES.slice(0, 40),
   appDigest: APP_DIGEST, appDigestAlgo: 'sha256/12 over the files build_site.py ships as sim/',
-  mode: MODE, snapshotId: SNAPSHOT ? SNAP_ID : null, note: NOTE,
+  mode: MODE, note: NOTE,
   essayUrl: ESSAY_URL, repoUrl: REPO_URL, commitUrl: COMMIT_URL,
 };
 
@@ -254,6 +278,45 @@ const SEASON_MONTHS = [
   { key: 'october', label: 'October', note: 'autumn shoulder — H₀ p75 0.801 m' },
   { key: 'august', label: 'August', note: 'the flat one — H₀ p75 0.585 m; ZERO hours ≥ 1.3 m in 25 years' },
 ];
+
+// ---------------------------------------------------------------------------
+// WHAT THE PUBLISHED SET KEEPS, AND WHY
+//
+// Local mode is the working instrument: the full matrix, 125 frames. Published
+// mode is a slim view of the SAME instrument, cut on ROWS only.
+//
+// Columns are never cut. On the break sheet the five clocks across one wave
+// period ARE the artifact — a progression reduced to three shots stops showing
+// progression. On the set sheet the five columns are lull → building → PEAK →
+// easing → lull, which is the entire demonstration that the envelope floor work
+// exists to make; drop the lulls and the page argues nothing.
+//
+// Rows are where the redundancy is:
+//   BREAK — small vs big, two bundle rows instead of six. A bundle moves H0, T,
+//     tide and df together the way a real day does, so the pair carries the size
+//     story end to end (0.70 m / T 9 s against 2.50 m / T 17 s). The two h0-only
+//     rows exist to separate height from period, which is a QA question, not a
+//     reader's. day=modelcard and day=overhead sit between the two kept rows.
+//   SETS/locations — Sewers, Second Peak, Privates instead of all seven. Those
+//     three span the shipped Iribarren range end to end (xi 1.15 the most
+//     plunging, 0.65 the most spilling) and include the ONE synthetic-stage
+//     site, which is where the n/a honesty story lives. The four dropped sites
+//     interpolate between the two mapped ones.
+//   SETS/seasons — January vs August only, on both presets. Those are the
+//     extremes the CDIP climatology actually settles (p75 1.245 m against
+//     0.585 m, and zero hours at or above 1.3 m in 25 Augusts). October is the
+//     shoulder: it is there to catch a monotonicity break, which is QA.
+//
+// Every sheet says on the page what the full local matrix covers, so the cut is
+// visible to a reader rather than silently presented as the whole instrument.
+const PUB_ROWS = {
+  'break-progression': ['day-small', 'day-big'],
+  'sets-locations-seasons': [
+    'loc-sewers', 'loc-secondpeak', 'loc-privates',
+    'sea-sewers-january', 'sea-sewers-august',
+    'sea-secondpeak-january', 'sea-secondpeak-august',
+  ],
+};
 
 const SHEETS = [
   {
@@ -546,6 +609,10 @@ function probeStage({ nStations, halfM, n, aimX }) {
 // ---------------------------------------------------------------------------
 const COMMON = 'controls=0&q=high&speed=0';
 
+// Published-frame byte accounting, reported at the end of the run so the budget
+// is a measured number rather than an intention.
+let pubBytes = 0, rawBytes = 0;
+
 async function coldLoad(page, base, hash) {
   // about:blank first: a hash-only goto on a warm page fires the app's own
   // needsReloadForHash -> location.reload(), which races the navigation and
@@ -644,13 +711,50 @@ function clocksFor(sheet, st, crest) {
 }
 
 // ---------------------------------------------------------------------------
+// Published frame encoding
+//
+// Captures stay full-resolution PNG in memory because foamStats measures THEM —
+// the pixel corridor must read the frame the camera drew, not a re-encoded one.
+// Only the file written for a published page is downscaled and lossily encoded.
+//
+// The encode runs in a second, blank browser page: this repo ships no
+// node_modules, and Chromium already has a good WebP encoder behind
+// canvas.toDataURL. The sim page is never touched, so nothing here can perturb
+// the state a cell was captured in.
+// ---------------------------------------------------------------------------
+async function encodeFrame(encoder, pngBuf, w, h, quality) {
+  const out = await encoder.evaluate(async ({ b64, W, H, q }) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, 0, 0, W, H);
+    const url = c.toDataURL('image/webp', q);
+    // Chromium falls back to PNG SILENTLY if the mime is unsupported, which
+    // would quietly ship 4x the bytes. Report what actually came back.
+    return { mime: url.slice(5, url.indexOf(';')), data: url.slice(url.indexOf(',') + 1) };
+  }, { b64: pngBuf.toString('base64'), W: w, H: h, q: quality });
+  if (out.mime !== 'image/webp')
+    throw new Error(`published frames wanted image/webp, browser produced ${out.mime}`);
+  return Buffer.from(out.data, 'base64');
+}
+
+// ---------------------------------------------------------------------------
 // Capture
 // ---------------------------------------------------------------------------
-async function captureSheet(page, base, sheet) {
+async function captureSheet(page, base, sheet, encoder) {
   const out = { id: sheet.id, groups: [] };
   for (const group of sheet.groups) {
     const g = { id: group.id, label: group.label, note: group.note, base: group.base, rows: [] };
-    const rows = flags.limit ? group.rows.slice(0, Number(flags.limit)) : group.rows;
+    // Published mode captures only the kept rows — the cut is at CAPTURE time,
+    // not at render time, so a published run is also a faster run.
+    const keep = MODE === 'published' ? PUB_ROWS[sheet.id] : null;
+    let rows = keep ? group.rows.filter((r) => keep.includes(r.id)) : group.rows;
+    if (flags.limit) rows = rows.slice(0, Number(flags.limit));
     for (const row of rows) {
       const rowHash = `${group.base}&${row.hash}&${COMMON}`;
       process.stdout.write(`  ${sheet.id}/${group.id}/${row.id} … `);
@@ -679,9 +783,19 @@ async function captureSheet(page, base, sheet) {
         if (Math.abs(live.sim - t) > 1e-3) throw new Error(`${row.id} col ${k}: clock ${live.sim} != ${t}`);
         const stage = await page.evaluate(probeStage,
           { nStations: 11, halfM: 45, n: 193, aimX: xProbe });
-        const rel = `img/${sheet.id}_${group.id}_${row.id}_c${k}.png`;
-        const buf = await page.screenshot({ path: join(OUT, rel) });
+        const stem = `img/${sheet.id}_${group.id}_${row.id}_c${k}`;
+        // Always capture PNG at full resolution: foamStats measures THIS buffer,
+        // and a lossy corridor read would be a measurement of the encoder.
+        const buf = await page.screenshot();
         const foam = foamStats(buf, live.stations);
+        const rel = MODE === 'published' ? `${stem}.webp` : `${stem}.png`;
+        if (MODE === 'published') {
+          const enc = await encodeFrame(encoder, buf, PUB_W, PUB_H, PUB_QUALITY);
+          writeFileSync(join(OUT, rel), enc);
+          pubBytes += enc.length; rawBytes += buf.length;
+        } else {
+          writeFileSync(join(OUT, rel), buf);
+        }
         // Set sheet only, and strictly AFTER the frame is captured: the crest
         // envelope moves the clock across one carrier period and puts it back.
         // (Nothing in frame moves as a side effect — the #aim target is the
@@ -886,6 +1000,10 @@ li{margin:3px 0}
 .standing b{color:var(--ink)}
 .standing p{margin:0 0 8px}
 .standing p:last-child{margin:0}
+/* The published set is a SUBSET of the local matrix. That is a scope statement,
+   so it sits with the standing caveats rather than in a footnote. */
+.subset{border-left:3px solid var(--warn)}
+.subset b{color:var(--ink)}
 /* n/a is a result here, not a gap. It carries its reason on hover and the
    footer spells both classes out — a reader must never have to guess. */
 .na{color:var(--warn);font-weight:600;border-bottom:1px dotted var(--warn);cursor:help}
@@ -914,7 +1032,7 @@ function provenanceHTML(p, builtAt) {
       ? `<span class="dirty">DIRTY — ${p.dirtyCount} uncommitted path${p.dirtyCount === 1 ? '' : 's'} at capture time</span>`
       : '<span class="clean">clean</span>'}</dd>
     <dt>app build</dt><dd><code>${esc(p.appDigest)}</code> — ${esc(p.appDigestAlgo)}</dd>
-    ${p.snapshotId ? `<dt>snapshot</dt><dd><code>${esc(p.snapshotId)}</code>${p.note ? ` — ${esc(p.note)}` : ''}</dd>` : ''}
+    ${p.note ? `<dt>note</dt><dd>${esc(p.note)}</dd>` : ''}
     <dt>links resolve to</dt><dd><code>${esc(p.linkBase || '')}</code> (<code>${esc(p.mode)}</code> mode)</dd>
   </dl>
   <div class="provlinks">
@@ -1061,6 +1179,8 @@ function sheetHTML(sheet, data, base, extras) {
 ${dirtyBannerHTML(prov)}
 ${provenanceHTML(prov, GENERATED.toISOString())}
 ${STANDING}
+${prov.mode === 'published' && PUB_NOTES[sheet.id]
+    ? `<section class="standing subset">${PUB_NOTES[sheet.id]}</section>` : ''}
 ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1 ? '' : 's'} drew flat water where a break was promised.</b><ul>${flats.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}
 <div class="meta"><dl>
   <dt>viewport</dt><dd>${VIEW.width} × ${VIEW.height} px, deviceScaleFactor 1</dd>
@@ -1099,7 +1219,12 @@ ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1
     suspicious frame drops you into the simulator at it. ${prov.mode === 'published'
       ? 'Those links are <b>relative to this page</b> and resolve against the simulator published beside the essay, so they work wherever this bundle is served from.'
       : 'That is a local dev server — start it with <code>python3 scripts/serve.py 8127</code>. A sheet built with <code>--mode=published</code> points at the deployed simulator instead.'}
-    Row headers link to column 1. Clicking the <b>image</b> opens the full ${VIEW.width}×${VIEW.height} frame instead.
+    Row headers link to column 1. ${prov.mode === 'published'
+      ? `Clicking the <b>image</b> opens that frame on its own. Frames were captured at ${VIEW.width}×${VIEW.height} and are
+    published at ${PUB_W}×${PUB_H} WebP to keep this page a reasonable download; every measurement on it was taken from the
+    full-resolution capture before the downscale, and the hash link reopens the state at full fidelity in the simulator, which
+    is better evidence than any still.`
+      : `Clicking the <b>image</b> opens the full ${VIEW.width}×${VIEW.height} frame instead.`}
     Captures were taken on their own separate port so they never touched your dev server.</dd>
 </dl></div>
 ${groups}
@@ -1114,7 +1239,7 @@ carries the largest camera displacement between any two of its five columns. A r
 is comparing slightly different windows, and its numbers should be read accordingly. The camera legitimately
 <i>does</i> differ between rows — the break line moves with H₀ — so only within-row drift is a concern.</p>
 <p><b>Stills, not motion.</b> A contact sheet cannot support a claim with a verb of motion in it (MEASUREMENT_LESSONS 1). It can show that the phases differ and that something breaks; it cannot show which way the peel runs.</p>
-<p><a href="index.html">← all QA sheets in this build</a>${prov.snapshotId ? ' · <a href="../index.html">all snapshots</a>' : ''}
+<p><a href="index.html">← all QA sheets in this build</a>
  · <a href="${esc(sheet.id)}.json">raw measurements (JSON)</a> — the same provenance block, machine-readable
  · <a href="${esc(prov.essayUrl)}">the essay</a>
  · <a href="${esc(prov.repoUrl)}">the repo</a>
@@ -1123,6 +1248,32 @@ is comparing slightly different windows, and its numbers should be read accordin
 </div>
 `;
 }
+
+// Published mode ships a SUBSET of the rows. Silent truncation is exactly the
+// thing these sheets exist to avoid, so the cut is stated per sheet, on the
+// page, with the reason — and the local matrix it was cut from is named.
+const PUB_NOTES = {
+  'break-progression': `
+<p><b>This is the published view: 2 of 6 rows.</b> The full local sheet runs six wave sizes — four condition
+bundles (<code>day=small</code>, <code>modelcard</code>, <code>overhead</code>, <code>big</code>) and two
+<code>h0=</code>-only rows that hold period and tide fixed. Published here are the two <b>ends</b> of the
+bundle range, small (H₀ 0.70 m, T 9 s) against big (H₀ 2.50 m, T 17 s), because the size story is carried by
+its extremes and the intermediate bundles interpolate between them. The <code>h0=</code> rows exist to
+separate height from period — a QA question, not a reader's — and are omitted here.
+<b>All five clocks are kept in every row</b>: this sheet is a progression, and a progression sampled at three
+points stops being one.</p>`,
+  'sets-locations-seasons': `
+<p><b>This is the published view: 7 of 13 rows.</b> The full local sheet runs all seven site presets at
+<code>month=january</code> plus two presets across three months. Published here are three sites and two
+months. The sites are <b>Sewers</b> (ξ 1.15, the most plunging in the bank), <b>Second Peak</b> (ξ 0.65, the
+most spilling) and <b>Privates</b> (the one synthetic-stage site, which is where the <span class="na"
+title="Explained in full at the foot of this page.">n/a</span> readings on this page come from) — the two ends
+of the breaker-character range plus the honest edge case. The four omitted sites sit between the two mapped
+ones. The months are <b>January</b> and <b>August</b>, the two the CDIP record actually separates: H₀ p75
+1.245 m against 0.585 m, with zero hours at or above Hs 1.3 m across twenty-five Augusts. October is the
+shoulder month and is in the local sheet to catch a monotonicity break, which is QA rather than exposition.
+<b>All five clocks are kept in every row</b>: lull → building → peak → easing → lull is the demonstration.</p>`,
+};
 
 // Per-sheet honesty block: what was sampled, what was deliberately left out.
 // Silent truncation is the thing to avoid, so the omissions are on the page.
@@ -1209,89 +1360,13 @@ ${provenanceHTML(prov, GENERATED.toISOString())}
 ${STANDING}
 <ul style="list-style:none;padding:0">${items}</ul>
 <div class="foot">
-<p>Regenerate with <code>node scripts/build_qa_sheets.mjs</code>; a publishable snapshot with
+<p>Regenerate with <code>node scripts/build_qa_sheets.mjs</code>; the published set with
 <code>node scripts/build_qa_sheets.mjs --mode=published --note='…'</code>.</p>
-<p>Generated into <code>qa/</code>, which is git-ignored — the PNGs are regenerable and are
-not committed (see commit <code>b013197</code>, which removed 6.7 MB of unreferenced screenshots).</p>
-${prov.snapshotId ? '<p><a href="../index.html">← all snapshots</a></p>' : ''}
-</div>
-</div>
-`;
-}
-
-// ---------------------------------------------------------------------------
-// Snapshot index + manifest. Publishing is periodic, so the index is the thing
-// that has to accumulate; see the RETENTION note in the file header.
-// ---------------------------------------------------------------------------
-const MANIFEST = join(SNAP_ROOT, 'manifest.json');
-
-function readManifest() {
-  if (!existsSync(MANIFEST)) return [];
-  try { return JSON.parse(readFileSync(MANIFEST, 'utf8')); } catch { return []; }
-}
-
-// Newest-first, one entry per snapshot id (a rebuild of the same id replaces it).
-function updateManifest(entry) {
-  const kept = readManifest().filter((e) => e.id !== entry.id);
-  const all = [entry, ...kept].sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1));
-  // RETENTION: the newest KEEP snapshots keep their frames; older ones lose the
-  // directory and stay in the index as retired rows. Unbounded PNG growth in a
-  // published bundle is a real cost, and a retired row is still regenerable
-  // because it carries the commit it was built from.
-  let live = 0;
-  for (const e of all) {
-    if (e.retired) continue;
-    live++;
-    if (live > KEEP) {
-      const dir = join(SNAP_ROOT, e.id);
-      if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
-      e.retired = true;
-      e.retiredAt = GENERATED.toISOString();
-    }
-  }
-  writeFileSync(MANIFEST, JSON.stringify(all, null, 2));
-  return all;
-}
-
-function snapshotIndexHTML(all) {
-  const rows = all.map((e) => `<li style="margin:16px 0">
-  ${e.retired
-    ? `<span style="font-size:16px;font-weight:600">${esc(e.id)}</span>
-       <span class="badge">frames retired</span>`
-    : `<a href="${esc(e.id)}/index.html" style="font-size:16px;font-weight:600">${esc(e.id)}</a>`}
-  ${e.dirty ? '<span class="badge flat">built dirty</span>' : ''}
-  <div class="lede" style="margin:2px 0 0">${esc(e.note || 'no note')}</div>
-  <div class="nums" style="margin-top:4px">
-    <span>captured <b>${esc(e.capturedAt)}</b></span>
-    <span>commit <a href="${esc(REPO_URL)}/commit/${esc(e.commitFull)}"><code>${esc(e.commit)}</code></a></span>
-    <span>branch <code>${esc(e.branch)}</code></span>
-    <span>app <code>${esc(e.appDigest || '—')}</code></span>
-    <span>${e.sheets} sheet${e.sheets === 1 ? '' : 's'}, ${e.frames} frames</span>
-    ${e.flats ? `<span class="badge flat">${e.flats} flat</span>` : '<span class="badge">no flat cells</span>'}
-  </div>
-  ${e.retired ? `<div class="nums" style="margin-top:3px"><span>Frames deleted ${esc(e.retiredAt || '')} under the ${KEEP}-snapshot retention rule.
-     Rebuild from <code>${esc(e.commit)}</code>: <code>git checkout ${esc(e.commit)} &amp;&amp; node scripts/build_qa_sheets.mjs --mode=published</code>.</span></div>` : ''}
-</li>`).join('\n');
-  return `<!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>pointbreak QA snapshots</title>
-<style>${CSS}</style>
-<div class="wrap">
-<h1>pointbreak — QA snapshots</h1>
-<p class="lede">Periodic contact-sheet builds backing the visual essay, newest first. Each snapshot is a
-frozen set of deterministic captures stamped with the commit it was built from.</p>
-${STANDING}
-<ul style="list-style:none;padding:0">${rows}</ul>
-<div class="foot">
-<p><b>Retention.</b> The index keeps <b>every</b> snapshot ever built on this machine — a record of what was
-published and when should not quietly shorten. The <b>frames</b> do not: only the newest <b>${KEEP}</b>
-snapshots keep their PNGs, and older ones are deleted from disk and shown here as retired. A full snapshot
-measures 125 frames / 54 MB against a 9.9 MB essay bundle, so an unbounded archive here would <i>be</i> the
-deploy; the commit stamp on a retired row is what makes it regenerable rather than lost. The manifest lives
-in git-ignored <code>qa/</code>, so this list is the publishing machine's record rather than the
-repository's.</p>
-<p><a href="${esc(ESSAY_URL)}">the essay</a> · <a href="${esc(REPO_URL)}">the repo</a></p>
+<p>${prov.mode === 'published'
+    ? 'This is the <b>current</b> published set, not an archive: a new publish replaces it in place. '
+      + 'What "current" means is the provenance block above — there is no other answer to it.'
+    : 'Generated into <code>qa/</code>, which is git-ignored — the frames are regenerable and are '
+      + 'not committed (see commit <code>b013197</code>, which removed 6.7 MB of unreferenced screenshots).'}</p>
 </div>
 </div>
 `;
@@ -1353,6 +1428,9 @@ mkdirSync(IMG, { recursive: true });
 
 const browser = await chromium.launch({ args: ['--use-angle=metal'] });
 const page = await browser.newPage({ viewport: VIEW, deviceScaleFactor: 1 });
+// Separate blank page for the published-frame encode, so nothing the encoder
+// does can touch the state a cell was captured in.
+const encoder = MODE === 'published' ? await browser.newPage() : null;
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -1361,7 +1439,7 @@ const built = [];
 try {
   for (const sheet of todo) {
     console.log(`\n== ${sheet.id} ==`);
-    const captured = await captureSheet(page, base, sheet);
+    const captured = await captureSheet(page, base, sheet, encoder);
     const data = {
       // `generated`/`commit` kept as-is for anything already reading the JSON;
       // `provenance` is the full block, and is what the pages render from.
@@ -1369,7 +1447,12 @@ try {
       provenance: { ...PROVENANCE, linkBase: LINK_BASE },
       base, linkBase: LINK_BASE, viewport: [VIEW.width, VIEW.height],
       common: COMMON, foamThresholds: [FOAM_HI, FOAM_LO],
-      corridorM: CORRIDOR_M, corridorN: CORRIDOR_N, ...captured,
+      corridorM: CORRIDOR_M, corridorN: CORRIDOR_N,
+      publishedFrames: MODE === 'published'
+        ? { format: 'webp', width: PUB_W, height: PUB_H, quality: PUB_QUALITY,
+          capturedAt: [VIEW.width, VIEW.height], measuredOn: 'the full-resolution PNG capture' }
+        : null,
+      ...captured,
     };
     writeFileSync(join(OUT, `${sheet.id}.json`), JSON.stringify(data, null, 2));
     writeFileSync(join(OUT, sheet.file), sheetHTML(sheet, data, LINK_BASE, SHEET_NOTES[sheet.id] || ''));
@@ -1377,23 +1460,6 @@ try {
     console.log(`-> ${join(OUT, sheet.file)}`);
   }
   writeFileSync(join(OUT, 'index.html'), indexHTML(built));
-  if (SNAPSHOT) {
-    let frames = 0, flats = 0;
-    for (const { data } of built)
-      for (const g of data.groups) for (const r of g.rows) for (const c of r.cells) {
-        frames++; if (c.flat) flats++;
-      }
-    const all = updateManifest({
-      id: SNAP_ID, capturedAt: PROVENANCE.capturedAt, note: NOTE,
-      commit: COMMIT, commitFull: COMMIT_FULL, branch: BRANCH,
-      dirty: DIRTY, dirtyCount: DIRTY_FILES.length, appDigest: APP_DIGEST,
-      mode: MODE, linkBase: LINK_BASE,
-      sheets: built.length, frames, flats,
-    });
-    writeFileSync(join(SNAP_ROOT, 'index.html'), snapshotIndexHTML(all));
-    console.log(`-> ${join(SNAP_ROOT, 'index.html')}  (${all.length} snapshot(s), `
-      + `${all.filter((e) => !e.retired).length} with frames, keep=${KEEP})`);
-  }
 } finally {
   await browser.close();
   stopServer();
@@ -1404,6 +1470,19 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(`\ndone -> ${OUT}  (open file://${OUT}/index.html)`);
+if (MODE === 'published') {
+  const pages = readdirSync(OUT).filter((f) => /\.(html|json)$/.test(f))
+    .reduce((n, f) => n + statSync(join(OUT, f)).size, 0);
+  const frames = readdirSync(IMG).length;
+  const total = pubBytes + pages;
+  // The budget is a measured number, not an intention: the essay bundle this
+  // ships beside is 9.9 MB, and QA has to sit under it rather than beside it.
+  console.log(`published set: ${frames} frames, ${PUB_W}x${PUB_H} webp q${PUB_QUALITY}`
+    + `\n  frames ${(pubBytes / 1048576).toFixed(2)} MB  (from ${(rawBytes / 1048576).toFixed(1)} MB of PNG`
+    + `, ${(100 - (100 * pubBytes) / rawBytes).toFixed(1)}% smaller)`
+    + `\n  pages+json ${(pages / 1048576).toFixed(2)} MB`
+    + `\n  TOTAL ${(total / 1048576).toFixed(2)} MB against the 9.9 MB essay bundle`);
+}
 if (DIRTY) {
   console.warn(`\nNOTE: built from a DIRTY tree (${DIRTY_FILES.length} uncommitted path(s)). `
     + 'Every page says so in a banner. Commit first if this snapshot is going to be published.');

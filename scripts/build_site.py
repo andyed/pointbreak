@@ -13,20 +13,28 @@ byte-identical to the local one.
   <out>/sim/web-three/        the app
   <out>/sim/shared/           params.js + model-glsl.js (imported by web-three)
   <out>/sim/data/model/       generated geo profiles + depth patches
-  <out>/qa/                   QA snapshots, --with-qa ONLY (see below)
-  <out>/qa/index.html         snapshot index, newest first
-  <out>/qa/<date>-<sha>/      one snapshot: sheets, JSON sidecars, img/
+  <out>/qa/                   the current QA set, --with-qa ONLY (see below)
+  <out>/qa/index.html         sheet index
+  <out>/qa/*.html, *.json     the sheets and their measurement sidecars
+  <out>/qa/img/               the published frames (WebP)
 
-QA snapshots are OPT-IN. They are heavy (~125 PNGs per snapshot) and publishing
-them is a deliberate act, not a side effect of rebuilding the essay, so --with-qa
-is required. The snapshot tree mirrors under qa/ exactly the way the app mirrors
-under sim/, and for the same reason: a sheet built with `--mode=published` links
-its cells at ../../sim/, which resolves only if both keep their shape.
+QA is OPT-IN and is CURRENT STATE, not an archive: there is exactly one
+published set and a new publish replaces it. Publishing it is a deliberate act
+rather than a side effect of rebuilding the essay, so --with-qa is required.
+The set mirrors under qa/ exactly the way the app mirrors under sim/, and for
+the same reason: a sheet built with `--mode=published` links its cells at
+../sim/, which resolves only if both keep their shape.
+
+--with-qa also switches ON the essay's own link to the QA set. That link lives
+in docs/figures/index.html inside a QA_LINK_BEGIN / QA_LINK_END comment and is
+uncommented here, so a bundle built WITHOUT the flag carries no link at all
+rather than a link to a directory that is not there. A dead link out of the
+published essay is worse than no link.
 
 Usage:
   python3 scripts/build_site.py                       # default target, no QA
   python3 scripts/build_site.py --out <dir>
-  python3 scripts/build_site.py --with-qa             # ship qa/snapshots too
+  python3 scripts/build_site.py --with-qa             # ship qa/published too
 """
 import argparse, re, shutil, sys
 from pathlib import Path
@@ -60,10 +68,26 @@ ITEMS = [
 
 # Same (source, destination) shape, but only copied under --with-qa. qa/ is
 # git-ignored and regenerable, so unlike ITEMS a missing source here is a
-# "you have not built a snapshot yet", not a broken repository.
+# "you have not built the published set yet", not a broken repository.
 QA_ITEMS = [
-    ('qa/snapshots', 'qa'),
+    ('qa/published', 'qa'),
 ]
+
+# The essay's outbound link to the QA set, switched on only when the set ships.
+# The markup sits in docs/figures/index.html between these markers, commented
+# out, so the source file and any bundle built without --with-qa carry no link.
+QA_LINK_OPEN = '<!-- QA_LINK_BEGIN'
+QA_LINK_CLOSE = 'QA_LINK_END -->'
+
+
+def enable_qa_link(index_html: Path) -> bool:
+    """Uncomment the essay's QA link. Returns True if it was found and enabled."""
+    text = index_html.read_text(encoding='utf-8')
+    if QA_LINK_OPEN not in text or QA_LINK_CLOSE not in text:
+        return False
+    text = text.replace(QA_LINK_OPEN, '').replace(QA_LINK_CLOSE, '')
+    index_html.write_text(text, encoding='utf-8')
+    return True
 
 # Verification renders and capture scripts are development artefacts; the
 # published page embeds the live app instead.
@@ -102,7 +126,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', default=str(DEFAULT_OUT))
     ap.add_argument('--with-qa', action='store_true',
-                    help='also publish qa/snapshots/ (opt-in; see the module docstring)')
+                    help='also publish the current QA set and the essay link to '
+                         'it (opt-in; see the module docstring)')
     args = ap.parse_args()
     out = Path(args.out).resolve()
 
@@ -110,7 +135,7 @@ def main():
     if args.with_qa:
         for src, rel in QA_ITEMS:
             if not (ROOT / src).exists():
-                print(f'--with-qa: no snapshot at {src}. Build one first:\n'
+                print(f'--with-qa: no published QA set at {src}. Build one first:\n'
                       "  node scripts/build_qa_sheets.mjs --mode=published --note='…'")
                 return 1
             items.append((src, rel))
@@ -130,6 +155,14 @@ def main():
         if p.is_file() and (p.name in EXCLUDE_NAMES or p.name.endswith(EXCLUDE_SUFFIX)):
             p.unlink(); removed += 1
 
+    # The essay links out to the QA set only in bundles that carry it.
+    if args.with_qa:
+        if not enable_qa_link(out / 'index.html'):
+            print('--with-qa: no QA_LINK_BEGIN/QA_LINK_END block in '
+                  'docs/figures/index.html — the essay would ship without a link '
+                  'to the QA set it is publishing.')
+            return 1
+
     missing_imports = missing_local_imports(out)
     if missing_imports:
         print('MISSING local module imports:')
@@ -145,9 +178,11 @@ def main():
     if args.with_qa:
         qa_files = [p for p in qa_dir.rglob('*') if p.is_file()]
         qa_bytes = sum(p.stat().st_size for p in qa_files)
-        snaps = sorted(p.name for p in qa_dir.iterdir() if p.is_dir())
-        print(f'  qa: {len(qa_files)} files, {qa_bytes/1024:.0f} KB, '
-              f'{len(snaps)} snapshot(s): {", ".join(snaps)}')
+        frames = len(list((qa_dir / 'img').glob('*'))) if (qa_dir / 'img').is_dir() else 0
+        essay_bytes = total - qa_bytes
+        print(f'  qa: {len(qa_files)} files, {qa_bytes/1048576:.2f} MB '
+              f'({frames} frames), essay {essay_bytes/1048576:.2f} MB')
+        print('  qa: essay link ENABLED (bundles without --with-qa carry no link)')
     elif qa_dir.exists():
         print('  qa: left as-is (no --with-qa). Rerun with --with-qa to refresh it.')
     big = sorted(files, key=lambda p: -p.stat().st_size)[:5]

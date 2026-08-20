@@ -1,21 +1,23 @@
 // The publishing contract for the QA contact sheets (2026-08-20).
 //
-// A published sheet's cell links are RELATIVE — `../../sim/web-three/#…` from
-// qa/<snapshot-id>/<sheet>.html — because a published page whose links only
-// resolve on one laptop is broken for every other reader. That relative path is
-// a joint fact about two files that do not import each other:
+// A published sheet's cell links are RELATIVE — `../sim/web-three/#…` from
+// qa/<sheet>.html — because a published page whose links only resolve on one
+// laptop is broken for every other reader. That relative path is a joint fact
+// about two files that do not import each other:
 //
 //   scripts/build_qa_sheets.mjs  chooses the link base
-//   scripts/build_site.py        chooses where the snapshot and the app land
+//   scripts/build_site.py        chooses where the QA set and the app land
 //
 // Change either destination and every cell link on every published sheet 404s,
 // silently, with nothing in the repo disagreeing. The first test below is that
 // missing disagreement: it walks the published link base from the deployed
 // sheet's own directory and asserts it arrives at the app.
 //
-// The rest pin the promises the pages make about themselves: that provenance is
-// on the page rather than only in the HTML source, that a dirty build is a
-// banner rather than a field, and that publishing QA stays opt-in.
+// The rest pin the promises the pages make about themselves: that publishing is
+// current state rather than an archive, that the published set is a stated
+// subset rather than a silent truncation, that provenance is on the page rather
+// than only in the HTML source, that a dirty build is a banner rather than a
+// field, and that the essay's outbound link cannot ship pointing at nothing.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -23,30 +25,76 @@ import path from 'node:path';
 
 const rig = readFileSync(new URL('../scripts/build_qa_sheets.mjs', import.meta.url), 'utf8');
 const site = readFileSync(new URL('../scripts/build_site.py', import.meta.url), 'utf8');
+const essay = readFileSync(new URL('../docs/figures/index.html', import.meta.url), 'utf8');
+
+// Where build_site.py puts the QA set and where it puts the app. Read out of
+// the file rather than restated, so a test fails on the edit that breaks the
+// links rather than on a copy of it.
+const qaDest = site.match(/QA_ITEMS = \[\s*\('qa\/published',\s*'([^']+)'\)/)?.[1];
+const appDest = site.match(/\('web-three\/index\.html',\s*'([^']+)'\)/)?.[1];
 
 test('a published cell link walks from the deployed sheet to the deployed app', () => {
-  // The generator's published default.
   const m = rig.match(/const LINK_DEFAULT = MODE === 'published' \? '([^']+)'/);
   assert.ok(m, 'no published LINK_DEFAULT in build_qa_sheets.mjs');
   const linkBase = m[1];
-
-  // Where build_site.py puts the snapshot tree and where it puts the app. Both
-  // are read out of the file rather than restated, so this test fails on the
-  // edit that breaks the links rather than on a copy of it.
-  const qaDest = site.match(/QA_ITEMS = \[\s*\('qa\/snapshots',\s*'([^']+)'\)/)?.[1];
-  assert.ok(qaDest, 'no qa/snapshots entry in build_site.py QA_ITEMS');
-  const appDest = site.match(/\('web-three\/index\.html',\s*'([^']+)'\)/)?.[1];
+  assert.ok(qaDest, 'no qa/published entry in build_site.py QA_ITEMS');
   assert.ok(appDest, 'no web-three/index.html entry in build_site.py ITEMS');
 
-  // A sheet is one directory deep inside the snapshot tree: <qaDest>/<id>/x.html
-  const sheetDir = path.posix.join(qaDest, '2026-08-20-abc1234');
-  const resolved = path.posix.normalize(path.posix.join(sheetDir, linkBase, 'web-three/index.html'));
+  // A published sheet sits at the ROOT of the QA destination: <qaDest>/x.html.
+  // (It used to be one deeper, under a dated snapshot directory. That is the
+  // exact kind of move this test exists to catch.)
+  const resolved = path.posix.normalize(path.posix.join(qaDest, linkBase, 'web-three/index.html'));
   assert.equal(resolved, appDest,
     `published cell links resolve to ${resolved}, but build_site.py ships the app at ${appDest}`);
 
   // And it must stay relative — an absolute base pins the bundle to one host.
   assert.ok(!/^https?:|^\//.test(linkBase),
     `published link base ${linkBase} is absolute; the bundle must survive a domain or path move`);
+});
+
+test('the essay links to the QA set only in bundles that carry it', () => {
+  // A dead link out of the published essay is worse than no link, and --with-qa
+  // is opt-in, so the link cannot simply live in the source file.
+  assert.ok(essay.includes('QA_LINK_BEGIN') && essay.includes('QA_LINK_END'),
+    'the essay has no QA_LINK_BEGIN/QA_LINK_END block');
+  const open = essay.indexOf('<!-- QA_LINK_BEGIN');
+  assert.ok(open >= 0, 'the QA link block is not commented out in the source essay');
+  const close = essay.indexOf('QA_LINK_END -->', open);
+  assert.ok(close > open, 'the QA link block is not closed as a comment');
+  const block = essay.slice(open, close);
+
+  // Inert in the source file: no live href to qa/ outside the comment.
+  const outside = essay.slice(0, open) + essay.slice(close);
+  assert.ok(!/href="qa\//.test(outside),
+    'the essay carries a live qa/ link outside the conditional block; '
+    + 'it would 404 in any bundle built without --with-qa');
+
+  // The link target must match where build_site.py actually puts the set.
+  assert.match(block, /href="qa\/"/, 'the QA link does not point at qa/');
+  assert.equal(qaDest, 'qa',
+    `the essay links to qa/ but build_site.py ships the set at ${qaDest}`);
+
+  // An HTML comment cannot contain "--", or the browser ends it early and the
+  // rest of the block leaks into the page as text.
+  assert.ok(!block.replace('<!-- QA_LINK_BEGIN', '').includes('--'),
+    'the QA link block contains "--", which terminates the HTML comment early');
+
+  // build_site.py must actually enable it, and only under the flag.
+  assert.match(site, /def enable_qa_link\(/);
+  assert.match(site, /if args\.with_qa:\n\s+if not enable_qa_link\(out \/ 'index\.html'\)/);
+});
+
+test('the essay QA link says what the sheets are and are not', () => {
+  const block = essay.slice(essay.indexOf('<!-- QA_LINK_BEGIN'), essay.indexOf('QA_LINK_END -->'));
+  assert.match(block, /current as of/i, 'the link does not say the set is current-as-of a stamp');
+  assert.match(block, /not a validation/i, 'the link does not say it is not a validation');
+  assert.match(block, /deterministic/i, 'the link does not say the captures are deterministic');
+  // And it must not sit on the kelp card: sand links there are 6.51:1.
+  assert.ok(!/class="callout"/.test(block),
+    'the QA link is inside a kelp .callout, where its sand link would be 6.51:1');
+  assert.match(block, /class="qa-note"/);
+  assert.match(essay, /\.qa-note \{[^}]*background: var\(--mg-bg\)/,
+    '.qa-note is not on the page background, so its link contrast is not the 8.31:1 row');
 });
 
 test('local and published modes do not share a link default', () => {
@@ -143,11 +191,72 @@ test('the standing block states what the sheet is not', () => {
   assert.match(rig, /ODbL/);
 });
 
-test('snapshots accumulate under a dated, commit-stamped id and are retained by rule', () => {
-  assert.match(rig, /const SNAP_ID = `\$\{new Date\(\)\.toISOString\(\)\.slice\(0, 10\)\}-\$\{COMMIT\}`/);
-  assert.match(rig, /const KEEP = Math\.max\(1, Number\(flags\.keep \|\| (\d+)\)\)/);
-  // Retirement must keep the row and drop only the bytes, or the index stops
-  // being a record of what was published.
-  assert.match(rig, /e\.retired = true/);
-  assert.match(rig, /rmSync\(dir, \{ recursive: true, force: true \}\)/);
+test('publishing is current state, with no archive machinery left behind', () => {
+  // Andy asked for one published set that a new publish replaces. Half-removed
+  // archive machinery is worse than either choice: it is dead code that still
+  // reads as a promise. Nothing dated, no manifest, no retention.
+  // (`flags.keep` is NOT in this list: that is the unrelated "reuse the img
+  // directory" switch, which predates any of this.)
+  for (const ghost of ['SNAP_ID', 'SNAP_ROOT', 'updateManifest', 'readManifest',
+    'snapshotIndexHTML', 'manifest.json', 'retired', 'flags.keep || 4']) {
+    assert.ok(!rig.includes(ghost), `archive machinery survives in the rig: ${ghost}`);
+  }
+  assert.ok(!site.includes('snapshot'), 'build_site.py still refers to snapshots');
+  // One destination, replaced in place.
+  assert.match(rig, /const OUT = MODE === 'published' \? join\(QA_ROOT, 'published'\) : QA_ROOT/);
+});
+
+test('the published set is a stated subset, cut on rows and never on columns', () => {
+  // The columns ARE the artifact on both sheets: a progression sampled at three
+  // points is not a progression, and a set beat without its lulls does not show
+  // the envelope floor the model work exists to demonstrate.
+  assert.ok(!/PUB_(COLS|CLOCKS)|clock\.n = |columns.*slice\(/.test(rig),
+    'something in the rig cuts columns for publication');
+  assert.match(rig, /const PUB_ROWS = \{/);
+
+  // Every id named in PUB_ROWS must actually exist as a row, or the published
+  // sheet silently ships fewer rows than intended — a typo would be invisible.
+  const pubBlock = rig.slice(rig.indexOf('const PUB_ROWS = {'), rig.indexOf('const SHEETS = ['));
+  const wanted = [...pubBlock.matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1])
+    .filter((s) => /^(day|h0|loc|sea)-/.test(s));
+  assert.ok(wanted.length > 0, 'PUB_ROWS names no rows');
+  for (const id of wanted) {
+    // Row ids are either literal (BREAK_ROWS) or built from a template.
+    const literal = rig.includes(`id: '${id}'`);
+    const templated = /^loc-/.test(id)
+      ? rig.includes('id: `loc-${k}`') && rig.includes(`'${id.slice(4)}'`)
+      : /^sea-/.test(id) && rig.includes('id: `sea-${p}-${m.key}`');
+    assert.ok(literal || templated, `PUB_ROWS names ${id}, which no sheet row produces`);
+  }
+
+  // And the cut has to be visible to a reader on the page, per sheet.
+  assert.match(rig, /const PUB_NOTES = \{/);
+  for (const id of ['break-progression', 'sets-locations-seasons'])
+    assert.ok(new RegExp(`'${id}': \``).test(rig.slice(rig.indexOf('const PUB_NOTES'))),
+      `no published-subset note for ${id}`);
+  assert.match(rig, /All five clocks are kept in every row/);
+});
+
+test('published frames are re-encoded for the budget, but never measured after', () => {
+  // The essay bundle is 9.9 MB. QA has to sit under it, not beside it — the
+  // full-resolution PNG set was 54 MB, which would BE the deploy.
+  assert.match(rig, /const PUB_W = /);
+  assert.match(rig, /toDataURL\('image\/webp', q\)/);
+  // Silent PNG fallback would quietly ship ~4x the bytes, so the encoder's
+  // actual output mime is checked rather than assumed.
+  assert.match(rig, /wanted image\/webp, browser produced/);
+
+  // foamStats must run on the full-resolution capture. Measuring a downscaled,
+  // lossily-encoded frame would make the pixel corridor a measurement of the
+  // encoder (MEASUREMENT_LESSONS 4: instruments that score a replica certify
+  // the replica).
+  const cap = rig.slice(rig.indexOf('async function captureSheet('));
+  const shot = cap.indexOf('await page.screenshot()');
+  const foam = cap.indexOf('foamStats(buf, live.stations)');
+  const enc = cap.indexOf('encodeFrame(');
+  assert.ok(shot >= 0 && foam > shot, 'foamStats does not read the raw screenshot buffer');
+  assert.ok(enc > foam, 'the frame is encoded before it is measured');
+
+  // The run must report the achieved size, so the budget is measured.
+  assert.match(rig, /against the 9\.9 MB essay bundle/);
 });
