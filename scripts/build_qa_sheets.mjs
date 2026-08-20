@@ -525,6 +525,16 @@ const SHEETS = [
             + 'Site is Second Peak, chosen over the more plunging Sewers (ξ 1.15) because Sewers puts its bluff across the '
             + 'lower half of the cliff frame at small sizes, which occludes the break line rather than showing it.',
         base: 'preset=secondpeak&cam=cliff', rows: BREAK_ROWS,
+        // LOCAL ONLY, and for the same reason day-small is: the frames do not
+        // carry the claim. From the cliff stand the break is several hundred
+        // metres off, so the tracked crest lands within ~20 px of the horizon
+        // and the whitewater burst that the acceptance series measures at 0.86
+        // is a few pixels of grey. The crop cannot rescue it — it is bounded at
+        // 2.4x before upsampling goes soft, and going closer means capturing at
+        // a higher device scale factor, which moves the pixel-corridor
+        // coordinates foamStats depends on (deliberate work, not a side effect).
+        // The drone group shows the same rows, same derived clocks, legibly.
+        pubDrop: true,
       },
       {
         id: 'drone', label: 'Drone camera — overhead',
@@ -1384,6 +1394,9 @@ const encodeFrame = (encoder, pngBuf, w, h, quality, crop, marker) =>
 async function captureSheet(page, base, sheet, encoder) {
   const out = { id: sheet.id, groups: [] };
   for (const group of sheet.groups) {
+    // A group can be local-only for the same reason a row can: the frames do
+    // not carry the claim the header makes. See the cliff group's pubDrop note.
+    if (MODE === 'published' && group.pubDrop) continue;
     // In published mode a group describes the subset it actually shows.
     const g = {
       id: group.id, base: group.base, rows: [],
@@ -2198,7 +2211,15 @@ breaks. It is not a small break; it is not a break. Publishing it under a header
 <i>breaking — whitewater at the crest</i> would be the exact failure this page exists to avoid, so it stays on
 the local sheet, labelled, with its own numbers on it.
 <b>All five clocks are kept in every row</b>: this sheet is a progression, and a progression sampled at three
-points stops being one.</p>`,
+points stops being one.</p>
+<p><b>Why only the drone camera.</b> The local sheet shows the same rows and the same derived clocks from the
+cliff stand as well, and that view is the better one in principle — throw, curtain and collapse are all edge-on
+from a low profile. In practice the break at Second Peak is several hundred metres off that stand, so the
+tracked crest lands within about 20 px of the horizon and the whitewater burst this page measures at 0.86 is a
+few pixels of grey. The crop is bounded at 2.4× before upsampling turns soft, so it cannot rescue the frame;
+reaching further needs capture at a higher device scale factor, which moves the pixel-corridor coordinates the
+foam measurement depends on. That is deliberate work rather than a side effect, so the cliff rows stay on the
+local sheet until it is done.</p>`,
 
   'sets-locations-seasons': `
 <p><b>This is the published view: 7 of 13 rows.</b> The full local sheet runs all seven site presets at
