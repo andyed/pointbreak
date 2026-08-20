@@ -25,7 +25,7 @@ if (!chromium) {
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter((a) => a.startsWith('--'))
-  .map((a) => a.replace(/^--/, '').split('=')));
+  .map((a) => a.replace(/^--/, '').split(/=(.*)/s).slice(0, 2)));
 const out = args.find((a) => !a.startsWith('--'));
 if (!out) { console.error('usage: node scripts/measure_cam_aim.mjs out.json [--base=URL] [--shots=dir]'); process.exit(1); }
 const BASE = flags.base || 'http://localhost:8205/web-three/';

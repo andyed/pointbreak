@@ -22,7 +22,7 @@ import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 
 const flags = Object.fromEntries(process.argv.slice(2)
-  .filter((a) => a.startsWith('--')).map((a) => a.replace(/^--/, '').split('=')));
+  .filter((a) => a.startsWith('--')).map((a) => a.replace(/^--/, '').split(/=(.*)/s).slice(0, 2)));
 const PRESET = flags.preset || 'secondpeak';
 const N = Math.round(Number(flags.n || 24));
 const OUT = flags.out || `/tmp/pointbreak-swash-${PRESET}`;

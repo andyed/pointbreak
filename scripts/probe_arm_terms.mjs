@@ -29,7 +29,7 @@ if (!chromium) { console.error('playwright not found'); process.exit(1); }
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter((a) => a.startsWith('--'))
-  .map((a) => a.replace(/^--/, '').split('=')));
+  .map((a) => a.replace(/^--/, '').split(/=(.*)/s).slice(0, 2)));
 const OUT = resolve(args.filter((a) => !a.startsWith('--'))[0] || '/tmp/pointbreak-armprobe');
 const BASE = flags.base || 'http://localhost:8206/web-three/';
 const SIMS = (flags.sims || '36,42,48,54').split(',').map(Number);

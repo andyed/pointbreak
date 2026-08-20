@@ -21,7 +21,7 @@ if (!chromium) {
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter((a) => a.startsWith('--'))
-  .map((a) => a.replace(/^--/, '').split('=')));
+  .map((a) => a.replace(/^--/, '').split(/=(.*)/s).slice(0, 2)));
 const [hash, out] = args.filter((a) => !a.startsWith('--'));
 if (!hash || !out) {
   console.error("usage: node scripts/dump_lineprobe.mjs '<hash>' out.json [--base=URL]");

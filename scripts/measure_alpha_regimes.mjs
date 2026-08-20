@@ -50,7 +50,7 @@ if (!chromium) {
 }
 
 const flags = Object.fromEntries(process.argv.slice(2)
-  .filter((a) => a.startsWith('--')).map((a) => a.replace(/^--/, '').split('=')));
+  .filter((a) => a.startsWith('--')).map((a) => a.replace(/^--/, '').split(/=(.*)/s).slice(0, 2)));
 const ALL_SPOTS = ['sewers', 'firstpeak', 'secondpeak', 'jacks', 'thehook', 'sharks'];
 const SPOTS = 'all' in flags ? ALL_SPOTS : [flags.spot || 'sharks'];
 const TIDE = Number(flags.tide ?? 0);
