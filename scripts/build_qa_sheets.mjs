@@ -12,8 +12,38 @@
 //   node scripts/build_qa_sheets.mjs --base=http://localhost:8127/  # reuse a server
 //   node scripts/build_qa_sheets.mjs --limit=1                      # 1 row/group, smoke
 //   node scripts/build_qa_sheets.mjs --html-only                    # re-render from JSON
+//   node scripts/build_qa_sheets.mjs --mode=published --note='…'    # a publishable snapshot
 // Serves the repo itself via scripts/serve.py (cache OFF — see that file) on
 // --port and kills it on exit, unless --base is given.
+//
+// PUBLISHING (2026-08-20)
+//   These sheets back the visual essay at https://mindbendingpixels.com/pleasurepoint/,
+//   so a published one has to survive leaving this laptop. Three things follow.
+//
+//   1. PROVENANCE. --mode=published (or --snapshot) stamps every page and every
+//      JSON sidecar with the build date, the capture timestamp, the commit
+//      (short + full), the branch, whether the tree was DIRTY, and an app
+//      digest — a SHA-256 over the exact files build_site.py ships as sim/.
+//      There is no version string in the app to read, so the digest is the app
+//      build's identity: it moves when the shipped bytes move, which a commit
+//      sha does not do on a dirty tree. A dirty build says so in a red banner
+//      at the top of every sheet, because a published QA artifact built from
+//      uncommitted code cannot be reproduced from its own stamp.
+//   2. LINKS. --mode=local (default) points cell links at the house dev port;
+//      --mode=published points them at ../../sim/, the path the essay bundle
+//      mirrors the app to. --linkbase= overrides either. A published page whose
+//      links only resolve on one laptop is broken for every other reader.
+//   3. SNAPSHOTS. Publishing is periodic, so snapshots accumulate rather than
+//      overwrite: qa/snapshots/<YYYY-MM-DD>-<shortsha>/ per run, with
+//      qa/snapshots/index.html listing them newest-first from
+//      qa/snapshots/manifest.json. RETENTION: the newest --keep=N (default 4)
+//      snapshots keep their frames; older ones are deleted from disk and stay
+//      in the manifest as RETIRED rows carrying date, commit and note. The
+//      index is therefore complete as a record and bounded as a payload —
+//      ~125 PNGs per snapshot is real weight in a published bundle, and the
+//      commit stamp is what makes a retired snapshot regenerable rather than
+//      lost. The manifest lives in gitignored qa/, so it is the publishing
+//      machine's record, not the repo's.
 //
 // WHY THE CLOCKS ARE DERIVED, NOT PICKED
 //   Sheet 1 (break progression) columns span ONE WAVE PERIOD T, anchored on a
@@ -57,10 +87,12 @@
 //   clock with __pointbreak.setSim + two rAF ticks, the mode
 //   capture_temporal.mjs validated against per-frame reloads.
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync,
+  readdirSync, statSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inflateSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 
 import { setEnv, SET_ANCHOR_S } from '../web-three/js/model-js.js';
 
@@ -90,15 +122,74 @@ const flags = Object.fromEntries(args.filter((a) => a.startsWith('--')).map((a) 
   const s = a.replace(/^--/, ''); const eq = s.indexOf('=');
   return eq < 0 ? [s, 'true'] : [s.slice(0, eq), s.slice(eq + 1)];
 }));
-const OUT = resolve(ROOT, flags.out || 'qa');
-const IMG = join(OUT, 'img');
 const PORT = Number(flags.port || 8219);
+const VIEW = { width: 1000, height: 625 };
+
+// ---------------------------------------------------------------------------
+// PROVENANCE — what a published sheet has to be able to say about itself.
+// ---------------------------------------------------------------------------
+function git(...a) {
+  try { return execFileSync('git', a, { cwd: ROOT }).toString().trim(); }
+  catch { return null; }
+}
+const COMMIT_FULL = git('rev-parse', 'HEAD') || 'unknown';
+const COMMIT = git('rev-parse', '--short', 'HEAD') || 'unknown';
+const BRANCH = git('rev-parse', '--abbrev-ref', 'HEAD') || 'unknown';
+// Untracked files count. qa/ is gitignored so a previous snapshot never dirties
+// a build; anything that DOES show here is real uncommitted state.
+const DIRTY_FILES = (git('status', '--porcelain') || '').split('\n').filter(Boolean);
+const DIRTY = DIRTY_FILES.length > 0;
+
+// The app has no version string to read, so its identity is a digest over the
+// exact files build_site.py mirrors to sim/ — the bytes a reader of a published
+// sheet would actually be running when they click a cell. Unlike the commit sha
+// this moves on a dirty tree, which is the case that needs an identity most.
+const APP_FILES = [
+  'web-three/index.html', 'shared/params.js', 'shared/model-glsl.js', 'shared/cdip.js',
+  'data/model/pp_geo_profiles.js', 'data/model/pp_depth_patches.js',
+  'data/climatology/pp_monthly_ocean.js',
+];
+function digestApp() {
+  const h = createHash('sha256');
+  const walk = (rel) => {
+    const abs = join(ROOT, rel);
+    if (!existsSync(abs)) return;
+    const st = statSync(abs);
+    if (st.isDirectory()) {
+      for (const e of readdirSync(abs).sort()) walk(join(rel, e));
+    } else if (/\.(js|html|css)$/.test(rel)) {
+      h.update(rel); h.update(readFileSync(abs));
+    }
+  };
+  for (const f of [...APP_FILES, 'web-three/js', 'web-three/css'].sort()) walk(f);
+  return h.digest('hex').slice(0, 12);
+}
+const APP_DIGEST = digestApp();
+
+// A snapshot is dated + shortsha so two builds on one day at two commits do not
+// collide, and so the directory name alone says what it is.
+const SNAP_ID = `${new Date().toISOString().slice(0, 10)}-${COMMIT}`;
+const MODE = flags.mode === 'published' ? 'published' : 'local';
+const SNAPSHOT = MODE === 'published' || flags.snapshot === 'true' || Boolean(flags.snapshot);
+const SNAP_ROOT = resolve(ROOT, flags.out || 'qa', 'snapshots');
+const OUT = SNAPSHOT ? join(SNAP_ROOT, SNAP_ID) : resolve(ROOT, flags.out || 'qa');
+const IMG = join(OUT, 'img');
+const KEEP = Math.max(1, Number(flags.keep || 4));
+const NOTE = flags.note || '';
+
 // Where the CELL LINKS point. Deliberately NOT the capture server: captures run
 // on their own short-lived port so they never touch the dev server you are
-// reading the sheet on, but a link into a dead port is useless. 8127 is the
-// house dev port (scripts/serve.py default).
-const LINK_BASE = (flags.linkbase || 'http://localhost:8127/').replace(/\/?$/, '/');
-const VIEW = { width: 1000, height: 625 };
+// reading the sheet on, but a link into a dead port is useless.
+//   local     — 8127, the house dev port (scripts/serve.py default).
+//   published — ../../sim/, relative from qa/<snap-id>/sheet.html up to the
+//               essay bundle root, where build_site.py mirrors the app. Kept
+//               relative so the bundle survives a domain or path move.
+const LINK_DEFAULT = MODE === 'published' ? '../../sim/' : 'http://localhost:8127/';
+const LINK_BASE = (flags.linkbase || LINK_DEFAULT).replace(/\/?$/, '/');
+
+const ESSAY_URL = 'https://mindbendingpixels.com/pleasurepoint/';
+const REPO_URL = 'https://github.com/andyed/pointbreak';
+const COMMIT_URL = `${REPO_URL}/commit/${COMMIT_FULL}`;
 // Whitewater luma levels. 205 is the level the #wwarea A/B is quoted at in
 // docs/CONTROLS.md; 160 is its looser companion. Both reported so a cell that
 // is "nearly breaking" is distinguishable from flat water.
@@ -114,11 +205,21 @@ const FOAM_HI = 205, FOAM_LO = 160;
 const CORRIDOR_M = [-15, 45];
 const CORRIDOR_N = 25;   // samples per station across the corridor
 
-const COMMIT = (() => {
-  try { return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT }).toString().trim(); }
-  catch { return 'unknown'; }
-})();
 const GENERATED = new Date();
+
+// The block that rides into every page AND every JSON sidecar. `capturedAt` is
+// the sim's own capture run; `builtAt` is when the page was emitted. They differ
+// under --html-only, which re-renders old frames — the frames are the capture's,
+// so the page must not claim they are today's.
+const PROVENANCE = {
+  capturedAt: GENERATED.toISOString(),
+  commit: COMMIT, commitFull: COMMIT_FULL, branch: BRANCH,
+  dirty: DIRTY, dirtyCount: DIRTY_FILES.length,
+  dirtyFiles: DIRTY_FILES.slice(0, 40),
+  appDigest: APP_DIGEST, appDigestAlgo: 'sha256/12 over the files build_site.py ships as sim/',
+  mode: MODE, snapshotId: SNAPSHOT ? SNAP_ID : null, note: NOTE,
+  essayUrl: ESSAY_URL, repoUrl: REPO_URL, commitUrl: COMMIT_URL,
+};
 
 // ---------------------------------------------------------------------------
 // SHEET SPEC — the whole configuration surface. A sheet is:
@@ -683,10 +784,13 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 //   --link       #7fd7e8   0.589391  11.52:1   10.53:1
 //   --warn       #ffd166   0.678202  13.12:1   12.00:1
 //   --bad        #ff9a9a   0.467043   9.32:1    8.52:1
+//   --ok         #7ee0a6   0.605001  11.81:1   10.79:1   (clean-tree stamp)
 //
 // Lowest ratio anywhere on these pages is 8.52:1 (--bad on --panel), so the
 // 8:1 floor holds for every label, caption, value, hash and table header.
 // --line/--line2 are hairlines and chip borders only; nothing is read off them.
+// The dirty-build banner reverses nothing — it is --bad text on --panel, the
+// 8.52:1 case, not white-on-red.
 const CSS = `/* generated by scripts/build_qa_sheets.mjs — see the contrast block in that file */
 :root{
   color-scheme: dark;
@@ -696,6 +800,7 @@ const CSS = `/* generated by scripts/build_qa_sheets.mjs — see the contrast bl
   --link:#7fd7e8;     /* 11.52:1 on --bg, 10.53:1 on --panel */
   --warn:#ffd166;     /* 13.12:1 on --bg, 12.00:1 on --panel */
   --bad:#ff9a9a;      /*  9.32:1 on --bg,  8.52:1 on --panel */
+  --ok:#7ee0a6;       /* 11.81:1 on --bg, 10.79:1 on --panel */
   --line:#30363d; --line2:#3d4652;   /* hairlines only, never text */
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -757,10 +862,120 @@ li{margin:3px 0}
 .alert{border:1px solid var(--bad);border-radius:8px;padding:10px 13px;margin:0 0 18px;
   color:var(--bad);font-size:13.5px}
 .alert b{color:var(--bad)}
+/* Provenance. Not a source comment — a published QA artifact has to state its
+   own build on the page a reader is looking at. */
+.prov{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:12px 14px;margin:0 0 14px}
+.prov h3{margin:0 0 7px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-dim);font-weight:600}
+.prov dl{display:grid;grid-template-columns:max-content 1fr;gap:3px 14px;margin:0}
+.prov dt{color:var(--ink-dim);font-size:13px}
+.prov dd{margin:0;font-size:13px;min-width:0;overflow-wrap:anywhere}
+.prov .clean{color:var(--ok);font-weight:600}
+.prov .dirty{color:var(--bad);font-weight:600}
+.provlinks{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:9px;
+  padding-top:9px;border-top:1px solid var(--line);font-size:13px}
+.dirtybanner{border:1px solid var(--bad);border-radius:8px;padding:11px 14px;
+  margin:0 0 16px;background:var(--panel);color:var(--bad);font-size:13.5px}
+.dirtybanner b{color:var(--bad)}
+.dirtybanner ul{color:var(--bad)}
+.dirtybanner code{color:var(--bad)}
+.standing{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:12px 14px;margin:0 0 18px;font-size:13.5px;color:var(--ink-dim);max-width:88ch}
+.standing b{color:var(--ink)}
+.standing p{margin:0 0 8px}
+.standing p:last-child{margin:0}
+/* n/a is a result here, not a gap. It carries its reason on hover and the
+   footer spells both classes out — a reader must never have to guess. */
+.na{color:var(--warn);font-weight:600;border-bottom:1px dotted var(--warn);cursor:help}
+.rowhead .nabed{display:block;margin-top:5px;color:var(--warn);font-size:11px;line-height:1.35}
 @media (max-width:900px){
   .grid{grid-template-columns:140px repeat(5,minmax(0,1fr));gap:6px}
 }
 `;
+
+// ---------------------------------------------------------------------------
+// Provenance, links, standing caveats — the blocks that make a sheet publishable
+// ---------------------------------------------------------------------------
+
+// `up` is the relative prefix from THIS page back to the snapshot root, so the
+// same block serves a sheet (up = '') and the snapshots index (up = '').
+function provenanceHTML(p, builtAt) {
+  const stale = p.capturedAt !== builtAt;
+  return `<section class="prov">
+  <h3>Provenance</h3>
+  <dl>
+    <dt>captured</dt><dd>${esc(p.capturedAt)}${stale ? ` <span style="color:var(--ink-dim)">(frames; page re-rendered ${esc(builtAt)})</span>` : ''}</dd>
+    ${stale ? '' : `<dt>built</dt><dd>${esc(builtAt)}</dd>`}
+    <dt>commit</dt><dd><code>${esc(p.commit)}</code> · <code>${esc(p.commitFull)}</code></dd>
+    <dt>branch</dt><dd><code>${esc(p.branch)}</code></dd>
+    <dt>working tree</dt><dd>${p.dirty
+      ? `<span class="dirty">DIRTY — ${p.dirtyCount} uncommitted path${p.dirtyCount === 1 ? '' : 's'} at capture time</span>`
+      : '<span class="clean">clean</span>'}</dd>
+    <dt>app build</dt><dd><code>${esc(p.appDigest)}</code> — ${esc(p.appDigestAlgo)}</dd>
+    ${p.snapshotId ? `<dt>snapshot</dt><dd><code>${esc(p.snapshotId)}</code>${p.note ? ` — ${esc(p.note)}` : ''}</dd>` : ''}
+    <dt>links resolve to</dt><dd><code>${esc(p.linkBase || '')}</code> (<code>${esc(p.mode)}</code> mode)</dd>
+  </dl>
+  <div class="provlinks">
+    <a href="${esc(p.essayUrl)}">Visual essay ↗</a>
+    <a href="${esc(p.repoUrl)}">Repository ↗</a>
+    <a href="${esc(p.commitUrl)}">This exact commit ↗</a>
+  </div>
+</section>`;
+}
+
+// A published artifact built from uncommitted code cannot be reproduced from
+// its own stamp. That is worth a banner, not a field.
+function dirtyBannerHTML(p) {
+  if (!p.dirty) return '';
+  const files = (p.dirtyFiles || []);
+  return `<div class="dirtybanner">
+<b>Built from a DIRTY working tree.</b> ${p.dirtyCount} path${p.dirtyCount === 1 ? ' was' : 's were'}
+uncommitted when these frames were captured, so commit <code>${esc(p.commit)}</code> does <b>not</b> reproduce
+them — checking that commit out gives you different code from the one that drew these pictures.
+Treat every number here as provisional until the sheet is rebuilt from a clean tree.
+<ul>${files.map((f) => `<li><code>${esc(f)}</code></li>`).join('')}
+${p.dirtyCount > files.length ? `<li>… and ${p.dirtyCount - files.length} more</li>` : ''}</ul>
+</div>`;
+}
+
+// What the sheet IS and what it is NOT. Standing text, on every page, because a
+// published page is read by people who did not build it.
+const STANDING = `<section class="standing">
+<p><b>What this is.</b> A QA instrument. Deterministic captures of the pointbreak wave model at clocks
+pinned by the model itself, laid out so a defect is visible by scanning rather than by hunting. Every cell
+is labelled with the exact URL hash it was taken at and links into the simulator at that state, so any frame
+here can be reopened and argued with.</p>
+<p><b>What this is not.</b> Not a validation. The model is <b>unvalidated against measured surf</b> — a first
+validation pass, model residuals against an independent record of a specific day, is the largest open gap in
+the project. These sheets check the model against <i>itself</i>: that it is deterministic, that its phases
+differ, that something breaks where something should. They cannot tell you whether it matches Pleasure Point.
+Not a surf report, not a forecast, and not usable for any decision about entering the water.</p>
+<p><b>What a still cannot show.</b> A contact sheet cannot support a claim with a verb of motion in it. It can
+show that the phases differ and that a break happens; it cannot show which way the peel runs.</p>
+<p><b>Licence.</b> Code, docs and these renders are <b>MIT</b> (© 2026 Andy Edmonds). The frames are Produced
+Works under ODbL — the coastline geometry they are drawn over is OpenStreetMap-derived, and the seabed is
+NOAA NCEI (public domain). Attribution below is required; share-alike is not triggered by a rendering.
+The full file-by-file split is <code>LICENSES.md</code> in the repository.</p>
+<p><span style="color:var(--ink-dim)">Coastline &amp; spots: OpenStreetMap contributors, ODbL 1.0 ·
+Bathymetry: NOAA NCEI Monterey Bay 1/3″ coastal DEM, NAVD88 ·
+Seasonality: CDIP MOP v1.1 SC116 hindcast (Scripps).</span></p>
+</section>`;
+
+// The two ways this sheet legitimately says n/a. Both are results — a number
+// would be the dishonest option — so they are explained where they appear.
+const NA_NOTE = `<p><b>Where this sheet says <span class="na">n/a</span>, and why.</b> Two measures go blank at
+<b>Privates</b>, and only at Privates, because that site's coastline defeats the contour fit (16.5 m RMS) and
+it runs on a <i>synthetic stage</i> rather than a surveyed seabed. <b>foam<sub>pix</sub></b> needs a baked break
+line to project a corridor onto; with no measured bed there is no baked line, so there is nothing to sample and
+the cell reads <code>n/a</code> instead of sampling an arbitrary band of pixels. <b>ceilM</b>, the depth-limited
+crest ceiling in the JSON, is <code>null</code> for the same root cause one step further on: the site runs
+<code>u_depthMix = 0</code>, the seabed sampler is a 1×1 stand-in, and the depth the shader reads back is the
+storage format's quantization floor rather than a seabed — so γh never binds and the "ceiling" would be
+<code>1.878·H₀</code> wearing a depth limit's name. <b>Privates has no measured bed and therefore no ceiling to
+be over.</b> An earlier sheet did print that number and produced a headline defect ("2.2× over its ceiling")
+that was entirely an artifact of dividing by it. Everything else on the Privates row — crest, foam<sub>model</sub>,
+the set envelope — is measured the same way as every other site and is directly comparable.</p>`;
 
 function cellHTML(base, cell) {
   const url = `${base}web-three/#${cell.hash}`;
@@ -784,7 +999,9 @@ function cellHTML(base, cell) {
   </div>
   <div class="nums">
     <span>foam<sub>model</sub> <b>${cell.modelFoamMax.toFixed(2)}</b> (${(cell.modelFoamFrac * 100).toFixed(0)}% of stage)</span>
-    <span>foam<sub>pix</sub> <b>${cell.pixFracLo === null ? 'n/a' : (cell.pixFracLo * 100).toFixed(1) + '%'}</b></span>
+    <span>foam<sub>pix</sub> ${cell.pixFracLo === null
+      ? '<b class="na" title="No measured bed at this site, so there is no baked break line to project a pixel corridor onto. n/a is the result, not a gap — see the footer.">n/a</b>'
+      : `<b>${(cell.pixFracLo * 100).toFixed(1)}%</b>`}</span>
   </div>
   <a class="hash" href="${esc(url)}" title="${esc('#' + cell.hash)}">#${esc(cell.hash)}</a>
 </div>`;
@@ -805,6 +1022,11 @@ function rowHTML(base, row) {
     <dt>cam drift</dt><dd>${row.camDriftM === undefined ? '—' : row.camDriftM.toFixed(2) + ' m'}</dd>
   </dl>
   <span class="sub" style="margin-top:6px">${esc(s.hudGeo || '')}</span>
+  ${row.cells.some((c) => c.baked === false)
+    ? '<span class="nabed">Synthetic stage — no measured bed here, so the depth ceiling and the pixel'
+      + ' corridor read <span class="na" title="Explained in full at the foot of this page.">n/a</span>'
+      + ' on this row. The crest and model foam are measured as everywhere else.</span>'
+    : ''}
   <a class="base" href="${esc(base)}web-three/#${esc(row.rowHash)}&amp;sim=${row.clocks.times[0]}" title="${esc('#' + row.rowHash)}">#${esc(row.rowHash)}</a>
 </div>` + row.cells.map((c) => cellHTML(base, c)).join('\n');
 }
@@ -826,7 +1048,7 @@ function sheetHTML(sheet, data, base, extras) {
 </section>`).join('\n');
 
   const first = data.groups[0].rows[0];
-  const commit = data.commit || COMMIT, when = data.generated || GENERATED.toISOString();
+  const prov = { ...(data.provenance || PROVENANCE), linkBase: data.linkBase || base };
   return `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -835,10 +1057,11 @@ function sheetHTML(sheet, data, base, extras) {
 <div class="wrap">
 <h1>${esc(sheet.title)}</h1>
 <p class="lede">${esc(sheet.blurb)}</p>
+${dirtyBannerHTML(prov)}
+${provenanceHTML(prov, GENERATED.toISOString())}
+${STANDING}
 ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1 ? '' : 's'} drew flat water where a break was promised.</b><ul>${flats.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}
 <div class="meta"><dl>
-  <dt>build</dt><dd><code>${esc(commit)}</code></dd>
-  <dt>captured</dt><dd>${esc(when)}</dd>
   <dt>viewport</dt><dd>${VIEW.width} × ${VIEW.height} px, deviceScaleFactor 1</dd>
   <dt>pinned</dt><dd><code>${esc(COMMON)}</code> — frozen clock, no UI in frame, quality tier pinned</dd>
   <dt>clock spacing</dt><dd>${esc(first.clocks.periodLabel)}, columns ${first.clocks.spacing.toFixed(2)} s apart. ${esc(first.clocks.how)}</dd>
@@ -871,14 +1094,17 @@ ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1
     never binds and the "ceiling" is <code>1.878·H₀</code> wearing a depth limit's name, while the crest above it
     came from the depth-free synthetic branch. <b>Privates has no measured bed and therefore no ceiling to be over.</b>
     Its crest at the January set peak (5.32 m) is in family with all six mapped sites (4.99–5.32 m) on the same day.</dd>
-  <dt>links</dt><dd>Every hash is a live link into <code>${esc(base)}web-three/</code> at that exact state — start the dev
-    server there (<code>python3 scripts/serve.py 8127</code>) and clicking a suspicious frame drops you into the app at it.
+  <dt>links</dt><dd>Every hash is a live link into <code>${esc(base)}web-three/</code> at that exact state, so clicking a
+    suspicious frame drops you into the simulator at it. ${prov.mode === 'published'
+      ? 'Those links are <b>relative to this page</b> and resolve against the simulator published beside the essay, so they work wherever this bundle is served from.'
+      : 'That is a local dev server — start it with <code>python3 scripts/serve.py 8127</code>. A sheet built with <code>--mode=published</code> points at the deployed simulator instead.'}
     Row headers link to column 1. Clicking the <b>image</b> opens the full ${VIEW.width}×${VIEW.height} frame instead.
     Captures were taken on their own separate port so they never touched your dev server.</dd>
 </dl></div>
 ${groups}
 <div class="foot">
 ${extras}
+${NA_NOTE}
 <p><b>Method caveat.</b> Column 1 of every row is captured from a cold load at its own <code>#sim=</code>; columns 2–5 advance the clock with <code>__pointbreak.setSim()</code> plus two rAF ticks — the mode <code>scripts/capture_temporal.mjs</code> validated against per-frame reloads. Each cell's hash reproduces its frame either way.</p>
 <p><b>Camera drift, recorded not assumed.</b> The <code>#aim</code> cameras frame the baked line's action centroid
 and smooth over ~6 s of sim time, so advancing the clock <i>could</i> move the instrument between columns of one row
@@ -887,7 +1113,11 @@ carries the largest camera displacement between any two of its five columns. A r
 is comparing slightly different windows, and its numbers should be read accordingly. The camera legitimately
 <i>does</i> differ between rows — the break line moves with H₀ — so only within-row drift is a concern.</p>
 <p><b>Stills, not motion.</b> A contact sheet cannot support a claim with a verb of motion in it (MEASUREMENT_LESSONS 1). It can show that the phases differ and that something breaks; it cannot show which way the peel runs.</p>
-<p><a href="index.html">← all QA sheets</a> · <a href="${esc(sheet.id)}.json">raw measurements (JSON)</a></p>
+<p><a href="index.html">← all QA sheets in this build</a>${prov.snapshotId ? ' · <a href="../index.html">all snapshots</a>' : ''}
+ · <a href="${esc(sheet.id)}.json">raw measurements (JSON)</a> — the same provenance block, machine-readable
+ · <a href="${esc(prov.essayUrl)}">the essay</a>
+ · <a href="${esc(prov.repoUrl)}">the repo</a>
+ · <a href="${esc(prov.commitUrl)}">commit <code>${esc(prov.commit)}</code></a></p>
 </div>
 </div>
 `;
@@ -962,8 +1192,8 @@ function indexHTML(built) {
   <span>${flats ? `<span class="badge flat">${flats} flat</span>` : '<span class="badge">no flat cells</span>'}</span></div>
 </li>`;
   }).join('\n');
-  const commit = built[0]?.data?.commit || COMMIT;
-  const when = built[0]?.data?.generated || GENERATED.toISOString();
+  const prov = { ...(built[0]?.data?.provenance || PROVENANCE),
+    linkBase: built[0]?.data?.linkBase || LINK_BASE };
   return `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -973,14 +1203,94 @@ function indexHTML(built) {
 <h1>pointbreak — QA contact sheets</h1>
 <p class="lede">Deterministic frame grids for scanning. Every cell is labelled with the exact URL hash it was
 captured at and links into the live app at that state; every clock spacing is derived from the model, not picked.</p>
-<div class="meta"><dl>
-  <dt>build</dt><dd><code>${esc(commit)}</code></dd>
-  <dt>captured</dt><dd>${esc(when)}</dd>
-  <dt>regenerate</dt><dd><code>node scripts/build_qa_sheets.mjs</code></dd>
-</dl></div>
+${dirtyBannerHTML(prov)}
+${provenanceHTML(prov, GENERATED.toISOString())}
+${STANDING}
 <ul style="list-style:none;padding:0">${items}</ul>
-<div class="foot"><p>Generated into <code>qa/</code>, which is git-ignored — the PNGs are regenerable and are
-not committed (see commit <code>b013197</code>, which removed 6.7 MB of unreferenced screenshots).</p></div>
+<div class="foot">
+<p>Regenerate with <code>node scripts/build_qa_sheets.mjs</code>; a publishable snapshot with
+<code>node scripts/build_qa_sheets.mjs --mode=published --note='…'</code>.</p>
+<p>Generated into <code>qa/</code>, which is git-ignored — the PNGs are regenerable and are
+not committed (see commit <code>b013197</code>, which removed 6.7 MB of unreferenced screenshots).</p>
+${prov.snapshotId ? '<p><a href="../index.html">← all snapshots</a></p>' : ''}
+</div>
+</div>
+`;
+}
+
+// ---------------------------------------------------------------------------
+// Snapshot index + manifest. Publishing is periodic, so the index is the thing
+// that has to accumulate; see the RETENTION note in the file header.
+// ---------------------------------------------------------------------------
+const MANIFEST = join(SNAP_ROOT, 'manifest.json');
+
+function readManifest() {
+  if (!existsSync(MANIFEST)) return [];
+  try { return JSON.parse(readFileSync(MANIFEST, 'utf8')); } catch { return []; }
+}
+
+// Newest-first, one entry per snapshot id (a rebuild of the same id replaces it).
+function updateManifest(entry) {
+  const kept = readManifest().filter((e) => e.id !== entry.id);
+  const all = [entry, ...kept].sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1));
+  // RETENTION: the newest KEEP snapshots keep their frames; older ones lose the
+  // directory and stay in the index as retired rows. Unbounded PNG growth in a
+  // published bundle is a real cost, and a retired row is still regenerable
+  // because it carries the commit it was built from.
+  let live = 0;
+  for (const e of all) {
+    if (e.retired) continue;
+    live++;
+    if (live > KEEP) {
+      const dir = join(SNAP_ROOT, e.id);
+      if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+      e.retired = true;
+      e.retiredAt = GENERATED.toISOString();
+    }
+  }
+  writeFileSync(MANIFEST, JSON.stringify(all, null, 2));
+  return all;
+}
+
+function snapshotIndexHTML(all) {
+  const rows = all.map((e) => `<li style="margin:16px 0">
+  ${e.retired
+    ? `<span style="font-size:16px;font-weight:600">${esc(e.id)}</span>
+       <span class="badge">frames retired</span>`
+    : `<a href="${esc(e.id)}/index.html" style="font-size:16px;font-weight:600">${esc(e.id)}</a>`}
+  ${e.dirty ? '<span class="badge flat">built dirty</span>' : ''}
+  <div class="lede" style="margin:2px 0 0">${esc(e.note || 'no note')}</div>
+  <div class="nums" style="margin-top:4px">
+    <span>captured <b>${esc(e.capturedAt)}</b></span>
+    <span>commit <a href="${esc(REPO_URL)}/commit/${esc(e.commitFull)}"><code>${esc(e.commit)}</code></a></span>
+    <span>branch <code>${esc(e.branch)}</code></span>
+    <span>app <code>${esc(e.appDigest || '—')}</code></span>
+    <span>${e.sheets} sheet${e.sheets === 1 ? '' : 's'}, ${e.frames} frames</span>
+    ${e.flats ? `<span class="badge flat">${e.flats} flat</span>` : '<span class="badge">no flat cells</span>'}
+  </div>
+  ${e.retired ? `<div class="nums" style="margin-top:3px"><span>Frames deleted ${esc(e.retiredAt || '')} under the ${KEEP}-snapshot retention rule.
+     Rebuild from <code>${esc(e.commit)}</code>: <code>git checkout ${esc(e.commit)} &amp;&amp; node scripts/build_qa_sheets.mjs --mode=published</code>.</span></div>` : ''}
+</li>`).join('\n');
+  return `<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>pointbreak QA snapshots</title>
+<style>${CSS}</style>
+<div class="wrap">
+<h1>pointbreak — QA snapshots</h1>
+<p class="lede">Periodic contact-sheet builds backing the visual essay, newest first. Each snapshot is a
+frozen set of deterministic captures stamped with the commit it was built from.</p>
+${STANDING}
+<ul style="list-style:none;padding:0">${rows}</ul>
+<div class="foot">
+<p><b>Retention.</b> The index keeps <b>every</b> snapshot ever built on this machine — a record of what was
+published and when should not quietly shorten. The <b>frames</b> do not: only the newest <b>${KEEP}</b>
+snapshots keep their PNGs, and older ones are deleted from disk and shown here as retired. About 125 frames a
+snapshot is real weight in a published bundle, and the commit stamp on a retired row is what makes it
+regenerable rather than lost. The manifest lives in git-ignored <code>qa/</code>, so this list is the
+publishing machine's record rather than the repository's.</p>
+<p><a href="${esc(ESSAY_URL)}">the essay</a> · <a href="${esc(REPO_URL)}">the repo</a></p>
+</div>
 </div>
 `;
 }
@@ -1028,6 +1338,10 @@ if (!base) {
 }
 if (!base.endsWith('/')) base += '/';
 
+console.log(`mode=${MODE}  out=${OUT}\n  commit ${COMMIT} (${COMMIT_FULL}) on ${BRANCH}`
+  + `  tree ${DIRTY ? `DIRTY (${DIRTY_FILES.length})` : 'clean'}  app ${APP_DIGEST}`
+  + `\n  cell links -> ${LINK_BASE}web-three/`);
+
 const wanted = flags.sheets ? flags.sheets.split(',') : null;
 const todo = SHEETS.filter((s) => !wanted || wanted.some((w) => s.id.startsWith(w)));
 if (!todo.length) { console.error(`no sheet matches --sheets=${flags.sheets}`); stopServer(); process.exit(1); }
@@ -1047,7 +1361,11 @@ try {
     console.log(`\n== ${sheet.id} ==`);
     const captured = await captureSheet(page, base, sheet);
     const data = {
-      generated: GENERATED.toISOString(), commit: COMMIT, base, linkBase: LINK_BASE, viewport: [VIEW.width, VIEW.height],
+      // `generated`/`commit` kept as-is for anything already reading the JSON;
+      // `provenance` is the full block, and is what the pages render from.
+      generated: GENERATED.toISOString(), commit: COMMIT,
+      provenance: { ...PROVENANCE, linkBase: LINK_BASE },
+      base, linkBase: LINK_BASE, viewport: [VIEW.width, VIEW.height],
       common: COMMON, foamThresholds: [FOAM_HI, FOAM_LO],
       corridorM: CORRIDOR_M, corridorN: CORRIDOR_N, ...captured,
     };
@@ -1057,6 +1375,23 @@ try {
     console.log(`-> ${join(OUT, sheet.file)}`);
   }
   writeFileSync(join(OUT, 'index.html'), indexHTML(built));
+  if (SNAPSHOT) {
+    let frames = 0, flats = 0;
+    for (const { data } of built)
+      for (const g of data.groups) for (const r of g.rows) for (const c of r.cells) {
+        frames++; if (c.flat) flats++;
+      }
+    const all = updateManifest({
+      id: SNAP_ID, capturedAt: PROVENANCE.capturedAt, note: NOTE,
+      commit: COMMIT, commitFull: COMMIT_FULL, branch: BRANCH,
+      dirty: DIRTY, dirtyCount: DIRTY_FILES.length, appDigest: APP_DIGEST,
+      mode: MODE, linkBase: LINK_BASE,
+      sheets: built.length, frames, flats,
+    });
+    writeFileSync(join(SNAP_ROOT, 'index.html'), snapshotIndexHTML(all));
+    console.log(`-> ${join(SNAP_ROOT, 'index.html')}  (${all.length} snapshot(s), `
+      + `${all.filter((e) => !e.retired).length} with frames, keep=${KEEP})`);
+  }
 } finally {
   await browser.close();
   stopServer();
@@ -1066,4 +1401,8 @@ if (errors.length) {
   console.error('CONSOLE ERRORS:\n' + errors.join('\n'));
   process.exit(1);
 }
-console.log(`\ndone -> ${OUT}  (open ${LINK_BASE}qa/ or file://${OUT}/index.html)`);
+console.log(`\ndone -> ${OUT}  (open file://${OUT}/index.html)`);
+if (DIRTY) {
+  console.warn(`\nNOTE: built from a DIRTY tree (${DIRTY_FILES.length} uncommitted path(s)). `
+    + 'Every page says so in a banner. Commit first if this snapshot is going to be published.');
+}
