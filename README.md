@@ -25,6 +25,18 @@ every quantity in the model, is `docs/MODEL.md` §4.5 — it exists because ever
 defect found in one day's audit turned out to be the same defect: two sources
 of truth for one quantity with no rule for which wins.
 
+§4.5 settles who owns a quantity. The harder case is when ownership is settled
+and the model still cannot serve both sides at one state, and `docs/MODEL.md`
+§4.6 is the worked example: at the climatologically honest wave height for a
+summer month, the break line's branch selection is decided by a criterion
+grazing zero at 0.1–0.7% of its own scale over a seabed with a 0.31–0.93 m
+elevation residual, so the peel collapses and the season is unwatchable. Four
+attempts to repair the selection were built and measured and none survived.
+What ships is a declared boundary — the model states the conditions it will
+draw a peel in, holds `#month=` to the healthy side of it, and says so in the
+HUD — and the price is stated per spot in that section: at Sewers and First
+Peak the seasonal signal is gone entirely, twelve months on one height.
+
 ## What the model computes
 
 The generating idea is a *zipper*: a breaking point traveling along a crest,

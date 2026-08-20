@@ -23,6 +23,9 @@
 // stage breaks at once.
 //
 // Usage: node scripts/audit_shipped_states.mjs [--out=file.json] [--base=...]
+//        [--extra=clamp=0]   extra hash params appended to EVERY state, which
+//                            is how the peel-floor A/B is run in one build:
+//                            `--extra=clamp=0` is the pre-clamp arm.
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,6 +45,7 @@ const flags = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWit
   .map((a) => { const t = a.replace(/^--/, ''); const i = t.indexOf('='); return i < 0 ? [t, '1'] : [t.slice(0, i), t.slice(i + 1)]; }));
 const BASE = flags.base || 'http://localhost:8223/web-three/';
 const OUT = flags.out || null;
+const EXTRA = flags.extra ? `&${flags.extra}` : '';
 const PRESETS = (flags.preset || 'sewers,firstpeak,secondpeak,jacks,thehook,sharks,privates').split(',');
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june',
                 'july', 'august', 'september', 'october', 'november', 'december'];
@@ -52,7 +56,17 @@ function probeFn() {
   const sa = pb.stageAlpha ? pb.stageAlpha(2) : null;
   const line = pb.lineProbe(2) || [];
   const st = pb.state;
-  const base = { H0: st.H0, T: st.T, tide: st.tide || 0, alphaTarget: st.alpha, preset: st.preset };
+  // The clamp readback is part of the state, not a decoration: an audit has to
+  // be able to tell "healthy because the ocean was healthy" from "healthy
+  // because the peel floor bound", and the HUD is not a machine-readable
+  // surface. null = nothing clamped.
+  const cl = pb.peelClamp ? pb.peelClamp() : null;
+  const base = { H0: st.H0, T: st.T, tide: st.tide || 0, alphaTarget: st.alpha, preset: st.preset,
+                 clampOn: pb.clampOn ? pb.clampOn() : null,
+                 clampBound: cl ? Boolean(cl.bound) : false,
+                 clampOffBasis: cl ? Boolean(cl.offBasis) : false,
+                 clampReq: cl ? cl.requested : null,
+                 clampApplied: cl && cl.bound ? cl.applied : null };
   if (!sa || !line.length) return { ok: true, baked: false, ...base };
   const stage = line.filter((p) => p.x >= sa.stageLo && p.x <= sa.stageHi);
   const zs = stage.map((p) => p.z);
@@ -89,7 +103,7 @@ for (const preset of PRESETS) {
     // own navigation was the leak. `?r=` forces a new document, so every state
     // boots from the preset's own defaults.
     seq++;
-    await page.goto(`${BASE}?r=${seq}#${hash}&controls=0&speed=0`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}?r=${seq}#${hash}&controls=0&speed=0${EXTRA}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(2200);
     const r = await page.evaluate((src) => (0, eval)(`(${src})`)(), PROBE_SRC)
       .catch((e) => ({ ok: false, err: String(e) }));

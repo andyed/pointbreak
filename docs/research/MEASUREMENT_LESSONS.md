@@ -370,6 +370,37 @@ reason that predicts the failure instead of describing it. Removing the
 discontinuity requires not selecting discretely at all — or accepting it and
 declaring what the model does on each side.
 
+### 14b. A measured threshold's *basis* is part of the threshold (2026-08-20)
+
+Acting on 14's conclusion — accept the discontinuity, declare which side the
+model draws on — produced two more findings, both from the same mistake in
+different clothes: **reading a number off a table without re-reading what it is
+a number about.**
+
+* **The flip is not the floor.** The 1c'-d table gives Second Peak a threshold
+  at 1.02→1.03, and it is real. It is also a branch change from α **2.6° to
+  3.7°**, against a 41° target — two closeouts. Clamping to it would have cost
+  two thirds of that spot's seasonal range and bought no peel. Its peel returns
+  at 1.07→1.08 (9.1 → 14.4). A floor is defined by the quantity it is a floor
+  *on*. The table's column heading said "threshold H₀", not "the peel returns
+  here", and the two are the same thing at five of six spots — which is exactly
+  how the sixth gets missed.
+* **The ladder is one slice of a surface.** The thresholds were measured at tide
+  0 and each site's card period. The first build applied them to `#day=` too,
+  where T and tide both move. Measured result: clamping `#day=small` (T 9, tide
+  +0.35) *up* to the tide-0 floor took Sewers from α **12.8 to 3.9** and The
+  Hook from **10.4 to 5.9** — the clamp manufacturing two of the closeouts it
+  was written to prevent, on states that had been healthy. This is lesson 13
+  arriving from the other direction: there the denominator was computed from a
+  switched-off code path, here the number was computed from an ocean that is not
+  the one on screen. Same tell, and the same fix: carry the basis with the
+  number and refuse outside it (`peelFloorH0()` returns null off-basis).
+
+The general form: **a threshold measured along one axis of a multi-parameter
+field describes a point on that axis, not a boundary in the field.** Before
+applying one, write down every parameter that was held fixed while it was
+measured, and check each against the state you are about to apply it to.
+
 Corollary worth its own line: **a negative result has a range, and the range is
 part of the result.** The 2026-08-19 `#lipn` note recorded "an H₀ sweep
 0.40→1.60 m in 0.05 steps found **no threshold**" at Sewers, and concluded its

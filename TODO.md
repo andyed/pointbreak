@@ -108,7 +108,66 @@ mapped sites, with 14–28 of 34–46 pocket stations above 1.0 at every one of
 them. `crestCeilM` is a reference height, not a clamp, and "every mapped site
 is at or below its ceiling" was never true.
 
-## ⚠ SHIPPED-IMPACT, NEEDS A PRODUCT CALL (2026-08-19)
+## ✔ RESOLVED (2026-08-20) — Andy took option (b): the peel floor
+
+The product call below was made: **clamp `#month=` to the healthy side of each
+spot's measured branch-flip threshold, and publish the cost.** Shipped as
+`shared/params.js` `PEEL_FLOOR` + `setDerivedH0()` in main.js (one owner per
+§4.5), A/B revert `#clamp=0`, HUD disclosure whenever it binds, tradeoff written
+up as **MODEL.md §4.6 "The peel floor: when the demo and the simulation
+disagree"** and referenced from the README product definition. Pinned by
+`tests/peel-floor.test.js` (8 tests); suite 74 → 82, all green.
+
+**Measured** (`scripts/audit_shipped_states.mjs`, 114 states, 108 baking, each
+booted from a fresh document; both arms in one build via `--extra=clamp=0`):
+
+* collapsed (stage-median α < 10°) **64 → 12**; months **52 → 0**;
+  days **12 → 12 bit-identical**; **zero states regressed**
+* card states **0 of 7 differ, max |Δ| 0.000000** over H₀/T/tide/α/pinned/z/gap
+
+**Two corrections the implementation forced, both measured:**
+
+1. **The flip is not always the floor.** Second Peak's tabulated 1.02→1.03 flip
+   moves α 2.6 → 3.7 — a branch change between two closeouts against a 41°
+   target — so clamping to it cost two thirds of that spot's seasonal range and
+   bought no peel. Its peel returns at **1.07→1.08** (α 9.1 → 14.4), measured on
+   the same ladder, hysteresis-free over 21 paired steps. That is its floor.
+2. **The floor carries its basis (tide 0, card T) and declines outside it.** The
+   first build applied it to `#day=` too and made things WORSE: `#day=small`
+   (T 9, tide +0.35) clamped up took Sewers from α **12.8 → 3.9** and The Hook
+   from **10.4 → 5.9**. The threshold is a surface in (H₀, T, tide) and the
+   ladder is one slice through it — MEASUREMENT_LESSONS 13. Days now pass
+   through untouched, and there is an independent reason to leave them there: a
+   day declares its own height as part of its identity ("small summer
+   windswell" at 1.9 m is not small), where a month declares a distribution and
+   p75 is already a stated editorial pick from it.
+
+**Seasonal cost, per spot** (12 months, requested span 0.660 m):
+
+| spot | floor | clamped | drawn H₀ | range kept | α before → after |
+|---|---|---|---|---|---|
+| Sewers | 1.61 | **12/12** | 1.610 only | **0%** | 3.0–6.2 → 35.0 |
+| First Peak | 1.26 | **12/12** | 1.260 only | **0%** | 1.0–3.6 → 12.1 |
+| Second Peak | 1.08 | 9/12 | 1.080–1.245 | 25% | 3.1–33.5 → 14.4–33.5 |
+| The Hook | 1.05 | 9/12 | 1.050–1.245 | 30% | 4.7–34.9 → 17.1–34.9 |
+| Jack's | 0.85 | 6/12 | 0.850–1.245 | 60% | 2.7–33.2 → 21.3–33.2 |
+| Sharks | 0.81 | 6/12 | 0.810–1.245 | 66% | 6.7–26.3 → 16.4–26.3 |
+| Privates | — no bed | 0/12 | 0.585–1.245 | 100% | n/a |
+
+**Sewers and First Peak lose the season outright** — twelve months on one
+height, so `#month=` varies nothing there. Stated, not hidden; the HUD names
+both numbers on every clamped state.
+
+**STILL OPEN, not fixed here:** the twelve `#day=` collapses (Sewers
+modelcard/pulse/stormy, First Peak small/pulse/stormy, Second Peak small/pulse,
+Jack's small, The Hook pulse/big, Sharks big). All pre-existing, all off the
+floor's measured basis, all bit-identical to before. Closing them needs the
+threshold measured as a surface in (H₀, T, tide) rather than a ladder, which is
+36 sweeps, or the root fix in 1c'-d's NEXT list. First Peak is also only *just*
+healthy after the clamp — 12.1° against a 50° target is above the collapse line
+and is still not the wave the card draws.
+
+## ⚠ SHIPPED-IMPACT — the original product call (2026-08-19, now resolved above)
 
 **`#month=` and `#day=` draw a collapsed peel in 56% of their reachable
 states** (64 of 114 baked states: stage-median α < 10° against 36–50°
@@ -132,6 +191,9 @@ declare it per spot, which is the only route that survives the falsified
 selection work; or (d) leave as is and fix nothing.
 No shipped behaviour was changed pending that call — 0 of 114 states differ,
 max |Δα| 0.000000000°.
+
+**ANSWERED 2026-08-20: (b), with the cost published. See the resolved block
+above and MODEL.md §4.6.**
 
 ## ▶ LIVE VERDICT QUEUE (2026-08-18) — nine flags waiting on Andy's eye
 

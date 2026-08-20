@@ -1353,6 +1353,159 @@ then Track 3c.*
 4. **`VIS` is already correctly excluded from the break threshold** (noted in
    `ocean()`); that exclusion is now a rule, not a local fix.
 
+## 4.6 The peel floor: when the demo and the simulation disagree (2026-08-20)
+
+§4.5 arbitrates between two *authorities* on one quantity. This section is the
+other case, and the general pattern for it: physics and authorship agree about
+who owns the quantity, and the model still cannot serve both the demo and the
+simulation at the same state. Written up in full because it is the worked
+example the next one of these should be reasoned against.
+
+### The conflict, in four sentences
+
+**What the demo needs.** Every state a viewer can reach must draw a legible
+peel. `#month=` exists to show a season; a season the viewer cannot tell from a
+closeout has not been shown.
+
+**What the simulation says.** `#month=august` at Sewers means H₀ = 0.585 m —
+the p75 of 18,540 quality-controlled hourly records at CDIP MOP SC116,
+de-shoaled to deep water (`research/PP_CDIP_CLIMATOLOGY.md`). That is the
+number, and it is not in dispute.
+
+**Why they conflict here.** Below a spot-specific H₀ the baked break line
+abandons the oblique reef branch for a near-shore-parallel inshore one and
+stage-median α collapses to 1.0–6.2° against 36–50° targets. Sewers' boundary
+is 1.61 m, so *every month of the year* falls under it: the honest height and
+the legible wave are on opposite sides of a discontinuity.
+
+**And why the discontinuity is not fixable.** `markBreakCrossings` returns
+onsets; an onset is born or dies when a negative dip in `H₀Kₛ − γh` crosses
+zero. Measured at all six thresholds, the dips that vanish are **−0.002 to
+−0.144 m** — the criterion grazing zero at **0.1–0.7% of its own scale**, on a
+bed whose own elevation residual is **0.31–0.93 m**. Branch identity sits an
+order of magnitude below the noise floor of the data underneath it. It is not
+that the selection is wrong; it is that at these heights *there is no fact of
+the matter* about which branch the reef has, and any rule that reduces a
+continuous field to a discrete choice must put a knife-edge somewhere
+(MEASUREMENT_LESSONS 14).
+
+### What was tried first, and failed
+
+Four interventions, all built and all measured, none of them ships:
+
+| attempt | what it did | result |
+|---|---|---|
+| anchor band (1c'-c.2) | constrain the seed station | falsified — the anchor never re-ranks a set that persisted; 5/6 anchors have one crossing on both sides |
+| density composite `#dline` (1c'-c.11) | per-station density mode as the line | worse chatter at `1`; at `2` it costs ~2° α to kill Sharks' flip only |
+| crest-distance ranking | rank crossings by distance from the wedge crest | bit-identical to default at every band 45 m → 1 m — the in-band set is empty (LESSONS 8 corollary) |
+| **onset merge `#merge=`** | require a dip to be a *real* un-breaking before it starts a new branch | **falsified, and it RAISED the flip count** — Sewers 1→4, The Hook 4→6 over the 0.40–3.00 ladder, while the largest jump barely moved (172→166 m) and the threshold merely slid down (Sewers 1.65→1.55) |
+
+Plus two counterfactuals over the identical candidate lattice: a **Viterbi
+global minimum-total-|Δz| path** — the exact non-greedy form of the same
+continuity claim — has *more* flip steps than the shipped greedy rule at five
+of six spots (Sewers 13 vs 1), as do seaward-most and shoreward-most. The
+shipped rule is already the best of four.
+
+`#merge` is the one that explains the rest. The onset count flips when the dip
+crosses 0; put a threshold *m* on it and the count flips when the dip crosses
+−*m*. **A threshold relocates a knife-edge onto a different level set of the
+same continuous field; it never deletes one** — and *m* adds a second
+discontinuity, the merge decision itself, which is why the count went up.
+
+### What ships: declare the boundary and stay on one side of it
+
+Per §4.5, break *location* is physics-owned and stays so — nothing here
+overrides where the line goes. What is declared is a **condition-level**
+statement, which is authorship's to make: *this model does not draw a peel at
+this spot below this height.* A derived ocean — a `#month=`, a named `#day=`,
+the live nowcast — is held to the healthy side of that boundary. An authored
+card H₀, a typed `#h0=` and the `-`/`+` keys are not derived and pass through
+untouched. Flag: `#clamp=0` (CONTROLS.md).
+
+The floors are measured, not chosen: `scripts/measure_branch_flip.mjs` at 0.01 m
+resolution, hysteresis-free, tabulated in `shared/params.js` `PEEL_FLOOR`. Two
+findings from taking that seriously rather than reading the threshold table
+off the shelf:
+
+* **The flip is not always the floor.** At Second Peak the 1.02→1.03 branch
+  flip moves α 2.6 → 3.7 — a genuine branch change *between two closed-out
+  branches*, against a 41° target. Clamping to it costs two thirds of the
+  spot's seasonal range and buys no peel. Its peel actually returns at
+  1.07→1.08 (α 9.1 → 14.4). A floor is defined by the quantity it is a floor
+  *on*, which is the peel, not the branch id.
+* **The floor carries its basis and declines outside it.** The ladder was run
+  at tide 0 and each site's card period, and the threshold is a surface in
+  (H₀, T, tide), not a point on the H₀ axis. A `#month=` keeps the card period
+  and does not move the tide, so it is on that basis by construction. A
+  `#day=` moves all three. Applying the tide-0 number there is
+  MEASUREMENT_LESSONS 13 — a number computed from a configuration not in play —
+  and it was measured to do real damage: an early build clamped `#day=small`
+  (T 9, tide +0.35) up to the tide-0 floor and took Sewers from α **12.8 to
+  3.9** and The Hook from **10.4 to 5.9**, manufacturing two closeouts the
+  clamp exists to prevent. `peelFloorH0()` now returns null off-basis.
+
+Condition days are therefore left alone, and there is a second reason to leave
+them alone: **a day declares its own height as part of its identity.** "Small
+summer windswell" at 1.9 m is not small; raising it would make the label lie. A
+month declares a *distribution*, and p75 is already a stated editorial pick
+from it, so raising the pick is a change of degree rather than of kind — and
+the HUD names both numbers when it happens.
+
+### What it costs, per spot
+
+Twelve months × seven spots, `scripts/audit_shipped_states.mjs`, each booted
+from a fresh document. "Seasonal range kept" is the drawn H₀ span over the
+requested 0.660 m span (August 0.585 → January 1.245).
+
+| spot | target α | floor | months clamped | H₀ drawn | seasonal range kept | α before | α after |
+|---|---|---|---|---|---|---|---|
+| Sewers | 38 | 1.61 | **12/12** | 1.610 only | **0%** (0.000 of 0.660 m) | 3.0–6.2 | 35.0 |
+| First Peak | 50 | 1.26 | **12/12** | 1.260 only | **0%** (0.000 of 0.660 m) | 1.0–3.6 | 12.1 |
+| Second Peak | 41 | 1.08 | 9/12 | 1.080–1.245 | 25% (0.165 m) | 3.1–33.5 | 14.4–33.5 |
+| The Hook | 41 | 1.05 | 9/12 | 1.050–1.245 | 30% (0.195 m) | 4.7–34.9 | 17.1–34.9 |
+| Jack's | 37 | 0.85 | 6/12 | 0.850–1.245 | 60% (0.395 m) | 2.7–33.2 | 21.3–33.2 |
+| Sharks | 36 | 0.81 | 6/12 | 0.810–1.245 | 66% (0.435 m) | 6.7–26.3 | 16.4–26.3 |
+| Privates | 31 | — no measured bed | 0/12 | 0.585–1.245 | 100% | n/a | n/a |
+
+**Sewers and First Peak lose the season entirely.** All twelve months clamp to
+one height, so `#month=` there varies nothing at all — the control is inert at
+the two spots whose card H₀s (2.2 and 1.8 m) sit furthest above the
+climatology. That is the whole cost, stated rather than hidden, and it is why
+the HUD announces the clamp with both numbers whenever it binds. First Peak is
+worth a second look for a different reason: 12.1° against a 50° target is above
+the 10° collapse line but is not a good peel. The floor puts it on the healthy
+branch; it does not make it the wave the card draws.
+
+Blast radius, 114 reachable states (7 presets × card + 12 months + 6 days), of
+which 108 bake:
+
+* collapsed (stage-median α < 10°) **64 → 12**
+* months **52 → 0**; days **12 → 12**, bit-identical
+* card states **0 of 7 differ**, max |Δ| 0.000000 over H₀/T/tide/α/pinned/z/gap
+* zero states regressed
+
+The twelve that remain are all `#day=` states, all pre-existing, all off the
+floor's measured basis. They are not fixed here and the clamp does not touch
+them.
+
+### The pattern, for the next one
+
+1. **Name which side is which.** Write down what the demo needs and what the
+   simulation says, as two separate sentences, before proposing anything.
+2. **Measure whether the conflict is real or a bug.** Three of the four
+   attempts above were bug-fixes for a defect that turned out not to be one.
+3. **Check the scale of the deciding quantity against the noise floor of the
+   data under it.** If the decision is made below that floor, no repair to the
+   decision rule can work, and knowing *why* is what stops the fifth attempt.
+4. **Declare, don't override.** Move the intervention up to the level where
+   authorship legitimately owns something — here, "what conditions this model
+   will draw" rather than "where the break line goes".
+5. **Carry the basis with the number**, and decline outside it.
+6. **Quantify the cost per case and publish the row where it is total.** The
+   Sewers row is the one that makes this section worth having.
+7. **Disclose in the product, not only in the docs.** A silent clamp is the
+   dishonesty the rest of this file exists to prevent.
+
 ## 5. Deliberately out of scope
 
 - **Barrel interior / tube ride POV** — a camera-and-geometry problem, not a model

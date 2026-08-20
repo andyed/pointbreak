@@ -84,6 +84,93 @@ export const PRESETS = {
 
 export const DEFAULT_PRESET = 'secondpeak';
 
+// ---------- the peel floor (measured 2026-08-19, TODO 1c'-d) ----------
+// Every mapped spot has ONE H0 at which the baked break line abandons the
+// oblique reef branch for a near-shore-parallel inshore one and the peel
+// collapses to a closeout. It is a genuine discontinuity, not noise in the
+// instrument: `markBreakCrossings` returns onsets, an onset dies when a
+// negative dip in the breaking excess `H0*Ks - gamma*h` crosses zero, and the
+// dips that vanish at these thresholds measure -0.002 to -0.144 m — the
+// criterion grazing zero at 0.1-0.7% of its own scale, over a bed whose own
+// elevation residual is 0.31-0.93 m. Branch identity sits below the noise
+// floor of the data underneath it. Four selection-layer fixes have been built
+// and falsified (anchor band, density composite, `#merge`, and the Viterbi /
+// extremal counterfactuals); MEASUREMENT_LESSONS 14 says why a fifth will not
+// work either — a threshold relocates a knife-edge, it never deletes one.
+//
+// So the numbers below are not a tuning knob. They are the measured boundary
+// of the regime where this model draws a peel, and a DERIVED ocean is held to
+// the healthy side of it (MODEL.md 4.6 "The peel floor"). Measured on the
+// 0.40-3.00 m ladder refined to 0.01 m with `scripts/measure_branch_flip.mjs`,
+// and hysteresis-free (up- and down-sweeps bit-identical at 211 paired steps
+// bank-wide, and at 21 more for Second Peak's refinement), which is what makes
+// a clamp stable rather than a latch.
+//
+//   flipLo / flipHi        the 1c'-d branch flip, the mechanism
+//   floorLo / floorHi      the 0.01 m step at which the PEEL returns
+//   floorH0                floorHi — the lowest H0 a derived ocean may draw at
+//   alphaBelow / Above     stage-median alpha (deg) either side of floorLo/Hi
+//   basisT, basisTideM     THE OCEAN THESE WERE MEASURED AT (see below)
+//
+// THE FLIP IS NOT ALWAYS THE FLOOR, and Second Peak is why this table carries
+// both. At five spots the branch flip IS the peel returning: cross it and
+// alpha goes 1.4-9.1 -> 12.1-35.0. At Second Peak the tabulated 1.02->1.03
+// flip moves alpha 2.6 -> 3.7 — a real branch change between two CLOSED-OUT
+// branches, against a 41 deg target. Clamping there would have cost two thirds
+// of that spot's seasonal range and bought nothing. Its peel actually returns
+// at 1.07->1.08 (9.1 -> 14.4), measured on the same ladder. A floor is defined
+// by the quantity it is a floor ON, which is the peel, not the branch id.
+//
+// THE BASIS IS PART OF THE NUMBER. These were measured at tide 0 and the site
+// card's own T, and the flip threshold is a surface in (H0, T, tide), not a
+// point on the H0 axis. Applying them off that basis is MEASUREMENT_LESSONS 13
+// — a number computed from a configuration that is not in play — and it was
+// measured to do real damage: clamping `#day=small` (T 9, tide +0.35) up to
+// the tide-0 floor took Sewers from alpha 12.8 to 3.9 and The Hook from 10.4
+// to 5.9, turning two healthy states into closeouts. So `basisT`/`basisTideM`
+// are checked before the floor is allowed to bind.
+//
+// Privates has no measured bed, so no bake, no break-line branch, no flip.
+export const PEEL_FLOOR = {
+  sewers: {
+    flipLo: 1.60, flipHi: 1.61, floorLo: 1.60, floorHi: 1.61, floorH0: 1.61,
+    alphaBelow: 9.1, alphaAbove: 35.0, alphaTarget: 38, basisT: 15, basisTideM: 0 },
+  firstpeak: {
+    flipLo: 1.25, flipHi: 1.26, floorLo: 1.25, floorHi: 1.26, floorH0: 1.26,
+    alphaBelow: 1.4, alphaAbove: 12.1, alphaTarget: 50, basisT: 14, basisTideM: 0 },
+  secondpeak: {
+    flipLo: 1.02, flipHi: 1.03, floorLo: 1.07, floorHi: 1.08, floorH0: 1.08,
+    alphaBelow: 9.1, alphaAbove: 14.4, alphaTarget: 41, basisT: 14, basisTideM: 0 },
+  jacks: {
+    flipLo: 0.84, flipHi: 0.85, floorLo: 0.84, floorHi: 0.85, floorH0: 0.85,
+    alphaBelow: 7.2, alphaAbove: 21.3, alphaTarget: 37, basisT: 13, basisTideM: 0 },
+  thehook: {
+    flipLo: 1.04, flipHi: 1.05, floorLo: 1.04, floorHi: 1.05, floorH0: 1.05,
+    alphaBelow: 6.2, alphaAbove: 17.1, alphaTarget: 41, basisT: 13, basisTideM: 0 },
+  sharks: {
+    flipLo: 0.80, flipHi: 0.81, floorLo: 0.80, floorHi: 0.81, floorH0: 0.81,
+    alphaBelow: 7.5, alphaAbove: 16.4, alphaTarget: 36, basisT: 13, basisTideM: 0 },
+  privates: null,
+};
+
+// The lowest H0 a DERIVED ocean (a month, a condition day, the live nowcast)
+// may ask this spot for — or null where there is nothing measured to hold to,
+// EITHER because the spot has no bake (Privates) OR because the ocean being
+// asked for is off the basis the floor was measured at.
+//
+// Authored card H0s are never routed through this. Every one of them already
+// sits above its own floor, and they are the calibration input for
+// model-glsl.js SHELTER_*.
+export function peelFloorH0(presetKey, { T = null, tideM = 0 } = {}) {
+  const f = PEEL_FLOOR[presetKey];
+  if (!f) return null;
+  // Off-basis: the floor was measured somewhere else and does not describe
+  // this ocean. Declining is the honest answer; guessing is lesson 13.
+  if (T !== null && T !== f.basisT) return null;
+  if (Math.abs(tideM - f.basisTideM) > 1e-6) return null;
+  return f.floorH0;
+}
+
 export function makeState() {
   const state = { speed: 1, view: 1, surfer: 0, paused: false, preset: null };
   applyPreset(state, DEFAULT_PRESET);

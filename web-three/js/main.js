@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS,
-         reefWindowKnots } from '../../shared/params.js';
+         reefWindowKnots, PEEL_FLOOR, peelFloorH0 } from '../../shared/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG, SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
@@ -97,6 +97,8 @@ const DRIFT_PERIOD_S = 300;
 let activeDayKey = null;     // conditions.js key currently applied (drift cursor)
 let activeDayLabel = null;   // HUD suffix; also set by day=live from the nowcast
 let activeMonthKey = null;   // climatological month currently applied (#month=)
+let clampEnabled = true;     // #clamp=0 A/B revert: draw the requested H0 raw
+let activeClamp = null;      // set by setDerivedH0() when the peel floor binds
 
 let lastWrittenHash = null;  // what writeHash() last put in the URL (see hashchange)
 // Boot reads the hash, then flips this. Without the gate the first
@@ -617,6 +619,8 @@ const hudAlpha = document.getElementById('hudAlpha');
 const hudXi = document.getElementById('hudXi');
 const hudLam = document.getElementById('hudLam');
 const hudSwell = document.getElementById('hudSwell');
+const hudClamp = document.getElementById('hudClamp');
+const hudClampKey = document.getElementById('hudClampKey');
 const topMenusEl = document.getElementById('topMenus');
 const topPaused = document.getElementById('topPaused');
 const siteControls = document.getElementById('siteControls');
@@ -690,9 +694,12 @@ function syncControlUI() {
     monthControl.value = activeMonthKey || 'card';
     if (monthValue) {
       const m = activeMonthKey ? getMonthlyOcean(activeMonthKey) : null;
-      monthValue.textContent = m
-        ? `p${MONTHLY_OCEAN_PCT} · ${m.H0.toFixed(2)} m`
-        : 'Preset ocean';
+      // Same honesty as the HUD row: the control must not read back a height
+      // the model is not drawing.
+      monthValue.textContent = !m ? 'Preset ocean'
+        : activeClamp?.bound
+          ? `p${MONTHLY_OCEAN_PCT} ${m.H0.toFixed(2)} m → drawn ${activeClamp.applied.toFixed(2)} m (peel floor)`
+          : `p${MONTHLY_OCEAN_PCT} · ${m.H0.toFixed(2)} m`;
     }
   }
   const dayButton = document.querySelector('[data-cycle="condition-day"]');
@@ -788,6 +795,33 @@ function refreshHUD() {
     hudSwell.textContent =
       `${state.H0.toFixed(1)} m (${ft.toFixed(1)} ft) · T ${state.T} s${clampNote}`;
   }
+  // THE CLAMP MUST NOT BE SILENT. When the peel floor binds, the height on
+  // screen is not the height the climatology asked for, and a reader who
+  // cannot see that cannot tell a season from a floor. Same discipline as
+  // Privates announcing its synthetic stage and the month row naming its
+  // percentile: name BOTH numbers, and name the flag that reverts it. The row
+  // is hidden entirely when nothing is clamped — an always-on "not clamped"
+  // would be noise on every other state.
+  if (hudClamp && hudClampKey) {
+    const c = activeClamp;
+    hudClamp.hidden = !c;
+    hudClampKey.hidden = !c;
+    if (c) {
+      const spot = PRESETS[c.spot]?.label || c.spot;
+      const measured = `measured ${c.flip.floorLo.toFixed(2)}→${c.flip.floorHi.toFixed(2)} m, `
+        + `α ${c.flip.alphaBelow.toFixed(1)}°→${c.flip.alphaAbove.toFixed(1)}° `
+        + `against a ${c.flip.alphaTarget}° target`;
+      hudClamp.textContent = c.bound
+        ? `drawing ${c.applied.toFixed(2)} m — ${c.source} asks for ${c.requested.toFixed(3)} m. `
+          + `${spot} loses its peel below ${c.applied.toFixed(2)} m (${measured}). `
+          + `Size is clamped here — this is not the season's height. #clamp=0 draws it raw.`
+        : `NOT applied. The floor at ${spot} is ${c.flip.floorH0.toFixed(2)} m and `
+          + `${c.source} asks for ${c.requested.toFixed(3)} m, but it was ${measured} `
+          + `at T ${c.flip.basisT} s and tide 0 — this state is at T ${c.T} s, tide `
+          + `${c.tideM >= 0 ? '+' : ''}${c.tideM.toFixed(2)} m, so the number does not describe it. `
+          + `Drawing the requested height unclamped; the peel here is whatever the bed gives.`;
+    }
+  }
   // M6 part 3: report the wavelength the crests are actually drawn at. Off the
   // Psi path that is the frozen 90 m and saying so is the point — the HUD is
   // where the constant stops being invisible. On it, report the compression
@@ -835,6 +869,80 @@ function clearActiveMonth() {
   activeMonthKey = null;
 }
 
+// ---------- THE PEEL FLOOR: one owner for derived ocean height ----------
+// Three things set H0 from a source that is not the site card — a #month=, a
+// named #day=, and #day=live's nowcast — and all three route through here.
+// One place, per MODEL.md 4.5: the same clamp in three call sites is three
+// authorities on one quantity, which is the defect this repo keeps re-finding.
+//
+// WHAT IT DOES. Below a spot-specific H0 the baked line abandons the oblique
+// reef branch and the peel collapses to a closeout — six of six mapped spots,
+// measured to 0.01 m and hysteresis-free (shared/params.js PEEL_FLOOR, TODO
+// 1c'-d). A derived ocean is held to the healthy side of that boundary.
+//
+// WHAT IT COSTS, said out loud because the HUD has to say it too: at Sewers
+// the floor is 1.61 m and every monthly p75 at SC116 is 0.585-1.245 m, so all
+// twelve months clamp to the same height and the seasonal signal — the entire
+// reason #month= exists — is gone at that spot. That is a real loss, quantified
+// per spot in MODEL.md "The peel floor: when the demo and the simulation
+// disagree". It is taken deliberately over the alternative, which is drawing a
+// closeout in 56% of the states a reader can reach and calling it Pleasure
+// Point.
+//
+// WHAT IT DOES NOT TOUCH. Authored card H0s (a bare URL), the #h0= override and
+// the +/- keys are the reader's or the author's own number and pass through
+// untouched — every card H0 already sits above its own floor. `#clamp=0`
+// reverts to the raw requested height for A/B.
+//
+// AND WHAT IT DECLINES TO TOUCH. The floors were measured at tide 0 and each
+// site's card period, and the flip threshold is a surface in (H0, T, tide). A
+// #month= keeps the card period and does not move the tide, so it sits on that
+// basis exactly; a #day= moves all three and does not. Applying an off-basis
+// number is MEASUREMENT_LESSONS 13, and here it does measurable harm — clamping
+// `#day=small` up to the tide-0 floor took Sewers from alpha 12.8 to 3.9 and
+// The Hook from 10.4 to 5.9, i.e. the clamp created two closeouts it was
+// written to prevent. peelFloorH0() returns null off-basis and the request
+// passes through unchanged, which leaves those states exactly as they shipped.
+//
+// `presetKey` is explicit because shared/cdip.js applyOcean() nulls
+// state.preset ("live conditions, not a named preset") before this runs.
+function setDerivedH0(requestedH0, sourceLabel, presetKey = state.preset) {
+  const req = Math.min(Math.max(Number(requestedH0) || 0, H0_DEF.min), H0_DEF.max);
+  const spec = PEEL_FLOOR[presetKey] || null;
+  const floor = clampEnabled
+    ? peelFloorH0(presetKey, { T: state.T, tideM: state.tide || 0 })
+    : null;
+  const bound = floor !== null && req < floor;
+  // The state where a floor EXISTS, the request is under it, and the floor
+  // declined on domain grounds is its own thing and gets its own disclosure.
+  // Saying nothing there would leave a reader looking at a collapsed peel with
+  // no account of it, which is the failure mode this row exists for.
+  const offBasis = !bound && clampEnabled && spec !== null && floor === null
+    && req < spec.floorH0;
+  activeClamp = (bound || offBasis)
+    ? { bound, offBasis, requested: req, applied: bound ? floor : req,
+        source: sourceLabel, spot: presetKey, flip: spec,
+        T: state.T, tideM: state.tide || 0 }
+    : null;
+  state.H0 = bound ? floor : req;
+  if (uniforms?.u_H0) uniforms.u_H0.value = state.H0;
+  return state.H0;
+}
+
+// A named condition-day, applied the one way. Same reason as setDerivedH0:
+// applyConditionDay() was called from four places (hash, D key, #drift, boot)
+// and each repeated the label bookkeeping, so the clamp would have had to be
+// repeated four times too.
+function setConditionDay(key) {
+  const d = applyConditionDay(state, uniforms, key);
+  if (!d) return null;
+  activeDayKey = d.key;
+  activeDayLabel = d.label;
+  clearActiveMonth();
+  setDerivedH0(d.H0, d.label);
+  return d;
+}
+
 // Apply a climatological month: the pMONTHLY_OCEAN_PCT swell height typical of
 // that month at SC116, already de-shoaled to the deep-water H0 the shader
 // re-shoals from (see pp_monthly_ocean.js). Size only — the month deliberately
@@ -848,9 +956,17 @@ function setMonth(key) {
     if (activeMonthKey) {
       const card = state.preset ? PRESETS[state.preset] : null;
       if (card) {
+        // The card's own authored H0, NOT routed through setDerivedH0 — this
+        // is the bare-URL state and it must stay bit-identical.
         state.H0 = card.H0;
         if (uniforms?.u_H0) uniforms.u_H0.value = card.H0;
       }
+      // Only when a month was actually on. setMonth(null) runs unconditionally
+      // at the end of applyLiveParams, so clearing outside this branch wiped
+      // the clamp record a #day= had just set two lines earlier — measured: the
+      // day states clamped correctly (H0 0.70 -> 1.61 at Sewers) while the HUD
+      // stayed silent about it, which is the exact failure this is here to stop.
+      activeClamp = null;
     }
     clearActiveMonth();
     refreshHUD();
@@ -873,12 +989,13 @@ function setMonth(key) {
     if (uniforms?.u_chop) uniforms.u_chop.value = card.chop;
     if (uniforms?.u_dF) uniforms.u_dF.value = card.dF;
   }
-  state.H0 = Math.min(Math.max(m.H0, H0_DEF.min), H0_DEF.max);
-  if (uniforms?.u_H0) uniforms.u_H0.value = state.H0;
   // A month and a named condition-day are rival descriptions of the same
   // ocean; the readout must never carry both.
   clearActiveDay();
   activeMonthKey = m.key;
+  // The month's climatological p75 is a REQUEST. setDerivedH0 decides what the
+  // model can actually draw at this spot and records the gap for the HUD.
+  setDerivedH0(m.H0, `${m.label} p${MONTHLY_OCEAN_PCT}`);
   refreshHUD();
   return m;
 }
@@ -887,7 +1004,10 @@ function setH0(value) {
   const v = Number(value);
   if (!Number.isFinite(v)) return;
   const snapped = Math.round(v / H0_DEF.step) * H0_DEF.step;
+  // NOT routed through setDerivedH0: a typed #h0= or a +/- press is the
+  // reader's own number, and the peel floor governs DERIVED oceans only.
   state.H0 = Math.min(Math.max(snapped, H0_DEF.min), H0_DEF.max);
+  activeClamp = null;
   clearActiveDay();
   clearActiveMonth();
   refreshHUD();
@@ -907,15 +1027,8 @@ function setTide(value) {
 
 function cycleConditionDay() {
   const i = CONDITION_DAYS.findIndex((day) => day.key === activeDayKey);
-  const day = applyConditionDay(state, uniforms,
-    CONDITION_DAYS[(i + 1 + CONDITION_DAYS.length) % CONDITION_DAYS.length].key);
-  if (day) {
-    activeDayKey = day.key;
-    activeDayLabel = day.label;
-    // Rival description of the same ocean — see setMonth().
-    clearActiveMonth();
-    refreshHUD();
-  }
+  const next = CONDITION_DAYS[(i + 1 + CONDITION_DAYS.length) % CONDITION_DAYS.length].key;
+  if (setConditionDay(next)) refreshHUD();
 }
 
 function cycleBedMode() {
@@ -937,6 +1050,7 @@ function selectPreset(key) {
   // cannot imply that the old ocean still describes the new selection.
   activeDayKey = null;
   activeDayLabel = null;
+  activeClamp = null;   // applyPreset restored the card ocean; nothing is clamped
   clearActiveMonth();
   refreshHUD();
 }
@@ -1275,8 +1389,7 @@ function frame(now) {
     const leg = Math.floor(Math.max(simTime, 0) / DRIFT_PERIOD_S);
     if (leg !== driftLeg) {
       driftLeg = leg;
-      const d = applyConditionDay(state, uniforms, nextGoodDay(activeDayKey));
-      if (d) { activeDayKey = d.key; activeDayLabel = d.label; clearActiveMonth(); refreshHUD(); }
+      if (setConditionDay(nextGoodDay(activeDayKey))) refreshHUD();
     }
   }
 
@@ -1522,15 +1635,20 @@ function applyLiveParams(h, { shapeChanged = false } = {}) {
     fetchTodaysOcean()
       .catch(() => cachedOcean() || Promise.reject(new Error('offline, no cache')))
       .then((o) => {
+        // applyOcean() nulls state.preset, so the spot has to be captured
+        // first or the peel floor would have nothing to look itself up by.
+        const spot = state.preset;
         applyOcean(state, o);
         activeDayLabel = `live · ${describeOcean(o)}`;
         clearActiveMonth();
+        // The nowcast is a derived ocean like any other. A 0.6 m summer
+        // morning at Sewers collapses the peel exactly the way August does.
+        setDerivedH0(o.hs, `live SC116 nowcast`, spot);
         refreshHUD();
       })
       .catch(() => { activeDayLabel = 'live unavailable'; refreshHUD(); });
   } else if (dayKey) {
-    const d = applyConditionDay(state, uniforms, dayKey);
-    if (d) { activeDayKey = d.key; activeDayLabel = d.label; clearActiveMonth(); }
+    setConditionDay(dayKey);
   } else {
     // No day in the hash means no named day on screen, or a re-apply would
     // leave a stale label naming an ocean the URL no longer asks for.
@@ -1555,8 +1673,13 @@ function applyLiveParams(h, { shapeChanged = false } = {}) {
   // H0 by the month's ratio to the annual reference, never replace them, or the
   // down-point energy decay that makes Private's mellower than Sewers goes with
   // it. See TODO "seasonal default".
-  setMonth(h.has('month') ? h.get('month') : null);
+  //
+  // #tide= is read BEFORE the month (and after the day, so an explicit tide
+  // still wins over the day's own): the peel floor is only in domain at tide 0,
+  // so setMonth has to see the tide the reader actually asked for or it would
+  // decide the clamp against a tide the state is about to leave.
   if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, TIDE_RANGE[0]), TIDE_RANGE[1]);
+  setMonth(h.has('month') ? h.get('month') : null);
   // M5 bed modes: reef (default, 0), plane (1), measured/no-reef (2)
   if (h.get('bed') === 'plane') state.bedShape = 1;
   if (h.get('bed') === 'measured') state.bedShape = 2;
@@ -1566,7 +1689,14 @@ function applyLiveParams(h, { shapeChanged = false } = {}) {
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.has('h0')) {
     const v = parseFloat(h.get('h0'));
-    if (Number.isFinite(v)) state.H0 = Math.min(Math.max(v, H0_DEF.min), H0_DEF.max);
+    // An explicit h0 is the author's own number and outranks the peel floor
+    // as it already outranks the month. Clearing activeClamp matters: a
+    // `#month=january&h0=2.0` would otherwise leave the HUD announcing a clamp
+    // that this line has just overridden.
+    if (Number.isFinite(v)) {
+      state.H0 = Math.min(Math.max(v, H0_DEF.min), H0_DEF.max);
+      activeClamp = null;
+    }
   }
   if (h.has('speed')) state.speed = parseSpeedParam(h.get('speed'), state.speed);
   const camName = (h.get('cam') || '').toLowerCase();
@@ -1611,6 +1741,10 @@ function applyHashParams() {
   // setOnsetMerge). 0 = shipped. Bake-side only, and setOnsetMerge clears the
   // bake key itself, so no cache-key member is needed.
   if (h.has('merge')) setOnsetMerge(parseFloat(h.get('merge')));
+  // `#clamp=0` A/B revert: draw a derived ocean at its raw requested H0, below
+  // the peel floor and all. Read BEFORE applyLiveParams, because that is where
+  // #month= / #day= run and the clamp decision is taken inside them.
+  if (h.has('clamp')) clampEnabled = h.get('clamp') !== '0';
   applyLiveParams(h, { shapeChanged });
   if (h.get('drift') === '1') driftEnabled = true;
   if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
@@ -1788,10 +1922,7 @@ simTime = applyHashParams();
 // not fire a burst of catch-up switches; with no static day picked, drift
 // starts inside the good rotation immediately rather than 300 s from now.
 driftLeg = Math.floor(Math.max(simTime, 0) / DRIFT_PERIOD_S);   // same floor as the loop
-if (driftEnabled && !activeDayKey) {
-  const d = applyConditionDay(state, uniforms, nextGoodDay(null));
-  if (d) { activeDayKey = d.key; activeDayLabel = d.label; }
-}
+if (driftEnabled && !activeDayKey) setConditionDay(nextGoodDay(null));
 refreshHUD();
 hashSyncReady = true;
 resize();
@@ -1805,6 +1936,10 @@ window.__pointbreak = {
   sim: () => simTime,
   setSim: (t) => { if (Number.isFinite(t)) simTime = t; },
   day: () => activeDayKey,   // conditions-bank cursor (null = preset ocean)
+  // The peel floor, read back so an audit can tell a clamped state from a
+  // healthy one without parsing the HUD. null = nothing clamped.
+  peelClamp: () => (activeClamp ? { ...activeClamp } : null),
+  clampOn: () => clampEnabled,
   setBreakerShape: (enabled) => {
     structuralBreaker = enabled ? 1 : 0;
     uniforms.u_breakShape.value = structuralBreaker;
