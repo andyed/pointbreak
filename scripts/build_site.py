@@ -81,10 +81,26 @@ QA_LINK_CLOSE = 'QA_LINK_END -->'
 
 
 def enable_qa_link(index_html: Path) -> bool:
-    """Uncomment the essay's QA link. Returns True if it was found and enabled."""
+    """Uncomment the essay's QA link. Returns True if it was found and enabled.
+
+    Injection is "delete the two markers", so EVERYTHING between them becomes
+    visible page content. That is a sharp edge: an explanatory comment written
+    between the markers renders as an essay paragraph, which is exactly what
+    happened the first time this was built. So the payload is required to be
+    markup — it must start with '<' — and prose between the markers is a build
+    failure rather than a surprise on the published page.
+    """
     text = index_html.read_text(encoding='utf-8')
     if QA_LINK_OPEN not in text or QA_LINK_CLOSE not in text:
         return False
+    start = text.index(QA_LINK_OPEN) + len(QA_LINK_OPEN)
+    payload = text[start:text.index(QA_LINK_CLOSE, start)].strip()
+    if not payload.startswith('<'):
+        raise SystemExit(
+            'QA link block does not start with markup. Everything between\n'
+            f'{QA_LINK_OPEN} and {QA_LINK_CLOSE} becomes visible page text, so\n'
+            'commentary belongs in its own comment above the markers. Found:\n'
+            f'  {payload.splitlines()[0][:100]!r}')
     text = text.replace(QA_LINK_OPEN, '').replace(QA_LINK_CLOSE, '')
     index_html.write_text(text, encoding='utf-8')
     return True

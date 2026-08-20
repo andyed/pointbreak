@@ -1320,18 +1320,26 @@ depth and exposure.</desc>
       <span class="mono">pointbreak</span> repository. The figures above are
       generated from the same committed data files the simulation reads.
     </p>
-<!-- QA_LINK_BEGIN
-     Outbound link to the published QA contact sheets. It is COMMENTED OUT in
-     this source file on purpose: the sheets live in git ignored qa/, and
-     scripts/build_site.py copies them only under its `with-qa` flag. That
-     script uncomments this block when it does, so a bundle built without the
-     flag carries no link rather than a link to a directory that is not there.
-     Do not "fix" this by uncommenting it here.
+<!--
+     Outbound link to the published QA contact sheets. The block below is
+     COMMENTED OUT in this source file on purpose: the sheets live in git
+     ignored qa/, and scripts/build_site.py copies them only under its
+     `with-qa` flag. That script uncomments the block when it does, so a bundle
+     built without the flag carries no link rather than a link to a directory
+     that is not there. Do not "fix" this by uncommenting it here.
+
+     THE MARKERS WRAP THE MARKUP AND NOTHING ELSE. This explanatory note is
+     deliberately in its own comment above them: build_site.py injects by
+     deleting the two marker strings, so anything sitting between them becomes
+     visible page content. Prose there renders as an essay paragraph.
+
      Contrast: .qa-note sits on the page background (#0f1216), not on kelp, so
      its sand links keep the 8.31:1 they have everywhere else on the page; sand
      on kelp is 6.51:1 and fails the floor. Body text is dim #cccbbb at 11.47:1,
-     the label foam #eef2f3 at 16.66:1. Keep this block free of double hyphens:
+     the label foam #eef2f3 at 16.66:1. Keep the block free of double hyphens:
      they close an HTML comment early, which would leak it onto the page.
+-->
+<!-- QA_LINK_BEGIN
     <aside class="qa-note">
       <span class="label">Current QA contact sheets</span>
       <p>

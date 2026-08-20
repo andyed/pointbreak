@@ -79,9 +79,25 @@ test('the essay links to the QA set only in bundles that carry it', () => {
   assert.ok(!block.replace('<!-- QA_LINK_BEGIN', '').includes('--'),
     'the QA link block contains "--", which terminates the HTML comment early');
 
-  // build_site.py must actually enable it, and only under the flag.
+  // The markers wrap MARKUP AND NOTHING ELSE. Injection deletes the two marker
+  // strings, so any prose between them renders as an essay paragraph — which is
+  // exactly what shipped the first time this was built, and what a reader would
+  // have seen: a note about build_site.py sitting in the middle of section 05.
+  const payload = essay.slice(open + '<!-- QA_LINK_BEGIN'.length, close).trim();
+  assert.ok(payload.startsWith('<'),
+    'the QA link block does not start with markup; everything between the '
+    + `markers becomes visible page text. Found: ${payload.slice(0, 80)}`);
+  assert.ok(!/^\s*[A-Za-z]/m.test(payload.replace(/<[^>]*>/g, '').replace(/&\w+;/g, '')
+    .split('\n').filter((l) => /^[A-Z][a-z]+ [a-z]/.test(l.trim())
+      && !/^(Every|Those|They)/.test(l.trim())).join('\n')),
+  'the QA link block appears to contain commentary outside its markup');
+
+  // build_site.py must actually enable it, only under the flag, and must refuse
+  // a non-markup payload rather than publish it.
   assert.match(site, /def enable_qa_link\(/);
   assert.match(site, /if args\.with_qa:\n\s+if not enable_qa_link\(out \/ 'index\.html'\)/);
+  assert.match(site, /if not payload\.startswith\('<'\)/,
+    'build_site.py does not guard against injecting prose as page content');
 });
 
 test('the essay QA link says what the sheets are and are not', () => {
