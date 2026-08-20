@@ -245,6 +245,22 @@ test('the published set is a stated subset, cut on rows and never on columns', (
     assert.ok(literal || templated, `PUB_ROWS names ${id}, which no sheet row produces`);
   }
 
+  // The page's own description of itself must match the page. A lede promising
+  // "six wave sizes" over a two-row grid, or a group header reading "all seven
+  // presets" over three, is a small dishonesty on a sheet whose whole claim is
+  // that it does not truncate silently.
+  assert.match(rig, /pubBlurb:/, 'no published blurb override');
+  assert.match(rig, /\(prov\.mode === 'published' && sheet\.pubBlurb\) \|\| sheet\.blurb/);
+  assert.match(rig, /\(MODE === 'published' && group\.pubLabel\) \|\| group\.label/);
+  assert.match(rig, /\(MODE === 'published' && group\.pubNote\) \|\| group\.note/);
+  // Any group whose default label counts rows ("all seven", "three months")
+  // needs an override, or it will describe the local matrix on a published page.
+  for (const m of rig.matchAll(/label: '([^']*(?:seven|three months)[^']*)'/g)) {
+    const after = rig.slice(rig.indexOf(m[0]), rig.indexOf(m[0]) + 400);
+    assert.match(after, /pubLabel:/,
+      `group label "${m[1]}" counts rows but has no pubLabel override`);
+  }
+
   // And the cut has to be visible to a reader on the page, per sheet.
   assert.match(rig, /const PUB_NOTES = \{/);
   for (const id of ['break-progression', 'sets-locations-seasons'])

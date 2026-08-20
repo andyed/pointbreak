@@ -324,6 +324,11 @@ const SHEETS = [
     file: 'break-progression.html',
     title: 'Break progression',
     blurb: 'One wave through its break, five clocks across one wave period T, at six wave sizes.',
+    // Published mode ships a row subset, so the standing description of the
+    // sheet has to match the page a reader is actually looking at. A lede that
+    // promises six rows over a two-row grid is its own small dishonesty.
+    pubBlurb: 'One wave through its break, five clocks across one wave period T, '
+      + 'at the two ends of the size range.',
     clock: { kind: 'wave', n: 5 },
     groups: [
       {
@@ -349,7 +354,11 @@ const SHEETS = [
     groups: [
       {
         id: 'locations', label: 'Locations — all seven presets, month=january',
+        pubLabel: 'Locations — three presets, month=january',
         note: 'The location axis: every shipped site preset at the same climatological month, so what differs between rows is the reef.',
+        pubNote: 'The location axis: three shipped site presets at the same climatological month, so what differs '
+            + 'between rows is the reef. Sewers and Second Peak are the ends of the breaker-character range '
+            + '(ξ 1.15 against 0.65); Privates is the synthetic-stage site.',
         base: 'cam=drone',
         rows: LOCATION_KEYS.map((k) => ({
           id: `loc-${k}`, label: PRESET_LABELS[k],
@@ -359,7 +368,10 @@ const SHEETS = [
       },
       {
         id: 'seasons', label: 'Seasons — two presets × three months',
+        pubLabel: 'Seasons — two presets × two months',
         note: 'The season axis: January (peak), October (shoulder), August (flat). Sewers and Second Peak only — see "What was left out".',
+        pubNote: 'The season axis at its two extremes: January (the peak month, H₀ p75 1.245 m) against August '
+            + '(the flat one, 0.585 m). Sewers and Second Peak only — see "What was left out".',
         base: 'cam=drone',
         rows: SEASON_PRESETS.flatMap((p) => SEASON_MONTHS.map((m) => ({
           id: `sea-${p}-${m.key}`, label: `${PRESET_LABELS[p]} · ${m.label}`,
@@ -749,7 +761,12 @@ async function encodeFrame(encoder, pngBuf, w, h, quality) {
 async function captureSheet(page, base, sheet, encoder) {
   const out = { id: sheet.id, groups: [] };
   for (const group of sheet.groups) {
-    const g = { id: group.id, label: group.label, note: group.note, base: group.base, rows: [] };
+    // In published mode a group describes the subset it actually shows.
+    const g = {
+      id: group.id, base: group.base, rows: [],
+      label: (MODE === 'published' && group.pubLabel) || group.label,
+      note: (MODE === 'published' && group.pubNote) || group.note,
+    };
     // Published mode captures only the kept rows — the cut is at CAPTURE time,
     // not at render time, so a published run is also a faster run.
     const keep = MODE === 'published' ? PUB_ROWS[sheet.id] : null;
@@ -1175,7 +1192,7 @@ function sheetHTML(sheet, data, base, extras) {
 <style>${CSS}</style>
 <div class="wrap">
 <h1>${esc(sheet.title)}</h1>
-<p class="lede">${esc(sheet.blurb)}</p>
+<p class="lede">${esc((prov.mode === 'published' && sheet.pubBlurb) || sheet.blurb)}</p>
 ${dirtyBannerHTML(prov)}
 ${provenanceHTML(prov, GENERATED.toISOString())}
 ${STANDING}
@@ -1339,7 +1356,7 @@ function indexHTML(built) {
     }
     return `<li style="margin:14px 0">
   <a href="${esc(sheet.file)}" style="font-size:16px;font-weight:600">${esc(sheet.title)}</a>
-  <div class="lede" style="margin:2px 0 0">${esc(sheet.blurb)}</div>
+  <div class="lede" style="margin:2px 0 0">${esc((MODE === 'published' && sheet.pubBlurb) || sheet.blurb)}</div>
   <div class="nums" style="margin-top:4px"><span>${rows} rows</span><span>${cells} frames</span>
   <span>${flats ? `<span class="badge flat">${flats} flat</span>` : '<span class="badge">no flat cells</span>'}</span></div>
 </li>`;
