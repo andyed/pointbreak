@@ -151,3 +151,37 @@ test('the aeration curtain keys off the mechanism that is actually drawing the l
   assert.ok(shaders.indexOf('curl   = th/PI;') < shaders.indexOf('float lipKey'),
             'curl must be written before the aeration key reads it');
 });
+
+// ---------------------------------------------------------------------------
+// The foam field's size contract, 2026-08-19 (#lipn=0 reverts)
+// ---------------------------------------------------------------------------
+// Every foam term is normalized by ONE size factor — exactly 1.0 at the
+// H0 = 1.5 m model-card day at the reef anchor — reaching each term either as
+// sizeFoam/sizeAmp or, for the pocket->whitewater path, through u_lipSize.
+// Two terms used to sit outside it: model lipFoam (documented "xi-owned",
+// which is a claim about xi and not a substitute for size) and GRID_FRAG's
+// pocket foam floor (a RELATIVE claim — "never dimmer than its own trailing
+// bore" — written as the ABSOLUTE constant 0.72). Measured at Sewers, that
+// made stage-max foam read 0.929 at H0 = 0.585 m against 0.385 at H0 = 0.801 m.
+//
+// Structural pins only: the clamp bounds and the 0.72 floor are tuning and may
+// move. What may not move is WHICH TERMS ARE INSIDE THE CONTRACT.
+test('every foam term carries the one size factor, pocket path included', () => {
+  // One named definition, not three copies — a factor you cannot point at is a
+  // factor the next term forgets.
+  assert.match(model, /float foamSizeAt\(float x\)\{[\s\S]{0,200}?clamp\(u_H0\*shelterAt\(x\)\/[\d.]+, [\d.]+, [\d.]+\), u_depthMix\)/);
+  assert.match(model, /float sizeFoam = foamSizeAt\(x\);/);
+  assert.match(model, /float sizeAmp = foamSizeAt\(x\);/);
+  // The model's lip term is size-normalized, reversibly.
+  assert.match(model, /uniform float u_lipSize;/);
+  assert.match(model, /foam \+= lipFoam\*mix\([\d.]+, [\d.]+, shape\)\*mix\(1\.0, sizeFoam, u_lipSize\);/);
+  // The fragment's pocket foam floor carries the same factor through the same
+  // flag, or the two limbs of one defect can drift apart.
+  assert.match(shaders, /foamM = max\(foamM, u_crestRead \* [\d.]+ \* mix\(1\.0, foamSizeAt\(xz\.x\), u_lipSize\)/);
+  // Wired ON by default with the A/B revert reachable from the hash.
+  assert.match(main, /u_lipSize:\s+\{ value: 1 \}/);
+  assert.match(main, /h\.get\('lipn'\) === '0'/);
+  // The clamp bound is a real calibration limit, so the HUD says when it binds
+  // instead of rendering a size-blind field silently.
+  assert.match(main, /foam size ×[\d.]+ floor/);
+});

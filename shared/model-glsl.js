@@ -59,6 +59,8 @@ uniform float u_breakMix;   // 1 = emergent line, 0 = authored tan(alpha) line
 uniform float u_gapMask;    // 1 = honor baked section gaps, 0 = #gap=0 A/B revert
 uniform float u_headRead;   // 1 = comet-head whitewater aging, 0 = #head=0 A/B revert
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
+uniform float u_lipSize;    // 1 = the pocket->whitewater path carries foamSizeAt() like the
+                            // rest of the foam field, 0 = #lipn=0 A/B revert (size-free lip)
 uniform float u_stripeLife; // 1 = per-stripe along-crest lifecycle clock (#slife=1), default 0
 uniform float u_pitchOdd;   // 1 = #pitch=0 A/B revert: the pre-2026-08-18 ODD skew map
                             // (and its q schedule), which cannot pitch at all. 0 = shipped.
@@ -306,6 +308,22 @@ float contourZ(vec2 xz){ return xz.y + coastCurve(xz.x); }
 float shelterAt(float x){
   float s = clamp(exp(-(x - SHELTER_X0)/SHELTER_L), 0.6, 1.25);
   return mix(1.0, s, u_depthMix*u_shelterMix);
+}
+
+// THE foam-field size factor (SIZE_AUDIT calibration contract, one definition).
+// Exactly 1.0 at the H0 = 1.5 m model-card day AT THE REEF ANCHOR
+// (shelterAt(SHELTER_X0) == 1); away from the anchor it carries the same
+// sheltering gradient as the wave it foams on. Clamped [0.55, 1.6] so a tiny
+// day still shows whitewater and a huge one does not blow out, and gated by
+// u_depthMix so the synthetic stage is untouched.
+//
+// This was three copies of one expression: ocean()'s sizeFoam, the lifecycle's
+// sizeAmp, and — by omission — the two pocket->whitewater terms that had no
+// copy at all (see the lipFoam block and GRID_FRAG's pocket foam floor). It is
+// named here because "which terms are inside the contract" is the invariant
+// that broke; a factor you cannot point at is a factor a new term forgets.
+float foamSizeAt(float x){
+  return mix(1.0, clamp(u_H0*shelterAt(x)/1.5, 0.55, 1.6), u_depthMix);
 }
 
 // Realized peel angle at station x -- what a surfer would measure, in radians.
@@ -734,7 +752,7 @@ vec4 breakerLifecycleAtX(float x, float t){
   // exactly 1.0 at the 1.5 m model-card day, so 1.5 m presets are unchanged.
   // Sheltered height here too: a down-point crash on a sheltered wave is a
   // smaller crash. shelterAt already carries the depthMix/shelterMix gates.
-  float sizeAmp = mix(1.0, clamp(u_H0*shelterAt(x)/1.5, 0.55, 1.6), u_depthMix);
+  float sizeAmp = foamSizeAt(x);
   float impact = activity*impactAge*(0.18 + 0.82*plunge)*sizeAmp;
   float bore = activity*boreAge*(0.72 + 0.28*(1.0 - plunge))*sizeAmp;
   return vec4(age, frontZ, impact, bore);
@@ -1057,7 +1075,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // (shelterAt(SHELTER_X0) == 1); away from the anchor it carries the same
   // sheltering gradient as the wave it foams on. Gated by u_depthMix like the
   // other size routes (synthetic presets untouched).
-  float sizeFoam = mix(1.0, clamp(u_H0*shelterAt(x)/1.5, 0.55, 1.6), u_depthMix);
+  float sizeFoam = foamSizeAt(x);
 
   // Legacy whitewater: broken into shore-normal streaks (never a solid sheet).
   // 6c CHURN FIX (2026-08-13): tSince resets every period, so no decay clock
@@ -1211,15 +1229,32 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // at the 0.55 clamp on sub-1.5 m presets. sizeFoam now multiplies only the
   // H0-free terms: the whole legacy path and the residue floor. CALIBRATION
   // CONTRACT: both factors are exactly 1.0 at the H0 = 1.5 m model-card day,
-  // so the size-invariance calibration is preserved either way. Lip and crumb
-  // stay xi-owned below.
+  // so the size-invariance calibration is preserved either way.
   foam = mix(legacyFoam*sizeFoam, structuralFoam + residue*sizeFoam, shape);
 
   // pocket spray: whitewater thrown at the zipper itself, heavier when plunging
   // Structural mode keeps this as a thin lip edge; the separate spray pass owns
   // the airy volume, so the surface itself does not turn into a white wall.
+  //
+  // SIZE-NORMALIZED 2026-08-19 (#lipn=0 reverts). This term used to read
+  // "lip and crumb stay xi-owned", and xi ownership is right — a plunging lip
+  // throws more foam than a spilling one. But xi-owned and size-normalized are
+  // ORTHOGONAL claims, and the term carried neither sizeFoam nor sizeAmp, so at
+  // the break line (where the pocket Gaussian is 1 and pockS therefore drops
+  // out) lipFoam was the one foam term in the model that did not know how big
+  // the wave was. Consequence: as H0 falls every OTHER term is attenuated
+  // toward the 0.55 clamp floor while this one holds full strength, so foam's
+  // COMPOSITION shifts onto a size-blind term and, on a plunging preset, that
+  // term alone saturates. Measured at Sewers (xi 1.15, coefficient 1.101) on
+  // one set beat, month=october vs month=august: sizeFoam 0.550-0.606 vs 0.550
+  // — a 2% difference — while stage-max foam went 0.385 -> 0.929, because
+  // crestNear > 0.5 went from 3/64 stations to 43/64 and mean lipFoam 0.039 ->
+  // 0.519 (13x) at an unchanged coefficient. The August wave was correctly
+  // small (crest 3.34 m vs January's 5.17) and correctly whiter than January.
+  // foamSizeAt is exactly 1.0 at the 1.5 m card day, so the shipped card look
+  // is unchanged by construction; only sub- and super-card days move.
   float lipFoam = pocket * (0.45 + 0.75*smoothstep(0.3, 1.4, u_xi));
-  foam += lipFoam*mix(1.0, 0.52, shape);
+  foam += lipFoam*mix(1.0, 0.52, shape)*mix(1.0, sizeFoam, u_lipSize);
 
   // spilling crumb: low-xi waves dribble foam down the face before fully breaking
   float crumb = crestNear * (1.0 - brk) * env2

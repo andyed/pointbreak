@@ -177,6 +177,10 @@ const uniforms = {
                                 // judged on a drifted OrbitControls camera; the clean-load rematch
                                 // (2026-08-14 night) went to #head=1. #head=0 stays the A/B revert.
   u_pockSize:   { value: 1 },   // pocket footprint ~ H_eff ON; #pock=0 is the A/B revert
+  u_lipSize:    { value: 1 },   // pocket->whitewater path carries the foam field's own size
+                                // factor (model-glsl foamSizeAt): lipFoam and GRID_FRAG's
+                                // pocket foam floor were the only two foam terms outside the
+                                // SIZE_AUDIT contract. #lipn=0 is the A/B revert
   u_stripeLife: { value: 0 },   // per-stripe along-crest lifecycle clock; #slife=1 arms it
                                 // (feature flag, OFF pending a live verdict — repo convention
                                 // for unverified visual mechanisms)
@@ -767,7 +771,21 @@ function refreshHUD() {
   // "5 ft" is the unit anyone judging this as a screensaver actually thinks in.
   if (hudSwell) {
     const ft = state.H0 * 3.28084;
-    hudSwell.textContent = `${state.H0.toFixed(1)} m (${ft.toFixed(1)} ft) · T ${state.T} s`;
+    // SIZE-CALIBRATION BOUND, said out loud (2026-08-19). The whole foam field
+    // is normalized by model-glsl foamSizeAt() = clamp(H0*shelter/1.5, 0.55,
+    // 1.6), so OUTSIDE that band whitewater stops responding to swell height:
+    // at the reef anchor (shelter = 1) the floor binds below H0 = 0.825 m and
+    // the ceiling above 2.4 m. The shipped `h0` control spans 0.4-3.0 m and the
+    // SC116 climatology's summer months sit at 0.585-0.80 m, so a third of the
+    // reachable low end renders size-blind foam — which is exactly the regime
+    // where a QA sheet read "more whitewater at half the swell" and the model
+    // could not answer for itself. The clamp stays (a tiny day must still show
+    // whitewater); what changes is that it is no longer silent.
+    const sizeK = state.H0 / 1.5;
+    const clampNote = sizeK < 0.55 ? ' · foam size ×0.55 floor'
+      : sizeK > 1.6 ? ' · foam size ×1.6 ceiling' : '';
+    hudSwell.textContent =
+      `${state.H0.toFixed(1)} m (${ft.toFixed(1)} ft) · T ${state.T} s${clampNote}`;
   }
   // M6 part 3: report the wavelength the crests are actually drawn at. Off the
   // Psi path that is the frozen 90 m and saying so is the point — the HUD is
@@ -1647,6 +1665,9 @@ function applyHashParams() {
   if (h.get('head') === '0') uniforms.u_headRead.value = 0;
   // pocket-footprint size coupling defaults ON; #pock=0 is the pre-fix A/B
   if (h.get('pock') === '0') uniforms.u_pockSize.value = 0;
+  // pocket->whitewater size normalization defaults ON (2026-08-19 defect fix);
+  // #lipn=0 restores the size-blind lipFoam and the absolute 0.72 pocket floor
+  if (h.get('lipn') === '0') uniforms.u_lipSize.value = 0;
   // per-stripe along-crest lifecycle clock (feature flag, default OFF pending
   // live verdict); #slife=1 arms it — inner re-breaking stripes gain the
   // phase-lagged copy of the zipper's along-crest age (model-glsl stripeMod)

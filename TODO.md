@@ -1,5 +1,65 @@
 # TODO
 
+## 2026-08-19 — the foam field's size contract, and two things it did NOT fix
+
+**Shipped (`#lipn=0` reverts).** The QA contact sheet's seasons rows caught
+Sewers `month=august` (H₀ 0.585 m) rendering MORE whitewater than
+`month=october` (H₀ 0.801 m) — foam 0.929 vs 0.385, pix 11.8% vs 4.1% — while
+the wave itself was correctly small (aim-station crest 1.3 m vs January's
+5.0 m). Convicted: **two foam terms sat outside the SIZE_AUDIT calibration
+contract**, the model's `lipFoam` (documented "xi-owned", which is a claim
+about ξ and not a substitute for size) and GRID_FRAG's pocket foam floor (a
+RELATIVE claim — "never dimmer than its own trailing bore" — written as the
+ABSOLUTE constant `0.72`). Both convert `pocket` straight to white, and at the
+break line the pocket Gaussian is 1 so even `pockS` drops out. As H₀ falls,
+every other term is attenuated toward the 0.55 clamp and foam's COMPOSITION
+shifts onto terms that do not know how big the wave is. The factor is now
+named once as `foamSizeAt()` in `shared/model-glsl.js` and reaches all three
+routes. It is exactly 1.0 at the 1.5 m card day, so the card look is unchanged
+by construction; January measured **identical to 3 dp** at all seven sites
+(`foamMax`, crest, α, ceil), with only stage-mean foam moving ≤ 0.007.
+
+**The lead was refuted, and the check is worth keeping.** This is NOT the
+documented 2026-08-16 `month`/peel-collapse class. Stage α at Sewers is
+6.2°/3.3°/3.5° for jan/oct/aug — flat, not collapsing — and an H₀ sweep
+0.40→1.60 m in 0.05 steps found **no threshold at Sewers at all**: α moves
+smoothly 12.3° → 2.9° → 9.1° and the whole-stage-in-phase state recurs at
+H₀ 0.50–0.60, 0.90–1.10 and 1.55–1.60 as well.
+
+### ▶ NOT FIXED 1 — Sewers is closed out at EVERY H₀ (blocks the sheet row)
+Sewers' stage-median α sits at **3–9° against a 38° target** across the whole
+sweep, so its break line is very nearly a crest line and the entire ~280 m
+stage can go in phase at once: `crestNear > 0.5` at **43 of 64** stations at
+the August peak clock against **3 of 64** at October. Sampled over 16 clocks
+spanning one set beat, all three months saturate to foam ≈ 0.90–0.93 on their
+closeout clocks — **including January** — and differ only in WHERE those
+clocks fall. So the sheet's single pinned column is aliasing (MEASUREMENT
+LESSONS 1: a still cannot support a claim about motion), and the beat-averaged
+read is monotone after the fix (foamMax 0.444/0.335/0.330 for jan/oct/aug,
+stage-mean 0.223/0.162/0.161) where before it was not (0.447/0.355/**0.346**,
+stage-mean 0.228/0.180/**0.182** — inverted). **The pinned-clock inversion in
+the sheet is therefore still there**, and it will stay until α at Sewers is
+fixed. Tuning foam to hide it would be repair-the-output (LESSON 8).
+
+### ▶ NOT FIXED 2 — First Peak flips branch between H₀ 1.25 and 1.26 m
+Found while running the requested control sweep, and it is worse than the
+Sewers case because it is a knife edge: α **1.4° → 12.1° → 30.1° → 43.7°** and
+stage-max crest **2.93 → 5.13 m** across a **0.01 m** change in swell height.
+`month=january` sets H₀ = 1.245 m, which lands **0.015 m on the collapsed
+side** — which is why the QA sheet's First Peak row reads "α 50° target · 0° at
+x0 · 1° stage". Second Peak has the same flip between 1.00 and 1.10 m (α 3.3°
+→ 21.6°, target reached only above ~1.4), so `month=october`/`august` render it
+collapsed too. With the TODO's existing Sharks ≈ 0.85 m and Jack's ≈ 0.90 m
+notes, that is **five of six mapped spots with a spot-specific low-H₀ branch
+flip** — one family, not four incidents. Worth one investigation, not four.
+
+### Also made explicit, not fixed
+`foamSizeAt`'s clamp means whitewater stops responding to swell height below
+H₀·shelter = 0.825 m and above 2.4 m, while the `h0` control spans 0.4–3.0 m
+and the SC116 summer months sit at 0.585–0.80 m. The clamp stays (a tiny day
+must still show whitewater); the HUD swell row now says `foam size ×0.55 floor`
+/ `×1.6 ceiling` when it binds, so the size-blind regime is no longer silent.
+
 ## Now / Next (2026-08-16)
 
 The distilled open state. Everything below this section is the lab notebook,

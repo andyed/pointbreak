@@ -1044,7 +1044,19 @@ void main() {
   // the line never renders dimmer than its own trailing bore. vPocket is
   // env^2-gated in the model, so lulls stay dark and this cannot paint a
   // standing white stripe on the line.
-  foamM = max(foamM, u_crestRead * 0.72 * clamp(vPocket*1.5, 0.0, 1.0));
+  //
+  // SIZE-NORMALIZED 2026-08-19 (#lipn=0 reverts, same flag as the model's
+  // lipFoam — one defect, two limbs). The claim this floor encodes is RELATIVE
+  // ("never dimmer than its own trailing bore") but it was written as the
+  // ABSOLUTE constant 0.72, and the bore it is floored against is size-scaled
+  // (foamSizeAt, down to the 0.55 clamp). So on a small day the "floor" sat far
+  // ABOVE the field it was meant to hold up: at Sewers month=august the model
+  // foam field was scaled x0.55 while this term still forced 0.72 wherever
+  // vPocket >= 0.667 — which, on a closed-out line, is most of the stage.
+  // foamSizeAt is exactly 1.0 at the 1.5 m card day, so the floor is unchanged
+  // there and the relative claim is now true at every size instead of one.
+  foamM = max(foamM, u_crestRead * 0.72 * mix(1.0, foamSizeAt(xz.x), u_lipSize)
+                     * clamp(vPocket*1.5, 0.0, 1.0));
   // COMET CARVE (2026-08-14, #head=0 A/B): direction from altitude. The
   // line-attached stripe's whitewater encodes when the zipper passed each
   // station (age since this column's crest crossed the line), but the foam
