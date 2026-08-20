@@ -286,7 +286,7 @@ measurement. And it arrives wearing the same units, the same field name and the
 same three decimal places as the real thing, so nothing about its *presentation*
 will ever flag it. Only tracing the inputs will.
 
-Fix, 2026-08-19: the validity test lives in the probe, not in the reader.
+Fix, 2026-08-19 (a): the validity test lives in the probe, not in the reader.
 `curlProbe` emits the ceiling only when `u_depthMix > 0.5` and otherwise
 returns `ceil: null` with `bedBacked: false`; `measure_pocket_crest.mjs`,
 `build_qa_sheets.mjs` and `capture_drop_ab.mjs` carry the null through as
@@ -307,3 +307,74 @@ Privates, so any replacement reference would be unvalidatable taste, and
 repairing an output nobody can check is lesson 8's mistake with the sign
 flipped. `tests/depth-model.test.js` pins the hazard where it can actually be
 caught — no shipped preset may combine `geoSpot: null` with ξ ≥ 0.45.
+
+## 14. A threshold cannot remove a knife-edge — it chooses which quantity carries one
+
+Four interventions have now been built against the low-H₀ break-line branch
+flips, and the fourth is the one that explains the other three.
+
+The flips are real and they are everywhere: **all six mapped spots** jump
+discontinuously at a spot-specific H₀ — 35–172 m of line, 19–78% of stage
+stations, for a 0.01 m step (`scripts/measure_branch_flip.mjs`, threshold table
+in TODO 1c'-d). No hysteresis: up-sweep and down-sweep are **bit-identical at
+211 paired steps**, because the bake's cache key carries H₀ and nothing in the
+selection remembers the previous bake.
+
+Tracing it down, each layer relocated the defect rather than containing it
+(lesson 7 again, three times in one night):
+
+* **Not the anchor.** At five of six spots the seed station has ONE crossing on
+  both sides of the threshold and it moves smoothly; at the sixth the anchor is
+  simply one of the stations that loses a crossing. In no case does the anchor
+  re-rank a set that persisted. (The anchor *band* was already falsified in
+  1c'-c.2 for a different reason.)
+* **Not the greedy propagation, and this is the surprise.** Over the identical
+  candidate lattice, a **Viterbi global minimum-total-|Δz| path** — the exact
+  non-greedy version of the same continuity claim — has *more* flip steps than
+  the shipped greedy rule at five of six spots (Sewers 13 vs 1, The Hook 11 vs
+  4, Jack's 10 vs 3), as do seaward-most and shoreward-most. Greedy-from-anchor
+  is **already the best of the four**. A global optimum is not a stable one: it
+  is free to re-route the whole line when the lattice twitches, whereas an
+  anchored greedy walk is pinned at one end. (The replica used for this was
+  validated against the real bake first — max 1.5 m over 318 bakes, all of it
+  the 1 m readback grid against a 4.72 m texel — because a selection replica
+  that does not reproduce the shipped line certifies itself, lesson 4.)
+* **It is the candidate set.** `markBreakCrossings` returns **onsets**, and an
+  onset is born or dies when a negative dip in `H₀Kₛ − γh` crosses zero. The
+  dips that vanish at the six thresholds measure **−0.002 to −0.144 m** — the
+  criterion grazing zero at **0.1–0.7% of its own scale**, on a bed whose
+  elevation residual is 0.31–0.93 m and which the same file already notes
+  displaces the crossing 22–70 m. One break was being split into two branches
+  over three millimetres of wave height.
+
+So the obvious repair: require a dip to be a *real* un-breaking before it starts
+a new branch (`#merge=`, threshold derived as γ × the bed's own residual). It
+was built, proven live, and **falsified**. Raising the threshold does not remove
+a single flip — it slides the threshold H₀ down (Sewers 1.65→1.55, First Peak
+1.30→1.20) and **raises the flip count** (Sewers 1→4, The Hook 4→6), while the
+largest jump stays put (172→166 m) and every card α is unchanged to 0.1°.
+
+**Why, and this is the transferable part.** The onset count flips when the dip
+crosses 0. Put a threshold *m* on it and the count flips when the dip crosses
+−*m*. The knife-edge did not go away; it moved onto a different level set of the
+same continuous field — and *m* introduced a second discontinuity, the merge
+decision itself, which is why the count went up rather than sideways.
+
+Lesson 8 says: when repairing the output keeps failing, change which physics
+gets selected. Its corollary says the declaration has to be in the same
+neighbourhood as the candidates. This is the next constraint down: **any rule
+that reduces a continuous field to a discrete choice has a knife-edge
+somewhere, and no amount of threshold tuning deletes it.** Selection-layer work
+on this line is now exhausted for a fourth time and for the first time with a
+reason that predicts the failure instead of describing it. Removing the
+discontinuity requires not selecting discretely at all — or accepting it and
+declaring what the model does on each side.
+
+Corollary worth its own line: **a negative result has a range, and the range is
+part of the result.** The 2026-08-19 `#lipn` note recorded "an H₀ sweep
+0.40→1.60 m in 0.05 steps found **no threshold**" at Sewers, and concluded its
+closeout was a separate, thresholdless defect. Sewers' threshold is at **1.605**
+— that sweep stopped one step short of it. The sweep was correct, the arithmetic
+was correct, and the conclusion drawn from it was wrong, because a bounded
+search that finds nothing establishes nothing outside its bounds. State the
+bound with the null.

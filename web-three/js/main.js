@@ -25,7 +25,8 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
          setReefNose, REEF_NOSE_FRAC_TUNED, bedElevBlended,
          setReefAmp, setReefFlank, getReefShape, reefAudit,
-         setShelter, getShelter, setDensityLine } from './bed.js';
+         setShelter, getShelter, setDensityLine, breakCandidates,
+         breakExcessProfile, setOnsetMerge, getOnsetMerge } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { MONTHLY_OCEAN, MONTHLY_OCEAN_PCT, getMonthlyOcean } from '../../data/climatology/pp_monthly_ocean.js';
@@ -1605,6 +1606,11 @@ function applyHashParams() {
   // selection; 2 = the per-station density mode IS the line. Bake-side only;
   // the bake cache key carries it, so no explicit invalidation is needed.
   if (h.has('dline')) setDensityLine(parseInt(h.get('dline'), 10) || 0);
+  // `#merge=` sweep knob: how far below zero the break criterion's excess must
+  // dip before a later positive run counts as a SECOND onset (bed.js
+  // setOnsetMerge). 0 = shipped. Bake-side only, and setOnsetMerge clears the
+  // bake key itself, so no cache-key member is needed.
+  if (h.has('merge')) setOnsetMerge(parseFloat(h.get('merge')));
   applyLiveParams(h, { shapeChanged });
   if (h.get('drift') === '1') driftEnabled = true;
   if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
@@ -1961,6 +1967,24 @@ window.__pointbreak = {
   // The reef shape the bake ACTUALLY used — so a sweep can prove the knob is
   // live rather than inferring it from a number that did not move.
   reefShape: () => getReefShape(),
+  // the onset-merge threshold the bake ACTUALLY used, so a sweep can prove the
+  // knob is live rather than inferring it from a number that did not move
+  // (the `#nose=1` unwired trap, WEB_THREE_SPEC "The anchor band, falsified")
+  onsetMerge: () => getOnsetMerge(),
+  // The break criterion's CANDIDATE SET, before branch-following picks among
+  // it (bed.js breakCandidates). Read-only diagnostic for the low-H0 branch
+  // flips: the baked line shows THAT the line jumped, this shows whether the
+  // crossings themselves changed (physics) or only which one was taken
+  // (selection / anchor). Same opts the frame loop bakes with, so the two
+  // always describe the same line.
+  crossProbe: (stride = 4) => breakCandidates(state.geoSpot, [-STAGE_W / 2, STAGE_W / 2],
+    { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0 }, stride),
+  // The break criterion's EXCESS PROFILE at one station (bed.js
+  // breakExcessProfile), plus the depth of each negative dip between onsets.
+  // The candidate list is onsets only, so it cannot say whether two branches
+  // are separated by a real un-breaking or by a marginal wobble.
+  excessProbe: (x = 0) => breakExcessProfile(state.geoSpot, x,
+    { H0: state.H0, T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0 }),
   // The M5 clamp invariants (0 deepened / 0 above the -0.5 m ceiling / 0 dry
   // posts touched / shoreline shift 0) plus the fit residual and checksum.
   // Exposed so a reef-shape sweep can prove it has not bought peel angle by

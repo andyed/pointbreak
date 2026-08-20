@@ -801,6 +801,34 @@ function markBreak(spotName, x, opts) {
   return last === null ? z0 : last;
 }
 
+// ---------- ONSET MERGE (2026-08-19, `#merge=`) ----------
+// How far below zero the excess must dip before a later positive run counts as
+// a SECOND break rather than the same one continuing. 0 = the pre-2026-08-19
+// behaviour: any sign change starts a new branch.
+//
+// WHY THIS EXISTS. markBreakCrossings returns ONSETS, and the low-H0 branch
+// flips at all six mapped spots are triggered by an onset appearing or
+// vanishing (measured: 1-8 stations change count at the threshold, 7-39 change
+// branch). Measuring the dips that vanish at those six thresholds gives
+// -0.002 to -0.144 m of excess, i.e. the criterion grazing zero at 0.1-0.7% of
+// its own scale, against a measured bed whose elevation residual is 0.31-0.93 m
+// (see the smoothing note in bakeBreakLine: at this 1:75 slope that residual
+// already displaces the crossing 22-70 m). Splitting one break into two
+// candidate branches over 3 mm of wave height resolves the criterion ~100x
+// finer than its input data supports, and it is the whole lever the 78-169 m
+// line jumps hang on.
+//
+// The threshold is DERIVED, not picked: gamma * (the bed's own elevation
+// residual) is the excess a depth error of one RMS produces, 0.78 * 0.31 =
+// 0.24 m at the best-fit spot. Below that, "the wave stopped breaking and
+// started again" is not a claim this bathymetry can support.
+let onsetMergeM = 0;
+export function setOnsetMerge(m) {
+  const v = Math.min(Math.max(Number(m) || 0, 0), 1.0);
+  if (v !== onsetMergeM) { onsetMergeM = v; breakKey = ''; }   // force a rebake
+}
+export function getOnsetMerge() { return onsetMergeM; }
+
 // ALL upward crossings of the criterion at a station, interpolated, seaward to
 // shoreward — plus the deepest march point as a fallback for stations where
 // nothing breaks (lull at this H0, or beach). markBreak above keeps the old
@@ -812,17 +840,60 @@ function markBreakCrossings(spotName, x, opts) {
   const { z0, z1 } = PP_DEPTH_DATA.grid;
   const crossings = [];
   let last = null, fLast = null;
+  // min excess since the last RECORDED onset. -Infinity until the first one, so
+  // the seaward-most onset is always kept whatever the merge threshold is.
+  let dipMin = -Infinity;
   for (let z = z0; z <= z1; z += MARCH_DZ) {
     const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), cg0);
     if (f === null) break;
     if (f >= 0 && fLast !== null && fLast < 0) {
-      crossings.push(last + (z - last) * (-fLast) / Math.max(f - fLast, 1e-9));
+      // A new onset only if the wave actually stopped breaking in between.
+      if (dipMin <= -onsetMergeM)
+        crossings.push(last + (z - last) * (-fLast) / Math.max(f - fLast, 1e-9));
+      dipMin = 0;
     } else if (f >= 0 && fLast === null) {
       crossings.push(z);                            // breaking from the first step
+      dipMin = 0;
+    } else if (f < 0 && crossings.length) {
+      dipMin = Math.min(dipMin, f);
     }
     last = z; fLast = f;
   }
   return { crossings, fallback: last === null ? z0 : last };
+}
+
+// INSTRUMENT (read-only): the excess profile itself, and how far BELOW zero it
+// dips between consecutive crossings. `crossings` is a list of ONSETS — places
+// the excess turns positive — so a branch vanishes from the list when the
+// negative dip that separated two onsets lifts through zero. Whether that is a
+// real second break or a rounding-depth wobble is a question about the DEPTH of
+// the dip, and the crossing list cannot answer it. Used by
+// scripts/probe_break_anchor.mjs to decide whether the two branches are one.
+export function breakExcessProfile(spotName, x, opts) {
+  const { H0, T, tide, bedShape } = opts;
+  const cg0 = G * T / (4 * Math.PI);
+  const wl = MSL_ABOVE_NAVD88 + tide;
+  const { z0, z1 } = PP_DEPTH_DATA.grid;
+  const zs = [], fs = [];
+  for (let z = z0; z <= z1; z += MARCH_DZ) {
+    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), cg0);
+    if (f === null) break;
+    zs.push(z); fs.push(f);
+  }
+  // the minimum of the excess inside each negative excursion that lies between
+  // two positive runs — i.e. how hard the wave "un-breaks" between branches
+  const dips = [];
+  let inNeg = false, dipMin = 0, dipZ = 0, sawPos = false;
+  for (let i = 0; i < fs.length; i++) {
+    if (fs[i] >= 0) {
+      if (inNeg && sawPos) dips.push({ min: dipMin, z: dipZ });
+      inNeg = false; sawPos = true;
+    } else if (sawPos) {
+      if (!inNeg) { inNeg = true; dipMin = fs[i]; dipZ = zs[i]; }
+      else if (fs[i] < dipMin) { dipMin = fs[i]; dipZ = zs[i]; }
+    }
+  }
+  return { zs, fs, dips };
 }
 
 // ---------- density-composite candidates (Topanga method, adapted) ----------
@@ -898,6 +969,52 @@ function densityCandidates(spotName, x, opts) {
   const off = Math.abs(denom) > 1e-9 ? Math.min(Math.max(0.5 * (d0 - d2) / denom, -0.5), 0.5) : 0;
   const mode = z0 + (bestB + off) * MARCH_DZ;
   return { crossings, fallback, mode };
+}
+
+// ---------- INSTRUMENT: the candidate set, before any selection ----------
+// Read-only. Nothing in the render path calls this; it exists so a sweep can
+// tell the three candidate causes of the low-H0 branch flips apart, which the
+// baked line alone cannot do (TODO Track 1c'-d):
+//   (i)   PHYSICS   — a crossing appears or vanishes as H0 moves, so the
+//                     criterion itself is bistable over this bathymetry;
+//   (ii)  SELECTION — the same crossings exist on both sides of the step, and
+//                     only nearest-to-previous / the slew clamp change which
+//                     one is taken;
+//   (iii) ANCHOR    — the crossings exist everywhere, but the seed station's
+//                     nearest-to-wedge-crest pick swaps, and continuity then
+//                     carries the swap along the whole line.
+// It re-runs markBreakCrossings over the same station grid bakeBreakLine uses
+// and reports, per station, every crossing plus the wedge-crest reference the
+// anchor ranks against — so the candidate set and the pick are separable.
+// Same march, same opts, same shelter switch: this is the bake's own physics,
+// not a twin of it (MEASUREMENT_LESSONS 4).
+export function breakCandidates(spotName, xRange, opts, stride = 4) {
+  if (!spotName) return null;
+  const [x0, x1] = xRange;
+  const fit = (opts.bedShape || 0) === 0 ? reefFitFor(spotName) : null;
+  const xAtI = (i) => x0 + (x1 - x0) * (i / (BREAK_N - 1));
+  const tanB = fit ? Math.tan(fit.betaDeg * Math.PI / 180) : 0;
+  const zcAt = (x) => (fit ? fit.zRef + tanB * (x - 24) : 0);
+  // the anchor index bakeBreakLine seeds from, resolved the same way
+  let i0 = Math.round(((24 - x0) / (x1 - x0)) * (BREAK_N - 1));
+  i0 = Math.min(Math.max(i0, 0), BREAK_N - 1);
+  const at = (i) => markBreakCrossings(spotName, xAtI(i), opts);
+  for (let d = 0; d < BREAK_N && !at(i0).crossings.length; d++)
+    i0 = Math.min(Math.max(i0 + (d % 2 ? d : -d), 0), BREAK_N - 1);
+  const stations = [];
+  for (let i = 0; i < BREAK_N; i += stride) {
+    const r = at(i);
+    stations.push({ i, x: xAtI(i), zc: zcAt(xAtI(i)), crossings: r.crossings, fallback: r.fallback });
+  }
+  const a = at(i0);
+  return {
+    anchorI: i0, anchorX: xAtI(i0), anchorZc: zcAt(xAtI(i0)),
+    anchorCrossings: a.crossings, anchorFallback: a.fallback,
+    anchorPick: a.crossings.length
+      ? a.crossings.reduce((b, z) => Math.abs(z - zcAt(xAtI(i0))) < Math.abs(b - zcAt(xAtI(i0))) ? z : b)
+      : a.fallback,
+    stations,
+  };
 }
 
 // Returns { texture, x0, x1 } or null when the site has no bathymetry.

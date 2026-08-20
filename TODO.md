@@ -664,6 +664,134 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
       Selection-layer work is EXHAUSTED; what remains is c.10 (rotating
       strike) or accepting the bound. `dline=1` (peaks + anchor selection)
       falsified — the knife-edge moves into the anchor.
+- [~] 1c'-d THE LOW-H₀ BRANCH FLIP IS ONE MECHANISM, BANK-WIDE — CHARACTERISED
+      2026-08-19, NO BAKE CHANGE (the fix was built and falsified; see below).
+      **This entry supersedes and consolidates four per-site residuals that
+      were being tracked separately**: Sharks' 102.8 m flip at H₀≈0.85 (1c'-b),
+      Jack's 151.7 m at 0.90 (1c'-b), Second Peak's flip "somewhere in
+      1.00–1.10", and First Peak's α 1.4→43.7 across 1.25→1.26. They are not
+      four site residuals. They are one defect with a per-site threshold.
+      Instruments: `scripts/measure_branch_flip.mjs` (the map),
+      `scripts/probe_break_anchor.mjs` (the cause),
+      `scripts/audit_shipped_states.mjs` (the blast radius), plus two read-only
+      probes, `__pointbreak.crossProbe()` and `.excessProbe()`.
+
+      **(1) THE MAP — six of six mapped spots, one threshold each.** Full
+      0.40–3.00 ladder, refined to 0.01 m. Privates has no measured bed, so no
+      bake and no flip. `aStage` = `stageAlpha().medianClean`.
+
+      | spot | target α | card H₀ | threshold H₀ | jump | stations | α below → above | pinned |
+      |---|---|---|---|---|---|---|---|
+      | Sewers | 38 | 2.2 | **1.60→1.61** | 169 m | 73% | 9.1 → 35.0 | 0 → 40 |
+      | First Peak | 50 | 1.8 | **1.25→1.26** | 78 m | 52% | 1.4 → 12.1 | 0 → 22 |
+      | Second Peak | 41 | 1.5 | **1.02→1.03** | 35 m | 19% | 2.6 → 3.7 | 0 → 8 |
+      | Jack's | 37 | 1.1 | **0.84→0.85** | 130 m | 28% | 7.2 → 21.3 | 6 → 26 |
+      | The Hook | 41 | 1.5 | **1.04→1.05** | 111 m | 38% | 6.2 → 17.1 | 0 → 20 |
+      | Sharks | 36 | 1.0 | **0.80→0.81** | 78 m | 47% | 7.5 → 16.4 | 6 → 11 |
+
+      **NO HYSTERESIS** — up-sweep and down-sweep are bit-identical at 211
+      paired steps across the six spots (max |Δz| = 0.000000 m). The bake's
+      cache key carries H₀ and nothing in the selection remembers the previous
+      bake, so `#drift` / `#day=live` cannot latch. They can still cross a
+      threshold, and when they do it is a step, not a slew.
+
+      **CORRECTION to the 2026-08-19 `#lipn` note**, which recorded "an H₀
+      sweep 0.40→1.60 m in 0.05 steps found **no threshold**" at Sewers and
+      concluded its 3–9° closeout was a separate thresholdless defect. Sewers'
+      threshold is **1.605**. That sweep stopped one step short. Sewers is the
+      same defect as the other five; its threshold is just the highest in the
+      bank and sits above every `#month` H₀.
+
+      **(2) THE CAUSE — the candidate set, not the selection, and not the
+      anchor.** Decomposed at each of the six thresholds:
+      • NOT the anchor. At 5/6 the seed station has ONE crossing on both sides
+        and it moves smoothly; at The Hook the anchor is simply one of the
+        stations that loses a crossing. The anchor never re-ranks a set that
+        persisted.
+      • NOT the greedy walk — and this is the surprising half. Over the
+        identical lattice a **Viterbi global min-total-|Δz| path** (the exact
+        non-greedy form of the same continuity claim) has MORE flip steps than
+        shipped at 5/6 spots (Sewers 13 vs 1, The Hook 11 vs 4, Jack's 10 vs
+        3), as do seaward-most and shoreward-most. **The shipped greedy rule is
+        already the best of the four.** A global optimum is free to re-route the
+        whole line when the lattice twitches; an anchored greedy walk is pinned
+        at one end. Replica validated against the real bake first (max 1.5 m
+        over 318 bakes, all of it the 1 m readback grid vs the 4.72 m texel).
+      • IT IS THE ONSET BOOKKEEPING. `markBreakCrossings` returns *onsets*, and
+        an onset is born or dies when a negative dip in `H₀Kₛ − γh` crosses
+        zero. Measured at all six thresholds, the dips that vanish are
+        **−0.002 to −0.144 m** of excess — the criterion grazing zero at
+        **0.1–0.7% of its own scale**, on a bed whose elevation residual is
+        0.31–0.93 m and which `bakeBreakLine` already notes displaces the
+        crossing 22–70 m. One break is split into two branches over three
+        millimetres of wave height. Selection then amplifies 2–12× (1–8
+        stations change candidate count; 7–39 change branch) and the 3.0 m/m
+        slew clamp turns each teleport into a pinned ramp, which `gapArr` then
+        declares NOT BREAKING — so the V at Sharks (tracked separately since
+        2026-08-14) is this same mechanism seen at fixed H₀.
+
+      **(3) THE FIX, BUILT AND FALSIFIED — `#merge=` (CONTROLS.md row).**
+      Require a dip to be a real un-breaking before it starts a new branch,
+      threshold derived as γ × the bed's own elevation residual. Proven live
+      (`__pointbreak.onsetMerge()` reports it back), and `merge=0` measured
+      bit-identical to shipped. It does not remove one flip: the count RISES
+      (Sewers 1→4, The Hook 4→6, First Peak 1→3 at 0/0.05/0.12/0.24), the
+      largest jump barely moves (172→166 m), and the threshold merely slides
+      down (Sewers 1.65→1.55, First Peak 1.30→1.20). Card α unchanged to 0.1°
+      at every value — nothing regresses, nothing improves. WHY, and it is the
+      general result: the onset count flips when the dip crosses 0; with a
+      threshold *m* it flips when the dip crosses −*m*. **A threshold relocates
+      a knife-edge onto a different level set of the same continuous field; it
+      never deletes one** — and *m* adds a second discontinuity (the merge
+      decision), which is why the count went up. MEASUREMENT_LESSONS 14.
+      Selection-layer work is now exhausted a FOURTH time (anchor band 1c'-c.2,
+      density composite 1c'-c.11, this, plus the Viterbi/extremal
+      counterfactuals) and for the first time with a reason that predicts the
+      failure rather than describing it.
+
+      **(4) SHIPPED IMPACT — the cards are clean, the opt-in states are not.**
+      All 114 reachable baked states on mapped spots (7 presets × card + 12
+      `#month` + 6 `#day`), each booted from a fresh document:
+      • **Every card state is healthy and near target** — Sewers 36.4/38, First
+        Peak 51.4/50, Second Peak 35.9/41, Jack's 32.9/37, The Hook 37.0/41,
+        Sharks 26.3/36. A bare URL is fine at every spot. That is why this was
+        never caught by the QA sheets.
+      • **64 of 114 (56%) draw stage-median α below 10°** against targets of
+        36–50°, i.e. a closeout. They are all `#month=` and `#day=` states.
+      • **First Peak at `#month=january` (H₀ 1.245) is collapsed: α 1.0°
+        against a 50° target, line z spanning 5→10 m over a 113 m stage.** It
+        sits 0.015 m below its own threshold, at the deepest point of the
+        pre-flip trough. This CONFIRMS the collapse already recorded in the
+        `#month` CONTROLS row as the reason the global-January default was
+        reverted on 2026-08-16 ("collapsed the peel at Sewers (α 38→5) and
+        First Peak (50→1)") — the α 1.0 measured today is that same number. The
+        new part is that it is not January-specific and not two-spot: it is
+        **every month at First Peak**, and six of six spots have a threshold.
+      • Sewers is the worst-hit: **all twelve months and three of six condition
+        days** sit below 1.605, so `#month=` at Sewers is a closeout year-round.
+      • `#month` remains OPT-IN and that is what contains this. The existing
+        tests `no module-level default month overrides the per-spot card oceans`
+        and `a month is applied only when the hash asks for one` are the pin
+        that keeps the blast radius off the default view; do not weaken them.
+
+      **NEXT — not a selection problem, so stop bringing selection fixes.**
+      The pre-flip line is not a swash artifact (depth at the line measures
+      1.5–3.2 m, a legitimate breaking depth) — it is a genuine inshore break on
+      near-shore-parallel contours, while the post-flip line is the oblique reef
+      line. The two are 27–295 m apart by `crestOffset()`. So this is the ROOT
+      DEFECT (1c'-c.2's finding: the reef does not own the line) showing up as a
+      function of H₀ rather than of site. Candidates, in order:
+      (a) reef EXTENT (1c'-c.4) — if the wedge reached the depths a small swell
+          breaks at, the reef branch would exist at low H₀ and there would be
+          nothing to flip to;
+      (b) an authorship declaration per §4.5 — the model may honestly say a spot
+          has no surfable peel below its threshold instead of drawing a closeout
+          and labelling it the site. This is a CONDITION-level call, not a
+          line-level one, and it does not override physics on the quantity
+          physics owns;
+      (c) accept and document, which is the status quo plus this table.
+      Do NOT retry: anchor band, density composite, onset merge, hysteresis on
+      the baked line, global-optimal continuity, seaward/shoreward-most.
 - [ ] 1c'-c.10 THE HIGH-α MECHANISM — **DEPRIORITIZED 2026-08-14, measured
       against the wrong defect.** `scripts/measure_alpha_regimes.mjs` splits
       the stage by whether the wedge actually lifts the bed under the break
