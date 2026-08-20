@@ -26,6 +26,12 @@ node_modules/
 scratch/
 *.local
 
+# Local state for an external tool, not part of this project. Ignored because
+# the QA provenance stamp reads `git status` to decide whether a published
+# snapshot was built from a dirty tree — an unrelated untracked directory was
+# raising that banner on every build.
+.embody/
+
 # Raw OPeNDAP pull behind data/climatology/pp_cdip_climatology.json — 5 MB of
 # CDIP hindcast, fully regenerable by rerunning build_cdip_climatology.py. The
 # derived JSON is committed; the pull is not. Its SHA-256 is recorded in that
