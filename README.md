@@ -57,7 +57,12 @@ Second Peak, Jack's (38th), The Hook, Sharks, Privates, ordered apex →
 down-point — each carrying a declared peel direction, a peel-angle target the
 physics is measured against, and an Iribarren-driven breaker character. Six of
 seven run on surveyed depth profiles; Privates' coastline defeats the contour
-fit (16.5 m RMS) and runs on a synthetic stage, and says so in the app.
+fit (16.5 m RMS) and runs on a synthetic stage, and says so in the app. The
+consequence runs further than the shoreline: with no measured bed there is no
+depth-limited breaking height either, so **Privates is the one site whose wave
+cannot be checked against what the water can carry**. The instruments say `n/a`
+there rather than quoting a ceiling computed from a seabed that is not in play
+(`docs/research/MEASUREMENT_LESSONS.md` §12).
 
 Deliberate exaggerations, stated as such: wave height is scaled ~3.2× against
 the terrain (true heights are near-invisible at landscape scale) and underwater

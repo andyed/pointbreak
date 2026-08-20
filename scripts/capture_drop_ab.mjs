@@ -124,8 +124,12 @@ for (const rig of RIGS) {
           legacyDrop: pb.uniforms.u_legacyDrop.value,
           xi: +pb.state.xi.toFixed(2), H0: +pb.state.H0.toFixed(2),
           headX: Math.round(headX), zLine: +zc.toFixed(1),
-          crestY: +apex.y.toFixed(2), ceilM: +apex.ceil.toFixed(2),
-          fill: +(apex.y / Math.max(apex.ceil, 1e-3)).toFixed(3),
+          crestY: +apex.y.toFixed(2),
+          // null where the site has no measured bed: crestCeilM is only a
+          // depth limit when a depth is behind it (MEASUREMENT_LESSONS 12).
+          ceilM: apex.ceil === null ? null : +apex.ceil.toFixed(2),
+          fill: apex.ceil === null ? null
+              : +(apex.y / Math.max(apex.ceil, 1e-3)).toFixed(3),
           aerMax: +mx((p) => p.aer).toFixed(3),
           curlMax: +mx((p) => p.curl).toFixed(3),
           pocketMax: +mx((p) => p.pocket).toFixed(3),

@@ -5,6 +5,49 @@
 The distilled open state. Everything below this section is the lab notebook,
 kept in full as the record; blockers are marked here.
 
+## ⚠ OPEN (2026-08-19) — the bend line has no reference on a bed-less stage
+
+Closed for now as **instrument + documentation**, with one real residue left
+deliberately unfixed. The QA sheet's "Privates draws 5.20 m against a 2.34 m
+depth ceiling, 2.2× over" was an artifact: with `u_depthMix = 0` the seabed
+sampler is `bed.js`'s 1×1 stand-in, `bedElevM` returns the RGBA8 quantization
+floor (−30 m NAVD88), `modelDepthM` is a flat 30.905 m, `γh` never binds, and
+`crestCeilM` is `1.878·H₀` — while the crest above it comes from `growSyn`,
+which has no depth in it. Privates' set-peak crest (5.32 m) is in family with
+all six mapped sites on the same January day (4.99–5.32 m). Done: the probe
+now returns `ceil: null` / `bedBacked: false` there and every reader carries
+the `n/a` through; `MEASUREMENT_LESSONS 13`; `MODEL.md` §2.2; a pinned
+invariant in `tests/depth-model.test.js`.
+
+**Still open, needs a decision, not a measurement.** `dropMag`'s bend line
+(`0.35·crestCeilM`) and `#curl`'s (`0.35·hCrest`, plus `sigZ`) are *ungated*
+and therefore key to that degenerate reference on any bed-less site.
+
+- `#drop` is exactly inert at Privates today (ξ 0.35 → `plunge` = 0; both arms
+  bit-identical over 576 station-reads). That is luck of the bank, and the new
+  test fails the build if a `geoSpot: null` preset ever ships with ξ ≥ 0.45.
+- `#curl` is **not** inert — 133 differing station fields at Privates — so if
+  it is ever promoted from opt-in to default, its barrel radius and curtain
+  width at Privates are set by `1.878·H₀`. **Judge that before flipping
+  `#curl` on**, not after.
+
+The reason nothing was changed in the geometry: there is no measured bed at
+Privates, so any replacement reference is unvalidatable taste, and repairing an
+output that no instrument can check is MEASUREMENT_LESSONS 8 with the sign
+flipped. The two candidate answers when it does need deciding are (a) gate the
+bend line on `u_depthMix` and fall back to a reference derived from the same
+synthetic amplitude the crest is drawn from, or (b) give Privates a synthetic
+*bed* rather than only a synthetic stage, which would make its ceiling real and
+retire the whole class. (b) is the honest one and much the larger job.
+
+Related, unchanged and still open from the 2026-08-18 sweep: "2/56 pocket
+stations 1.4–1.7× over the ceiling" below. That is a **mapped**-site question
+and this note does not touch it — but note the wider frame the seven-site run
+gives it: at `month=card` the median pocket fill is 0.985–1.074 across all six
+mapped sites, with 14–28 of 34–46 pocket stations above 1.0 at every one of
+them. `crestCeilM` is a reference height, not a clamp, and "every mapped site
+is at or below its ceiling" was never true.
+
 ## ▶ LIVE VERDICT QUEUE (2026-08-18) — nine flags waiting on Andy's eye
 
 Nothing below has been judged live. Every one is instrumented, tested and

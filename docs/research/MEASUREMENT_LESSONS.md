@@ -216,3 +216,94 @@ before reading the number. If the sample interval is not a whole number of
 the fast period, the reducer has to span one — `crest±T/2` here.
 Corollary of lesson 8c (a summary statistic needs its domain checked): the
 domain of a reducer includes the time window, not only the spatial extent.
+## 13. A denominator must be checked for a domain, not just for a value
+
+The 2026-08-18 QA contact sheet reported Privates drawing a **5.20 m crest
+at the aim station (5.32 m stage-wide)
+against a `crestCeilM` of 2.34 m — 2.2× over its depth limit**, the only site
+on the sheet in apparent violation. The number was real, reproducible, and
+read straight off the GPU. It measured nothing.
+
+`crestCeilM` is `0.8·VIS·min(H₀·K_s, γh)`, and everything after `min` depends
+on `h = modelDepthM(xz)`. Privates has no measured bed (its coastline defeats
+the contour fit at 16.5 m RMS), so it runs `u_depthMix = 0` — and `bedElevM`
+is **not gated by that switch**. It samples `u_bed`, which `applyBed` binds to
+`bed.js`'s 1×1 all-zeros `EMPTY_BED` stand-in. `bedTexel` decodes `unit = 0`
+and returns `u_bedElev.x`: the **low edge of the RGBA8 quantization window**,
+−30 m NAVD88. That is a storage constant describing the format, not a seabed.
+
+So along the whole synthetic stage:
+
+* `modelDepthM` = 0.905 − (−30.0) = **30.905 m, at every station** — measured
+  back off the GPU at 576 station-reads, constant to 3 decimals.
+* `γh` = 24.1 m, which `min` therefore **never selects**. The depth-limited
+  branch is unreachable.
+* `crestCeilM` collapses to `0.8·VIS·H₀·K_s(30.9 m)` = **1.878·H₀**. Checked
+  against the shipped sheet: 1.878 × 1.245 = 2.338, i.e. the reported "2.34 m
+  ceiling" exactly.
+* the crest above it came from `ocean()`'s `growSyn` branch, which contains no
+  depth term at all.
+
+The ratio divided a depth-free crest by a rescaled swell height and printed it
+as a breaking-limit breach.
+
+**The obvious tell is not the tell, and checking that mattered.** The first
+draft of this entry said the giveaway was that `ceilM` came back identical at
+all eleven stations and all five clocks — a depth-limited ceiling that does not
+vary with depth. That reads well and it is wrong: the sheet's per-station
+`ceil` is constant at *every* site, mapped ones included (Sewers 4.92 at all
+eleven, Sharks 4.64 at all eleven), because `probeStage` reduces by `max` over
+a wide shore-normal transect and the max always lands on the deepest sample at
+the seaward end, where the bed is doing much the same thing at every x along a
+contour-following line. So constancy is a property of the *reduction*, not a
+symptom of the defect, and a rule phrased on it would have cleared Privates and
+convicted nobody.
+
+The real tell is **which branch of the `min` is selected**. At every mapped
+site the ceiling is `γh` — a depth. At Privates it is `H₀·K_s` to the last
+decimal, because `γh` there is 24.1 m, a depth no surf zone has. One line of
+arithmetic on the reported number, not an eyeball on its variance.
+
+(Second finding, recorded in passing: because the sheet takes the transect
+`max`, its `ceilM` is the ceiling at the deep end of the window rather than at
+the breaking station, which is why the sheet's mapped fills run 1.04–1.14 while
+the station-resolved `measure_pocket_crest.mjs` gives 0.99–1.07 on the same
+model. Two instruments, two domains — lesson 8c again.)
+
+And the crest it condemned was never anomalous. At the same January day
+(H₀ = 1.245 m) the seven sites draw 4.99, 5.09, 5.16, 5.17, 5.19, 5.32 and
+5.32 m — Privates is tied for the largest and inside the spread. Only its
+denominator was different. The same sheet also refutes the companion claim
+that the mapped sites "sit at or below their ceiling": their set-peak fills are
+**1.042–1.144**, all above 1.0, as `docs/CONTROLS.md` already says they should
+be (`crestCeilM` is a reference height, not a clamp).
+
+Lesson 8c said to check what a summary is summarising **over**. This is its
+sibling one level down: check that the quantity a denominator is derived from
+is *in play at all* under the configuration being measured. A number computed
+from a switched-off code path is not a weak measurement — it is not a
+measurement. And it arrives wearing the same units, the same field name and the
+same three decimal places as the real thing, so nothing about its *presentation*
+will ever flag it. Only tracing the inputs will.
+
+Fix, 2026-08-19: the validity test lives in the probe, not in the reader.
+`curlProbe` emits the ceiling only when `u_depthMix > 0.5` and otherwise
+returns `ceil: null` with `bedBacked: false`; `measure_pocket_crest.mjs`,
+`build_qa_sheets.mjs` and `capture_drop_ab.mjs` carry the null through as
+`n/a` and refuse to form `fill`. This is the honesty the pixel corridor on the
+same row was already practising for the same reason — no baked line, so `n/a`.
+The shader term is untouched; the instrument channel is what was wrong.
+
+**The residue, recorded not fixed.** `dropMag`'s bend line (`0.35·crestCeilM`,
+`#drop`) and `#curl`'s (`0.35·hCrest`, plus its `sigZ` band width) read that
+same degenerate reference at a synthetic site. Measured: `#drop` is **exactly
+inert at Privates** — ξ = 0.35 puts `plunge = smoothstep(0.45, 1.25, ξ)` at 0,
+so `dropMag` is 0 in both arms, and default vs `#drop=legacy` is bit-identical
+over 576 station-reads (0 differing fields). That is luck of the preset, not
+design: any synthetic site with ξ ≥ 0.45 would key a shipped geometry term to
+`1.878·H₀`. `#curl` (opt-in, default off) is **not** inert — 133 differing
+fields at Privates. Neither was changed here. There is no measured bed at
+Privates, so any replacement reference would be unvalidatable taste, and
+repairing an output nobody can check is lesson 8's mistake with the sign
+flipped. `tests/depth-model.test.js` pins the hazard where it can actually be
+caught — no shipped preset may combine `geoSpot: null` with ξ ≥ 0.45.

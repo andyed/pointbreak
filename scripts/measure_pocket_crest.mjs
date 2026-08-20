@@ -17,6 +17,13 @@
 //            itself computes (0.8*VIS*min(H0*Ks, gamma*h)). The denominator.
 //            Without it "the pocket crest is 5 m" is a number with no claim in
 //            it (MEASUREMENT_LESSONS 8c).
+//            NULL WHERE THERE IS NO MEASURED BED (u_depthMix = 0). The ceiling
+//            is only a ceiling when a real seabed is behind it; on the
+//            synthetic stage the depth is the RGBA8 window floor read through
+//            an all-zeros stand-in texture, gamma*h never binds, and the
+//            "ceiling" is 1.878*H0 in disguise. `fill` is then null too — an
+//            n/a, the way the pixel corridor already reports one at Privates.
+//            See MEASUREMENT_LESSONS 13.
 //   nbrY     the tallest crest among nearby stations that are NOT in the
 //            pocket. This is the "one station away" comparison from the audit,
 //            done systematically instead of at one hand-picked x.
@@ -30,6 +37,7 @@
 //
 // Usage: node scripts/measure_pocket_crest.mjs [outdir] [--port=8215]
 //                                              [--q=high] [--arms=default,legacy]
+//                                              [--presets=all|sewers,privates,...]
 
 const PW_CANDIDATES = [
   process.env.PLAYWRIGHT_DIR,
@@ -62,10 +70,17 @@ const TAG = flag('tag', '');
 // The same two spots #curl was measured on, for comparability: Sewers is the
 // most plunging preset in the bank, Sharks the most spilling one that still has
 // measured bathymetry behind it (so the depth-limited ceiling is real there).
-const SPOTS = [
-  { preset: 'sewers', cam: 'cliff' },
-  { preset: 'sharks', cam: 'cliff' },
-];
+// --presets widens it to the whole bank (`all`) or to a named subset. The
+// default stays the two calibration spots so the numbers quoted in
+// docs/CONTROLS.md's `drop` row keep reproducing from a bare invocation.
+const ALL_PRESETS = ['sewers', 'firstpeak', 'secondpeak', 'jacks', 'thehook',
+                     'sharks', 'privates'];
+const presetArg = flag('presets', 'sewers,sharks');
+const SPOTS = (presetArg === 'all' ? ALL_PRESETS : presetArg.split(','))
+  .map((preset) => {
+    if (!ALL_PRESETS.includes(preset)) throw new Error(`unknown preset ${preset}`);
+    return { preset, cam: 'cliff' };
+  });
 const TIMES = [36, 42, 48, 54];
 const ALL_ARMS = {
   default: { name: 'default', hash: '' },
@@ -107,8 +122,14 @@ for (const spot of SPOTS) {
         const pb = window.__pointbreak;
         if (!pb?.curlProbe) return { err: 'no curlProbe' };
         const line = pb.lineProbe(10) || [];
+        // The M4 bake only exists where there is a measured bed. On the
+        // synthetic stage there is still a break line — the authored contour
+        // `-coastCurve(x)` — and curlProbe now reads it back off the SHIPPED
+        // shader (row 2, .w) rather than letting the transect fall on a
+        // hard-coded z = -20. One probe, no JS twin (MEASUREMENT_LESSONS 4).
+        const baked = line.length > 0;
         const zAt = (x) => {
-          if (!line.length) return -20;
+          if (!baked) return pb.curlProbe(x, 0, 1, 2)[0].bLine;
           let best = line[0];
           for (const p of line) if (Math.abs(p.x - x) < Math.abs(best.x - x)) best = p;
           return best.z;
@@ -133,7 +154,9 @@ for (const spot of SPOTS) {
           }
           for (const p of water) if (p.y > apex.y) apex = p;
           out.push({ x, zBreak: +zc.toFixed(1),
-                     crestY: +apex.y.toFixed(3), ceilM: +apex.ceil.toFixed(3),
+                     crestY: +apex.y.toFixed(3),
+                     ceilM: apex.ceil === null ? null : +apex.ceil.toFixed(3),
+                     bedBacked: apex.bedBacked,
                      depthM: +apex.depth.toFixed(3),
                      pocketAtApex: +apex.pocket.toFixed(3),
                      pocketMax: +pockMax.toFixed(3),
@@ -141,6 +164,7 @@ for (const spot of SPOTS) {
         }
         return { curl: pb.uniforms.u_curl.value, legacyDrop: pb.uniforms.u_legacyDrop?.value ?? null,
                  sim: pb.sim(), xi: +pb.state.xi.toFixed(2), H0: +pb.state.H0.toFixed(2),
+                 depthMix: pb.uniforms.u_depthMix.value, baked, geoSpot: pb.state.geoSpot,
                  stations: out };
       });
       if (probe.err) throw new Error(probe.err);
@@ -153,15 +177,20 @@ for (const spot of SPOTS) {
       // because the neighbour has to be the SAME WAVE at the SAME clock.
       const st = probe.stations;
       for (let i = 0; i < st.length; i++) {
-        let nbrY = 0, nbrCeil = 0;
+        let nbrY = 0, nbrCeil = null;
         for (let j = Math.max(0, i - 3); j <= Math.min(st.length - 1, i + 3); j++) {
           if (j === i || st[j].pocketMax > 0.15) continue;
           if (st[j].crestY > nbrY) { nbrY = st[j].crestY; nbrCeil = st[j].ceilM; }
         }
         rows.push({ preset: spot.preset, xi: probe.xi, H0: probe.H0, arm: arm.name,
-                    q: TIER, sim, ...st[i],
-                    nbrY: +nbrY.toFixed(3), nbrCeil: +nbrCeil.toFixed(3),
-                    fill: +(st[i].crestY / Math.max(st[i].ceilM, 1e-3)).toFixed(3) });
+                    q: TIER, depthMix: probe.depthMix, baked: probe.baked, sim, ...st[i],
+                    nbrY: +nbrY.toFixed(3),
+                    nbrCeil: nbrCeil === null ? null : +nbrCeil.toFixed(3),
+                    // No bed, no ceiling, no fill. Dividing the drawn crest by
+                    // 1.878*H0 and calling the quotient a depth-limit breach is
+                    // the number this instrument exists to NOT produce.
+                    fill: st[i].ceilM === null ? null
+                        : +(st[i].crestY / Math.max(st[i].ceilM, 1e-3)).toFixed(3) });
       }
       process.stdout.write(`${spot.preset} ${arm.name} sim=${sim} ok (${st.length} stations)\n`);
     }
@@ -173,25 +202,35 @@ for (const spot of SPOTS) {
 const summary = {};
 for (const r of rows) {
   const k = `${r.preset}/${r.arm}`;
-  summary[k] ??= { xi: r.xi, H0: r.H0, pocket: [], nbr: [], fillP: [], fillN: [],
-                   ratio: [], ceil: [], nPocket: 0, nNbr: 0, overCeil: 0 };
+  summary[k] ??= { xi: r.xi, H0: r.H0, depthMix: r.depthMix, baked: r.baked,
+                   pocket: [], nbr: [], fillP: [], fillN: [],
+                   ratio: [], ceil: [], depth: [], nPocket: 0, nNbr: 0, overCeil: 0 };
   const s = summary[k];
   if (r.pocketMax >= 0.5) {
     s.nPocket++;
-    s.pocket.push(r.crestY); s.fillP.push(r.fill); s.ceil.push(r.ceilM);
+    s.pocket.push(r.crestY); s.depth.push(r.depthM);
+    if (r.fill !== null) { s.fillP.push(r.fill); s.ceil.push(r.ceilM); }
     if (r.nbrY > 0) s.ratio.push(r.crestY / r.nbrY);
     if (r.fill > 1.0) s.overCeil++;
   } else if (r.pocketMax < 0.15) {
     s.nNbr++;
-    s.nbr.push(r.crestY); s.fillN.push(r.fill);
+    s.nbr.push(r.crestY);
+    if (r.fill !== null) s.fillN.push(r.fill);
   }
 }
 const table = {};
 for (const [k, s] of Object.entries(summary)) {
   table[k] = {
-    xi: s.xi, H0: s.H0, nPocket: s.nPocket, nNbr: s.nNbr,
+    xi: s.xi, H0: s.H0, depthMix: s.depthMix, baked: s.baked,
+    // The one field that says whether the rest of this row means anything.
+    ceilingValid: s.depthMix > 0.5,
+    ceilingNote: s.depthMix > 0.5 ? null
+      : 'n/a — no measured bed (u_depthMix = 0): modelDepthM is the RGBA8 '
+      + 'window floor, gamma*h never binds, crestCeilM = 1.878*H0',
+    nPocket: s.nPocket, nNbr: s.nNbr,
     medPocketCrestM: median(s.pocket),
     medNbrCrestM: median(s.nbr),
+    medDepthM: median(s.depth),
     medCeilM: median(s.ceil),
     medFillPocket: median(s.fillP),     // crest / depth-limited ceiling, pocket
     medFillNbr: median(s.fillN),        // ... away from the pocket
@@ -205,11 +244,13 @@ writeFileSync(resolve(OUT, `pocket_crest${TAG ? `_${TAG}` : ''}_q${TIER}.json`),
                    errors, table, rows }, null, 2));
 console.log(`\nq=${TIER}   (fill = crest / depth-limited ceiling)`);
 for (const [k, t] of Object.entries(table)) {
-  console.log(`${k.padEnd(20)} xi=${t.xi}  pocket crest ${t.medPocketCrestM} m  ` +
-              `neighbour ${t.medNbrCrestM} m  ceiling ${t.medCeilM} m\n` +
-              `${''.padEnd(20)} fill pocket ${t.medFillPocket} vs away ${t.medFillNbr}  ` +
-              `pocket/neighbour ${t.medPocketOverNbr}  ` +
+  const na = (v) => (v === null || v === undefined ? 'n/a' : v);
+  console.log(`${k.padEnd(20)} xi=${t.xi}  pocket crest ${na(t.medPocketCrestM)} m  ` +
+              `neighbour ${na(t.medNbrCrestM)} m  ceiling ${na(t.medCeilM)} m\n` +
+              `${''.padEnd(20)} fill pocket ${na(t.medFillPocket)} vs away ${na(t.medFillNbr)}  ` +
+              `pocket/neighbour ${na(t.medPocketOverNbr)}  ` +
               `over ceiling ${t.stationsOverCeiling}/${t.nPocket}`);
+  if (!t.ceilingValid) console.log(`${''.padEnd(20)} ${t.ceilingNote}`);
 }
 if (errors.length) console.error('PAGE ERRORS:', errors.slice(0, 5));
 await browser.close();

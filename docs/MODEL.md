@@ -194,9 +194,34 @@ and both vehicles bind it as `u_bed`.
   waterline is wherever depth crosses zero and the beach/cliff is data, not a
   backdrop card. Cameras derive the cliff top from the same field (~11 m at
   Second Peak) instead of floating at a hand-tuned 16 m.
-- Presets with no bathymetry (the three West Side names, the A-frame) run
-  `u_depthMix = 0`, which collapses every term above back to the §2 stand-ins.
-  The `web/` raymarcher stays depth-free by the same switch.
+- Presets with no bathymetry run `u_depthMix = 0`, which collapses every term
+  above back to the §2 stand-ins. In the shipped bank that is **Privates
+  alone** — its coastline defeats the contour fit at 16.5 m RMS (§2.1), so
+  `applyGeoProfile` nulls its `geoSpot` and `applyBed` binds no patch. (The
+  A-frame is a *parameter*, not a site: `aframe = 1` on a mapped preset keeps
+  `u_depthMix = 1` and its measured bed — verified 2026-08-19, Second Peak's
+  ceiling is identical with and without it.) The `web/` raymarcher stays
+  depth-free by the same switch.
+
+  **What the depth field degenerates to there, and what may not read it
+  (2026-08-19).** `bedElevM` is *not* gated by `u_depthMix`. With no patch
+  bound it samples `bed.js`'s 1×1 all-zeros `EMPTY_BED` stand-in, decodes
+  `unit = 0`, and returns `u_bedElev.x` — the low edge of the RGBA8
+  quantization window, −30 m NAVD88. That is a property of the storage format,
+  not a seabed. So on the synthetic stage `modelDepthM` is a flat **30.905 m
+  everywhere** (GPU readback, 576 station-reads, constant to 3 dp), `γh` is
+  24.1 m and `min(H₀·K_s, γh)` **never selects the depth branch**. Every
+  quantity that claims to be depth-limited there is one of two things: gated
+  and inert (`growGeo`, the breaking `gate`, `sizeGate`, `shoreFade`, the
+  `shelterAt`/`pockS` couplings — all wrapped in `mix(…, u_depthMix)`), or
+  ungated and **meaningless**. The ungated one that mattered is `crestCeilM`,
+  which collapses to `0.8·VIS·H₀·K_s(30.9 m) = 1.878·H₀`: a rescaled swell
+  height wearing a depth limit's name. It produced a QA finding that Privates
+  drew "2.2× over its ceiling" when the crest was in family with all six
+  mapped sites on the same day; the instrument now reports `n/a` there rather
+  than a number (MEASUREMENT_LESSONS 13). §4.5's rule reaches this case: a cap
+  physics owns is not available for authorship to borrow where the physics is
+  switched off.
 
 **Correction, 2026-08-10.** The A/B plane was fitted over every post in the
 stage frame, and 20–40% of each frame is dry cliff. Two consequences, both

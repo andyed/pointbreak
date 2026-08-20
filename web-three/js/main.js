@@ -1815,9 +1815,25 @@ window.__pointbreak = {
       // second row is what tells a null apart from a miss — "no overturn here"
       // and "the pocket is not here" are different findings.
       // Row 2 is the CEILING the crest is allowed to reach (crestCeilM, the
-      // depth-limited height, shared with the #curl bend) and the depth it was
-      // computed from. Without it "the pocket crest is 5 m" has no denominator:
-      // a crest can only be judged short against what the water can carry.
+      // depth-limited height, shared with the #curl bend), the depth it was
+      // computed from, and the shipped break line at this station. Without the
+      // ceiling "the pocket crest is 5 m" has no denominator: a crest can only
+      // be judged short against what the water can carry.
+      //
+      // THE CEILING IS GATED ON u_depthMix (2026-08-19). With no measured bed
+      // bound, `u_bed` is bed.js's 1x1 all-zeros EMPTY_BED, so bedTexel decodes
+      // unit = 0 and bedElevM returns u_bedElev.x — the LOW EDGE OF THE RGBA8
+      // QUANTIZATION WINDOW (-30 m NAVD88), a storage constant, at every
+      // station. modelDepthM is then a flat 30.91 m stage-wide, gamma*h = 24.1 m
+      // never binds, and crestCeilM collapses to 0.8*VIS*H0*Ks(30.9 m) =
+      // 1.878*H0 — a rescaled swell height wearing a depth limit's name. The
+      // wave drawn over it came from ocean()'s `growSyn` branch, which contains
+      // no depth at all, so crest/ceiling there divides two unrelated numbers.
+      // Emitting -1 and mapping it to `ceil: null` is the same honesty the
+      // pixel corridor already practises at Privates: n/a, not a wrong number.
+      // `depth` stays raw (it is what the shader computes, and it is the
+      // evidence); `bedBacked` tells a consumer which regime it is reading.
+      // The shader term itself is untouched — this is the instrument channel.
       curlProbeRT = new THREE.WebGLRenderTarget(n, 3, {
         type: THREE.FloatType, minFilter: THREE.NearestFilter,
         magFilter: THREE.NearestFilter, depthBuffer: false,
@@ -1837,7 +1853,8 @@ window.__pointbreak = {
           '  vec3 P = surfacePos(xz, u_time, f, p, b, c, l, a, k);\n' +
           '  if (gl_FragCoord.y < 1.0)      gl_FragColor = vec4(P.y, P.z, l, k);\n' +
           '  else if (gl_FragCoord.y < 2.0) gl_FragColor = vec4(p, b, f, a);\n' +
-          '  else gl_FragColor = vec4(crestCeilM(xz), modelDepthM(xz), c, 0.0);\n' +
+          '  else gl_FragColor = vec4(u_depthMix > 0.5 ? crestCeilM(xz) : -1.0,\n' +
+          '                           modelDepthM(xz), c, breakLine(xz.x));\n' +
           '}',
       });
       curlProbeQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), curlProbeMat);
@@ -1857,7 +1874,8 @@ window.__pointbreak = {
       out.push({ z0: z0 + (z1 - z0) * i / (n - 1), y: buf[g],
                  z: buf[g + 1], land: buf[g + 2], curl: buf[g + 3],
                  pocket: buf[m], brk: buf[m + 1], foam: buf[m + 2], aer: buf[m + 3],
-                 ceil: buf[c], depth: buf[c + 1], crest: buf[c + 2] });
+                 ceil: buf[c] < 0 ? null : buf[c], bedBacked: buf[c] >= 0,
+                 depth: buf[c + 1], crest: buf[c + 2], bLine: buf[c + 3] });
     }
     return out;
   },

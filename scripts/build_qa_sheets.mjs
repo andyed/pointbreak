@@ -350,12 +350,15 @@ function readState(CORR) {
 function probeTransect({ x, zLine, halfM, n }) {
   const rows = window.__pointbreak.curlProbe(x, zLine - halfM, zLine + halfM, n);
   if (!rows || !rows.length) return null;
-  let crest = -Infinity, foam = 0, brk = 0, pocket = 0, ceil = 0;
+  let crest = -Infinity, foam = 0, brk = 0, pocket = 0, ceil = null;
   for (const r of rows) {
     if (r.land > 0.5) continue;
     if (r.y > crest) crest = r.y;
     foam = Math.max(foam, r.foam); brk = Math.max(brk, r.brk);
-    pocket = Math.max(pocket, r.pocket); ceil = Math.max(ceil, r.ceil);
+    pocket = Math.max(pocket, r.pocket);
+    // curlProbe returns ceil = null where there is no measured bed. Folding a
+    // null into Math.max would print it as 0; carrying it through prints n/a.
+    if (r.ceil !== null) ceil = Math.max(ceil ?? 0, r.ceil);
   }
   return Number.isFinite(crest)
     ? { crest, foam, brk, pocket, ceil } : null;
@@ -392,16 +395,18 @@ function probeStage({ nStations, halfM, n, aimX }) {
     const x = lo + ((hi - lo) * i) / (nStations - 1);
     const z = zAt(x);
     const rows = pb.curlProbe(x, z - half, z + half, n) || [];
-    let crest = -Infinity, foam = 0, pocket = 0, ceil = 0;
+    let crest = -Infinity, foam = 0, pocket = 0, ceil = null;
     for (const r of rows) {
       if (r.land > 0.5) continue;
       if (r.y > crest) crest = r.y;
       foam = Math.max(foam, r.foam);
-      pocket = Math.max(pocket, r.pocket); ceil = Math.max(ceil, r.ceil);
+      pocket = Math.max(pocket, r.pocket);
+      if (r.ceil !== null) ceil = Math.max(ceil ?? 0, r.ceil);
     }
     out.push({ x: +x.toFixed(1), z: +z.toFixed(1),
       crest: Number.isFinite(crest) ? +crest.toFixed(2) : null,
-      foam: +foam.toFixed(3), pocket: +pocket.toFixed(3), ceil: +ceil.toFixed(2) });
+      foam: +foam.toFixed(3), pocket: +pocket.toFixed(3),
+      ceil: ceil === null ? null : +ceil.toFixed(2) });
   }
   const crests = out.map((s) => s.crest).filter((v) => v !== null);
   const foams = out.map((s) => s.foam);
@@ -415,7 +420,17 @@ function probeStage({ nStations, halfM, n, aimX }) {
   return {
     baked, stageLo: +lo.toFixed(1), stageHi: +hi.toFixed(1), stations: out, atAim,
     crestMaxM: crests.length ? Math.max(...crests) : null,
-    ceilM: out.length ? Math.max(...out.map((s) => s.ceil)) : null,
+    // The depth-limited ceiling, or null where the site has no measured bed.
+    // Privates runs u_depthMix = 0, and there crestCeilM is not a depth limit
+    // at all (see MEASUREMENT_LESSONS 12) — reporting a number there invited
+    // the 2026-08-18 sheet's "5.20 m against a 2.34 m ceiling, 2.2x over",
+    // which divided a synthetic crest by 1.878*H0. n/a is the honest read,
+    // matching what the pixel corridor already says on the same row.
+    ceilM: (() => {
+      const c = out.map((s) => s.ceil).filter((v) => v !== null);
+      return c.length ? Math.max(...c) : null;
+    })(),
+    ceilValid: out.some((s) => s.ceil !== null),
     foamMax: Math.max(...foams),
     // share of the stage that is carrying whitewater at this clock — the
     // model-side "how much of the line is breaking"
@@ -586,7 +601,8 @@ async function captureSheet(page, base, sheet) {
           crestEnvM: crestEnv.crestEnvM,                       // tallest wave there within +-T/2
           crestEnvAtT: crestEnv.crestEnvAtT,                   // when that wave crossed it
           crestMaxM: stage.crestMaxM,                          // anywhere on the stage, this instant
-          ceilM: stage.ceilM,
+          ceilM: stage.ceilM,          // null = no measured bed, no ceiling
+          ceilValid: stage.ceilValid,
           modelFoamMax: +stage.foamMax.toFixed(3),
           modelFoamFrac: +stage.foamFrac.toFixed(3),
           modelPocketMax: +stage.pocketMax.toFixed(3),
@@ -847,7 +863,14 @@ ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1
     <i>attachment corridor</i>, ${CORRIDOR_N} points per line station spanning ${CORRIDOR_M[0]} m to
     +${CORRIDOR_M[1]} m across the break line in <i>world</i> metres (sections shift included), each the max of its
     3×3 neighbourhood. Reads <code>n/a</code> where there is no baked line to project (Privates).
-    It is corridor-local: whitewater that has already advected shoreward is outside it by design.</dd>
+    It is corridor-local: whitewater that has already advected shoreward is outside it by design.<br>
+    <b>ceilM</b> (JSON only) — the depth-limited crest ceiling <code>0.8·VIS·min(H₀K<sub>s</sub>, γh)</code> at those
+    transects. <code>null</code> at Privates, and that is a result, not a gap: with no measured bed the site runs
+    <code>u_depthMix = 0</code>, the seabed sampler is a 1×1 stand-in, and the depth the shader reads back is the
+    storage format's own quantization floor (a flat 30.91 m stage-wide) rather than a seabed. <code>γh</code> then
+    never binds and the "ceiling" is <code>1.878·H₀</code> wearing a depth limit's name, while the crest above it
+    came from the depth-free synthetic branch. <b>Privates has no measured bed and therefore no ceiling to be over.</b>
+    Its crest at the January set peak (5.32 m) is in family with all six mapped sites (4.99–5.32 m) on the same day.</dd>
   <dt>links</dt><dd>Every hash is a live link into <code>${esc(base)}web-three/</code> at that exact state — start the dev
     server there (<code>python3 scripts/serve.py 8127</code>) and clicking a suspicious frame drops you into the app at it.
     Row headers link to column 1. Clicking the <b>image</b> opens the full ${VIEW.width}×${VIEW.height} frame instead.
