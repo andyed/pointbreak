@@ -273,22 +273,102 @@ test('published frames are re-encoded for the budget, but never measured after',
   // The essay bundle is 9.9 MB. QA has to sit under it, not beside it — the
   // full-resolution PNG set was 54 MB, which would BE the deploy.
   assert.match(rig, /const PUB_W = /);
-  assert.match(rig, /toDataURL\('image\/webp', q\)/);
+  // Published cells go through ONE call site, and that call site names WebP.
+  assert.match(rig, /mime: 'image\/webp'/,
+    'the published encode path does not name image/webp');
   // Silent PNG fallback would quietly ship ~4x the bytes, so the encoder's
   // actual output mime is checked rather than assumed.
-  assert.match(rig, /wanted image\/webp, browser produced/);
+  assert.match(rig, /if \(out\.mime !== mime\)\s*\n?\s*throw new Error/,
+    'renderFrame does not check what mime the browser actually produced');
 
   // foamStats must run on the full-resolution capture. Measuring a downscaled,
-  // lossily-encoded frame would make the pixel corridor a measurement of the
-  // encoder (MEASUREMENT_LESSONS 4: instruments that score a replica certify
-  // the replica).
+  // lossily-encoded — or MARKED, or CROPPED — frame would make the pixel
+  // corridor a measurement of the rig (MEASUREMENT_LESSONS 4: instruments that
+  // score a replica certify the replica).
   const cap = rig.slice(rig.indexOf('async function captureSheet('));
   const shot = cap.indexOf('await page.screenshot()');
   const foam = cap.indexOf('foamStats(buf, live.stations)');
   const enc = cap.indexOf('encodeFrame(');
+  const mark = cap.indexOf('renderFrame(encoder');
   assert.ok(shot >= 0 && foam > shot, 'foamStats does not read the raw screenshot buffer');
   assert.ok(enc > foam, 'the frame is encoded before it is measured');
+  assert.ok(mark > foam, 'the frame is marked or cropped before it is measured');
+  // And the marker must be drawn in the ENCODER page, never in the sim page —
+  // an overlay there would be inside the screenshot foamStats reads.
+  assert.ok(!/page\.evaluate\([^)]*drawMarker|addStyleTag|document\.body\.append/.test(rig),
+    'something draws into the sim page, which the pixel corridor would then measure');
 
   // The run must report the achieved size, so the budget is measured.
   assert.match(rig, /against the 9\.9 MB essay bundle/);
+});
+
+// ---------------------------------------------------------------------------
+// The break sheet's span and its marker (2026-08-20).
+//
+// The sheet used to span one full wave period at T/5 per column. A crest
+// advances exactly one crest spacing per period, so the tracked wave ended the
+// row 0.80 of a spacing along — 0.20 from where the NEXT wave upstream started
+// — and the five columns read as five near-identical parallel lines. The ratio
+// is site-independent (advance/spacing = dt/T cancels the local wavelength), so
+// it was 0.80 on every row at every camera and every H0.
+// ---------------------------------------------------------------------------
+test('the break sheet spans a fraction of a period, not a whole one', () => {
+  // Parsed, not eval'd: the constant is a literal ratio or a decimal, and a
+  // test that can run arbitrary source is not a test of the source.
+  const m = rig.match(/const WAVE_SPAN_T = ([\d.]+)(?:\s*\/\s*([\d.]+))?\s*;/);
+  assert.ok(m, 'no WAVE_SPAN_T in the rig, or it is not a literal ratio');
+  const span = m[2] ? Number(m[1]) / Number(m[2]) : Number(m[1]);
+  assert.ok(Number.isFinite(span), `WAVE_SPAN_T did not parse: ${m[0]}`);
+  assert.ok(span > 0 && span <= 0.5,
+    `WAVE_SPAN_T is ${span}: at or above half a period the tracked crest gets closer to `
+    + 'its neighbour\'s slot than to its own, which is the aliasing this replaced');
+  // Five columns over that span, so the per-column advance is span/4 spacings.
+  assert.match(rig, /const denom = Math\.round\(\(n - 1\) \/ WAVE_SPAN_T\)/);
+  assert.match(rig, /times: Array\.from\(\{ length: n \}, \(_, k\) => crest\.tStar \+ k \* spacing\)/);
+  // The old formula must be gone, not merely unused.
+  assert.ok(!/crest\.tStar \+ \(k \* T\) \/ n/.test(rig),
+    'the full-period column formula is still in the rig');
+  assert.ok(!/'\+T\/5'|'\+2T\/5'/.test(rig), 'the +kT/5 column labels survive');
+});
+
+test('the tracked wave is a model read with its own error bar', () => {
+  // The marker must come from the model, not from a pixel search or a constant:
+  // a mark that is computed is falsifiable, and a mark that is placed is not.
+  assert.match(rig, /function trackedWave\(/);
+  assert.match(rig, /curlProbe\(p\.x, p\.z - 0\.5, p\.z \+ 0\.5, 3\)/,
+    'the breakpoint is not read off the break line through curlProbe');
+  assert.match(rig, /s\.pocket - 0\.0015 \* Math\.abs\(s\.x - seedX\)/,
+    'there is no continuity term, so a row can hop between crests');
+  // offM: the same crest read the OTHER way, so the mark can be caught drifting.
+  assert.match(rig, /markerOffM/);
+  assert.match(rig, /markerOffMaxM/);
+  assert.match(rig, /mark off crest/, 'the marker error is not on the page');
+  // Break sheet only. The set sheet's columns are 2-3 carrier periods apart, so
+  // one wave cannot be followed across them and a marker claiming otherwise
+  // would be the exact error MEASUREMENT_LESSONS 12 is about.
+  assert.match(rig, /if \(sheet\.clock\.kind === 'wave'\) \{\s*\n\s*marker = await page\.evaluate\(trackedWave/,
+    'the marker is not gated to the wave sheet');
+  const capture = rig.slice(rig.indexOf('async function captureSheet('));
+  assert.match(capture, /const crop = sheet\.clock\.kind === 'wave' \? cropForRow/,
+    'the crop is not gated to the wave sheet');
+});
+
+test('framing is a crop, so the camera guarantees survive', () => {
+  // MEASUREMENT_LESSONS 11: an instrument that re-frames itself on the signal is
+  // not a fixed instrument. The crop is a pixel operation on an already-captured
+  // frame, identical across a row, so camDriftM keeps meaning what it meant.
+  assert.match(rig, /function cropForRow\(/);
+  assert.match(rig, /const crop = sheet\.clock\.kind === 'wave' \? cropForRow\(cells, VIEW\) : null/);
+  // One window per ROW, applied to every column: a per-column crop centred on
+  // the breakpoint would hold the subject still and delete the motion the sheet
+  // exists to show.
+  const body = rig.slice(rig.indexOf('function cropForRow('), rig.indexOf('async function renderFrame('));
+  assert.ok(/for \(const c of cells\)/.test(body),
+    'cropForRow does not union over the row\'s columns');
+  // Nothing may move the camera between columns.
+  assert.ok(!/controls\.target\.set|camera\.position\.set|setCam\(/.test(rig),
+    'the rig moves the camera, which would break the camDrift assertion');
+  assert.match(rig, /camDriftM/);
+  // And the row has to say on the page that it was cropped.
+  assert.match(rig, /class="cropnote"/);
 });

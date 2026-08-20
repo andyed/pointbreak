@@ -277,6 +277,56 @@ wants re-measuring now that #pitch made faces steeper.
       for every shipped Δf and for ANY `setRef`, which is the permanent form of
       the (a)/(c) refutation) and written up as MEASUREMENT_LESSONS 12.
 
+## ▶ RIG DEFECT, NOT A MODEL DEFECT (2026-08-20) — the QA break sheet aliased
+
+- [x] **"Which wave are we tracking?" — the sheet very nearly aliased back onto
+      itself.** Live read of the published page: *"it's hard to see what's
+      happening here… which wave are we tracking? maybe we need to tighten the
+      time sample to preserve visibility to sequence?"* Correct, and the fault
+      was in the layout, not the renderer. The five columns spanned ONE FULL
+      WAVE PERIOD at T/5. **A crest advances exactly one crest spacing per
+      period**, so column 5 sat **0.80 of a spacing on — 0.20 of a spacing from
+      where the NEXT wave upstream had been in column 1.** The ratio is not a
+      measurement and not site-specific: advance ÷ spacing = Δt ÷ T cancels the
+      local wavelength, so it was 0.80 on **every row, at every camera, at every
+      H₀** — including rows whose local crest spacing differs 5× (15.5 m at
+      `day=small`'s aim station against 82.4 m at `day=big`'s, both against a
+      90 m deep-water Λ). Five near-identical parallel lines with no
+      identifiable subject. Visible in the sheet's own numbers: laid out over a
+      full T the tracked breakpoint reads `36/56/88/4/36` at `day=small`,
+      `56/72/92/44/56` at `day=modelcard` and `52/76/16/36/52` at `h0=2.5` —
+      **column 5 on column 1's station to the metre in three rows.**
+      **FIX (rig only, `scripts/build_qa_sheets.mjs`), three parts:**
+      *(1) span.* `WAVE_SPAN_T = 1/4`, columns T/16, so the crest advances 0.25
+      of a spacing across the row. What still moves is the subject: the model's
+      own zipper locus (argmax of `pocket` along the break line) travels
+      37 → 55 m at `day=small` (+17.6 m in 2.25 s) and 42 → 88 m at `day=big`
+      (+46.3 m in 4.25 s) — Vp = c/sinα is faster than the wave, which is the
+      whole point of a point break.
+      Longer was measured and rejected: at `day=big` the tracked wave has
+      **peeled off the stage end by ~0.35 T** (pocket 0.99 → 0.00 between 0.30 T
+      and 0.40 T), so a longer sheet loses its own subject regardless of
+      aliasing. Instrument: `scripts/measure_break_sequence.mjs`.
+      *(2) marker.* One wave is identified at the anchor clock and **ringed in
+      every frame**, with a line along its crest, both computed from the model
+      (`pocket` on the line for the ring, `crest` = `crestNear·(1−brk)·env²`
+      marched by continuity for the line) and projected through the live camera
+      matrices. It carries its own error bar — `markerOffM`, the distance from
+      the ring to the tallest displaced surface point at the same station —
+      worst case **5.36 m / 33.6 px** at `h0=0.7`, which is the low-H₀ branch
+      collapse (stage α 4.3°) showing up as the zipper locus and the crest
+      maximum coming apart. That is the marker working, not failing.
+      *(3) framing.* Cells are **cropped**, not re-shot from a tighter camera —
+      one window per row, computed from the marker's own projected extent, so
+      the wave moves through a fixed frame. A tighter camera would make the
+      instrument frame itself on the signal (MEASUREMENT_LESSONS 11) and would
+      void `camDriftM`, which stays **0.00 m on all 12 rows**.
+      **No model change, no flag, no CONTROLS row.** The sets sheet's clocks and
+      reducer are untouched — its subject is the envelope, and a single-wave
+      marker across columns 2–3 carrier periods apart would be lesson 12 again.
+      Pinned in `tests/qa-publish.test.js` (span bound, marker-is-a-model-read,
+      crop-not-camera) and written up as MEASUREMENT_LESSONS 15.
+
 **The screensaver read (mission #1)**
 - [x] WAVE SHAPE, second cause — **`dropMag` FLATTENED THE POCKET** (fixed
       2026-08-18, ships ON, `#drop=legacy` reverts; `scripts/measure_pocket_crest.mjs`

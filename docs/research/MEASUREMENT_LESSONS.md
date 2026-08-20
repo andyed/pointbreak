@@ -409,3 +409,85 @@ closeout was a separate, thresholdless defect. Sewers' threshold is at **1.605**
 was correct, and the conclusion drawn from it was wrong, because a bounded
 search that finds nothing establishes nothing outside its bounds. State the
 bound with the null.
+
+## 15. A sequence sampled over one whole period of its own subject shows nothing
+
+Sibling of lesson 12, one level up. There the reducer's window was wrong for the
+carrier; here the *layout* was.
+
+The QA break sheet is five columns of one wave breaking. Its columns spanned one
+full wave period T at T/5 each — an obvious-looking choice, and the sheet was
+unreadable. Andy, looking at the published page: *"it's hard to see what's
+happening here… which wave are we tracking?"*
+
+**A crest advances exactly one crest spacing per period.** So column *k* sat
+*k*/5 of a spacing along, and column 5 sat **0.80 of a spacing on — 0.20 from
+where the next wave upstream had been in column 1**. The sequence very nearly
+aliased back onto itself, and the five frames were five near-identical parallel
+lines with no identifiable subject.
+
+The part worth carrying: **that ratio is not a measurement and not a property of
+the site.** advance ÷ spacing = Δt ÷ T, and the local wavelength cancels out of
+it exactly. So it was 0.80 on every row of the sheet, at every camera, at every
+H₀ — including rows where the local crest spacing differs by 5× (15.5 m at
+`day=small`'s aim station against 82.4 m at `day=big`'s, both against a 90 m
+deep-water Λ). No amount of looking at one row could have found it, and no
+per-site tuning could have fixed it. **Whenever a sequence samples a periodic
+subject, write down the sample interval as a fraction of the subject's own
+period before choosing anything else.** If that fraction approaches 1, the last
+frame is the first frame.
+
+And it is not only arithmetic — the sheet's own subject can be watched doing it.
+Laid out over a full T, the tracked breakpoint's world x across the five columns
+reads `36/56/88/4/36` at `day=small`, `56/72/92/44/56` at `day=modelcard` and
+`52/76/16/36/52` at `h0=2.5`: **three rows where column 5 lands on column 1's
+station to the metre**, having wrapped through the stage in between. Over T/4
+the same rows read `37/43/46/50/55`, `58/62/66/70/74` and `50/54/58/66/74` —
+monotone, and nowhere near their own start.
+
+Three things this cost, all avoidable:
+
+* **A whole-period span is the worst case, not the natural one.** "Cover one
+  full cycle" is the instinct, and it is exactly the layout that guarantees the
+  ends match. The natural span is however much of the cycle the *change you are
+  showing* needs.
+* **The subject was the wrong quantity.** The sheet is about a POINT BREAK, and
+  what a point break does is peel: the breakpoint travels along the line at
+  Vp = c/sin α, **faster than the wave**. Over T/4 the crest advances a quarter
+  of a spacing while the model's own zipper locus travels 37→55 m of line at
+  `day=small` (+17.6 m in 2.25 s) and 42→88 m at `day=big` (+46.3 m in 4.25 s).
+  Sampling the slow quantity over a period of the fast one had it backwards.
+* **The span has an upper bound from the other side too, and it is not the
+  aliasing.** Measured (`scripts/measure_break_sequence.mjs`): at `day=big` the
+  tracked wave has **peeled off the stage end by about 0.35 T** — its pocket
+  goes 0.99 → 0.00 between 0.30 T and 0.40 T — so a longer sheet loses its own
+  subject in the last columns whether or not it aliases. Two bounds from two
+  unrelated mechanisms, and the shorter one wins.
+
+Fix: span T/4 (columns T/16), and **mark the tracked wave**. The marker is
+computed from the model — the argmax of `pocket` along the break line, which the
+shader's own comment calls the zipper's locus, with a continuity term across
+columns — and projected through the live camera matrices, so it is falsifiable
+rather than decorative. It carries its own error bar: `markerOffM` is the
+distance from the ring to the tallest displaced surface point on a shore-normal
+transect at the same station, i.e. the same crest read through a different
+reduction. Worst case over the shipped sheet is **5.36 m (33.6 px)**, at
+`h0=0.7` — which is the low-H₀ branch collapse (stage α 4.3°, a near-closeout
+below Second Peak's 1.08 m peel floor) showing up as the zipper locus and the
+crest maximum coming apart, exactly what an instrumented marker is for.
+
+Related, and the reason this is not lesson 1 again: **a still cannot support a
+claim about motion, but an ordered set of stills with model-derived clocks can
+support a claim about positions.** Each cell states where the breakpoint is at a
+clock the model chose; the row states the difference between two such reads.
+Nothing is measured off the pictures. Lesson 1's third failure — "peel direction
+is rightward, confirmed across two frames" — failed because frame order was
+never established. Here it is established by construction, and that is the whole
+difference.
+
+Framing, recorded because it was the tempting wrong answer: the cells are
+**cropped**, not re-shot from a tighter camera. Moving the camera to frame the
+wave would make the instrument frame itself on the signal (lesson 11) and would
+void the sheet's `camDriftM` guarantee. A crop is a pixel operation on an
+already-captured frame, identical across a row, so the camera stays where it
+was, the drift stays 0.00 m, and each cell's hash still reopens the full state.

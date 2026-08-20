@@ -49,17 +49,52 @@
 //      it. --pubwidth / --pubquality tune it; the run prints the achieved total.
 //
 // WHY THE CLOCKS ARE DERIVED, NOT PICKED
-//   Sheet 1 (break progression) columns span ONE WAVE PERIOD T, anchored on a
-//   MEASURED crest arrival at the break line: the rig sweeps sim time across
-//   one T around the set peak, reads the displaced surface off the GPU through
-//   __pointbreak.curlProbe at the break-line transect, and takes the argmax.
-//   Columns are then t* + k*T/5, k = 0..4.
+//   Sheet 1 (break progression) columns span a QUARTER of a wave period T,
+//   anchored on a MEASURED crest arrival at the break line: the rig sweeps sim
+//   time across one T around the set peak, reads the displaced surface off the
+//   GPU through __pointbreak.curlProbe at the break-line transect, and takes
+//   the argmax. Columns are then t* + k*T/16, k = 0..4. See the aliasing note
+//   below for why the span is T/4 and not T.
 //   Sheet 2 (sets) columns span ONE SET BEAT 1/dF. setEnv peaks at the live
 //   break line at t = SET_ANCHOR_S = 45 s by construction (#arm anchor: the
 //   envelope is re-referenced to u_setRef, so the s/cg term cancels there), so
 //   columns are 45 + (1/dF)*(0.5 + k/4), k = 0..4 — lull, building, PEAK,
 //   easing, lull. Phase is read back per cell through the repo's own setEnv
 //   twin fed from the live uniforms, never a re-derivation.
+//
+// WHY THE BREAK SHEET NO LONGER SPANS A WHOLE PERIOD (2026-08-20)
+//   It used to span one full T at T/5 per column, and the sequence very nearly
+//   ALIASED BACK ONTO ITSELF. A crest advances exactly one crest spacing per
+//   period, so k*T/5 puts the tracked wave k/5 of a spacing along: by column 5
+//   it sits 0.8 of a spacing on, i.e. 0.2 of a spacing from where the NEXT wave
+//   upstream sat in column 1. That ratio is not a property of the site — it
+//   cancels the local wavelength exactly (advance/spacing = dt/T), so it was
+//   0.8 on every row of the sheet, at every camera, at every H0. Andy's read of
+//   the published page — "it's hard to see what's happening here... which wave
+//   are we tracking?" — was the aliasing, not a rendering fault.
+//
+//   Two changes, both measured (scripts/measure_break_sequence.mjs):
+//   1. SPAN. WAVE_SPAN_T = 1/4, columns T/16 apart, so the crest advances 0.25
+//      of a spacing across the whole row instead of 0.80 and never approaches
+//      its neighbour's slot. What still MOVES over that span is the thing a
+//      point break is about: the breakpoint travels down the line at
+//      Vp = c/sin(alpha), which is faster than c. Measured at Second Peak from
+//      the anchor clock, the model's own zipper locus (pocket along the break
+//      line) moves 37 -> 55 m of line at day=small (+17.6 m in 2.25 s) and
+//      42 -> 88 m at day=big (+46.3 m in 4.25 s) while the crest itself
+//      advances a quarter of a spacing. Laid out over a full T instead, the
+//      same read comes back to where it started — 36/56/88/4/36 at day=small,
+//      56/72/92/44/56 at day=modelcard — which is the aliasing as a number
+//      rather than as an argument. Longer spans were also rejected from the
+//      other side: at day=big the tracked wave has PEELED OFF THE STAGE END by
+//      ~0.35 T (pocket 0.99 -> 0.00 between 0.30 T and 0.40 T), so a longer
+//      sheet loses its own subject in the last columns whether or not it
+//      aliases. Two bounds, two unrelated mechanisms, shorter one wins.
+//   2. A MARKER. The tracked wave is identified at the anchor clock and drawn
+//      in every column at its projected screen position (see trackedWave).
+//      Computed from the model, so if it drifts off the crest the sheet is
+//      reporting something real; markerOffM/markerOffPx are in the JSON and the
+//      worst case is printed per row.
 //
 // WHY THE SET SHEET'S CREST IS AN ENVELOPE, NOT AN INSTANT (2026-08-19)
 //   The crest at a fixed station is a CARRIER (period T = 12-15 s) inside a SET
@@ -230,6 +265,55 @@ const FOAM_HI = 205, FOAM_LO = 160;
 const CORRIDOR_M = [-15, 45];
 const CORRIDOR_N = 25;   // samples per station across the corridor
 
+// ---------------------------------------------------------------------------
+// THE TRACKED WAVE — span, marker, framing (2026-08-20)
+// ---------------------------------------------------------------------------
+// How much of a period the break sheet's five columns span. See the aliasing
+// note at the top of this file: the crest advance across the whole row is
+// exactly WAVE_SPAN_T crest spacings, independently of site, size and camera,
+// so this constant IS the confusability of the sheet with itself.
+const WAVE_SPAN_T = 1 / 4;
+
+// How far the crest ribbon reaches, in metres of break line either side of the
+// breakpoint. Asymmetric because the shoulder AHEAD of the peel (+x, down the
+// point) is the part of the wave still to break, and that is the half worth
+// marking. The indicator it follows is crestNear*(1-brk)*env^2 (model-glsl
+// `crest`), which lives on the unbroken shoulder and dies in the whitewater, so
+// the ribbon also ends at the peel by itself rather than by a rule.
+// Both reaches are kept SHORT on purpose: a ribbon long enough to leave the
+// frame stops reading as a mark ON something and starts reading as a rule drawn
+// ACROSS the picture, which is the opposite of unobtrusive. Measured at
+// cliff/day=small, where a 135 m ribbon spanned 1086 px of a 1000 px frame.
+const RIB_BACK_M = 22, RIB_FWD_M = 58, RIB_STEP_M = 4;
+const RIB_HALF_M = 22, RIB_N = 89;      // shore-normal search window per station
+const LINE_STEP_M = 4;                   // break-line stations for the pocket scan
+
+// Marker ink. NOT text (WCAG 1.4.3 does not apply), but it has to survive both
+// near-black water and blown-out foam, so every stroke is drawn twice: a dark
+// casing first, the amber over it. Amber is --warn, the same token the sheet
+// uses for "look here".
+const MARK_INK = 'rgba(255,209,102,0.95)';
+const MARK_CASE = 'rgba(0,0,0,0.5)';
+
+// Framing. The cell is cropped to a window that contains the tracked wave
+// across ALL FIVE columns of its row — one window per row, so the wave moves
+// through a fixed frame rather than being re-centred out of its own motion.
+// The camera is never touched, so the row's camera drift stays 0.00 m and the
+// cell hash still reproduces the full frame in the simulator.
+const CROP_PAD = 0.35;      // of the marker bbox's larger side, each way
+const CROP_MIN_FRAC = 0.42; // never crop below this fraction of frame width
+const CROP_MAX_ZOOM = 2.4;  // and never magnify more than this
+// Below this the crop is not worth the caveat it costs: a row that says
+// "cropped to 993x621, 1.01x closer" has traded an honest full frame for a
+// footnote and 7 px. Measured at cliff/h0=0.7, whose breakpoint travels 52 m,
+// so its five-column bbox is nearly the frame.
+const CROP_MIN_ZOOM = 1.06;
+// The crop is framed on the SUBJECT, which is the breakpoint and the water
+// immediately either side of it — not on the whole ribbon. A cliff camera looks
+// nearly along the line, so even 80 m of crest projects across the frame and a
+// bbox over all of it would ask for no crop at all.
+const CROP_REACH_M = 40;
+
 const GENERATED = new Date();
 
 // The block that rides into every page AND every JSON sidecar. `capturedAt` is
@@ -285,11 +369,11 @@ const SEASON_MONTHS = [
 // Local mode is the working instrument: the full matrix, 125 frames. Published
 // mode is a slim view of the SAME instrument, cut on ROWS only.
 //
-// Columns are never cut. On the break sheet the five clocks across one wave
-// period ARE the artifact — a progression reduced to three shots stops showing
-// progression. On the set sheet the five columns are lull → building → PEAK →
-// easing → lull, which is the entire demonstration that the envelope floor work
-// exists to make; drop the lulls and the page argues nothing.
+// Columns are never cut. On the break sheet the five clocks across the tracked
+// wave's quarter-period ARE the artifact — a progression reduced to three shots
+// stops showing progression. On the set sheet the five columns are lull →
+// building → PEAK → easing → lull, which is the entire demonstration that the
+// envelope floor work exists to make; drop the lulls and the page argues nothing.
 //
 // Rows are where the redundancy is:
 //   BREAK — small vs big, two bundle rows instead of six. A bundle moves H0, T,
@@ -323,12 +407,15 @@ const SHEETS = [
     id: 'break-progression',
     file: 'break-progression.html',
     title: 'Break progression',
-    blurb: 'One wave through its break, five clocks across one wave period T, at six wave sizes.',
+    blurb: 'ONE wave, ringed in every frame, at five clocks across a quarter of a wave period — '
+      + 'the span over which its breakpoint peels down the point but the wave itself never reaches '
+      + 'its neighbour\'s place. Six wave sizes.',
     // Published mode ships a row subset, so the standing description of the
     // sheet has to match the page a reader is actually looking at. A lede that
     // promises six rows over a two-row grid is its own small dishonesty.
-    pubBlurb: 'One wave through its break, five clocks across one wave period T, '
-      + 'at the two ends of the size range.',
+    pubBlurb: 'ONE wave, ringed in every frame, at five clocks across a quarter of a wave period — '
+      + 'the span over which its breakpoint peels down the point but the wave itself never reaches '
+      + 'its neighbour\'s place. The two ends of the size range.',
     clock: { kind: 'wave', n: 5 },
     groups: [
       {
@@ -541,6 +628,190 @@ function probeTransect({ x, zLine, halfM, n }) {
     ? { crest, foam, brk, pocket, ceil } : null;
 }
 
+// ---------------------------------------------------------------------------
+// THE TRACKED WAVE
+//
+// Answers "which wave am I looking at" with the model's own bookkeeping rather
+// than with a hand-placed annotation, so the marker is falsifiable: if it drifts
+// off the crest the sheet is telling you something about the model.
+//
+//   BREAKPOINT. `pocket` in model-glsl is
+//       crestNear(thetaL) * bell(d) * env^2 * reef,
+//   and d = breakLine(x) - z is zero ON the line, so sampled along the line the
+//   bell is 1 and pocket IS the crest-proximity bell: it peaks exactly where a
+//   crest is crossing. The shader's own comment calls it "the zipper's locus".
+//   The breakpoint is the parabola-refined argmax of that scan over the stage.
+//   Across columns the argmax is scored with a small distance penalty from the
+//   PREVIOUS column's breakpoint, so the row follows one wave rather than
+//   hopping to whichever crest happens to be tallest (the same continuity
+//   discipline m4RideSolve uses, and lesson 8's "change the selection").
+//
+//   RIBBON. From the breakpoint, march out along x and take the argmax of the
+//   `crest` channel on a shore-normal window, seeded at the previous station's
+//   z. That channel is crestNear*(1-brk)*env^2, so it follows the crest LOCUS
+//   (carrier phase, not the skewed shape — see the thetaL note in model-glsl)
+//   and switches itself off inside the whitewater. The ribbon therefore ends at
+//   the peel without being told to.
+//
+//   SELF-CHECK. offM is the distance from the breakpoint to the tallest
+//   displaced surface point on a shore-normal transect at the same station —
+//   i.e. how far the marker sits from the crest it claims to be on. It is
+//   carried per cell into the JSON and the worst case is printed per row.
+//
+// Camera use is read-only and identical to readState's: live matrices, so the
+// marker follows whichever cam preset the row asked for. Nothing here moves the
+// clock, the camera or any uniform.
+function trackedWave({ seedX, lineStep, ribStep, ribBack, ribFwd, ribHalf, ribN }) {
+  const pb = window.__pointbreak;
+  const cam = pb.camera;
+  cam.updateMatrixWorld(true);
+  const W = innerWidth, H = innerHeight;
+  const proj = (x, y, z) => {
+    const v = new (cam.position.constructor)(x, y, z); v.project(cam);
+    return { px: (v.x * 0.5 + 0.5) * W, py: (1 - (v.y * 0.5 + 0.5)) * H, ndcZ: v.z };
+  };
+  // Same line construction as readState: the bake plus the sections shift, or
+  // the corridor and the marker would describe different lines.
+  const fractf = (v) => v - Math.floor(v);
+  const hash11 = (p) => { p = fractf(p * 0.1031); p *= p + 33.33; return fractf((p + p) * p); };
+  const vnoise1 = (v) => {
+    const i = Math.floor(v); let f = v - i; f = f * f * (3 - 2 * f);
+    return hash11(i) + (hash11(i + 1) - hash11(i)) * f;
+  };
+  const secU = pb.uniforms.u_sections.value;
+  const secShift = (x) => (secU >= 0.05
+    ? Math.min(secU * 55 * (vnoise1(x * 0.02 + 7.3) - 0.5) * 2, 0) : 0);
+  const raw = pb.lineProbe(lineStep) || [];
+  if (!raw.length) return { baked: false, bp: null, ribbon: [] };
+  const line = raw.map((p) => ({ x: p.x, z: p.z + secShift(p.x), gap: Boolean(p.gap) }));
+  const zbAt = (x) => {
+    if (x <= line[0].x) return line[0].z;
+    if (x >= line[line.length - 1].x) return line[line.length - 1].z;
+    for (let i = 1; i < line.length; i++) if (line[i].x >= x) {
+      const a = line[i - 1], b = line[i];
+      return a.z + (b.z - a.z) * (x - a.x) / (b.x - a.x);
+    }
+    return 0;
+  };
+  const sa = pb.stageAlpha ? pb.stageAlpha() : null;
+  const stageLo = sa ? sa.stageLo : line[0].x;
+  const stageHi = sa ? sa.stageHi : line[line.length - 1].x;
+
+  // pocket along the line — the zipper locus
+  const onLine = [];
+  for (const p of line) {
+    if (p.x < stageLo || p.x > stageHi) continue;
+    if (p.gap) { onLine.push({ x: p.x, z: p.z, pocket: 0, foam: 0, gap: true }); continue; }
+    const rows = pb.curlProbe(p.x, p.z - 0.5, p.z + 0.5, 3) || [];
+    const m = rows[1] || {};
+    onLine.push({ x: p.x, z: p.z, pocket: m.pocket || 0, brk: m.brk || 0,
+      foam: m.foam || 0, gap: false });
+  }
+  let bi = -1, bv = -Infinity;
+  for (let i = 0; i < onLine.length; i++) {
+    const s = onLine[i];
+    if (s.gap) continue;
+    // Continuity penalty, in pocket units per metre. Small enough that it never
+    // beats a real peak, large enough to break a tie between two crests on the
+    // line — which is the only case where "the tallest" and "the one we were
+    // following" can differ.
+    const score = Number.isFinite(seedX) ? s.pocket - 0.0015 * Math.abs(s.x - seedX) : s.pocket;
+    if (score > bv) { bv = score; bi = i; }
+  }
+  let bp = null;
+  if (bi >= 0 && onLine[bi].pocket > 1e-4) {
+    let bx = onLine[bi].x;
+    if (bi > 0 && bi < onLine.length - 1 && !onLine[bi - 1].gap && !onLine[bi + 1].gap) {
+      const a = onLine[bi - 1].pocket, b = onLine[bi].pocket, c = onLine[bi + 1].pocket;
+      const den = a - 2 * b + c;
+      if (Math.abs(den) > 1e-9) {
+        const d = (a - c) / (2 * den);
+        if (Math.abs(d) <= 1) bx = onLine[bi].x + d * lineStep;
+      }
+    }
+    bp = { x: bx, z: zbAt(bx), pocket: onLine[bi].pocket };
+  }
+
+  // crest locus at one station, parabola-refined, seeded at zc
+  const peakAt = (x, zc, half, n) => {
+    const rows = pb.curlProbe(x, zc - half, zc + half, n) || [];
+    let i = -1, best = -Infinity;
+    for (let k = 0; k < rows.length; k++) {
+      if (rows[k].land > 0.5) continue;
+      if (rows[k].crest > best) { best = rows[k].crest; i = k; }
+    }
+    if (i < 0 || best <= 1e-3) return null;
+    let z = rows[i].z;
+    if (i > 0 && i < rows.length - 1) {
+      const a = rows[i - 1].crest, b = rows[i].crest, c = rows[i + 1].crest;
+      const den = a - 2 * b + c;
+      if (Math.abs(den) > 1e-9) {
+        const d = (a - c) / (2 * den);
+        if (Math.abs(d) <= 1) z = rows[i].z + d * (rows[i + 1].z - rows[i - 1].z) * 0.5;
+      }
+    }
+    return { z, v: best, y: rows[i].y, edge: i <= 1 || i >= rows.length - 2 };
+  };
+
+  const ribbon = [];
+  let offM = null, offPx = null;
+  if (bp) {
+    // How far is the marker from the crest it claims to be on? The crest here
+    // is the model's own, read the OTHER way — the tallest displaced surface
+    // point on a shore-normal transect at the breakpoint's station.
+    const tall = pb.curlProbe(bp.x, bp.z - 25, bp.z + 25, 201) || [];
+    let ty = -Infinity, tz = null;
+    for (const r of tall) if (r.land < 0.5 && r.y > ty) { ty = r.y; tz = r.z; }
+    const seed = peakAt(bp.x, bp.z, ribHalf, ribN);
+    const bpY = seed ? seed.y : (Number.isFinite(ty) ? ty : 0);
+    const sBp = proj(bp.x, bpY, bp.z);
+    bp.y = bpY; bp.px = sBp.px; bp.py = sBp.py; bp.ndcZ = sBp.ndcZ;
+    bp.vis = sBp.ndcZ < 1 && sBp.px > -600 && sBp.px < W + 600
+      && sBp.py > -600 && sBp.py < H + 600;
+    if (tz !== null) {
+      offM = Math.abs(tz - bp.z);
+      const sT = proj(bp.x, ty, tz);
+      offPx = Math.hypot(sT.px - sBp.px, sT.py - sBp.py);
+    }
+    if (seed) {
+      const march = (dir, reach) => {
+        let zp = seed.z; const out = [];
+        for (let d = ribStep; d <= reach; d += ribStep) {
+          const x = bp.x + dir * d;
+          if (x < stageLo || x > stageHi) break;
+          const p = peakAt(x, zp, ribHalf, ribN);
+          if (!p || p.edge) break;
+          out.push({ x, z: p.z, y: p.y });
+          zp = p.z;
+        }
+        return out;
+      };
+      // Which way is down-point? +x by construction (m4RideSolve rides the +x
+      // branch), so the shoulder still to break is ahead of the breakpoint.
+      const back = march(-1, ribBack).reverse();
+      ribbon.push(...back, { x: bp.x, z: seed.z, y: seed.y }, ...march(1, ribFwd));
+    }
+  }
+  const rib = ribbon.map((p) => {
+    const s = proj(p.x, p.y, p.z);
+    return { x: +p.x.toFixed(1), z: +p.z.toFixed(2), y: +p.y.toFixed(2),
+      px: +s.px.toFixed(1), py: +s.py.toFixed(1),
+      vis: s.ndcZ < 1 && s.px > -600 && s.px < W + 600 && s.py > -600 && s.py < H + 600 };
+  }).filter((p) => p.vis);
+  const open = onLine.filter((s) => !s.gap);
+  return {
+    baked: true, stageLo, stageHi, sim: pb.sim(),
+    bp: bp && bp.vis ? { x: +bp.x.toFixed(2), z: +bp.z.toFixed(2), y: +bp.y.toFixed(2),
+      px: +bp.px.toFixed(1), py: +bp.py.toFixed(1), pocket: +bp.pocket.toFixed(3) } : null,
+    ribbon: rib,
+    offM: offM === null ? null : +offM.toFixed(2),
+    offPx: offPx === null ? null : +offPx.toFixed(1),
+    linePocketMax: open.length ? +Math.max(...open.map((s) => s.pocket)).toFixed(3) : null,
+    lineFoamFrac: open.length
+      ? +(open.filter((s) => s.foam >= 0.15).length / open.length).toFixed(3) : null,
+  };
+}
+
 // The same read, but along the RIDEABLE STAGE rather than at one station: the
 // model's own answer to "is this thing breaking, and how big is it". Camera-
 // independent by construction, so it cannot be moved by the framing the way a
@@ -695,18 +966,42 @@ async function measureStationEnvelope(page, T, t, station, halfM) {
     ? { crestEnvM: +best.toFixed(2), crestEnvAtT: tStar } : { crestEnvM: null, crestEnvAtT: null };
 }
 
+// A small exact-ratio label: 1/16, 1/8, 3/16, 1/4 rather than 0.0625 T.
+function ratioLabel(num, den) {
+  const g = (a, b) => (b ? g(b, a % b) : a);
+  const d = g(num, den) || 1;
+  const p = num / d, q = den / d;
+  return q === 1 ? `${p}` : (p === 1 ? `1/${q}` : `${p}/${q}`);
+}
+
 function clocksFor(sheet, st, crest) {
   if (sheet.clock.kind === 'wave') {
     const T = st.T, n = sheet.clock.n;
+    // The whole row spans WAVE_SPAN_T of a period, so the tracked crest advances
+    // WAVE_SPAN_T of a crest spacing across it — that ratio is exact and site-
+    // independent (advance/spacing = dt/T), which is why it can be stated in a
+    // shared column header while nothing else about the wave can be.
+    const denom = Math.round((n - 1) / WAVE_SPAN_T);   // 16 at n=5, span T/4
+    const spacing = T / denom;
+    const advOf = (k) => k / denom;                    // crest spacings advanced
     return {
       period: T, periodLabel: `wave period T = ${T.toFixed(1)} s`,
-      spacing: T / n,
+      spacing,
+      spanFrac: WAVE_SPAN_T, spanS: +(WAVE_SPAN_T * T).toFixed(3), denom,
+      advance: Array.from({ length: n }, (_, k) => +advOf(k).toFixed(4)),
       how: `crest measured on the break line at t* = ${crest.tStar.toFixed(2)} s `
          + `(argmax of the GPU-read crest height over ${crest.sweepN} clocks spanning `
          + `${crest.sweepFrom.toFixed(1)}–${crest.sweepTo.toFixed(1)} s, i.e. one T centred on the `
-         + `set peak at SET_ANCHOR_S = ${SET_ANCHOR_S} s); columns are t* + k·T/5.`,
-      times: Array.from({ length: n }, (_, k) => crest.tStar + (k * T) / n),
-      phases: ['crest on the line', '+T/5', '+2T/5', '+3T/5', '+4T/5'],
+         + `set peak at SET_ANCHOR_S = ${SET_ANCHOR_S} s); columns are t* + k·T/${denom}, so the five `
+         + `span ${ratioLabel(n - 1, denom)}·T = ${(WAVE_SPAN_T * T).toFixed(2)} s and the tracked crest `
+         + `advances ${WAVE_SPAN_T.toFixed(2)} of a crest spacing across the whole row.`,
+      times: Array.from({ length: n }, (_, k) => crest.tStar + k * spacing),
+      phases: Array.from({ length: n }, (_, k) => (k === 0
+        ? 'crest reaches the line'
+        : `${ratioLabel(k, denom)} of a wave later`)),
+      subs: Array.from({ length: n }, (_, k) => (k === 0
+        ? 'anchor t*'
+        : `+${ratioLabel(k, denom)}·T · crest ${advOf(k).toFixed(2)} Λ on`)),
     };
   }
   const P = 1 / st.dF, n = sheet.clock.n;
@@ -719,41 +1014,129 @@ function clocksFor(sheet, st, crest) {
        + `lull through the peak back to lull.`,
     times: Array.from({ length: n }, (_, k) => SET_ANCHOR_S + P * (0.5 + k / 4)),
     phases: ['lull', 'building', 'SET PEAK', 'easing', 'lull'],
+    subs: ['anchor', '+1/4 beat', '+1/2 beat', '+3/4 beat', '+1 beat'],
   };
 }
 
 // ---------------------------------------------------------------------------
-// Published frame encoding
+// Frame rendering — crop, marker, encode
 //
 // Captures stay full-resolution PNG in memory because foamStats measures THEM —
-// the pixel corridor must read the frame the camera drew, not a re-encoded one.
-// Only the file written for a published page is downscaled and lossily encoded.
+// the pixel corridor must read the frame the camera drew, not a re-encoded or
+// annotated one. Everything here runs AFTER that measurement, on a copy.
 //
-// The encode runs in a second, blank browser page: this repo ships no
-// node_modules, and Chromium already has a good WebP encoder behind
-// canvas.toDataURL. The sim page is never touched, so nothing here can perturb
-// the state a cell was captured in.
+// It runs in a second, blank browser page: this repo ships no node_modules, and
+// Chromium already has a canvas and a good WebP encoder. The sim page is never
+// touched, so nothing here can perturb the state a cell was captured in.
+//
+// THE MARKER IS DRAWN HERE, NOT IN THE PAGE, for exactly that reason: an overlay
+// in the sim page would be inside the screenshot the pixel corridor reads, and
+// foam_pix would then be partly a measurement of the marker.
 // ---------------------------------------------------------------------------
-async function encodeFrame(encoder, pngBuf, w, h, quality) {
-  const out = await encoder.evaluate(async ({ b64, W, H, q }) => {
+
+// The crop window for one ROW: the union of the tracked wave's projected extent
+// across all five of its columns, padded, aspect-locked to the viewport and
+// clamped inside it. One window per row, so the wave moves through a fixed
+// frame instead of being re-centred out of its own motion — and the camera is
+// never touched, so camDriftM stays exactly what it was.
+function cropForRow(cells, view) {
+  const pts = [];
+  for (const c of cells) {
+    if (!c.marker || !c.marker.bp) continue;
+    pts.push([c.marker.bp.px, c.marker.bp.py]);
+    for (const p of c.marker.ribbon || [])
+      if (Math.abs(p.x - c.marker.bp.x) <= CROP_REACH_M) pts.push([p.px, p.py]);
+  }
+  if (pts.length < 4) return null;           // nothing tracked: ship the frame whole
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [px, py] of pts) {
+    x0 = Math.min(x0, px); x1 = Math.max(x1, px);
+    y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+  }
+  // Clip the bbox to the frame first: a ribbon that runs off the side would
+  // otherwise pull the window out to a place with no pixels in it.
+  x0 = Math.max(0, x0); x1 = Math.min(view.width, x1);
+  y0 = Math.max(0, y0); y1 = Math.min(view.height, y1);
+  if (!(x1 > x0) || !(y1 > y0)) return null;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const pad = CROP_PAD * Math.max(x1 - x0, y1 - y0);
+  let w = Math.max((x1 - x0) + 2 * pad, ((y1 - y0) + 2 * pad) * (view.width / view.height));
+  // Bounds, both stated as ratios so they survive a viewport change: never
+  // tighter than CROP_MIN_FRAC of the frame, never more than CROP_MAX_ZOOM.
+  w = Math.min(view.width, Math.max(w, view.width * CROP_MIN_FRAC, view.width / CROP_MAX_ZOOM));
+  let h = w * (view.height / view.width);
+  if (h > view.height) { h = view.height; w = h * (view.width / view.height); }
+  const sx = Math.round(Math.min(Math.max(cx - w / 2, 0), view.width - w));
+  const sy = Math.round(Math.min(Math.max(cy - h / 2, 0), view.height - h));
+  const sw = Math.round(w), sh = Math.round(h);
+  const zoom = +(view.width / sw).toFixed(2);
+  if (zoom < CROP_MIN_ZOOM) return null;   // not worth the caveat
+  return { sx, sy, sw, sh, zoom };
+}
+
+// Draw one frame: optional crop, optional tracked-wave marker, then encode.
+// `mime` is 'image/webp' for a published cell and 'image/png' everywhere else.
+async function renderFrame(encoder, pngBuf, { crop, marker, W, H, mime, quality }) {
+  const out = await encoder.evaluate(async (o) => {
     const img = new Image();
-    img.src = `data:image/png;base64,${b64}`;
+    img.src = `data:image/png;base64,${o.b64}`;
     await img.decode();
     const c = document.createElement('canvas');
-    c.width = W; c.height = H;
+    c.width = o.W; c.height = o.H;
     const g = c.getContext('2d');
     g.imageSmoothingEnabled = true;
     g.imageSmoothingQuality = 'high';
-    g.drawImage(img, 0, 0, W, H);
-    const url = c.toDataURL('image/webp', q);
+    const cr = o.crop || { sx: 0, sy: 0, sw: img.width, sh: img.height };
+    g.drawImage(img, cr.sx, cr.sy, cr.sw, cr.sh, 0, 0, o.W, o.H);
+    if (o.marker) {
+      const kx = o.W / cr.sw, ky = o.H / cr.sh;
+      const P = (p) => [(p.px - cr.sx) * kx, (p.py - cr.sy) * ky];
+      // Widths scale with the OUTPUT raster, not with the crop, so the marker
+      // is the same weight in a cropped cell and an uncropped one — and they are
+      // chosen for the size the cell is READ at, not the size the file is. A
+      // published frame is 800 px wide and is displayed about 300 px wide in the
+      // grid, so a stroke that looks right at 800 is sub-pixel where it matters.
+      // These survive that 0.37x and are still unobtrusive opened on their own.
+      const u = o.W / 1000;
+      const twice = (draw) => {
+        g.lineJoin = 'round'; g.lineCap = 'round';
+        g.lineWidth = 7.0 * u; g.strokeStyle = o.caseInk; draw();
+        g.lineWidth = 3.0 * u; g.strokeStyle = o.ink; draw();
+      };
+      const rib = o.marker.ribbon || [];
+      if (rib.length > 1) {
+        twice(() => {
+          g.beginPath(); g.moveTo(...P(rib[0]));
+          for (const p of rib.slice(1)) g.lineTo(...P(p));
+          g.stroke();
+        });
+      }
+      if (o.marker.bp) {
+        const [x, y] = P(o.marker.bp);
+        const r = 14 * u;
+        twice(() => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke(); });
+        // a short stem below the ring, so the mark still reads as "here" when
+        // the cell is 300 px wide and the ring is 3 px across
+        twice(() => {
+          g.beginPath(); g.moveTo(x, y + r * 1.35); g.lineTo(x, y + r * 3.1); g.stroke();
+        });
+      }
+    }
+    const url = c.toDataURL(o.mime, o.quality);
     // Chromium falls back to PNG SILENTLY if the mime is unsupported, which
     // would quietly ship 4x the bytes. Report what actually came back.
     return { mime: url.slice(5, url.indexOf(';')), data: url.slice(url.indexOf(',') + 1) };
-  }, { b64: pngBuf.toString('base64'), W: w, H: h, q: quality });
-  if (out.mime !== 'image/webp')
-    throw new Error(`published frames wanted image/webp, browser produced ${out.mime}`);
+  }, { b64: pngBuf.toString('base64'), W, H, mime, quality,
+    crop: crop || null, marker: marker || null, ink: MARK_INK, caseInk: MARK_CASE });
+  if (out.mime !== mime)
+    throw new Error(`frames wanted ${mime}, browser produced ${out.mime}`);
   return Buffer.from(out.data, 'base64');
 }
+
+// Kept as a named wrapper so the published-encode contract is one call site and
+// one assertion: published cells are WebP, never a silent PNG.
+const encodeFrame = (encoder, pngBuf, w, h, quality, crop, marker) =>
+  renderFrame(encoder, pngBuf, { crop, marker, W: w, H: h, mime: 'image/webp', quality });
 
 // ---------------------------------------------------------------------------
 // Capture
@@ -790,6 +1173,10 @@ async function captureSheet(page, base, sheet, encoder) {
       const clocks = clocksFor(sheet, st, crest);
 
       const cells = [];
+      const shots = [];   // the raw captures, held until the row's crop is known
+      // Continuity seed for the tracked wave: null on column 1 (take the
+      // strongest crest on the line), then the previous column's breakpoint.
+      let seedX = null;
       for (let k = 0; k < clocks.times.length; k++) {
         const t = +clocks.times[k].toFixed(2);
         const hash = `${rowHash}&sim=${t}`;
@@ -800,19 +1187,27 @@ async function captureSheet(page, base, sheet, encoder) {
         if (Math.abs(live.sim - t) > 1e-3) throw new Error(`${row.id} col ${k}: clock ${live.sim} != ${t}`);
         const stage = await page.evaluate(probeStage,
           { nStations: 11, halfM: 45, n: 193, aimX: xProbe });
+        // The tracked wave. Break sheet only: the set sheet's subject is the
+        // ENVELOPE across 2-3 carrier periods per column, so a single-wave
+        // marker there would point at a different wave in every column and
+        // claim they were one. Its clocks and its reducer are untouched.
+        let marker = null;
+        if (sheet.clock.kind === 'wave') {
+          marker = await page.evaluate(trackedWave, {
+            seedX, lineStep: LINE_STEP_M, ribStep: RIB_STEP_M,
+            ribBack: RIB_BACK_M, ribFwd: RIB_FWD_M, ribHalf: RIB_HALF_M, ribN: RIB_N,
+          });
+          if (marker && marker.bp) seedX = marker.bp.x;
+        }
         const stem = `img/${sheet.id}_${group.id}_${row.id}_c${k}`;
         // Always capture PNG at full resolution: foamStats measures THIS buffer,
         // and a lossy corridor read would be a measurement of the encoder.
         const buf = await page.screenshot();
         const foam = foamStats(buf, live.stations);
         const rel = MODE === 'published' ? `${stem}.webp` : `${stem}.png`;
-        if (MODE === 'published') {
-          const enc = await encodeFrame(encoder, buf, PUB_W, PUB_H, PUB_QUALITY);
-          writeFileSync(join(OUT, rel), enc);
-          pubBytes += enc.length; rawBytes += buf.length;
-        } else {
-          writeFileSync(join(OUT, rel), buf);
-        }
+        // The file is WRITTEN after the whole row is captured, because the crop
+        // window is a property of the row, not of one column.
+        shots.push({ k, buf, stem, rel });
         // Set sheet only, and strictly AFTER the frame is captured: the crest
         // envelope moves the clock across one carrier period and puts it back.
         // (Nothing in frame moves as a side effect — the #aim target is the
@@ -851,7 +1246,46 @@ async function captureSheet(page, base, sheet, encoder) {
           // Recorded per cell and reduced to camDriftM below so a row whose
           // frame moved is visible rather than assumed away.
           cam: live.camera, aimErrDeg: live.aim ? live.aim.errDeg : null,
+          // The tracked wave, as the model reports it. bpX is the breakpoint's
+          // world x on the break line; offM/offPx are how far the drawn mark
+          // sits from the tallest displaced surface point at that station —
+          // the marker's own error bar.
+          marker: marker && (marker.bp || (marker.ribbon || []).length) ? marker : null,
+          bpX: marker && marker.bp ? marker.bp.x : null,
+          markerOffM: marker ? marker.offM : null,
+          markerOffPx: marker ? marker.offPx : null,
+          linePocketMax: marker ? marker.linePocketMax : null,
+          lineFoamFrac: marker ? marker.lineFoamFrac : null,
         });
+      }
+
+      // ---- the row's framing, then its files ----
+      // One crop for the row (see cropForRow), applied to every column, so the
+      // reader's window is fixed and the wave moves inside it.
+      const crop = sheet.clock.kind === 'wave' ? cropForRow(cells, VIEW) : null;
+      for (const s of shots) {
+        const cell = cells[s.k];
+        const mk = cell.marker;
+        if (MODE === 'published') {
+          const enc = await encodeFrame(encoder, s.buf, PUB_W, PUB_H, PUB_QUALITY, crop, mk);
+          writeFileSync(join(OUT, s.rel), enc);
+          pubBytes += enc.length; rawBytes += s.buf.length;
+        } else if (crop || mk) {
+          // Local mode keeps BOTH: the cell shows the cropped, marked frame and
+          // clicking it opens the marked full frame. The uncropped view is the
+          // one that says where on the point you are, and losing it to a crop
+          // would trade one legibility problem for another.
+          const cellPng = await renderFrame(encoder, s.buf,
+            { crop, marker: mk, W: VIEW.width, H: VIEW.height, mime: 'image/png' });
+          writeFileSync(join(OUT, s.rel), cellPng);
+          const full = await renderFrame(encoder, s.buf,
+            { crop: null, marker: mk, W: VIEW.width, H: VIEW.height, mime: 'image/png' });
+          writeFileSync(join(OUT, `${s.stem}_full.png`), full);
+          cell.imgFull = `${s.stem}_full.png`;
+        } else {
+          writeFileSync(join(OUT, s.rel), s.buf);
+        }
+        s.buf = null;   // 5 x ~300 KB per row; let it go
       }
       // FLAT = this cell promised a break and drew none. "Promised" is per
       // sheet: a wave-period sheet promises one at every column, a set-beat
@@ -867,9 +1301,26 @@ async function captureSheet(page, base, sheet, encoder) {
       // Largest camera displacement between any two columns of this row.
       const camDriftM = Math.max(...cells.map((c) => Math.max(...cells.map((d) =>
         Math.hypot(c.cam[0] - d.cam[0], c.cam[1] - d.cam[1], c.cam[2] - d.cam[2])))));
+      // How far the tracked breakpoint travelled down the line across the row,
+      // and the worst distance the marker sat from the crest it is drawn on.
+      const bpXs = cells.map((c) => c.bpX).filter((v) => v !== null && v !== undefined);
+      const peelM = bpXs.length > 1 ? +(bpXs[bpXs.length - 1] - bpXs[0]).toFixed(1) : null;
+      const offs = cells.map((c) => c.markerOffM).filter((v) => v !== null && v !== undefined);
+      const markerOffMaxM = offs.length ? +Math.max(...offs).toFixed(2) : null;
+      const offsPx = cells.map((c) => c.markerOffPx).filter((v) => v !== null && v !== undefined);
+      const markerOffMaxPx = offsPx.length ? +Math.max(...offsPx).toFixed(1) : null;
+      const markerLost = cells.filter((c) => c.bpX === null || c.bpX === undefined).length;
+      // A ring drawn on a crest-proximity bell of 0.01 is honest about position
+      // and dishonest about confidence, so a weak crossing is called out rather
+      // than left to look like every other column. Measured at h0=0.7, whose
+      // stage alpha is 4.3 deg (below Second Peak's 1.08 m peel floor): the
+      // tracked wave's pocket falls to 0.01 by column 5 at WAVE_SPAN_T = 1/4.
+      const weakCols = cells.filter((c) => c.marker && c.marker.bp
+        && c.marker.bp.pocket < 0.15).length;
       g.rows.push({
         ...row, rowHash, camDriftM: +camDriftM.toFixed(2),
         clocks: { ...clocks, times: clocks.times.map((v) => +v.toFixed(2)) },
+        crop, peelM, markerOffMaxM, markerOffMaxPx, markerLost,
         crest, state: {
           preset: st.preset, day: st.day, H0: st.H0, T: st.T, dF: st.dF, tide: st.tide,
           xi: st.xi, alpha: st.alpha, chop: st.chop,
@@ -888,6 +1339,14 @@ async function captureSheet(page, base, sheet, encoder) {
         + ` · foam ${cells.map((c) => c.modelFoamMax.toFixed(2)).join('/')}`
         + ` · pix ${cells.map((c) => (c.pixFracLo === null ? 'n/a' : (c.pixFracLo * 100).toFixed(1))).join('/')}%`
         + ` · camDrift ${camDriftM.toFixed(2)} m`
+        + (sheet.clock.kind === 'wave'
+          ? `\n      breakpoint x ${cells.map((c) => (c.bpX === null || c.bpX === undefined ? '—' : c.bpX.toFixed(0))).join('/')} m`
+            + ` (peel ${peelM === null ? '—' : `${peelM > 0 ? '+' : ''}${peelM} m`} down the line over ${clocks.spanS} s)`
+            + ` · marker off crest ≤ ${markerOffMaxM === null ? 'n/a' : `${markerOffMaxM} m / ${markerOffMaxPx} px`}`
+            + (markerLost ? `  [${markerLost} COLUMN(S) WITH NO TRACKED WAVE]` : '')
+            + (weakCols ? `  [${weakCols} COLUMN(S) RINGED ON A POCKET < 0.15]` : '')
+            + (crop ? ` · crop ${crop.sw}×${crop.sh} (${crop.zoom}×)` : ' · uncropped')
+          : '')
         + (nFlat ? `  [${nFlat} FLAT]` : ''));
     }
     out.groups.push(g);
@@ -983,6 +1442,15 @@ h2{font-size:18px;margin:0 0 4px}
   padding:0 6px;font-size:11px;color:var(--ink-dim)}
 .badge.peak{color:var(--warn);border-color:var(--warn)}
 .badge.flat{color:var(--bad);border-color:var(--bad);font-weight:600}
+/* The tracked wave's own readout. --warn on --panel is 12.00:1, and the badge
+   border is a hairline, never read. */
+.badge.track{color:var(--warn);border-color:var(--line2);cursor:help}
+.badge.lost{color:var(--bad);border-color:var(--bad);cursor:help}
+/* a weak crossing is a result, not a failure — --warn is 12.00:1 on --panel */
+.nums .weak{color:var(--warn);cursor:help}
+.nums .weak b{color:var(--warn)}
+.rowhead .cropnote{display:block;margin-top:6px;color:var(--ink-dim);font-size:11px;line-height:1.35}
+.rowhead .cropnote b{color:var(--ink)}
 .hash{font-family:var(--mono);font-size:10.5px;line-height:1.35;color:var(--link);
   word-break:break-all;text-decoration:none;display:block}
 .hash:hover{text-decoration:underline}
@@ -1087,8 +1555,11 @@ validation pass, model residuals against an independent record of a specific day
 the project. These sheets check the model against <i>itself</i>: that it is deterministic, that its phases
 differ, that something breaks where something should. They cannot tell you whether it matches Pleasure Point.
 Not a surf report, not a forecast, and not usable for any decision about entering the water.</p>
-<p><b>What a still cannot show.</b> A contact sheet cannot support a claim with a verb of motion in it. It can
-show that the phases differ and that a break happens; it cannot show which way the peel runs.</p>
+<p><b>What a still cannot show.</b> No frame here supports a claim with a verb of motion in it. What each cell
+states is a <i>position at a known clock</i>, read out of the model; the frames are ordered by the model's own
+clock rather than by inspection, so a reader may compare those positions across a row. The pictures themselves
+still cannot tell you which way anything is going, and nothing on these pages is measured off them except the
+pixel foam fraction, which is labelled as such.</p>
 <p><b>Licence.</b> Code, docs and these renders are <b>MIT</b> (© 2026 Andy Edmonds). The frames are Produced
 Works under ODbL — the coastline geometry they are drawn over is OpenStreetMap-derived, and the seabed is
 NOAA NCEI (public domain). Attribution below is required; share-alike is not triggered by a rendering.
@@ -1113,15 +1584,45 @@ be over.</b> An earlier sheet did print that number and produced a headline defe
 that was entirely an artifact of dividing by it. Everything else on the Privates row — crest, foam<sub>model</sub>,
 the set envelope — is measured the same way as every other site and is directly comparable.</p>`;
 
-function cellHTML(base, cell) {
+// What the tracked wave is doing in this cell, derived from the model reads
+// rather than asserted. Each phrase is a STATE at a known clock, never a verb
+// of motion (MEASUREMENT_LESSONS 1): the reader infers the motion from five
+// states in the model's own clock order, which is exactly the inference a still
+// cannot support on its own and an ordered sequence can.
+function trackedLabel(cell, row) {
+  if (!row || row.peelM === null || row.peelM === undefined) return '';
+  if (cell.bpX === null || cell.bpX === undefined)
+    return '<span class="badge lost" title="No crest was crossing the break line inside the stage at this clock — the tracked wave has peeled off the end, or the line has none on it here.">tracked wave off the stage</span>';
+  const d = cell.bpX - (row.cells[0].bpX ?? cell.bpX);
+  const where = `break at x = ${cell.bpX >= 0 ? '+' : ''}${cell.bpX.toFixed(0)} m`;
+  const moved = cell.k === 0 ? 'anchor'
+    : `${d >= 0 ? '+' : ''}${d.toFixed(0)} m down the line since column 1`;
+  // The strength of the ringed crossing. It is the model's crest-proximity bell
+  // ON the line, so a low value means the tracked crest is on its way off the
+  // line rather than centred on it — worth showing beside the position, because
+  // a confident-looking ring on a pocket of 0.01 would otherwise read as a
+  // confident-looking break.
+  const p = cell.marker && cell.marker.bp ? cell.marker.bp.pocket : null;
+  const weak = p !== null && p < 0.15;
+  return `<span class="badge track" title="Ringed in the frame: the model's own zipper locus, the argmax of pocket along the break line. Down the point is +x.">${esc(where)} · ${esc(moved)}</span>`
+    + (p === null ? '' : `<span class="${weak ? 'weak' : ''}" title="The crest-proximity bell on the line at the ring — the model's own strength of this crossing. Below about 0.15 the tracked crest is leaving the line rather than sitting on it.">pocket <b>${p.toFixed(2)}</b></span>`);
+}
+
+function cellHTML(base, cell, row) {
   const url = `${base}web-three/#${cell.hash}`;
   const cls = 'cell' + (cell.flat ? ' flat' : '');
   const badge = cell.flat
     ? '<span class="badge flat">FLAT — no whitewater at the line</span>'
     : (cell.phase === 'SET PEAK' ? '<span class="badge peak">SET PEAK</span>' : '');
+  const imgHref = cell.imgFull || cell.img;
+  const imgTitle = cell.imgFull
+    ? `open the uncropped ${VIEW.width}×${VIEW.height} frame, marker and all`
+    : `open the full ${VIEW.width}×${VIEW.height} frame`;
+  const tracked = trackedLabel(cell, row);
   return `<div class="${cls}">
-  <a href="${esc(cell.img)}" title="open the full ${VIEW.width}×${VIEW.height} frame"><img src="${esc(cell.img)}" alt="frame at sim ${cell.t} s" width="${VIEW.width}" height="${VIEW.height}" loading="lazy"></a>
+  <a href="${esc(imgHref)}" title="${esc(imgTitle)}"><img src="${esc(cell.img)}" alt="frame at sim ${cell.t} s" width="${VIEW.width}" height="${VIEW.height}" loading="lazy"></a>
   <div class="nums"><span><b>t ${cell.t.toFixed(1)} s</b></span>${badge}</div>
+  ${tracked ? `<div class="nums">${tracked}</div>` : ''}
   <div class="nums">
     <span>env <b>${cell.env.toFixed(2)}</b></span>
     ${cell.crestEnvM === undefined || cell.crestEnvM === null
@@ -1155,6 +1656,11 @@ function rowHTML(base, row) {
     <dt>Δf</dt><dd>${s.dF} Hz</dd>
     <dt>ξ</dt><dd>${s.xi.toFixed(2)}</dd>
     <dt>step</dt><dd>${row.clocks.spacing.toFixed(2)} s</dd>
+    ${row.clocks.spanS === undefined ? '' : `<dt>row spans</dt><dd>${row.clocks.spanS.toFixed(2)} s</dd>`}
+    ${row.peelM === null || row.peelM === undefined ? ''
+    : `<dt>peel</dt><dd title="Breakpoint x in column 1 against column 5 — two model reads at two known clocks, not a motion read off the pictures.">${row.peelM >= 0 ? '+' : ''}${row.peelM.toFixed(0)} m</dd>`}
+    ${row.markerOffMaxM === null || row.markerOffMaxM === undefined ? ''
+    : `<dt>mark off crest</dt><dd title="Worst distance, over this row's five columns, between the ringed breakpoint and the tallest displaced surface point on a shore-normal transect at the same station.">≤ ${row.markerOffMaxM.toFixed(2)} m</dd>`}
     <dt>cam drift</dt><dd>${row.camDriftM === undefined ? '—' : row.camDriftM.toFixed(2) + ' m'}</dd>
   </dl>
   <span class="sub" style="margin-top:6px">${esc(s.hudGeo || '')}</span>
@@ -1163,12 +1669,26 @@ function rowHTML(base, row) {
       + ' corridor read <span class="na" title="Explained in full at the foot of this page.">n/a</span>'
       + ' on this row. The crest and model foam are measured as everywhere else.</span>'
     : ''}
+  ${row.crop ? `<span class="cropnote">Cropped to ${row.crop.sw}×${row.crop.sh} of the ${VIEW.width}×${VIEW.height}
+    capture (${row.crop.zoom}× closer), the same window in all five columns. Camera untouched — that is what the
+    <b>cam drift</b> above still measures.</span>` : ''}
   <a class="base" href="${esc(base)}web-three/#${esc(row.rowHash)}&amp;sim=${row.clocks.times[0]}" title="${esc('#' + row.rowHash)}">#${esc(row.rowHash)}</a>
-</div>` + row.cells.map((c) => cellHTML(base, c)).join('\n');
+</div>` + row.cells.map((c) => cellHTML(base, c, row)).join('\n');
 }
 
 function sheetHTML(sheet, data, base, extras) {
-  const cols = data.groups[0].rows[0].clocks.phases;
+  const clock0 = data.groups[0].rows[0].clocks;
+  const cols = clock0.phases;
+  // Column headers carry the clock and, on the break sheet, the ONE thing about
+  // the wave that is true in every row at that clock: how far the tracked crest
+  // has advanced, in crest spacings. That ratio is exactly k/denom whatever the
+  // site, size or camera — advance/spacing = dt/T — so it can be stated once
+  // over the whole grid. What the wave is DOING at that clock differs by row, so
+  // it is labelled per cell, from that row's own model reads, rather than
+  // asserted here over rows it might be wrong about.
+  const subs = clock0.subs
+    || cols.map((_, i) => (i === 0 ? 'anchor'
+      : `+${i}/${sheet.clock.kind === 'wave' ? '5 T' : '4 beat'}`));
   const flats = [];
   for (const g of data.groups) for (const r of g.rows) for (const c of r.cells)
     if (c.flat) flats.push(`${g.id} / ${r.label} / column ${c.k + 1} (t = ${c.t.toFixed(1)} s)`);
@@ -1178,7 +1698,7 @@ function sheetHTML(sheet, data, base, extras) {
   <p class="groupnote">${esc(g.note)}</p>
   <div class="grid">
     <div class="corner">row ↓ / clock →</div>
-    ${cols.map((c, i) => `<div class="colhead">${i + 1}. ${esc(c)}<span class="sub">${i === 0 ? 'anchor' : `+${i}/${sheet.clock.kind === 'wave' ? '5 T' : '4 beat'}`}</span></div>`).join('\n    ')}
+    ${cols.map((c, i) => `<div class="colhead">${i + 1}. ${esc(c)}<span class="sub">${esc(subs[i])}</span></div>`).join('\n    ')}
     ${g.rows.map((r) => rowHTML(base, r)).join('\n    ')}
   </div>
 </section>`).join('\n');
@@ -1203,6 +1723,25 @@ ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1
   <dt>viewport</dt><dd>${VIEW.width} × ${VIEW.height} px, deviceScaleFactor 1</dd>
   <dt>pinned</dt><dd><code>${esc(COMMON)}</code> — frozen clock, no UI in frame, quality tier pinned</dd>
   <dt>clock spacing</dt><dd>${esc(first.clocks.periodLabel)}, columns ${first.clocks.spacing.toFixed(2)} s apart. ${esc(first.clocks.how)}</dd>
+  ${sheet.clock.kind === 'wave' ? `<dt>the ring</dt><dd>One wave is tracked across each row and <b>ringed in every frame</b>, with a
+    line along its crest. Both are computed from the model and projected through the live camera matrices, not
+    placed by hand. The ring is the model's own <i>zipper locus</i>: <code>pocket</code> in
+    <code>shared/model-glsl.js</code> is <code>crestNear(θ)·bell(d)·env²·reef</code>, and <code>d</code> is zero
+    <i>on</i> the break line, so scanned along the line it is the crest-proximity bell and its argmax is where a
+    crest is crossing. Across columns the argmax carries a small distance penalty from the previous column's, so a
+    row follows one wave rather than hopping to whichever crest is tallest. The crest line is the argmax of the
+    <code>crest</code> channel (<code>crestNear·(1−brk)·env²</code>) marched out from the ring by continuity in x;
+    that channel switches itself off inside whitewater, so the line ends at the peel without being told to.
+    <b>The mark carries its own error bar</b>: <code>markerOffM</code> in the JSON, and <b>mark off crest</b> in each
+    row header, is the distance from the ring to the tallest displaced surface point on a shore-normal transect at
+    the same station — the same crest, read the other way. A mark that wandered off the wave would say so there.</dd>
+  <dt>framing</dt><dd>Cells are <b>cropped</b> to a window containing the tracked wave across all five columns of
+    that row, computed from the marker's own projected extent and identical in every column, so the wave moves
+    through a fixed frame instead of being re-centred out of its own motion. The <b>camera is never moved</b> — the
+    crop is a pixel operation on the captured frame, which is why <b>cam drift</b> is still 0.00 m and why each
+    cell's hash still reopens the full state. Each row header states its crop and how much closer it is;
+    ${prov.mode === 'published' ? 'the full uncropped frame is one click away in the simulator, at the cell hash.'
+    : 'clicking the image opens the uncropped frame, marker and all.'}</dd>` : ''}
   <dt>numbers</dt><dd><b>env</b> — set envelope at the break line, through the repo's own <code>setEnv</code> twin
     (<code>web-three/js/model-js.js</code>) fed from the live uniforms.<br>
     <b>crest</b> — tallest displaced surface point on the ±45 m shore-normal transect nearest where the camera
@@ -1239,9 +1778,9 @@ ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1
     Row headers link to column 1. ${prov.mode === 'published'
       ? `Clicking the <b>image</b> opens that frame on its own. Frames were captured at ${VIEW.width}×${VIEW.height} and are
     published at ${PUB_W}×${PUB_H} WebP to keep this page a reasonable download; every measurement on it was taken from the
-    full-resolution capture before the downscale, and the hash link reopens the state at full fidelity in the simulator, which
-    is better evidence than any still.`
-      : `Clicking the <b>image</b> opens the full ${VIEW.width}×${VIEW.height} frame instead.`}
+    full-resolution capture before any crop, marker or downscale, and the hash link reopens the state at full fidelity in the
+    simulator, which is better evidence than any still.`
+      : `Clicking the <b>image</b> opens the uncropped ${VIEW.width}×${VIEW.height} frame instead.`}
     Captures were taken on their own separate port so they never touched your dev server.</dd>
 </dl></div>
 ${groups}
@@ -1255,7 +1794,11 @@ and smooth over ~6 s of sim time, so advancing the clock <i>could</i> move the i
 carries the largest camera displacement between any two of its five columns. A row with a non-trivial drift there
 is comparing slightly different windows, and its numbers should be read accordingly. The camera legitimately
 <i>does</i> differ between rows — the break line moves with H₀ — so only within-row drift is a concern.</p>
-<p><b>Stills, not motion.</b> A contact sheet cannot support a claim with a verb of motion in it (MEASUREMENT_LESSONS 1). It can show that the phases differ and that something breaks; it cannot show which way the peel runs.</p>
+<p><b>Stills, not motion.</b> Nothing here is a motion read off the pictures (MEASUREMENT_LESSONS 1). The positions
+in the cells and the <b>peel</b> in the row headers are model reads at clocks the model itself derived, and the
+frames are ordered by that clock, so the ordering is established rather than inferred — which is precisely what
+lesson 1's third failure ("peel direction is rightward, confirmed across two frames") lacked. Read as pictures,
+these frames still cannot tell you which way the peel runs.</p>
 <p><a href="index.html">← all QA sheets in this build</a>
  · <a href="${esc(sheet.id)}.json">raw measurements (JSON)</a> — the same provenance block, machine-readable
  · <a href="${esc(prov.essayUrl)}">the essay</a>
@@ -1279,6 +1822,7 @@ its extremes and the intermediate bundles interpolate between them. The <code>h0
 separate height from period — a QA question, not a reader's — and are omitted here.
 <b>All five clocks are kept in every row</b>: this sheet is a progression, and a progression sampled at three
 points stops being one.</p>`,
+
   'sets-locations-seasons': `
 <p><b>This is the published view: 7 of 13 rows.</b> The full local sheet runs all seven site presets at
 <code>month=january</code> plus two presets across three months. Published here are three sites and two
@@ -1296,6 +1840,24 @@ shoulder month and is in the local sheet to catch a monotonicity break, which is
 // Silent truncation is the thing to avoid, so the omissions are on the page.
 const SHEET_NOTES = {
   'break-progression': `
+<p><b>Why the columns span a quarter of a period and not a whole one (2026-08-20).</b> They used to span one full
+T at T/5 per column, and the sequence very nearly <b>aliased back onto itself</b>. A crest advances exactly one
+crest spacing per period, so column k sat k/5 of a spacing along: by column 5 the tracked wave was 0.80 of a
+spacing on — 0.20 of a spacing from where the <i>next wave upstream</i> had been in column 1. That ratio is not a
+property of the site. The local wavelength cancels out of it exactly (advance ÷ spacing = Δt ÷ T), so it was 0.80
+on <b>every row, at every camera, at every H₀</b>: five near-identical parallel lines with no identifiable subject,
+which is what the sheet looked like. It is visible in the sheet's own numbers too — laid out over a full T, the
+tracked breakpoint's world x reads <code>36/56/88/4/36</code> at <code>day=small</code> and
+<code>56/72/92/44/56</code> at <code>day=modelcard</code>: <b>column 5 lands on column 1's station to the
+metre</b>, having wrapped through the stage in between. Now the five columns span <b>T/4</b>, T/16 apart, so the
+crest advances <b>0.25</b> of a spacing across the whole row and never approaches its neighbour's place.
+<b>What still moves over that span is the subject.</b> A point break's breakpoint travels along the line at
+Vp = c⁄sin α, faster than the wave itself: measured from the anchor clock at Second Peak, the model's own zipper
+locus goes 37 → 55 m of line at <code>day=small</code> (+17.6 m in 2.25 s) and 42 → 88 m at <code>day=big</code>
+(+46.3 m in 4.25 s), while the crest advances a quarter of a spacing. Longer spans were measured and rejected
+from the other side as well — at <code>day=big</code> the tracked wave has <b>peeled off the stage end</b> by
+about 0.35 T (its pocket goes 0.99 → 0.00 between 0.30 T and 0.40 T), so a longer sheet loses its own subject in
+the last columns whether or not it aliases.</p>
 <p><b>What is on this sheet.</b> Six wave sizes at <code>preset=secondpeak</code>. Four rows are the curated
 <i>condition bundles</i> from <code>web-three/js/conditions.js</code>: a bundle moves H₀, period, tide
 and Δf together, the way a real day does. Two rows are <code>h0=</code> only, which moves swell height
@@ -1310,7 +1872,19 @@ comparable and are labelled as such.</p>
 <p><b>The foam number can be occluded.</b> It samples the <i>projected</i> attachment corridor whether or not
 terrain sits in front of it, so a low camera behind a bluff reads low foam for a wave that is breaking fine.
 The model-side <code>pocket</code>/<code>brk</code> readings in the JSON are the check; a cell is only
-flagged FLAT when both the pixels and the model say nothing broke.</p>`,
+flagged FLAT when both the pixels and the model say nothing broke.</p>
+<p><b>The marker can be wrong, and it will say so.</b> The ring is a model read, not an annotation, so the useful
+question is how far it sits from the crest it claims to be on. Every row header carries <b>mark off crest</b>: the
+worst distance, over that row's five columns, between the ring and the tallest displaced surface point on a
+shore-normal transect at the same station — the same crest, read through a different reduction. A row where that
+number is large is a row where the zipper locus and the crest maximum have come apart, which is a finding about
+the model rather than a drawing error. Where no crest is crossing the line inside the stage at all, the cell says
+<i>tracked wave off the stage</i> rather than ringing something else.</p>
+<p><b>Stills in a known order.</b> Each cell states a <i>position</i> at a <i>known clock</i>; nothing on this page
+claims a direction of travel from the pictures. The row header's <b>peel</b> is the difference between two model
+reads at two model-derived clocks, not a motion measured off the frames — which is the distinction
+MEASUREMENT_LESSONS 1 is about. The frames are ordered by the model's own clock, so the ordering is established
+rather than inferred, and that is the only reason a reader may read the five states as a sequence.</p>`,
   'sets-locations-seasons': `
 <p><b>What <code>month=</code> actually does.</b> It sets H₀ to that month's <b>p75</b> significant wave
 height at CDIP SC116 (MOP v1.1, whole years 2000–2024, 218,975 hours used), de-shoaled from the 15 m
@@ -1445,9 +2019,11 @@ mkdirSync(IMG, { recursive: true });
 
 const browser = await chromium.launch({ args: ['--use-angle=metal'] });
 const page = await browser.newPage({ viewport: VIEW, deviceScaleFactor: 1 });
-// Separate blank page for the published-frame encode, so nothing the encoder
-// does can touch the state a cell was captured in.
-const encoder = MODE === 'published' ? await browser.newPage() : null;
+// Separate blank page for the crop/marker/encode pass, so nothing that stage
+// does can touch the state a cell was captured in — and so the marker is drawn
+// outside the screenshot the pixel corridor reads. Needed in BOTH modes now:
+// local frames are marked and cropped too, they are just not re-encoded lossily.
+const encoder = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
