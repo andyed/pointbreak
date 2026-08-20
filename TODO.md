@@ -108,6 +108,31 @@ mapped sites, with 14–28 of 34–46 pocket stations above 1.0 at every one of
 them. `crestCeilM` is a reference height, not a clamp, and "every mapped site
 is at or below its ceiling" was never true.
 
+## ⚠ SHIPPED-IMPACT, NEEDS A PRODUCT CALL (2026-08-19)
+
+**`#month=` and `#day=` draw a collapsed peel in 56% of their reachable
+states** (64 of 114 baked states: stage-median α < 10° against 36–50°
+targets). Sewers is worst — all twelve months plus 3 of 6 condition days.
+`#preset=firstpeak&month=january` lands 0.015 m below First Peak's flip
+threshold and draws α **1.0°** against a 50° target. **Every bare-URL card
+state is healthy** (36.4/38, 51.4/50, 35.9/41, 32.9/37, 37.0/41, 26.3/36),
+which is exactly why the QA sheets never caught it — they sample the peak
+column, not α.
+Root cause characterised and the obvious fix FALSIFIED (see 1c'-d below):
+the onset bookkeeping splits one break into two branches when the breaking
+criterion grazes zero at 0.1–0.7% of its own scale, on a bed whose own
+elevation residual is 0.31–0.93 m. A merge threshold relocates the
+knife-edge rather than removing it — measured, flip count ROSE.
+**The call is Andy's, and it is a product call, not a tuning one:**
+(a) accept that `month`/`day` are exploratory and say so in the HUD;
+(b) restrict them to the H₀ side of each spot's measured threshold
+(thresholds are tabulated in 1c'-d, hysteresis-free so a clamp is stable);
+(c) treat "which branch is the surfable one" as AUTHORSHIP per §4.5 and
+declare it per spot, which is the only route that survives the falsified
+selection work; or (d) leave as is and fix nothing.
+No shipped behaviour was changed pending that call — 0 of 114 states differ,
+max |Δα| 0.000000000°.
+
 ## ▶ LIVE VERDICT QUEUE (2026-08-18) — nine flags waiting on Andy's eye
 
 Nothing below has been judged live. Every one is instrumented, tested and
