@@ -176,3 +176,43 @@ explicit --cx/--cz/--halfw — whenever the quantity being measured is also
 the quantity the auto-framer keys on. Same family as lesson 4
 (self-certifying instruments): the framer is part of the instrument, and it
 must not share a variable with the measurand.
+
+## 12. A sample is not an envelope — check the reducer against the carrier
+
+The QA sets sheet asks a question about the SET envelope (period 1/Δf =
+125–167 s) and answered it with one instantaneous crest height at one
+station. But crest height at a fixed station is that envelope times a
+CARRIER — individual waves, period T = 12–15 s. The sheet's columns are a
+quarter beat apart, 31–42 s, which is 2.1–3.5 carrier periods: a spacing
+with no relation to T. So every column sampled the passing wave at an
+arbitrary phase, and the numbers were the carrier aliased into a column
+labelled "SET PEAK".
+
+It produced a convincing false positive. The Hook read
+`1.04 / 3.63 / 3.13 / 1.25 / 0.98` m across one beat — a set apparently
+cresting a column early and half over by the peak column, with a low peak
+as well; two symptoms, one site, exactly the shape of a site-specific model
+defect. Sweeping that same station every 1 s across the same beat found
+waves of 2.11–5.30 m arriving every 13 s, the tallest at t = 184 s, **3.9 s
+(0.027 beat) before** the peak column's own clock. The envelope was where
+the anchor put it; the column simply landed between two waves. Measured the
+same way, all seven sites peak in column 3 and every station on every stage
+peaks within ±0.11 beat of the anchor phase.
+
+Two cheaper "fixes" that do not work, both measured rather than assumed:
+
+* **Re-phase the columns.** dF and T are independent site parameters, so
+  the commensurability differs per site — 2.08 waves per column at Sewers
+  (which is why Sewers looked fine: luck) against 2.75 at The Hook. No one
+  clock choice serves the bank. Pinned in `tests/qa-set-clocks.test.js`.
+* **Widen the transect instead of sweeping time.** A ±135 m transect (three
+  display wavelengths) at the same station and clock reads 3.46 m against
+  the envelope's 5.27 m, because height also falls off away from the break
+  line — a spatial max over deep water is not the local envelope.
+
+Tell: whenever a number is sampled at a spacing set by one period of a
+system and is *about* another, write both periods down and compare them
+before reading the number. If the sample interval is not a whole number of
+the fast period, the reducer has to span one — `crest±T/2` here.
+Corollary of lesson 8c (a summary statistic needs its domain checked): the
+domain of a reducer includes the time window, not only the spatial extent.

@@ -52,6 +52,41 @@ touch it); the trough-crease fold pathology (63/68 transects fold somewhere,
 caused by it — the old drop was burying it); and the new drop coefficient 0.80
 wants re-measuring now that #pitch made faces steeper.
 
+## ▶ RIG DEFECT, NOT A MODEL DEFECT (2026-08-19) — the QA sets sheet's crest
+
+- [x] **The Hook did not peak in the wrong column; the instrument did.** The
+      new sets contact sheet showed six sites cresting in column 3 as designed
+      and The Hook cresting in column 2 —
+      `1.04 / 3.63 / 3.13 / 1.25 / 0.98` m across one beat — with a low peak as
+      well (Sharks read low too, 3.14, but in the right column). Two symptoms
+      at one site is the shape of a site-specific model defect, and it was not
+      one. **CONVICTED: measurement.** Crest at a fixed station is the set
+      envelope (1/Δf = 125–167 s) times a CARRIER of individual waves
+      (T = 12–15 s); the sheet's columns are a quarter beat, 31–42 s, i.e.
+      2.1–3.5 carrier periods. The peak column's clock at The Hook landed
+      between two waves. Swept every 1 s at that same station: waves of
+      **2.11 → 5.30 m**, the tallest at **t = 184 s, 3.9 s (0.027 beat) before**
+      the column-3 clock of 187.86 s. Carrier-removed (max over ±T/2), the aim
+      station reads **1.24 / 3.99 / 5.27 / 2.21 / 1.14** — peak in column 3,
+      like everyone else. Refuted along the way, each with a number:
+      *(a) the anchor is unrepresentative at The Hook* — every station on
+      every one of the seven stages peaks within **±0.11 beat** of the anchor
+      phase, and The Hook's stage spans only 0.14 beat end to end;
+      *(c) |u_setRef| shifts the phase* — `setRef/cg` = −53.91/10.15 =
+      **5.3 s = 0.037 beat**, against the 0.25 beat the symptom would need
+      (the bank's largest, Jack's at −62.58 m, is 0.037 beat too);
+      *(d) something clips the envelope there* — The Hook's stage envelope
+      peaks at **5.42 m**, third of seven behind Sewers 6.31 and Privates 6.22.
+      FIX (rig only, `scripts/build_qa_sheets.mjs`): the sets sheet's headline
+      crest is now `crest±T/2`, the max over one full carrier period centred on
+      the column clock (12 sub-clocks), with the instant printed beside it
+      because the instant is what the frame shows. The wave-period sheet is
+      untouched — there the carrier IS the subject. **No model change, no flag,
+      no CONTROLS row**: nothing in `shared/model-glsl.js` moved.
+      Pinned in `tests/qa-set-clocks.test.js` (column 3 is the envelope maximum
+      for every shipped Δf and for ANY `setRef`, which is the permanent form of
+      the (a)/(c) refutation) and written up as MEASUREMENT_LESSONS 12.
+
 **The screensaver read (mission #1)**
 - [x] WAVE SHAPE, second cause — **`dropMag` FLATTENED THE POCKET** (fixed
       2026-08-18, ships ON, `#drop=legacy` reverts; `scripts/measure_pocket_crest.mjs`

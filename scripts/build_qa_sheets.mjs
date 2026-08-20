@@ -28,6 +28,27 @@
 //   easing, lull. Phase is read back per cell through the repo's own setEnv
 //   twin fed from the live uniforms, never a re-derivation.
 //
+// WHY THE SET SHEET'S CREST IS AN ENVELOPE, NOT AN INSTANT (2026-08-19)
+//   The crest at a fixed station is a CARRIER (period T = 12-15 s) inside a SET
+//   ENVELOPE (period 1/dF = 125-167 s). The set sheet's columns are 1/(4dF) =
+//   31-42 s apart, i.e. 2.1-3.5 carrier periods — a spacing with no relation to
+//   T, so an instantaneous single-station read samples the carrier at an
+//   arbitrary phase in every column and ALIASES it into a number the sheet
+//   labels as the set. Measured at The Hook (drone, january, aim station
+//   x = -14.5): the instantaneous crest at the five column clocks reads
+//   1.04/3.63/3.13/1.25/0.98 m — a set that appears to peak in column 2 and be
+//   half over by column 3 — while the same station swept every 1 s across that
+//   beat carries waves of 2.11-5.30 m, the tallest arriving at t = 184 s, 3.9 s
+//   (0.027 beat) BEFORE the column-3 clock. Column 3 just happens to land
+//   between two waves there. So the set sheet reduces the aim station over ONE
+//   FULL CARRIER PERIOD centred on its column clock (crestEnvM) and reports
+//   that; the raw instant stays in the JSON as crestM. The wave-period sheet
+//   keeps the instant — there the carrier IS the subject.
+//   Widening the transect instead does NOT work and was measured: at the same
+//   station and clock a +-135 m transect (three display wavelengths) reads 3.46
+//   against the envelope's 5.27, because height also falls off away from the
+//   break line, so a spatial max over deep water is not the local envelope.
+//
 // DETERMINISM
 //   speed=0 & controls=0 & q=high pinned, fixed viewport, cold load through
 //   about:blank per row (a hash-only goto on a warm page races the app's own
@@ -451,6 +472,33 @@ async function measureCrestArrival(page, st, xProbe, zProbe) {
   return { tStar, crestM: samples[iMax].crest, sweepFrom: t0, sweepTo: t0 + T, sweepN: N + 1 };
 }
 
+// Sub-clocks per carrier period for the set sheet's crest envelope. 12 puts a
+// sample every T/12 = 1.0-1.25 s, which resolves a 12-15 s crest to better than
+// 4% of its height (cos is flat at its peak): measured at The Hook the swept
+// maximum is 5.30 m at 1 s resolution against 5.27 m from the 12-sample
+// envelope. The window is CENTRED on the column clock and spans exactly one T,
+// so it contains exactly one crest arrival and always includes the column's own
+// instant — the envelope can never read below the number it replaces.
+const ENV_SUBCLOCKS = 12;
+
+// The tallest wave to cross ONE station within one carrier period of the
+// column clock — the set sheet's honest "how big is it here now". See the
+// header note: the alternative (one instant) aliases the carrier, and widening
+// the transect in space does not substitute for sweeping it in time.
+async function measureStationEnvelope(page, T, t, station, halfM) {
+  let best = -Infinity, tStar = t;
+  for (let j = 0; j < ENV_SUBCLOCKS; j++) {
+    const tt = +(t + (j / ENV_SUBCLOCKS - 0.5) * T).toFixed(3);
+    await setClock(page, tt);
+    const p = await page.evaluate(probeTransect,
+      { x: station.x, zLine: station.z, halfM, n: 193 });
+    if (p && p.crest > best) { best = p.crest; tStar = tt; }
+  }
+  await setClock(page, t);   // the cell's hash must still reproduce its frame
+  return Number.isFinite(best)
+    ? { crestEnvM: +best.toFixed(2), crestEnvAtT: tStar } : { crestEnvM: null, crestEnvAtT: null };
+}
+
 function clocksFor(sheet, st, crest) {
   if (sheet.clock.kind === 'wave') {
     const T = st.T, n = sheet.clock.n;
@@ -517,6 +565,14 @@ async function captureSheet(page, base, sheet) {
         const rel = `img/${sheet.id}_${group.id}_${row.id}_c${k}.png`;
         const buf = await page.screenshot({ path: join(OUT, rel) });
         const foam = foamStats(buf, live.stations);
+        // Set sheet only, and strictly AFTER the frame is captured: the crest
+        // envelope moves the clock across one carrier period and puts it back.
+        // (Nothing in frame moves as a side effect — the #aim target is the
+        // baked line's centroid, which does not depend on t, and camDrift below
+        // records what the cameras actually did rather than assuming this.)
+        const crestEnv = (sheet.clock.kind === 'set' && stage.atAim)
+          ? await measureStationEnvelope(page, live.T, t, stage.atAim, stage.baked ? 45 : 90)
+          : { crestEnvM: null, crestEnvAtT: null };
         // Envelope through the repo's own twin (web-three/js/model-js.js setEnv),
         // fed from the live uniforms — not a re-derivation of the formula here.
         const env = setEnv(live.setRef, t, {
@@ -526,8 +582,10 @@ async function captureSheet(page, base, sheet) {
         cells.push({
           k, t, hash, img: rel, phase: clocks.phases[k],
           env: +env.toFixed(3),
-          crestM: stage.atAim ? stage.atAim.crest : null,      // at the aim station
-          crestMaxM: stage.crestMaxM,                          // anywhere on the stage
+          crestM: stage.atAim ? stage.atAim.crest : null,      // at the aim station, THIS INSTANT
+          crestEnvM: crestEnv.crestEnvM,                       // tallest wave there within +-T/2
+          crestEnvAtT: crestEnv.crestEnvAtT,                   // when that wave crossed it
+          crestMaxM: stage.crestMaxM,                          // anywhere on the stage, this instant
           ceilM: stage.ceilM,
           modelFoamMax: +stage.foamMax.toFixed(3),
           modelFoamFrac: +stage.foamFrac.toFixed(3),
@@ -573,8 +631,11 @@ async function captureSheet(page, base, sheet) {
         cells,
       });
       const nFlat = cells.filter((c) => c.flat).length;
+      const crestOf = (c) => (c.crestEnvM ?? c.crestM);
       console.log(`H₀ ${st.H0.toFixed(2)} m · ${clocks.periodLabel}`
-        + ` · crest ${cells.map((c) => (c.crestM === null ? '—' : c.crestM.toFixed(1))).join('/')} m`
+        + ` · crest ${cells.map((c) => (crestOf(c) === null ? '—' : crestOf(c).toFixed(1))).join('/')} m`
+        + (sheet.clock.kind === 'set'
+          ? ` (inst ${cells.map((c) => (c.crestM === null ? '—' : c.crestM.toFixed(1))).join('/')})` : '')
         + ` · foam ${cells.map((c) => c.modelFoamMax.toFixed(2)).join('/')}`
         + ` · pix ${cells.map((c) => (c.pixFracLo === null ? 'n/a' : (c.pixFracLo * 100).toFixed(1))).join('/')}%`
         + ` · camDrift ${camDriftM.toFixed(2)} m`
@@ -696,7 +757,14 @@ function cellHTML(base, cell) {
   <div class="nums"><span><b>t ${cell.t.toFixed(1)} s</b></span>${badge}</div>
   <div class="nums">
     <span>env <b>${cell.env.toFixed(2)}</b></span>
-    <span>crest <b>${cell.crestM === null ? '—' : cell.crestM.toFixed(2) + ' m'}</b></span>
+    ${cell.crestEnvM === undefined || cell.crestEnvM === null
+      // Set sheet: the headline crest is the tallest wave to cross the aim
+      // station within +-T/2 of this clock. The instant it replaces is kept
+      // beside it, because the FRAME shows the instant — a reader comparing
+      // number to picture must be able to see both.
+      ? `<span>crest <b>${cell.crestM === null ? '—' : cell.crestM.toFixed(2) + ' m'}</b></span>`
+      : `<span>crest<sub>±T/2</sub> <b>${cell.crestEnvM.toFixed(2)} m</b></span>`
+        + `<span>inst ${cell.crestM === null ? '—' : cell.crestM.toFixed(2)}</span>`}
   </div>
   <div class="nums">
     <span>foam<sub>model</sub> <b>${cell.modelFoamMax.toFixed(2)}</b> (${(cell.modelFoamFrac * 100).toFixed(0)}% of stage)</span>
@@ -766,6 +834,13 @@ ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1
     <code>crestMaxM</code>, and it barely moves across a wave period because some wave is always cresting
     somewhere on 200 m of line. These are <b>displayed</b> metres — the renderer applies a viewing gain of
     <code>VIS = 3.2</code> (<code>shared/model-glsl.js</code>), so they are not physical wave heights.<br>
+    <b>crest<sub>±T/2</sub></b> (set sheet only) — the same read swept across <b>one full wave period centred on
+    the column clock</b> (12 sub-clocks) and maxed: the tallest wave to cross that station around this moment.
+    This is the set sheet's headline number, and <b>inst</b> beside it is the single instant the frame shows.
+    A set beat is 31–42 s per column against a 12–15 s wave, so the two are unrelated phases and an instant
+    aliases the carrier into a number that claims to be about sets — measured at The Hook, the instant reads
+    3.13 m in the peak column where the envelope reads 5.27 m and the biggest wave (5.30 m) crossed 3.9 s
+    earlier. When they disagree, the wave is simply between crests at that station in that frame.<br>
     <b>foam<sub>model</sub></b> — the shader's own foam field at those same transects: peak value, and the share of
     the 11 stations carrying foam ≥ 0.15. Camera-independent, so the framing cannot move it.<br>
     <b>foam<sub>pix</sub></b> — the camera's answer: share of samples at luma ≥ ${FOAM_LO} over the whitewater
@@ -834,6 +909,17 @@ view is the one that shows the envelope arriving down the point.</p>
 plus a shoulder, on the two sites with the most contrast in ξ (Sewers 1.15, Second Peak 0.65).
 Not sampled: the other five presets across months; the nine unsampled months; any tide or Δf variation
 (a month touches neither).</p>
+<p><b>Why the crest number is swept, not sampled (2026-08-19).</b> A set sheet is about the <i>envelope</i>, and this
+sheet's columns are one quarter of a set beat apart — 31–42 s — against a carrier wave of 12–15 s. Those two
+periods have no relation, so a single-instant crest at one station lands on an arbitrary point of the passing
+wave in every column. It looked exactly like a model defect: The Hook read
+<code>1.04 / 3.63 / <b>3.13</b> / 1.25 / 0.98</code> m across the beat, a set apparently peaking a column early
+and half over by the peak column. Sweeping that same station every 1 s across the beat found waves of
+2.11–5.30 m with the biggest arriving at t = 184 s, <b>3.9 s (0.027 beat) before</b> the peak column's own clock —
+the envelope was where it was designed to be and the instrument was reading between two waves. The headline
+<code>crest<sub>±T/2</sub></code> is now the max over one carrier period centred on the column clock; the instant
+is printed beside it because that is what the frame shows. Nothing in the model moved.
+See <code>docs/research/MEASUREMENT_LESSONS.md</code> 12.</p>
 <p><b>Why the lull is not flat.</b> <code>#env</code> floors the set envelope at 0.15 instead of exactly
 zero — <code>env = (1−m) + m·cos(…)</code>, m = 0.425, so the peak is unchanged at 1.0 by construction and
 only the trough rises. That floor is derived from the SC116 spectra two independent ways, not picked.
