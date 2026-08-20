@@ -39,11 +39,12 @@
 //      qa/snapshots/manifest.json. RETENTION: the newest --keep=N (default 4)
 //      snapshots keep their frames; older ones are deleted from disk and stay
 //      in the manifest as RETIRED rows carrying date, commit and note. The
-//      index is therefore complete as a record and bounded as a payload —
-//      ~125 PNGs per snapshot is real weight in a published bundle, and the
-//      commit stamp is what makes a retired snapshot regenerable rather than
-//      lost. The manifest lives in gitignored qa/, so it is the publishing
-//      machine's record, not the repo's.
+//      index is therefore complete as a record and bounded as a payload.
+//      MEASURED: a full snapshot is 125 PNGs / 54 MB, against a 9.9 MB essay
+//      bundle — so an unbounded qa/ would be the deploy, and the default
+//      keep=4 caps it near 216 MB. The commit stamp is what makes a retired
+//      snapshot regenerable rather than lost. The manifest lives in gitignored
+//      qa/, so it is the publishing machine's record, not the repo's.
 //
 // WHY THE CLOCKS ARE DERIVED, NOT PICKED
 //   Sheet 1 (break progression) columns span ONE WAVE PERIOD T, anchored on a
@@ -1285,10 +1286,11 @@ ${STANDING}
 <div class="foot">
 <p><b>Retention.</b> The index keeps <b>every</b> snapshot ever built on this machine — a record of what was
 published and when should not quietly shorten. The <b>frames</b> do not: only the newest <b>${KEEP}</b>
-snapshots keep their PNGs, and older ones are deleted from disk and shown here as retired. About 125 frames a
-snapshot is real weight in a published bundle, and the commit stamp on a retired row is what makes it
-regenerable rather than lost. The manifest lives in git-ignored <code>qa/</code>, so this list is the
-publishing machine's record rather than the repository's.</p>
+snapshots keep their PNGs, and older ones are deleted from disk and shown here as retired. A full snapshot
+measures 125 frames / 54 MB against a 9.9 MB essay bundle, so an unbounded archive here would <i>be</i> the
+deploy; the commit stamp on a retired row is what makes it regenerable rather than lost. The manifest lives
+in git-ignored <code>qa/</code>, so this list is the publishing machine's record rather than the
+repository's.</p>
 <p><a href="${esc(ESSAY_URL)}">the essay</a> · <a href="${esc(REPO_URL)}">the repo</a></p>
 </div>
 </div>
