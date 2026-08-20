@@ -303,16 +303,44 @@ test('published frames are re-encoded for the budget, but never measured after',
 });
 
 // ---------------------------------------------------------------------------
-// The break sheet's span and its marker (2026-08-20).
+// The break sheet's anchor, span and marker (2026-08-20).
 //
-// The sheet used to span one full wave period at T/5 per column. A crest
-// advances exactly one crest spacing per period, so the tracked wave ended the
-// row 0.80 of a spacing along — 0.20 from where the NEXT wave upstream started
-// — and the five columns read as five near-identical parallel lines. The ratio
-// is site-independent (advance/spacing = dt/T cancels the local wavelength), so
-// it was 0.80 on every row at every camera and every H0.
+// Two passes, two different bugs, both invisible in the numbers alone.
+//
+// SPAN. The columns spanned one full wave period at T/5. A crest advances
+// exactly one crest spacing per period, so the tracked wave ended the row 0.80
+// of a spacing along — 0.20 from where the NEXT wave upstream started — and the
+// five columns read as five near-identical parallel lines. The ratio is
+// site-independent (advance/spacing = dt/T cancels the local wavelength).
+//
+// ANCHOR, which survived the first fix. t* was the argmax of crest HEIGHT at
+// the break line. A wave is tallest AT the line, and at the line it is already
+// breaking, so the anchor sat at or after break onset BY CONSTRUCTION: column 1
+// carried an established whitewater band and the tracked wave then decayed
+// across the row. The row is now the wave's own measured break event.
 // ---------------------------------------------------------------------------
-test('the break sheet spans a fraction of a period, not a whole one', () => {
+test('the break sheet is anchored on a measured break event, not on peak height', () => {
+  // The anchor must come from a transition the model reports, walked BACKWARD
+  // from the set anchor — there is no forward-only way to find "before it
+  // breaks" from a clock that already sits mid-break.
+  assert.match(rig, /async function measureBreakEvent\(/);
+  assert.match(rig, /const CREST_FOAM_PRE = /);
+  assert.match(rig, /const CREST_FOAM_BREAK = /);
+  assert.match(rig, /SET_ANCHOR_S - i \* dt/,
+    'the event measurement does not walk time backwards from the set anchor');
+  // FIRST rise then walk back, not last-quiet-clock: scanning backward from the
+  // end finds a clock after the tracked wave has already broken.
+  assert.match(rig, /if \(track\[i\]\.foam >= CREST_FOAM_BREAK\) \{ iBr = i; break; \}/);
+  assert.match(rig, /if \(track\[i\]\.foam <= CREST_FOAM_PRE\) \{ iOn = i; break; \}/);
+  // And the row is built on the event, not on the crest-height argmax.
+  assert.match(rig, /const clocks = clocksFor\(sheet, st, crest, event\)/);
+  assert.match(rig, /const t0 = ev\.tBreak - spanS/,
+    'the window does not end at the measured break');
+  assert.ok(!/times: Array\.from\(\{ length: n \}, \(_, k\) => crest\.tStar/.test(rig),
+    'the row is still anchored on the crest-height argmax t*');
+});
+
+test('the break window is bounded so the sequence cannot alias onto the next wave', () => {
   // Parsed, not eval'd: the constant is a literal ratio or a decimal, and a
   // test that can run arbitrary source is not a test of the source.
   const m = rig.match(/const WAVE_SPAN_T = ([\d.]+)(?:\s*\/\s*([\d.]+))?\s*;/);
@@ -321,28 +349,49 @@ test('the break sheet spans a fraction of a period, not a whole one', () => {
   assert.ok(Number.isFinite(span), `WAVE_SPAN_T did not parse: ${m[0]}`);
   assert.ok(span > 0 && span <= 0.5,
     `WAVE_SPAN_T is ${span}: at or above half a period the tracked crest gets closer to `
-    + 'its neighbour\'s slot than to its own, which is the aliasing this replaced');
-  // Five columns over that span, so the per-column advance is span/4 spacings.
-  assert.match(rig, /const denom = Math\.round\(\(n - 1\) \/ WAVE_SPAN_T\)/);
-  assert.match(rig, /times: Array\.from\(\{ length: n \}, \(_, k\) => crest\.tStar \+ k \* spacing\)/);
-  // The old formula must be gone, not merely unused.
+    + 'its neighbour\'s slot than to its own, which is the aliasing the first pass replaced');
+  assert.match(rig, /if \(spanS > WAVE_SPAN_T \* T\) \{ spanS = WAVE_SPAN_T \* T; clamped = true; \}/,
+    'a measured event longer than the ceiling is not clamped');
+  // The old full-period formula and its labels must be gone, not merely unused.
   assert.ok(!/crest\.tStar \+ \(k \* T\) \/ n/.test(rig),
     'the full-period column formula is still in the rig');
   assert.ok(!/'\+T\/5'|'\+2T\/5'/.test(rig), 'the +kT/5 column labels survive');
+});
+
+test('acceptance is measured, on the tracked crest, and can fail', () => {
+  // The page must not be able to promise a break its frames do not contain.
+  assert.match(rig, /const accept = \{ pass: Boolean\(rises\)/);
+  assert.match(rig, /foamSeries\[0\] <= CREST_FOAM_PRE \* 3/,
+    'acceptance does not require the row to START pre-break');
+  assert.match(rig, /foamSeries\[foamSeries\.length - 1\] >= CREST_FOAM_BREAK/,
+    'acceptance does not require the row to END broken');
+  assert.match(rig, /ACCEPTANCE FAIL/, 'a failing row is not reported by the run');
+  // Read ON the tracked crest, at the same station the window was derived at.
+  // A fixed point in the water never goes quiet between waves at a point break,
+  // which is how the first version reported foam 0.87 in a pre-break column.
+  assert.match(rig, /const foamSeries = cells\.map\(\(c\) => \(c\.foamAtWatch/,
+    'acceptance does not read the foam at the tracked crest at the watch station');
+  // And a non-breaking row must be labelled rather than dressed up.
+  assert.match(rig, /This row does not break/);
+  assert.match(rig, /'crest intact', 'a quarter through', 'halfway', 'three quarters', 'crest gone'/,
+    'a non-breaking row still gets break-promising column headers');
 });
 
 test('the tracked wave is a model read with its own error bar', () => {
   // The marker must come from the model, not from a pixel search or a constant:
   // a mark that is computed is falsifiable, and a mark that is placed is not.
   assert.match(rig, /function trackedWave\(/);
-  assert.match(rig, /curlProbe\(p\.x, p\.z - 0\.5, p\.z \+ 0\.5, 3\)/,
-    'the breakpoint is not read off the break line through curlProbe');
-  assert.match(rig, /s\.pocket - 0\.0015 \* Math\.abs\(s\.x - seedX\)/,
-    'there is no continuity term, so a row can hop between crests');
-  // offM: the same crest read the OTHER way, so the mark can be caught drifting.
-  assert.match(rig, /markerOffM/);
-  assert.match(rig, /markerOffMaxM/);
-  assert.match(rig, /mark off crest/, 'the marker error is not on the page');
+  assert.match(rig, /this wave's own breaking point/,
+    'the ring is not documented as the tracked wave\'s own breaking point');
+  // Withheld before the wave reaches the line, or it rings the PREVIOUS wave —
+  // which is what the first pass did, and what the frames showed.
+  assert.match(rig, /const RING_MIN_POCKET = /);
+  assert.match(rig, /if \(bi >= 0 && ribbon\[bi\]\.pocket >= ringMin\)/);
+  assert.match(rig, /no ring — not at the line yet/,
+    'a pre-break cell does not say why it has no ring');
+  // offM: how far the ring sits from the line it belongs on.
+  assert.match(rig, /offLineM/);
+  assert.match(rig, /ring off line/, 'the marker error is not on the page');
   // Break sheet only. The set sheet's columns are 2-3 carrier periods apart, so
   // one wave cannot be followed across them and a marker claiming otherwise
   // would be the exact error MEASUREMENT_LESSONS 12 is about.
@@ -351,6 +400,20 @@ test('the tracked wave is a model read with its own error bar', () => {
   const capture = rig.slice(rig.indexOf('async function captureSheet('));
   assert.match(capture, /const crop = sheet\.clock\.kind === 'wave' \? cropForRow/,
     'the crop is not gated to the wave sheet');
+});
+
+test('a row that cannot show a break is not published', () => {
+  // day-small is H0 0.70 m at a site whose measured peel floor is 1.08 m: its
+  // whitewater at the tracked crest peaks at 0.193 against 0.858-0.890 for
+  // every row that breaks. It stays on the local sheet, labelled.
+  const pubBlock = rig.slice(rig.indexOf('const PUB_ROWS = {'), rig.indexOf('const SHEETS = ['));
+  const breakRow = pubBlock.match(/'break-progression': \[([^\]]*)\]/);
+  assert.ok(breakRow, 'no published row list for the break sheet');
+  assert.ok(!/day-small/.test(breakRow[1]),
+    'day-small is published, but it does not break at Second Peak');
+  // and the page has to say why, not silently drop it
+  assert.match(rig, /Why the small end is not the smallest day/);
+  assert.match(rig, /peel floor/);
 });
 
 test('framing is a crop, so the camera guarantees survive', () => {

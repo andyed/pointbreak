@@ -441,49 +441,19 @@ And it is not only arithmetic — the sheet's own subject can be watched doing i
 Laid out over a full T, the tracked breakpoint's world x across the five columns
 reads `36/56/88/4/36` at `day=small`, `56/72/92/44/56` at `day=modelcard` and
 `52/76/16/36/52` at `h0=2.5`: **three rows where column 5 lands on column 1's
-station to the metre**, having wrapped through the stage in between. Over T/4
-the same rows read `37/43/46/50/55`, `58/62/66/70/74` and `50/54/58/66/74` —
-monotone, and nowhere near their own start.
+station to the metre**, having wrapped through the stage in between.
 
-Three things this cost, all avoidable:
+Two more things this cost:
 
 * **A whole-period span is the worst case, not the natural one.** "Cover one
   full cycle" is the instinct, and it is exactly the layout that guarantees the
   ends match. The natural span is however much of the cycle the *change you are
-  showing* needs.
-* **The subject was the wrong quantity.** The sheet is about a POINT BREAK, and
-  what a point break does is peel: the breakpoint travels along the line at
-  Vp = c/sin α, **faster than the wave**. Over T/4 the crest advances a quarter
-  of a spacing while the model's own zipper locus travels 37→55 m of line at
-  `day=small` (+17.6 m in 2.25 s) and 42→88 m at `day=big` (+46.3 m in 4.25 s).
-  Sampling the slow quantity over a period of the fast one had it backwards.
+  showing* needs — which is [15b](#15b).
 * **The span has an upper bound from the other side too, and it is not the
   aliasing.** Measured (`scripts/measure_break_sequence.mjs`): at `day=big` the
   tracked wave has **peeled off the stage end by about 0.35 T** — its pocket
   goes 0.99 → 0.00 between 0.30 T and 0.40 T — so a longer sheet loses its own
-  subject in the last columns whether or not it aliases. Two bounds from two
-  unrelated mechanisms, and the shorter one wins.
-
-Fix: span T/4 (columns T/16), and **mark the tracked wave**. The marker is
-computed from the model — the argmax of `pocket` along the break line, which the
-shader's own comment calls the zipper's locus, with a continuity term across
-columns — and projected through the live camera matrices, so it is falsifiable
-rather than decorative. It carries its own error bar: `markerOffM` is the
-distance from the ring to the tallest displaced surface point on a shore-normal
-transect at the same station, i.e. the same crest read through a different
-reduction. Worst case over the shipped sheet is **5.36 m (33.6 px)**, at
-`h0=0.7` — which is the low-H₀ branch collapse (stage α 4.3°, a near-closeout
-below Second Peak's 1.08 m peel floor) showing up as the zipper locus and the
-crest maximum coming apart, exactly what an instrumented marker is for.
-
-Related, and the reason this is not lesson 1 again: **a still cannot support a
-claim about motion, but an ordered set of stills with model-derived clocks can
-support a claim about positions.** Each cell states where the breakpoint is at a
-clock the model chose; the row states the difference between two such reads.
-Nothing is measured off the pictures. Lesson 1's third failure — "peel direction
-is rightward, confirmed across two frames" — failed because frame order was
-never established. Here it is established by construction, and that is the whole
-difference.
+  subject in the last columns whether or not it aliases.
 
 Framing, recorded because it was the tempting wrong answer: the cells are
 **cropped**, not re-shot from a tighter camera. Moving the camera to frame the
@@ -491,3 +461,86 @@ wave would make the instrument frame itself on the signal (lesson 11) and would
 void the sheet's `camDriftM` guarantee. A crop is a pixel operation on an
 already-captured frame, identical across a row, so the camera stays where it
 was, the drift stays 0.00 m, and each cell's hash still reopens the full state.
+
+### 15b. Fixing the span does not fix the anchor — and the frames say which
+
+The above shipped, and Andy looked at the rebuilt sheet and said it *still*
+didn't make sense. He was right, and the reason is the sharper lesson.
+
+**The numbers had been checked and the pictures had not.** The rebuild passed
+every number I had defined: marker within 1.6 px of its model position on all 80
+cells, camera drift 0.00 m, the crest advancing a clean 0.25 of a spacing. What
+none of those measured was *whether the row contained a break*. Opening the
+frames — `qa/published/img/break-progression_cliff_day-small_c0.webp` and its
+siblings — showed an established whitewater band immediately up-line of the mark
+**in column 1**, and the tracked wave then *decaying* across the row: crest
+2.98 → 2.94 → 2.85 → 2.74 → 2.71 m, `foam_model` **0.87 in the first cell**. The
+most salient moving object in the sequence was the *next* unbroken swell closing
+in from the top of frame. The page annotated one wave and showed another.
+
+**The anchor was the bug, and it was a correct measurement of the wrong
+instant.** t\* was the argmax of crest **height** on a transect straddling the
+break line. A wave is tallest *at* the line, and at the line it is already
+breaking — so that clock sits at or after break onset **by construction**. No
+choice of span around it can produce a "before" column, because there is no
+"before" to the right of onset. Two passes were spent on the span while the
+thing generating the symptom was one line away and had been measured correctly.
+
+Three transferable pieces:
+
+* **Anchor on the transition, not on the extremum.** If the sequence is about an
+  event, find where the state *changes* and put the window across it. An
+  extremum of the quantity that the event maximises is on the far side of it.
+  Here: from the last clock where the wave is unbroken to the first where it is
+  whitewater.
+* **You have to walk time backwards.** The clock the sheet needs is *before it
+  breaks*, and from an anchor already sitting mid-break there is no forward-only
+  search that finds it. `measureBreakEvent` seeds on the crest nearest the line
+  at the set anchor and integrates the track **back** a full period as well as
+  forward. Related trap, and it cost a run: scanning the finished track
+  *backwards* for the last quiet clock finds one **after** the tracked wave has
+  broken and the tracker has picked up the following bore — at `day=big` that
+  reported the *second* event as if it were the first. Find the first rise, then
+  walk back from it.
+* **Read the per-wave quantity on the wave, not at a place.** Whitewater at a
+  *fixed station* on a point break never goes quiet between waves — it is the
+  bore the previous wave left. That is exactly how a column whose own wave had
+  not broken reported foam 0.87. Sampled **at the tracked crest** the same field
+  reads 0.01 → 0.05 → 0.14 → 0.22 → 0.86 across the same row. Same field, same
+  model, same clock; different domain, opposite conclusion — lesson 8c again,
+  and it will keep coming back.
+
+**The threshold is measured, not picked**, and this is what that looks like.
+Swept at T/40 across 1.8 T at each row's takeoff station, peak foam-at-the-crest
+is bimodal across the bank: the rows that break plateau at **0.858 / 0.888 /
+0.890 / 0.890**, and the rows that do not top out at **0.193 and 0.341**.
+Nothing lands between 0.35 and 0.85. A 0.60 line sits in an empty gap rather
+than on a slope, so it is a fact about the bank rather than a taste.
+
+**And a sheet has to be allowed to fail.** The two rows that cannot pass are
+both H₀ 0.70 m at a site whose measured peel floor is 1.08 m — the documented
+low-H₀ branch collapse, arriving through yet another door. They now carry a
+label saying so and their own peak number, their columns span the crest
+indicator's collapse instead of a break, and `day=small` is **dropped from the
+published set**. A published row whose header promises a break its frames do not
+contain is the failure mode this whole entry is about; the fix for a row that
+cannot show the subject is to say so, not to re-word the header.
+
+Acceptance is now a number the run prints and the page carries: foam at the
+tracked crest must start pre-break and end broken. Measured, all six rows:
+
+| row | H₀ | break event | foam at the crest, five clocks | |
+|---|---|---|---|---|
+| `day=small` | 0.70 m | none (peak 0.193) | 0.04 / 0.05 / 0.06 / 0.04 / 0.03 | fails, labelled |
+| `day=modelcard` | 1.50 m | 3.85 s = 0.275 T | 0.01 / 0.05 / 0.14 / 0.22 / 0.86 | passes |
+| `day=overhead` | 2.20 m | 4.40 s = 0.275 T | 0.01 / 0.06 / 0.14 / 0.22 / 0.89 | passes |
+| `day=big` | 2.50 m | 4.25 s = 0.250 T | 0.01 / 0.06 / 0.15 / 0.24 / 0.89 | passes |
+| `h0=0.7` | 0.70 m | none (peak 0.341) | flat | fails, labelled |
+| `h0=2.5` | 2.50 m | 3.85 s = 0.275 T | 0.02 / 0.08 / 0.17 / 0.28 / 0.89 | passes |
+
+The break event turns out to run **0.25–0.275 T on every row that breaks**, at
+periods from 14 to 17 s. The first pass's T/4 was therefore close to right — by
+luck, and while anchored in the wrong place, which is the whole point: a span
+that happens to be the right length around the wrong instant still shows
+nothing, and only the pictures said so.
+

@@ -49,12 +49,13 @@
 //      it. --pubwidth / --pubquality tune it; the run prints the achieved total.
 //
 // WHY THE CLOCKS ARE DERIVED, NOT PICKED
-//   Sheet 1 (break progression) columns span a QUARTER of a wave period T,
-//   anchored on a MEASURED crest arrival at the break line: the rig sweeps sim
-//   time across one T around the set peak, reads the displaced surface off the
-//   GPU through __pointbreak.curlProbe at the break-line transect, and takes
-//   the argmax. Columns are then t* + k*T/16, k = 0..4. See the aliasing note
-//   below for why the span is T/4 and not T.
+//   Sheet 1 (break progression) columns span ONE WAVE'S BREAK EVENT, measured
+//   per row: from the last clock at which the model's foam AT THE TRACKED CREST
+//   is still at or below CREST_FOAM_PRE to the first at which it reaches
+//   CREST_FOAM_BREAK, at the takeoff station where a crest first meets the
+//   line. Measured at Second Peak that is 3.85-4.40 s, i.e. 0.25-0.275 T, on
+//   every row that breaks. See the two notes below for the two things this
+//   replaced — a whole-period span, and then an anchor at peak crest height.
 //   Sheet 2 (sets) columns span ONE SET BEAT 1/dF. setEnv peaks at the live
 //   break line at t = SET_ANCHOR_S = 45 s by construction (#arm anchor: the
 //   envelope is re-referenced to u_setRef, so the s/cg term cancels there), so
@@ -62,7 +63,44 @@
 //   easing, lull. Phase is read back per cell through the repo's own setEnv
 //   twin fed from the live uniforms, never a re-derivation.
 //
-// WHY THE BREAK SHEET NO LONGER SPANS A WHOLE PERIOD (2026-08-20)
+// WHY THE BREAK SHEET IS ANCHORED ON THE BREAK EVENT (2026-08-20, second pass)
+//   The first pass below fixed the SPAN and left the ANCHOR wrong. Andy looked
+//   at the rebuilt sheet and said it still did not make sense; opening the
+//   frames rather than the numbers showed why. Column 1 already carried an
+//   established whitewater band immediately up-line of the mark — foam_model
+//   0.87 in the first column — and the tracked wave then DECAYED across the row
+//   (cliff/day=small crest 2.98 -> 2.94 -> 2.85 -> 2.74 -> 2.71 m) instead of
+//   breaking. The most salient moving thing in the sequence was the next
+//   unbroken swell closing in from the top of frame, so the page annotated one
+//   wave and showed another.
+//
+//   THE ANCHOR WAS THE BUG. t* was the argmax of crest HEIGHT on a transect
+//   straddling the break line — and a wave is tallest AT the line, where it is
+//   already breaking. The old anchor therefore sat at or after break onset by
+//   construction. It was a correct measurement of the wrong instant, which is
+//   the same shape of error as lesson 12 one level up.
+//
+//   Now the row IS the break event, measured per row (measureBreakEvent): from
+//   the last clock at which the model's foam AT THE TRACKED CREST is still at
+//   or below CREST_FOAM_PRE, to the first at which it reaches CREST_FOAM_BREAK,
+//   at the takeoff station where a crest first meets the line. Reading foam at
+//   the crest rather than at a fixed point in the water is the other half of
+//   the fix: at a point break the bore left by previous waves never goes quiet
+//   at a fixed station, which is exactly how a column whose wave had not broken
+//   could report foam 0.87.
+//
+//   The marker follows: the ring is the largest `pocket` ALONG THE TRACKED
+//   CREST — this wave's own breaking point — and is WITHHELD when that is below
+//   RING_MIN_POCKET, so the pre-break columns carry no ring instead of ringing
+//   the previous wave. An empty column 1 is what "still unbroken" looks like.
+//
+//   ACCEPTANCE, per row, printed by the run and on the page: foam at the tracked
+//   crest must start pre-break and end broken. A row that cannot (day=small and
+//   h0=0.7, both H0 0.70 m at a site whose measured peel floor is 1.08 m) is
+//   LABELLED a non-breaking case and kept out of the published set rather than
+//   given a header promising a break its frames do not contain.
+//
+// WHY THE BREAK SHEET NO LONGER SPANS A WHOLE PERIOD (2026-08-20, first pass)
 //   It used to span one full T at T/5 per column, and the sequence very nearly
 //   ALIASED BACK ONTO ITSELF. A crest advances exactly one crest spacing per
 //   period, so k*T/5 puts the tracked wave k/5 of a spacing along: by column 5
@@ -268,11 +306,58 @@ const CORRIDOR_N = 25;   // samples per station across the corridor
 // ---------------------------------------------------------------------------
 // THE TRACKED WAVE — span, marker, framing (2026-08-20)
 // ---------------------------------------------------------------------------
-// How much of a period the break sheet's five columns span. See the aliasing
-// note at the top of this file: the crest advance across the whole row is
-// exactly WAVE_SPAN_T crest spacings, independently of site, size and camera,
-// so this constant IS the confusability of the sheet with itself.
-const WAVE_SPAN_T = 1 / 4;
+// ---------------------------------------------------------------------------
+// THE BREAK EVENT — where the row starts and stops (2026-08-20, second pass)
+// ---------------------------------------------------------------------------
+// The first pass fixed the span and left the ANCHOR wrong, and the frames said
+// so: column 1 already carried an established whitewater band up-line of the
+// mark, and the tracked wave then decayed across the row instead of breaking
+// (cliff/day=small crest 2.98 -> 2.71 m, foam_model 0.87 in COLUMN ONE).
+//
+// The cause: t* was the argmax of crest HEIGHT on a transect straddling the
+// break line. A wave is tallest at the line, and at the line it is already
+// breaking — so the old anchor sat at or after break onset by construction. It
+// was a correct measurement of the wrong instant.
+//
+// The row is now anchored and spanned by the BREAK EVENT of the tracked wave,
+// read off the model's own per-wave channels AT THE CREST (not at a fixed point
+// in the water, where the ambient bore from previous waves never goes quiet):
+//
+//   foam  whitewater at the crest -> is THIS wave breaking
+//   brk   surf-zone mask          -> has THIS wave entered the surf zone
+//   crest crestNear*(1-brk)       -> the unbroken-crest indicator; dies at the break
+//
+// The window runs from the last clock at which foam-at-the-crest is still at or
+// below CREST_FOAM_PRE to the first at which it reaches CREST_FOAM_BREAK.
+//
+// THE THRESHOLD IS MEASURED, NOT PICKED. Swept at T/40 across 1.8 T at each
+// row's takeoff station, the bank is bimodal in peak foam-at-the-crest: the
+// rows that break reach a plateau at 0.858 / 0.888 / 0.890 / 0.890, and the
+// rows that do not top out at 0.193 and 0.341. Nothing lands between 0.35 and
+// 0.85, so 0.60 sits in an empty gap rather than on a slope.
+const CREST_FOAM_PRE = 0.02;
+const CREST_FOAM_BREAK = 0.60;
+
+// What the measured event turns out to be. All four breaking rows at Second
+// Peak span 0.25-0.275 T from "still unbroken" to "whitewater at the crest"
+// (3.85 / 4.40 / 4.25 / 3.85 s at T = 14 / 16 / 17 / 14), so the break event
+// has a near-constant duration in periods even though the periods differ by
+// 20%. The span is taken from each row's own measurement, not from this number.
+//
+// WAVE_SPAN_T is now only a CEILING, kept for the aliasing bound: the crest
+// advances exactly (span/T) crest spacings whatever the site, so a span at or
+// above half a period puts the tracked wave nearer its neighbour's place than
+// its own. A row whose measured event is longer than this is clamped to it,
+// ending at the break, and says so.
+const WAVE_SPAN_T = 1 / 2;
+
+// A row that never reaches CREST_FOAM_BREAK does not break, and no span can
+// make it. It falls back to the crest indicator's own collapse — the last clock
+// fully unbroken (>= this) to the first with the crest gone (<= the second) —
+// and is LABELLED as a non-breaking case rather than given a header that
+// promises a break the frames do not contain. It is also kept out of the
+// published set (PUB_ROWS).
+const CREST_IND_FULL = 0.90, CREST_IND_GONE = 0.05;
 
 // How far the crest ribbon reaches, in metres of break line either side of the
 // breakpoint. Asymmetric because the shoulder AHEAD of the peel (+x, down the
@@ -313,6 +398,13 @@ const CROP_MIN_ZOOM = 1.06;
 // nearly along the line, so even 80 m of crest projects across the frame and a
 // bbox over all of it would ask for no crop at all.
 const CROP_REACH_M = 40;
+
+// The ring is withheld below this. pocket is crestNear*bell(d)*env^2*reef read
+// along the crest, so it is the model's own "this wave is at the line here";
+// before the tracked wave arrives it is small everywhere, and a ring placed
+// anyway would be sitting on the PREVIOUS wave. Column 1 is meant to have no
+// ring — that is what "still unbroken" looks like.
+const RING_MIN_POCKET = 0.10;
 
 const GENERATED = new Date();
 
@@ -394,7 +486,14 @@ const SEASON_MONTHS = [
 // Every sheet says on the page what the full local matrix covers, so the cut is
 // visible to a reader rather than silently presented as the whole instrument.
 const PUB_ROWS = {
-  'break-progression': ['day-small', 'day-big'],
+  // day-small is NOT here, and that is a measurement rather than a taste. At
+  // H0 = 0.70 m Second Peak sits below its own measured 1.08 m peel floor, and
+  // the wave never breaks properly: whitewater at the tracked crest peaks at
+  // 0.193 against the 0.858-0.890 every breaking row reaches. A published row
+  // whose header promises a break the frames do not contain is the thing this
+  // page exists not to do, so the small end published here is the smallest day
+  // that DOES break. day-small stays on the local sheet, labelled.
+  'break-progression': ['day-modelcard', 'day-big'],
   'sets-locations-seasons': [
     'loc-sewers', 'loc-secondpeak', 'loc-privates',
     'sea-sewers-january', 'sea-sewers-august',
@@ -407,15 +506,17 @@ const SHEETS = [
     id: 'break-progression',
     file: 'break-progression.html',
     title: 'Break progression',
-    blurb: 'ONE wave, ringed in every frame, at five clocks across a quarter of a wave period — '
-      + 'the span over which its breakpoint peels down the point but the wave itself never reaches '
-      + 'its neighbour\'s place. Six wave sizes.',
+    blurb: 'ONE wave through its own break: five clocks from the last at which it is still unbroken '
+      + 'to the first at which its crest is whitewater, marked in every frame. The window is that '
+      + 'wave\'s measured break event, not a fixed slice of the period. Six wave sizes — two of which '
+      + 'do not break, and say so.',
     // Published mode ships a row subset, so the standing description of the
     // sheet has to match the page a reader is actually looking at. A lede that
     // promises six rows over a two-row grid is its own small dishonesty.
-    pubBlurb: 'ONE wave, ringed in every frame, at five clocks across a quarter of a wave period — '
-      + 'the span over which its breakpoint peels down the point but the wave itself never reaches '
-      + 'its neighbour\'s place. The two ends of the size range.',
+    pubBlurb: 'ONE wave through its own break: five clocks from the last at which it is still '
+      + 'unbroken to the first at which its crest is whitewater, marked in every frame. The window '
+      + 'is that wave\'s measured break event, not a fixed slice of the period. The two ends of the '
+      + 'range that breaks here.',
     clock: { kind: 'wave', n: 5 },
     groups: [
       {
@@ -661,7 +762,7 @@ function probeTransect({ x, zLine, halfM, n }) {
 // Camera use is read-only and identical to readState's: live matrices, so the
 // marker follows whichever cam preset the row asked for. Nothing here moves the
 // clock, the camera or any uniform.
-function trackedWave({ seedX, lineStep, ribStep, ribBack, ribFwd, ribHalf, ribN }) {
+function trackedWave({ watchX, seedZ, lineStep, ribStep, ribBack, ribFwd, ribHalf, ribN, ringMin }) {
   const pb = window.__pointbreak;
   const cam = pb.camera;
   cam.updateMatrixWorld(true);
@@ -697,118 +798,116 @@ function trackedWave({ seedX, lineStep, ribStep, ribBack, ribFwd, ribHalf, ribN 
   const stageLo = sa ? sa.stageLo : line[0].x;
   const stageHi = sa ? sa.stageHi : line[line.length - 1].x;
 
-  // pocket along the line — the zipper locus
-  const onLine = [];
-  for (const p of line) {
-    if (p.x < stageLo || p.x > stageHi) continue;
-    if (p.gap) { onLine.push({ x: p.x, z: p.z, pocket: 0, foam: 0, gap: true }); continue; }
-    const rows = pb.curlProbe(p.x, p.z - 0.5, p.z + 0.5, 3) || [];
-    const m = rows[1] || {};
-    onLine.push({ x: p.x, z: p.z, pocket: m.pocket || 0, brk: m.brk || 0,
-      foam: m.foam || 0, gap: false });
-  }
-  let bi = -1, bv = -Infinity;
-  for (let i = 0; i < onLine.length; i++) {
-    const s = onLine[i];
-    if (s.gap) continue;
-    // Continuity penalty, in pocket units per metre. Small enough that it never
-    // beats a real peak, large enough to break a tie between two crests on the
-    // line — which is the only case where "the tallest" and "the one we were
-    // following" can differ.
-    const score = Number.isFinite(seedX) ? s.pocket - 0.0015 * Math.abs(s.x - seedX) : s.pocket;
-    if (score > bv) { bv = score; bi = i; }
-  }
-  let bp = null;
-  if (bi >= 0 && onLine[bi].pocket > 1e-4) {
-    let bx = onLine[bi].x;
-    if (bi > 0 && bi < onLine.length - 1 && !onLine[bi - 1].gap && !onLine[bi + 1].gap) {
-      const a = onLine[bi - 1].pocket, b = onLine[bi].pocket, c = onLine[bi + 1].pocket;
-      const den = a - 2 * b + c;
-      if (Math.abs(den) > 1e-9) {
-        const d = (a - c) / (2 * den);
-        if (Math.abs(d) <= 1) bx = onLine[bi].x + d * lineStep;
-      }
-    }
-    bp = { x: bx, z: zbAt(bx), pocket: onLine[bi].pocket };
-  }
-
-  // crest locus at one station, parabola-refined, seeded at zc
+  // ---- the tracked crest ----
+  // Marched in x by the argmax of the DISPLACED HEIGHT, which is defined at
+  // every station whether or not the wave has broken there. (The `crest`
+  // channel was the first pass's indicator and is better conditioned before the
+  // break, but it is crestNear*(1-brk): it switches itself off exactly where the
+  // wave breaks, which is where this sheet now spends most of its columns.)
+  // Adjacent crests are >= 15.5 m apart anywhere in this bank at the break, so a
+  // +-9 m window seeded at the previous station cannot reach the neighbour.
   const peakAt = (x, zc, half, n) => {
     const rows = pb.curlProbe(x, zc - half, zc + half, n) || [];
     let i = -1, best = -Infinity;
     for (let k = 0; k < rows.length; k++) {
       if (rows[k].land > 0.5) continue;
-      if (rows[k].crest > best) { best = rows[k].crest; i = k; }
+      if (rows[k].y > best) { best = rows[k].y; i = k; }
     }
-    if (i < 0 || best <= 1e-3) return null;
+    if (i < 0) return null;
     let z = rows[i].z;
-    if (i > 0 && i < rows.length - 1) {
-      const a = rows[i - 1].crest, b = rows[i].crest, c = rows[i + 1].crest;
+    if (i > 0 && i < rows.length - 1 && rows[i - 1].land < 0.5 && rows[i + 1].land < 0.5) {
+      const a = rows[i - 1].y, b = rows[i].y, c = rows[i + 1].y;
       const den = a - 2 * b + c;
       if (Math.abs(den) > 1e-9) {
         const d = (a - c) / (2 * den);
         if (Math.abs(d) <= 1) z = rows[i].z + d * (rows[i + 1].z - rows[i - 1].z) * 0.5;
       }
     }
-    return { z, v: best, y: rows[i].y, edge: i <= 1 || i >= rows.length - 2 };
+    return { z, y: best, foam: rows[i].foam, brk: rows[i].brk,
+      crest: rows[i].crest, pocket: rows[i].pocket,
+      edge: i <= 1 || i >= rows.length - 2 };
   };
 
-  const ribbon = [];
-  let offM = null, offPx = null;
-  if (bp) {
-    // How far is the marker from the crest it claims to be on? The crest here
-    // is the model's own, read the OTHER way — the tallest displaced surface
-    // point on a shore-normal transect at the breakpoint's station.
-    const tall = pb.curlProbe(bp.x, bp.z - 25, bp.z + 25, 201) || [];
-    let ty = -Infinity, tz = null;
-    for (const r of tall) if (r.land < 0.5 && r.y > ty) { ty = r.y; tz = r.z; }
-    const seed = peakAt(bp.x, bp.z, ribHalf, ribN);
-    const bpY = seed ? seed.y : (Number.isFinite(ty) ? ty : 0);
-    const sBp = proj(bp.x, bpY, bp.z);
-    bp.y = bpY; bp.px = sBp.px; bp.py = sBp.py; bp.ndcZ = sBp.ndcZ;
-    bp.vis = sBp.ndcZ < 1 && sBp.px > -600 && sBp.px < W + 600
-      && sBp.py > -600 && sBp.py < H + 600;
-    if (tz !== null) {
-      offM = Math.abs(tz - bp.z);
-      const sT = proj(bp.x, ty, tz);
-      offPx = Math.hypot(sT.px - sBp.px, sT.py - sBp.py);
+  // The WATCH STATION is fixed for the row: the takeoff, where a crest first
+  // meets the line, so where this wave's break starts and its peel begins.
+  // seedZ carries the crest from the previous column, so the row follows ONE
+  // wave through its break rather than re-acquiring whatever is tallest.
+  const wx = Number.isFinite(watchX) ? watchX : (stageLo + stageHi) / 2;
+  const seed = peakAt(wx, Number.isFinite(seedZ) ? seedZ : zbAt(wx),
+    Number.isFinite(seedZ) ? 9 : ribHalf, ribN);
+  if (!seed) return { baked: true, bp: null, ribbon: [], watchX: wx };
+
+  const ribbon = [{ x: wx, ...seed }];
+  const march = (dir, reach) => {
+    let zp = seed.z;
+    for (let d = ribStep; d <= reach; d += ribStep) {
+      const x = wx + dir * d;
+      if (x < stageLo || x > stageHi) break;
+      const p = peakAt(x, zp, 9, 61);
+      if (!p || p.edge) break;
+      if (dir < 0) ribbon.unshift({ x, ...p }); else ribbon.push({ x, ...p });
+      zp = p.z;
     }
-    if (seed) {
-      const march = (dir, reach) => {
-        let zp = seed.z; const out = [];
-        for (let d = ribStep; d <= reach; d += ribStep) {
-          const x = bp.x + dir * d;
-          if (x < stageLo || x > stageHi) break;
-          const p = peakAt(x, zp, ribHalf, ribN);
-          if (!p || p.edge) break;
-          out.push({ x, z: p.z, y: p.y });
-          zp = p.z;
-        }
-        return out;
-      };
-      // Which way is down-point? +x by construction (m4RideSolve rides the +x
-      // branch), so the shoulder still to break is ahead of the breakpoint.
-      const back = march(-1, ribBack).reverse();
-      ribbon.push(...back, { x: bp.x, z: seed.z, y: seed.y }, ...march(1, ribFwd));
-    }
+  };
+  // Down-point is +x (m4RideSolve rides the +x branch), so the shoulder still
+  // to break is ahead of the watch station and gets the longer reach.
+  march(-1, ribBack);
+  march(1, ribFwd);
+
+  // ---- the ring: where THIS wave is breaking ----
+  // pocket = crestNear(theta) * bell(d) * env^2 * reef, so read along the crest
+  // it is largest at the station where the crest is closest to the break line —
+  // this wave's own breaking point. Before the wave reaches the line anywhere it
+  // is small everywhere, and the ring is WITHHELD rather than placed on the
+  // previous wave, which is exactly what the first pass did.
+  let bi = -1, bv = -Infinity;
+  for (let i = 0; i < ribbon.length; i++) if (ribbon[i].pocket > bv) { bv = ribbon[i].pocket; bi = i; }
+  let bp = null;
+  if (bi >= 0 && ribbon[bi].pocket >= ringMin) {
+    const r = ribbon[bi];
+    const s = proj(r.x, r.y, r.z);
+    bp = { x: +r.x.toFixed(2), z: +r.z.toFixed(2), y: +r.y.toFixed(2),
+      px: +s.px.toFixed(1), py: +s.py.toFixed(1), pocket: +r.pocket.toFixed(3),
+      foam: +r.foam.toFixed(3), brk: +r.brk.toFixed(3),
+      // A breaking point belongs ON the break line. This is how far off it sits
+      // — the ring's own error bar, and the first thing that would grow if the
+      // crest march ever wandered onto the wrong wave.
+      offLineM: +Math.abs(r.z - zbAt(r.x)).toFixed(2),
+      vis: s.ndcZ < 1 && s.px > -600 && s.px < W + 600 && s.py > -600 && s.py < H + 600 };
+    if (!bp.vis) bp = null;
   }
+
   const rib = ribbon.map((p) => {
     const s = proj(p.x, p.y, p.z);
     return { x: +p.x.toFixed(1), z: +p.z.toFixed(2), y: +p.y.toFixed(2),
       px: +s.px.toFixed(1), py: +s.py.toFixed(1),
       vis: s.ndcZ < 1 && s.px > -600 && s.px < W + 600 && s.py > -600 && s.py < H + 600 };
   }).filter((p) => p.vis);
-  const open = onLine.filter((s) => !s.gap);
+
+  // The BREAK LINE under the tracked crest, projected. The crop needs it: a
+  // crest is a thin horizontal thing, and a window fitted to it alone lands on
+  // the horizon with the wave's whole face below the frame — which is what the
+  // first cropped build did. The line is where the wave is going, so a window
+  // containing both contains the surf zone.
+  const lineProj = [];
+  for (let x = ribbon[0].x; x <= ribbon[ribbon.length - 1].x; x += ribStep * 2) {
+    const s = proj(x, 0, zbAt(x));
+    if (s.ndcZ < 1) lineProj.push({ x: +x.toFixed(1), px: +s.px.toFixed(1), py: +s.py.toFixed(1) });
+  }
+
+  // The acceptance numbers, all read ON the tracked wave.
   return {
-    baked: true, stageLo, stageHi, sim: pb.sim(),
-    bp: bp && bp.vis ? { x: +bp.x.toFixed(2), z: +bp.z.toFixed(2), y: +bp.y.toFixed(2),
-      px: +bp.px.toFixed(1), py: +bp.py.toFixed(1), pocket: +bp.pocket.toFixed(3) } : null,
-    ribbon: rib,
-    offM: offM === null ? null : +offM.toFixed(2),
-    offPx: offPx === null ? null : +offPx.toFixed(1),
-    linePocketMax: open.length ? +Math.max(...open.map((s) => s.pocket)).toFixed(3) : null,
-    lineFoamFrac: open.length
-      ? +(open.filter((s) => s.foam >= 0.15).length / open.length).toFixed(3) : null,
+    baked: true, stageLo, stageHi, sim: pb.sim(), watchX: wx,
+    bp, ribbon: rib, lineProj,
+    crestZ: +seed.z.toFixed(2),
+    crestOffLineM: +(seed.z - zbAt(wx)).toFixed(2),   // < 0 = still seaward
+    foamAtWatch: +seed.foam.toFixed(3),
+    brkAtWatch: +seed.brk.toFixed(3),
+    crestIndAtWatch: +seed.crest.toFixed(3),
+    foamCrestMax: +Math.max(...ribbon.map((p) => p.foam)).toFixed(3),
+    pocketCrestMax: +Math.max(...ribbon.map((p) => p.pocket)).toFixed(3),
+    crestIndMax: +Math.max(...ribbon.map((p) => p.crest)).toFixed(3),
+    ribbonSpanM: +(ribbon[ribbon.length - 1].x - ribbon[0].x).toFixed(1),
   };
 }
 
@@ -914,9 +1013,114 @@ async function setClock(page, t) {
   await page.waitForTimeout(120);
 }
 
+// ---------------------------------------------------------------------------
+// THE BREAK EVENT of one wave, timed from the model.
+//
+// Seeds on the crest nearest the break line at the watch station at the set
+// anchor, walks time BACKWARD until that crest is unbroken and FORWARD until it
+// is whitewater, and reads foam/brk/crest AT THE CREST the whole way. Returns
+// the window plus the crest's z at every clock, so the capture loop can seed
+// column 1's marker with the same wave this measured.
+//
+// Walking backward is the whole point. The clock the sheet wants is "before it
+// breaks", and there is no forward-only way to find that from a set anchor that
+// already sits mid-break.
+async function measureBreakEvent(page, st, xw, zw) {
+  const T = st.T;
+  const dt = T / 40;
+  const read = async (t, zTarget, win) => {
+    await setClock(page, +t.toFixed(3));
+    return page.evaluate(({ x, z, half, n, zt, w }) => {
+      const rows = (window.__pointbreak.curlProbe(x, z - half, z + half, n) || [])
+        .filter((r) => r.land < 0.5);
+      let best = -Infinity, bi = -1;
+      for (let i = 0; i < rows.length; i++) {
+        if (zt !== null && Math.abs(rows[i].z - zt) > w) continue;
+        if (rows[i].y > best) { best = rows[i].y; bi = i; }
+      }
+      if (bi < 0) return null;
+      return { z: +rows[bi].z.toFixed(2), y: +rows[bi].y.toFixed(3),
+        foam: +rows[bi].foam.toFixed(3), brk: +rows[bi].brk.toFixed(3),
+        crest: +rows[bi].crest.toFixed(3) };
+    }, { x: xw, z: zw, half: 150, n: 401, zt: zTarget, w: win });
+  };
+  // Seed: the local maximum of the surface nearest the line at the set anchor.
+  await setClock(page, SET_ANCHOR_S);
+  const seed = await page.evaluate(({ x, z, half, n }) => {
+    const rows = (window.__pointbreak.curlProbe(x, z - half, z + half, n) || [])
+      .filter((r) => r.land < 0.5);
+    const maxima = [];
+    for (let i = 2; i < rows.length - 2; i++)
+      if (rows[i].y > rows[i - 1].y && rows[i].y >= rows[i + 1].y) maxima.push(rows[i]);
+    const pick = (maxima.length ? maxima : rows)
+      .reduce((a, b) => (Math.abs(b.z - z) < Math.abs(a.z - z) ? b : a));
+    return { z: +pick.z.toFixed(2) };
+  }, { x: xw, z: zw, half: 150, n: 401 });
+  if (!seed) return null;
+
+  const back = [], fwd = [];
+  let z = seed.z;
+  for (let i = 1; i <= 40; i++) {                     // one T back
+    const r = await read(SET_ANCHOR_S - i * dt, z, 14);
+    if (!r) break;
+    z = r.z; back.push({ t: +(SET_ANCHOR_S - i * dt).toFixed(3), ...r });
+  }
+  z = seed.z;
+  for (let i = 1; i <= 32; i++) {                     // 0.8 T forward
+    const r = await read(SET_ANCHOR_S + i * dt, z, 14);
+    if (!r) break;
+    z = r.z; fwd.push({ t: +(SET_ANCHOR_S + i * dt).toFixed(3), ...r });
+  }
+  const at0 = await read(SET_ANCHOR_S, seed.z, 6);
+  const track = [...back.reverse(), { t: SET_ANCHOR_S, ...(at0 || {}) }, ...fwd]
+    .filter((r) => Number.isFinite(r.y));
+
+  // FIRST rise, then walk back to the last quiet clock before it. Scanning
+  // backward from the end instead finds the LAST quiet clock, which at day=big
+  // sits after the tracked wave has already broken and the tracker has picked up
+  // the following bore — it reported the SECOND event as if it were the first.
+  let iBr = -1;
+  for (let i = 0; i < track.length; i++)
+    if (track[i].foam >= CREST_FOAM_BREAK) { iBr = i; break; }
+  let iOn = -1;
+  if (iBr > 0) for (let i = iBr - 1; i >= 0; i--)
+    if (track[i].foam <= CREST_FOAM_PRE) { iOn = i; break; }
+
+  const peakFoam = Math.max(...track.map((r) => r.foam));
+  let breaks = iOn >= 0 && iBr > iOn;
+  let why = 'foam at the crest crosses the break threshold';
+  if (!breaks) {
+    // No break to show. Fall back to the crest indicator's own collapse, which
+    // every row has, and mark the row so the header cannot promise otherwise.
+    why = `foam at the crest never reaches ${CREST_FOAM_BREAK} (peak ${peakFoam.toFixed(3)})`;
+    for (let i = 0; i < track.length; i++)
+      if (track[i].crest <= CREST_IND_GONE) { iBr = i; break; }
+    if (iBr > 0) for (let i = iBr - 1; i >= 0; i--)
+      if (track[i].crest >= CREST_IND_FULL) { iOn = i; break; }
+  }
+  if (!(iOn >= 0 && iBr > iOn)) {   // nothing usable: the old crest-arrival clock
+    const iNear = track.reduce((a, r, i) => (Math.abs(track[i].z - zw) < Math.abs(track[a].z - zw) ? i : a), 0);
+    iBr = iNear; iOn = Math.max(0, iNear - 10);
+    why = 'no usable transition; the window is a quarter period ending at the crest arrival';
+  }
+  return {
+    watchX: xw, watchZ: zw, breaks, why, peakFoamAtCrest: +peakFoam.toFixed(3),
+    tOn: track[iOn].t, tBreak: track[iBr].t,
+    eventS: +(track[iBr].t - track[iOn].t).toFixed(3),
+    eventFracT: +((track[iBr].t - track[iOn].t) / T).toFixed(4),
+    foamOn: track[iOn].foam, foamBreak: track[iBr].foam,
+    crestZOn: track[iOn].z, crestOffLineOnM: +(track[iOn].z - zw).toFixed(1),
+    sweepFrom: track[0].t, sweepTo: track[track.length - 1].t, sweepN: track.length,
+    track,
+  };
+}
+
 // Measured crest arrival at the break line. Sweeps one wave period around the
 // set peak, reading the GPU surface each step, then refines the argmax with a
 // parabola through its two neighbours.
+// KEPT for the set sheet's fallback path only — as the BREAK sheet's anchor it
+// was the defect: a wave is tallest at the line, and at the line it is already
+// breaking, so this instant is at or after break onset by construction.
 async function measureCrestArrival(page, st, xProbe, zProbe) {
   const T = st.T;
   const t0 = SET_ANCHOR_S - T / 2, N = 40;
@@ -974,34 +1178,62 @@ function ratioLabel(num, den) {
   return q === 1 ? `${p}` : (p === 1 ? `1/${q}` : `${p}/${q}`);
 }
 
-function clocksFor(sheet, st, crest) {
+function clocksFor(sheet, st, crest, ev) {
   if (sheet.clock.kind === 'wave') {
     const T = st.T, n = sheet.clock.n;
-    // The whole row spans WAVE_SPAN_T of a period, so the tracked crest advances
-    // WAVE_SPAN_T of a crest spacing across it — that ratio is exact and site-
-    // independent (advance/spacing = dt/T), which is why it can be stated in a
-    // shared column header while nothing else about the wave can be.
-    const denom = Math.round((n - 1) / WAVE_SPAN_T);   // 16 at n=5, span T/4
-    const spacing = T / denom;
-    const advOf = (k) => k / denom;                    // crest spacings advanced
+    // The row runs from the last clock at which the tracked wave is still
+    // UNBROKEN at the watch station to the first at which it is whitewater —
+    // its own break event, measured (measureBreakEvent), not a fraction of T
+    // chosen in advance. Measured at Second Peak the four breaking rows come out
+    // at 0.25-0.275 T, near-constant in periods across T = 14-17 s, but the span
+    // is each row's own number.
+    let spanS = ev.eventS;
+    let clamped = false;
+    // ALIASING CEILING. The crest advances exactly (span/T) crest spacings
+    // whatever the site — advance/spacing = dt/T cancels the local wavelength —
+    // so a span at or above half a period puts the tracked wave nearer its
+    // neighbour's place than its own. If an event is longer than that, the row
+    // ends at the break and starts later than onset, and says so.
+    if (spanS > WAVE_SPAN_T * T) { spanS = WAVE_SPAN_T * T; clamped = true; }
+    const t0 = ev.tBreak - spanS;
+    const spacing = spanS / (n - 1);
+    const advOf = (k) => (k * spacing) / T;            // crest spacings advanced
+    const frac = (k) => k / (n - 1);
+    // Phases are positions in the row's OWN event, so they are honest for every
+    // row without asserting anything a shared header cannot know. A row that
+    // does not break says so instead of promising one.
+    const phases = ev.breaks
+      ? ['still unbroken', 'a quarter into the break', 'halfway through the break',
+        'three quarters through', 'breaking — whitewater at the crest']
+      : ['crest intact', 'a quarter through', 'halfway', 'three quarters', 'crest gone'];
     return {
       period: T, periodLabel: `wave period T = ${T.toFixed(1)} s`,
-      spacing,
-      spanFrac: WAVE_SPAN_T, spanS: +(WAVE_SPAN_T * T).toFixed(3), denom,
+      spacing, spanFrac: +(spanS / T).toFixed(4), spanS: +spanS.toFixed(3),
+      breaks: ev.breaks, clamped,
+      watchX: +ev.watchX.toFixed(1),
+      tOn: ev.tOn, tBreak: ev.tBreak, eventS: ev.eventS, eventFracT: ev.eventFracT,
+      peakFoamAtCrest: ev.peakFoamAtCrest,
       advance: Array.from({ length: n }, (_, k) => +advOf(k).toFixed(4)),
-      how: `crest measured on the break line at t* = ${crest.tStar.toFixed(2)} s `
-         + `(argmax of the GPU-read crest height over ${crest.sweepN} clocks spanning `
-         + `${crest.sweepFrom.toFixed(1)}–${crest.sweepTo.toFixed(1)} s, i.e. one T centred on the `
-         + `set peak at SET_ANCHOR_S = ${SET_ANCHOR_S} s); columns are t* + k·T/${denom}, so the five `
-         + `span ${ratioLabel(n - 1, denom)}·T = ${(WAVE_SPAN_T * T).toFixed(2)} s and the tracked crest `
-         + `advances ${WAVE_SPAN_T.toFixed(2)} of a crest spacing across the whole row.`,
-      times: Array.from({ length: n }, (_, k) => crest.tStar + k * spacing),
-      phases: Array.from({ length: n }, (_, k) => (k === 0
-        ? 'crest reaches the line'
-        : `${ratioLabel(k, denom)} of a wave later`)),
-      subs: Array.from({ length: n }, (_, k) => (k === 0
-        ? 'anchor t*'
-        : `+${ratioLabel(k, denom)}·T · crest ${advOf(k).toFixed(2)} Λ on`)),
+      how: (ev.breaks
+        ? `the tracked wave's own BREAK EVENT at the takeoff station x = ${ev.watchX.toFixed(0)} m, `
+          + `where a crest first meets the line. Measured by seeding on the crest nearest the line at `
+          + `SET_ANCHOR_S = ${SET_ANCHOR_S} s and walking time back and forward over `
+          + `${ev.sweepN} clocks (${ev.sweepFrom.toFixed(1)}–${ev.sweepTo.toFixed(1)} s), reading the model's `
+          + `foam AT THE CREST: still unbroken at t = ${ev.tOn.toFixed(2)} s (foam ${ev.foamOn.toFixed(2)}, `
+          + `crest ${Math.abs(ev.crestOffLineOnM).toFixed(0)} m ${ev.crestOffLineOnM < 0 ? 'seaward of' : 'inside'} `
+          + `the line) and whitewater at t = ${ev.tBreak.toFixed(2)} s (foam ${ev.foamBreak.toFixed(2)}). `
+        : `this row does NOT break — ${ev.why} — so the window is the crest indicator's own collapse, `
+          + `from fully unbroken at t = ${ev.tOn.toFixed(2)} s to crest gone at t = ${ev.tBreak.toFixed(2)} s, `
+          + `at the takeoff station x = ${ev.watchX.toFixed(0)} m. `)
+        + `Columns are ${spanS.toFixed(2)} s apart / ${(spanS / 4).toFixed(2)} s per step, `
+        + `${(spanS / T).toFixed(3)} of a period, so the tracked crest advances `
+        + `${(spanS / T).toFixed(2)} of a crest spacing across the whole row.`
+        + (clamped ? ` The measured event ran ${ev.eventS.toFixed(2)} s and was CLAMPED to half a period `
+          + 'so the sequence cannot alias onto the next wave; the row ends at the break.' : ''),
+      times: Array.from({ length: n }, (_, k) => t0 + k * spacing),
+      phases,
+      subs: Array.from({ length: n }, (_, k) => `${(frac(k) * 100).toFixed(0)}% of the event `
+        + `· crest ${advOf(k).toFixed(2)} Λ on`),
     };
   }
   const P = 1 / st.dF, n = sheet.clock.n;
@@ -1042,10 +1274,18 @@ function clocksFor(sheet, st, crest) {
 function cropForRow(cells, view) {
   const pts = [];
   for (const c of cells) {
-    if (!c.marker || !c.marker.bp) continue;
-    pts.push([c.marker.bp.px, c.marker.bp.py]);
+    if (!c.marker) continue;
+    // Frame on the WATCH STATION, which is fixed for the row, not on the ring,
+    // which does not exist in the pre-break columns. Both the crest and the
+    // break line under it go in: a crest alone is a thin horizontal thing, and a
+    // window fitted to one lands on the horizon with the wave's face below the
+    // frame — measured, that is exactly what the first cropped build did.
+    const wx = c.marker.watchX;
+    if (c.marker.bp) pts.push([c.marker.bp.px, c.marker.bp.py]);
     for (const p of c.marker.ribbon || [])
-      if (Math.abs(p.x - c.marker.bp.x) <= CROP_REACH_M) pts.push([p.px, p.py]);
+      if (Math.abs(p.x - wx) <= CROP_REACH_M) pts.push([p.px, p.py]);
+    for (const p of c.marker.lineProj || [])
+      if (Math.abs(p.x - wx) <= CROP_REACH_M) pts.push([p.px, p.py]);
   }
   if (pts.length < 4) return null;           // nothing tracked: ship the frame whole
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
@@ -1168,15 +1408,54 @@ async function captureSheet(page, base, sheet, encoder) {
       const xProbe = st.aim ? st.aim.x : (mid ? mid.x : 0);
       const zProbe = st.aim ? st.aim.z : (mid ? mid.z : 0);
 
-      let crest = null;
-      if (sheet.clock.kind === 'wave') crest = await measureCrestArrival(page, st, xProbe, zProbe);
-      const clocks = clocksFor(sheet, st, crest);
+      // WATCH STATION: the takeoff, where a crest first meets the line, so
+      // where this wave's break starts and its peel begins. The #aim centroid is
+      // where the CAMERA looks; the takeoff is where the BREAK happens, and the
+      // row is about the break.
+      const takeoff = await page.evaluate(() => {
+        const tp = window.__pointbreak.takeoffProfile
+          ? window.__pointbreak.takeoffProfile(1) : null;
+        return tp ? tp.takeoffX : null;
+      });
+      const xWatch = Number.isFinite(takeoff) ? takeoff : xProbe;
+      const zWatch = await page.evaluate((x) => {
+        const pb = window.__pointbreak;
+        const fractf = (v) => v - Math.floor(v);
+        const hash11 = (p) => { p = fractf(p * 0.1031); p *= p + 33.33; return fractf((p + p) * p); };
+        const vnoise1 = (v) => {
+          const i = Math.floor(v); let f = v - i; f = f * f * (3 - 2 * f);
+          return hash11(i) + (hash11(i + 1) - hash11(i)) * f;
+        };
+        const secU = pb.uniforms.u_sections.value;
+        const shift = secU >= 0.05
+          ? Math.min(secU * 55 * (vnoise1(x * 0.02 + 7.3) - 0.5) * 2, 0) : 0;
+        const L = (pb.lineProbe(4) || []).map((p) => ({ x: p.x, z: p.z }));
+        if (!L.length) return 0;
+        if (x <= L[0].x) return L[0].z + shift;
+        if (x >= L[L.length - 1].x) return L[L.length - 1].z + shift;
+        for (let i = 1; i < L.length; i++) if (L[i].x >= x) {
+          const a = L[i - 1], b = L[i];
+          return a.z + (b.z - a.z) * (x - a.x) / (b.x - a.x) + shift;
+        }
+        return shift;
+      }, xWatch);
+
+      let crest = null, event = null;
+      if (sheet.clock.kind === 'wave') {
+        // The break EVENT is the anchor and the span. measureCrestArrival is
+        // kept for the record, but its t* is at or after break onset by
+        // construction and is no longer what the row is built on.
+        event = await measureBreakEvent(page, st, xWatch, zWatch);
+        crest = await measureCrestArrival(page, st, xProbe, zProbe);
+      }
+      const clocks = clocksFor(sheet, st, crest, event);
 
       const cells = [];
       const shots = [];   // the raw captures, held until the row's crop is known
-      // Continuity seed for the tracked wave: null on column 1 (take the
-      // strongest crest on the line), then the previous column's breakpoint.
-      let seedX = null;
+      // Continuity seed for the tracked wave: the crest the EVENT measurement
+      // was following, at the anchor clock, then each column's own crest. The
+      // marker therefore follows the same wave the span was measured on.
+      let seedZ = event ? event.crestZOn : null;
       for (let k = 0; k < clocks.times.length; k++) {
         const t = +clocks.times[k].toFixed(2);
         const hash = `${rowHash}&sim=${t}`;
@@ -1194,10 +1473,11 @@ async function captureSheet(page, base, sheet, encoder) {
         let marker = null;
         if (sheet.clock.kind === 'wave') {
           marker = await page.evaluate(trackedWave, {
-            seedX, lineStep: LINE_STEP_M, ribStep: RIB_STEP_M,
+            watchX: xWatch, seedZ, lineStep: LINE_STEP_M, ribStep: RIB_STEP_M,
             ribBack: RIB_BACK_M, ribFwd: RIB_FWD_M, ribHalf: RIB_HALF_M, ribN: RIB_N,
+            ringMin: RING_MIN_POCKET,
           });
-          if (marker && marker.bp) seedX = marker.bp.x;
+          if (marker && Number.isFinite(marker.crestZ)) seedZ = marker.crestZ;
         }
         const stem = `img/${sheet.id}_${group.id}_${row.id}_c${k}`;
         // Always capture PNG at full resolution: foamStats measures THIS buffer,
@@ -1252,10 +1532,18 @@ async function captureSheet(page, base, sheet, encoder) {
           // the marker's own error bar.
           marker: marker && (marker.bp || (marker.ribbon || []).length) ? marker : null,
           bpX: marker && marker.bp ? marker.bp.x : null,
-          markerOffM: marker ? marker.offM : null,
-          markerOffPx: marker ? marker.offPx : null,
-          linePocketMax: marker ? marker.linePocketMax : null,
-          lineFoamFrac: marker ? marker.lineFoamFrac : null,
+          // THE ACCEPTANCE SERIES. All read ON the tracked wave, not at a fixed
+          // point in the water where the bore from previous waves never goes
+          // quiet — which is why the first pass could report foam 0.87 in a
+          // column whose wave had not broken.
+          foamCrest: marker ? marker.foamCrestMax : null,
+          foamAtWatch: marker ? marker.foamAtWatch : null,
+          brkAtWatch: marker ? marker.brkAtWatch : null,
+          crestInd: marker ? marker.crestIndAtWatch : null,
+          crestOffLineM: marker ? marker.crestOffLineM : null,
+          pocketCrest: marker ? marker.pocketCrestMax : null,
+          // The ring's own error bar: a breaking point belongs ON the line.
+          markerOffM: marker && marker.bp ? marker.bp.offLineM : null,
         });
       }
 
@@ -1293,34 +1581,62 @@ async function captureSheet(page, base, sheet, encoder) {
       // small, and flagging them would make the honest result look like a bug.
       // Both instruments have to agree before a cell is called failed: the
       // camera-independent model read AND the pixels (where pixels exist).
+      // On the break sheet the LAST column is where a break is promised: the
+      // window ends at the clock the model says this wave is whitewater. Column
+      // 1 is deliberately pre-break now, so flagging it would flag the fix.
       for (const c of cells) {
-        const promised = sheet.clock.kind === 'wave' || c.phase === 'SET PEAK';
+        const promised = sheet.clock.kind === 'wave'
+          ? c.k === cells.length - 1
+          : c.phase === 'SET PEAK';
         const pixSaysFlat = c.pixFracLo === null ? true : c.pixFracLo === 0;
         c.flat = promised && c.modelFoamMax < 0.05 && pixSaysFlat;
       }
       // Largest camera displacement between any two columns of this row.
       const camDriftM = Math.max(...cells.map((c) => Math.max(...cells.map((d) =>
         Math.hypot(c.cam[0] - d.cam[0], c.cam[1] - d.cam[1], c.cam[2] - d.cam[2])))));
+      // ---- ACCEPTANCE: does the break actually progress across this row? ----
+      // Measured, never asserted. foamCrest is the model's whitewater AT THE
+      // TRACKED CREST, so it is this wave's own breaking state rather than the
+      // ambient bore at a fixed point in the water. The row passes when it
+      // starts pre-break and ends clearly broken, and rises on the way.
+      // foamAtWatch, not foamCrestMax: the window was derived from the foam at
+      // the crest AT THE TAKEOFF STATION, and acceptance has to be the same
+      // quantity in the same place or the two can disagree. They did — at
+      // h0=0.7 the along-crest maximum reaches 0.86 while the takeoff station
+      // itself peaks at 0.341, because that wave breaks somewhere else on the
+      // line entirely. Both numbers are in the JSON; this is the one the window
+      // is about (MEASUREMENT_LESSONS 8c: check what a summary is over).
+      const foamSeries = cells.map((c) => (c.foamAtWatch === null || c.foamAtWatch === undefined
+        ? null : c.foamAtWatch));
+      const haveFoam = foamSeries.every((v) => v !== null);
+      const rises = haveFoam
+        && foamSeries[0] <= CREST_FOAM_PRE * 3
+        && foamSeries[foamSeries.length - 1] >= CREST_FOAM_BREAK
+        // near-monotone: at most one step may go down, and never by much
+        && foamSeries.filter((v, i) => i > 0 && v < foamSeries[i - 1] - 0.05).length <= 1;
+      const accept = { pass: Boolean(rises), foam: foamSeries,
+        first: haveFoam ? foamSeries[0] : null,
+        last: haveFoam ? foamSeries[foamSeries.length - 1] : null,
+        breaks: clocks.breaks !== undefined ? clocks.breaks : null };
+
       // How far the tracked breakpoint travelled down the line across the row,
-      // and the worst distance the marker sat from the crest it is drawn on.
+      // and the worst distance the ring sat from the break line it belongs on.
       const bpXs = cells.map((c) => c.bpX).filter((v) => v !== null && v !== undefined);
       const peelM = bpXs.length > 1 ? +(bpXs[bpXs.length - 1] - bpXs[0]).toFixed(1) : null;
-      const offs = cells.map((c) => c.markerOffM).filter((v) => v !== null && v !== undefined);
+      // Only over the columns where this wave is actually AT the line. Before
+      // that the crest is legitimately 14-19 m seaward, so the distance measures
+      // the wave's approach rather than the ring's accuracy.
+      const offs = cells.filter((c) => c.markerOffM !== null && c.markerOffM !== undefined
+        && c.foamAtWatch >= 0.15).map((c) => c.markerOffM);
       const markerOffMaxM = offs.length ? +Math.max(...offs).toFixed(2) : null;
-      const offsPx = cells.map((c) => c.markerOffPx).filter((v) => v !== null && v !== undefined);
-      const markerOffMaxPx = offsPx.length ? +Math.max(...offsPx).toFixed(1) : null;
-      const markerLost = cells.filter((c) => c.bpX === null || c.bpX === undefined).length;
-      // A ring drawn on a crest-proximity bell of 0.01 is honest about position
-      // and dishonest about confidence, so a weak crossing is called out rather
-      // than left to look like every other column. Measured at h0=0.7, whose
-      // stage alpha is 4.3 deg (below Second Peak's 1.08 m peel floor): the
-      // tracked wave's pocket falls to 0.01 by column 5 at WAVE_SPAN_T = 1/4.
-      const weakCols = cells.filter((c) => c.marker && c.marker.bp
-        && c.marker.bp.pocket < 0.15).length;
+      // Columns with NO ring are not a failure here: before the tracked wave
+      // reaches the line there is no breaking point to ring, and column 1 is
+      // supposed to be one of them.
+      const noRing = cells.filter((c) => c.bpX === null || c.bpX === undefined).length;
       g.rows.push({
         ...row, rowHash, camDriftM: +camDriftM.toFixed(2),
         clocks: { ...clocks, times: clocks.times.map((v) => +v.toFixed(2)) },
-        crop, peelM, markerOffMaxM, markerOffMaxPx, markerLost,
+        crop, peelM, markerOffMaxM, noRing, accept, event,
         crest, state: {
           preset: st.preset, day: st.day, H0: st.H0, T: st.T, dF: st.dF, tide: st.tide,
           xi: st.xi, alpha: st.alpha, chop: st.chop,
@@ -1340,11 +1656,17 @@ async function captureSheet(page, base, sheet, encoder) {
         + ` · pix ${cells.map((c) => (c.pixFracLo === null ? 'n/a' : (c.pixFracLo * 100).toFixed(1))).join('/')}%`
         + ` · camDrift ${camDriftM.toFixed(2)} m`
         + (sheet.clock.kind === 'wave'
-          ? `\n      breakpoint x ${cells.map((c) => (c.bpX === null || c.bpX === undefined ? '—' : c.bpX.toFixed(0))).join('/')} m`
-            + ` (peel ${peelM === null ? '—' : `${peelM > 0 ? '+' : ''}${peelM} m`} down the line over ${clocks.spanS} s)`
-            + ` · marker off crest ≤ ${markerOffMaxM === null ? 'n/a' : `${markerOffMaxM} m / ${markerOffMaxPx} px`}`
-            + (markerLost ? `  [${markerLost} COLUMN(S) WITH NO TRACKED WAVE]` : '')
-            + (weakCols ? `  [${weakCols} COLUMN(S) RINGED ON A POCKET < 0.15]` : '')
+          ? `\n      BREAK EVENT ${clocks.breaks ? 'yes' : 'NO'} · watch x ${clocks.watchX} m`
+            + ` · unbroken t ${clocks.tOn} -> whitewater t ${clocks.tBreak}`
+            + ` (${clocks.eventS} s = ${clocks.eventFracT} T${clocks.clamped ? ', CLAMPED' : ''})`
+            + ` · peak foam at crest ${clocks.peakFoamAtCrest}`
+            + `\n      foam AT THE CREST ${cells.map((c) => (c.foamAtWatch === null || c.foamAtWatch === undefined ? '—' : c.foamAtWatch.toFixed(2))).join(' -> ')}`
+            + `   ${accept.pass ? 'ACCEPT' : '*** ACCEPTANCE FAIL ***'}`
+            + `\n      crest off line ${cells.map((c) => (c.crestOffLineM === null || c.crestOffLineM === undefined ? '—' : c.crestOffLineM.toFixed(0))).join('/')} m`
+            + ` · ring x ${cells.map((c) => (c.bpX === null || c.bpX === undefined ? '—' : c.bpX.toFixed(0))).join('/')} m`
+            + ` (peel ${peelM === null ? '—' : `${peelM > 0 ? '+' : ''}${peelM} m`})`
+            + ` · ring off line ≤ ${markerOffMaxM === null ? 'n/a' : `${markerOffMaxM} m`}`
+            + (noRing ? ` · ${noRing} column(s) with no ring (pre-break)` : '')
             + (crop ? ` · crop ${crop.sw}×${crop.sh} (${crop.zoom}×)` : ' · uncropped')
           : '')
         + (nFlat ? `  [${nFlat} FLAT]` : ''));
@@ -1444,11 +1766,19 @@ h2{font-size:18px;margin:0 0 4px}
 .badge.flat{color:var(--bad);border-color:var(--bad);font-weight:600}
 /* The tracked wave's own readout. --warn on --panel is 12.00:1, and the badge
    border is a hairline, never read. */
-.badge.track{color:var(--warn);border-color:var(--line2);cursor:help}
+.badge.track{border-color:var(--line2);cursor:help}
+.badge.track.unbroken{color:var(--ink-dim)}   /* 8.53:1 on --panel */
+.badge.track.breaking{color:var(--warn)}      /* 12.00:1 */
+.badge.track.broken{color:var(--ok);border-color:var(--ok)}  /* 10.79:1 */
+.badge.track .fm{opacity:1}
 .badge.lost{color:var(--bad);border-color:var(--bad);cursor:help}
-/* a weak crossing is a result, not a failure — --warn is 12.00:1 on --panel */
-.nums .weak{color:var(--warn);cursor:help}
-.nums .weak b{color:var(--warn)}
+/* A row that does not break says so where the header would otherwise promise
+   one. --bad is 8.52:1 on --panel. */
+.rowhead .nobreak{display:block;margin-top:6px;color:var(--bad);font-size:11px;line-height:1.35}
+.rowhead .nobreak b{color:var(--bad)}
+.foamrow{display:flex;gap:4px;align-items:baseline;font-size:11px;
+  font-variant-numeric:tabular-nums;color:var(--ink-dim);margin-top:5px}
+.foamrow b{color:var(--ink)}
 .rowhead .cropnote{display:block;margin-top:6px;color:var(--ink-dim);font-size:11px;line-height:1.35}
 .rowhead .cropnote b{color:var(--ink)}
 .hash{font-family:var(--mono);font-size:10.5px;line-height:1.35;color:var(--link);
@@ -1590,22 +1920,24 @@ the set envelope — is measured the same way as every other site and is directl
 // states in the model's own clock order, which is exactly the inference a still
 // cannot support on its own and an ordered sequence can.
 function trackedLabel(cell, row) {
-  if (!row || row.peelM === null || row.peelM === undefined) return '';
-  if (cell.bpX === null || cell.bpX === undefined)
-    return '<span class="badge lost" title="No crest was crossing the break line inside the stage at this clock — the tracked wave has peeled off the end, or the line has none on it here.">tracked wave off the stage</span>';
-  const d = cell.bpX - (row.cells[0].bpX ?? cell.bpX);
-  const where = `break at x = ${cell.bpX >= 0 ? '+' : ''}${cell.bpX.toFixed(0)} m`;
-  const moved = cell.k === 0 ? 'anchor'
-    : `${d >= 0 ? '+' : ''}${d.toFixed(0)} m down the line since column 1`;
-  // The strength of the ringed crossing. It is the model's crest-proximity bell
-  // ON the line, so a low value means the tracked crest is on its way off the
-  // line rather than centred on it — worth showing beside the position, because
-  // a confident-looking ring on a pocket of 0.01 would otherwise read as a
-  // confident-looking break.
-  const p = cell.marker && cell.marker.bp ? cell.marker.bp.pocket : null;
-  const weak = p !== null && p < 0.15;
-  return `<span class="badge track" title="Ringed in the frame: the model's own zipper locus, the argmax of pocket along the break line. Down the point is +x.">${esc(where)} · ${esc(moved)}</span>`
-    + (p === null ? '' : `<span class="${weak ? 'weak' : ''}" title="The crest-proximity bell on the line at the ring — the model's own strength of this crossing. Below about 0.15 the tracked crest is leaving the line rather than sitting on it.">pocket <b>${p.toFixed(2)}</b></span>`);
+  if (!row || cell.foamAtWatch === null || cell.foamAtWatch === undefined) return '';
+  const f = cell.foamAtWatch;
+  const d = cell.crestOffLineM;
+  // What state the tracked wave is IN, from its own foam. The wording follows
+  // the number, so a cell can never promise a break the frame does not contain.
+  const state = f >= 0.60 ? 'breaking'
+    : f >= 0.15 ? 'starting to break'
+      : 'unbroken';
+  const cls = f >= 0.60 ? 'broken' : (f >= 0.15 ? 'breaking' : 'unbroken');
+  const where = (d === null || d === undefined) ? ''
+    : (d < -1 ? ` · crest ${Math.abs(d).toFixed(0)} m outside the line`
+      : (d > 1 ? ` · crest ${d.toFixed(0)} m inside the line` : ' · crest on the line'));
+  const ring = (cell.bpX === null || cell.bpX === undefined)
+    ? '<span title="No part of this wave is at the break line yet, so there is no breaking point to ring. An empty column 1 is what &quot;still unbroken&quot; looks like.">no ring — not at the line yet</span>'
+    : `<span title="The ring: the point on the tracked crest with the largest pocket, which is this wave's own breaking point. Down the point is +x.">ring at x = ${cell.bpX >= 0 ? '+' : ''}${cell.bpX.toFixed(0)} m</span>`;
+  return `<span class="badge track ${cls}" title="Read from the model's foam AT THE TRACKED CREST, not at a fixed point in the water — the bore left by previous waves never goes quiet there, which is how the first version of this sheet reported 0.87 in a column whose wave had not broken.">${esc(state)}<span class="fm"> · foam on the crest ${f.toFixed(2)}</span></span>`
+    + `<span>${esc(where.replace(/^ · /, ''))}</span>`
+    + `<span>${ring}</span>`;
 }
 
 function cellHTML(base, cell, row) {
@@ -1658,11 +1990,19 @@ function rowHTML(base, row) {
     <dt>step</dt><dd>${row.clocks.spacing.toFixed(2)} s</dd>
     ${row.clocks.spanS === undefined ? '' : `<dt>row spans</dt><dd>${row.clocks.spanS.toFixed(2)} s</dd>`}
     ${row.peelM === null || row.peelM === undefined ? ''
-    : `<dt>peel</dt><dd title="Breakpoint x in column 1 against column 5 — two model reads at two known clocks, not a motion read off the pictures.">${row.peelM >= 0 ? '+' : ''}${row.peelM.toFixed(0)} m</dd>`}
+    : `<dt>peel</dt><dd title="Ring x in the first ringed column against the last — two model reads at two known clocks, not a motion read off the pictures.">${row.peelM >= 0 ? '+' : ''}${row.peelM.toFixed(0)} m</dd>`}
     ${row.markerOffMaxM === null || row.markerOffMaxM === undefined ? ''
-    : `<dt>mark off crest</dt><dd title="Worst distance, over this row's five columns, between the ringed breakpoint and the tallest displaced surface point on a shore-normal transect at the same station.">≤ ${row.markerOffMaxM.toFixed(2)} m</dd>`}
+    : `<dt>ring off line</dt><dd title="Worst distance, over this row's ringed columns, between the ring and the break line. A breaking point belongs on the line, so this is the ring's own error bar.">≤ ${row.markerOffMaxM.toFixed(2)} m</dd>`}
     <dt>cam drift</dt><dd>${row.camDriftM === undefined ? '—' : row.camDriftM.toFixed(2) + ' m'}</dd>
   </dl>
+  ${row.accept ? `<div class="foamrow" title="The model's whitewater AT THE TRACKED CREST, at the takeoff station the window was measured at, for each of the five clocks. This is the row's acceptance: it must start pre-break and end broken.">foam on the crest
+    <b>${row.accept.foam.map((v) => (v === null ? '—' : v.toFixed(2))).join(' → ')}</b>
+    ${row.accept.pass ? '' : '<span style="color:var(--bad)">✗</span>'}</div>` : ''}
+  ${row.clocks && row.clocks.breaks === false
+    ? `<span class="nobreak"><b>This row does not break.</b> ${esc(row.clocks.peakFoamAtCrest !== undefined
+      ? `Whitewater at the tracked crest peaks at ${row.clocks.peakFoamAtCrest} against the ${CREST_FOAM_BREAK} the breaking rows all pass.`
+      : '')} The five clocks span the crest indicator's own collapse instead, and the row is kept out of the published set.</span>`
+    : ''}
   <span class="sub" style="margin-top:6px">${esc(s.hudGeo || '')}</span>
   ${row.cells.some((c) => c.baked === false)
     ? '<span class="nabed">Synthetic stage — no measured bed here, so the depth ceiling and the pixel'
@@ -1677,8 +2017,26 @@ function rowHTML(base, row) {
 }
 
 function sheetHTML(sheet, data, base, extras) {
-  const clock0 = data.groups[0].rows[0].clocks;
-  const cols = clock0.phases;
+  // The column header is shared, but the phases are not: a row that does not
+  // break gets "crest intact -> crest gone" instead of "still unbroken ->
+  // breaking". Take the wording from a row that BREAKS where one exists, or the
+  // local sheet's header would describe every row by its first one, which is
+  // day=small — a row that does not break. Rows that disagree with the header
+  // say so in their own header, in red, next to their own cells.
+  const allRows = data.groups.flatMap((g) => g.rows);
+  const clock0 = (allRows.find((r) => r.clocks && r.clocks.breaks) || allRows[0]).clocks;
+  // A header saying "breaking — whitewater at the crest" over a row that does
+  // not break is the exact thing this sheet exists not to do, and one header
+  // serves every row. So the vivid wording is used only when EVERY row breaks
+  // (the published set); where any row does not, the header states the position
+  // in the window and nothing else, and what each wave is actually doing stays
+  // in the cells, where it is that row's own read.
+  const allBreak = sheet.clock.kind !== 'wave'
+    || allRows.every((r) => r.clocks && r.clocks.breaks);
+  const NEUTRAL = ['start of the window', 'a quarter through', 'halfway',
+    'three quarters through', 'end of the window'];
+  const cols = allBreak ? clock0.phases
+    : clock0.phases.map((p, i) => NEUTRAL[i] || p);
   // Column headers carry the clock and, on the break sheet, the ONE thing about
   // the wave that is true in every row at that clock: how far the tracked crest
   // has advanced, in crest spacings. That ratio is exactly k/denom whatever the
@@ -1703,7 +2061,7 @@ function sheetHTML(sheet, data, base, extras) {
   </div>
 </section>`).join('\n');
 
-  const first = data.groups[0].rows[0];
+  const first = allRows.find((r) => r.clocks && r.clocks.breaks) || allRows[0];
   const prov = { ...(data.provenance || PROVENANCE), linkBase: data.linkBase || base };
   return `<!doctype html>
 <meta charset="utf-8">
@@ -1723,18 +2081,30 @@ ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1
   <dt>viewport</dt><dd>${VIEW.width} × ${VIEW.height} px, deviceScaleFactor 1</dd>
   <dt>pinned</dt><dd><code>${esc(COMMON)}</code> — frozen clock, no UI in frame, quality tier pinned</dd>
   <dt>clock spacing</dt><dd>${esc(first.clocks.periodLabel)}, columns ${first.clocks.spacing.toFixed(2)} s apart. ${esc(first.clocks.how)}</dd>
-  ${sheet.clock.kind === 'wave' ? `<dt>the ring</dt><dd>One wave is tracked across each row and <b>ringed in every frame</b>, with a
-    line along its crest. Both are computed from the model and projected through the live camera matrices, not
-    placed by hand. The ring is the model's own <i>zipper locus</i>: <code>pocket</code> in
-    <code>shared/model-glsl.js</code> is <code>crestNear(θ)·bell(d)·env²·reef</code>, and <code>d</code> is zero
-    <i>on</i> the break line, so scanned along the line it is the crest-proximity bell and its argmax is where a
-    crest is crossing. Across columns the argmax carries a small distance penalty from the previous column's, so a
-    row follows one wave rather than hopping to whichever crest is tallest. The crest line is the argmax of the
-    <code>crest</code> channel (<code>crestNear·(1−brk)·env²</code>) marched out from the ring by continuity in x;
-    that channel switches itself off inside whitewater, so the line ends at the peel without being told to.
-    <b>The mark carries its own error bar</b>: <code>markerOffM</code> in the JSON, and <b>mark off crest</b> in each
-    row header, is the distance from the ring to the tallest displaced surface point on a shore-normal transect at
-    the same station — the same crest, read the other way. A mark that wandered off the wave would say so there.</dd>
+  ${sheet.clock.kind === 'wave' ? `<dt>the marks</dt><dd>One wave is tracked across each row. The <b>line</b> is
+    its crest, marched station by station along the break line from the takeoff by the argmax of the displaced
+    surface, seeded each column from the previous one, so the row follows the same wave rather than re-acquiring
+    whatever is tallest. The <b>ring</b> is the point on that crest with the largest <code>pocket</code> —
+    <code>crestNear(θ)·bell(d)·env²·reef</code> in <code>shared/model-glsl.js</code>, whose <code>d</code> term
+    peaks where the crest is closest to the break line, so read along the crest it is <i>this wave's own breaking
+    point</i>. Both are computed from the model and projected through the live camera matrices, not placed by hand.
+    <b>Before the wave reaches the line there is no ring</b>, because there is no breaking point to ring; an empty
+    first column is what <i>still unbroken</i> looks like, and a ring there would be sitting on the previous wave.
+    <b>The mark carries its own error bar</b>: <code>markerOffM</code> in the JSON, and <b>ring off line</b> in each
+    row header, is how far the ring sits from the break line over the columns where the wave is actually at it —
+    a breaking point belongs on the line, so a mark that wandered onto the wrong wave would say so there.</dd>
+  ${allBreak ? '' : `<dt>column headers</dt><dd>Neutral on this sheet, because <b>not every row here breaks</b> and
+    one header serves them all. A header reading "breaking — whitewater at the crest" over a row that does not
+    break is the failure this page exists to avoid, so it states the position in the window and nothing else; what
+    each wave is actually doing is in the cell, from that row's own reads. The published sheet, whose rows all
+    break, gets the fuller wording.</dd>`}
+  <dt>the acceptance</dt><dd><b>foam on the crest</b> in each row header is the model's whitewater at the tracked
+    crest at each of the five clocks. It is this sheet's own pass/fail: a row must start <i>pre-break</i> and end
+    <i>broken</i>. It is read on the crest and not at a fixed point in the water on purpose — at a point break the
+    line is more or less permanently breaking somewhere, so a fixed station never goes quiet between waves, and an
+    earlier version of this sheet reported foam 0.87 in a column whose own wave had not broken. Rows that cannot
+    pass are labelled on the page and kept out of the published set rather than given a header that promises a
+    break their frames do not contain.</dd>
   <dt>framing</dt><dd>Cells are <b>cropped</b> to a window containing the tracked wave across all five columns of
     that row, computed from the marker's own projected extent and identical in every column, so the wave moves
     through a fixed frame instead of being re-centred out of its own motion. The <b>camera is never moved</b> — the
@@ -1816,10 +2186,17 @@ const PUB_NOTES = {
   'break-progression': `
 <p><b>This is the published view: 2 of 6 rows.</b> The full local sheet runs six wave sizes — four condition
 bundles (<code>day=small</code>, <code>modelcard</code>, <code>overhead</code>, <code>big</code>) and two
-<code>h0=</code>-only rows that hold period and tide fixed. Published here are the two <b>ends</b> of the
-bundle range, small (H₀ 0.70 m, T 9 s) against big (H₀ 2.50 m, T 17 s), because the size story is carried by
-its extremes and the intermediate bundles interpolate between them. The <code>h0=</code> rows exist to
-separate height from period — a QA question, not a reader's — and are omitted here.
+<code>h0=</code>-only rows that hold period and tide fixed. Published here are the two <b>ends of the range that
+breaks at this site</b>: the model-card day (H₀ 1.50 m, T 14 s) against the big groundswell (H₀ 2.50 m, T 17 s).
+The <code>h0=</code> rows separate height from period, which is a QA question rather than a reader's, and
+<code>day=overhead</code> sits between the two kept rows.</p>
+<p><b>Why the small end is not the smallest day.</b> <code>day=small</code> is H₀ 0.70 m, and Second Peak's
+<i>measured peel floor</i> is 1.08 m — below it the baked break line abandons the oblique reef branch and the
+peel collapses (stage α 6.6° against a 41° target). Measured on the same instrument as every other row,
+whitewater at the tracked crest there peaks at <b>0.193</b>, against <b>0.858–0.890</b> for every row that
+breaks. It is not a small break; it is not a break. Publishing it under a header that says
+<i>breaking — whitewater at the crest</i> would be the exact failure this page exists to avoid, so it stays on
+the local sheet, labelled, with its own numbers on it.
 <b>All five clocks are kept in every row</b>: this sheet is a progression, and a progression sampled at three
 points stops being one.</p>`,
 
@@ -1840,24 +2217,31 @@ shoulder month and is in the local sheet to catch a monotonicity break, which is
 // Silent truncation is the thing to avoid, so the omissions are on the page.
 const SHEET_NOTES = {
   'break-progression': `
-<p><b>Why the columns span a quarter of a period and not a whole one (2026-08-20).</b> They used to span one full
-T at T/5 per column, and the sequence very nearly <b>aliased back onto itself</b>. A crest advances exactly one
-crest spacing per period, so column k sat k/5 of a spacing along: by column 5 the tracked wave was 0.80 of a
-spacing on — 0.20 of a spacing from where the <i>next wave upstream</i> had been in column 1. That ratio is not a
-property of the site. The local wavelength cancels out of it exactly (advance ÷ spacing = Δt ÷ T), so it was 0.80
-on <b>every row, at every camera, at every H₀</b>: five near-identical parallel lines with no identifiable subject,
-which is what the sheet looked like. It is visible in the sheet's own numbers too — laid out over a full T, the
-tracked breakpoint's world x reads <code>36/56/88/4/36</code> at <code>day=small</code> and
-<code>56/72/92/44/56</code> at <code>day=modelcard</code>: <b>column 5 lands on column 1's station to the
-metre</b>, having wrapped through the stage in between. Now the five columns span <b>T/4</b>, T/16 apart, so the
-crest advances <b>0.25</b> of a spacing across the whole row and never approaches its neighbour's place.
-<b>What still moves over that span is the subject.</b> A point break's breakpoint travels along the line at
-Vp = c⁄sin α, faster than the wave itself: measured from the anchor clock at Second Peak, the model's own zipper
-locus goes 37 → 55 m of line at <code>day=small</code> (+17.6 m in 2.25 s) and 42 → 88 m at <code>day=big</code>
-(+46.3 m in 4.25 s), while the crest advances a quarter of a spacing. Longer spans were measured and rejected
-from the other side as well — at <code>day=big</code> the tracked wave has <b>peeled off the stage end</b> by
-about 0.35 T (its pocket goes 0.99 → 0.00 between 0.30 T and 0.40 T), so a longer sheet loses its own subject in
-the last columns whether or not it aliases.</p>
+<p><b>What the five clocks are (2026-08-20).</b> They are that row's own <b>break event</b>, measured rather than
+chosen: from the last clock at which the model's whitewater <i>at the tracked crest</i> is still at or below
+0.02, to the first at which it reaches 0.60, at the <b>takeoff station</b> — the place where a crest first meets
+the break line, so where this wave's break starts and its peel begins. The window is found by seeding on the
+crest nearest the line at the set anchor and walking time <i>backwards</i> until that crest is unbroken and
+forwards until it is whitewater. Walking backwards is the whole point: the clock this sheet needs is
+<i>before it breaks</i>, and there is no forward-only way to find that from an anchor that already sits
+mid-break.</p>
+<p><b>Two things this sheet got wrong first, both recorded because the numbers hid them.</b>
+<i>(1) The span.</i> The columns used to run one full wave period at T/5. A crest advances exactly one crest
+spacing per period, so column 5 sat 0.80 of a spacing on — 0.20 from where the <i>next wave upstream</i> had been
+in column 1, and the sheet very nearly aliased back onto itself. That ratio is not site-specific: advance ÷
+spacing = Δt ÷ T cancels the local wavelength, so it was 0.80 on every row, at every camera, at every H₀. It is
+visible in the sheet's own reads — laid out over a full T the tracked breakpoint goes
+<code>36 / 56 / 88 / 4 / 36</code> at <code>day=small</code>, back on column 1's station to the metre.
+<i>(2) The anchor, which survived the first fix.</i> The row was anchored on the argmax of crest <b>height</b> at
+the break line. A wave is tallest <i>at</i> the line, and at the line it is already breaking — so the anchor sat
+at or after break onset by construction, and the frames showed it: an established whitewater band up-line of the
+mark in column 1, foam 0.87 in the first cell, and the tracked wave then <i>decaying</i> across the row
+(crest 2.98 → 2.71 m) rather than breaking. A correct measurement of the wrong instant.</p>
+<p><b>Why the foam is read at the crest and not at a station.</b> At a point break the line is more or less
+permanently breaking somewhere, so whitewater at a <i>fixed point in the water</i> never goes quiet between
+waves — it is the bore left by the wave before. That is how a column whose own wave had not broken could report
+foam 0.87. Every acceptance number on this sheet is read <b>on the tracked crest</b>, so it is this wave's state
+and nobody else's.</p>
 <p><b>What is on this sheet.</b> Six wave sizes at <code>preset=secondpeak</code>. Four rows are the curated
 <i>condition bundles</i> from <code>web-three/js/conditions.js</code>: a bundle moves H₀, period, tide
 and Δf together, the way a real day does. Two rows are <code>h0=</code> only, which moves swell height
@@ -1873,13 +2257,19 @@ comparable and are labelled as such.</p>
 terrain sits in front of it, so a low camera behind a bluff reads low foam for a wave that is breaking fine.
 The model-side <code>pocket</code>/<code>brk</code> readings in the JSON are the check; a cell is only
 flagged FLAT when both the pixels and the model say nothing broke.</p>
-<p><b>The marker can be wrong, and it will say so.</b> The ring is a model read, not an annotation, so the useful
-question is how far it sits from the crest it claims to be on. Every row header carries <b>mark off crest</b>: the
-worst distance, over that row's five columns, between the ring and the tallest displaced surface point on a
-shore-normal transect at the same station — the same crest, read through a different reduction. A row where that
-number is large is a row where the zipper locus and the crest maximum have come apart, which is a finding about
-the model rather than a drawing error. Where no crest is crossing the line inside the stage at all, the cell says
-<i>tracked wave off the stage</i> rather than ringing something else.</p>
+<p><b>The marker can be wrong, and it will say so.</b> The line is the tracked crest and the ring is the point on
+it with the largest <code>pocket</code> — this wave's own breaking point. Both are model reads, not annotations,
+so each carries a number. <b>ring off line</b> in the row header is the worst distance, over the columns where
+this wave is actually at the line, between the ring and the break line it belongs on. And where no part of the
+wave has reached the line yet there is <b>no ring at all</b>, rather than a ring on the previous wave: an empty
+column 1 is what <i>still unbroken</i> looks like, and it is the single clearest tell that the anchor is now in
+the right place.</p>
+<p><b>A row that does not break says so.</b> Acceptance is measured per row and printed on it: whitewater at the
+tracked crest must start pre-break and end broken. Two rows cannot pass, and both are H₀ 0.70 m at a site whose
+measured peel floor is 1.08 m — <code>day=small</code> peaks at 0.193 and <code>h0=0.7</code> at 0.341, against
+0.858–0.890 for every row that breaks. Their headers say <i>crest intact → crest gone</i> instead of promising a
+break, their five clocks span the crest indicator's own collapse, and they are kept out of the published set.
+The gap between 0.35 and 0.85 is empty across the whole bank, which is why the 0.60 line sits in it.</p>
 <p><b>Stills in a known order.</b> Each cell states a <i>position</i> at a <i>known clock</i>; nothing on this page
 claims a direction of travel from the pictures. The row header's <b>peel</b> is the difference between two model
 reads at two model-derived clocks, not a motion measured off the frames — which is the distinction

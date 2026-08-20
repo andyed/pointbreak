@@ -327,6 +327,61 @@ wants re-measuring now that #pitch made faces steeper.
       Pinned in `tests/qa-publish.test.js` (span bound, marker-is-a-model-read,
       crop-not-camera) and written up as MEASUREMENT_LESSONS 15.
 
+- [x] **AND THE ANCHOR WAS STILL WRONG — the frames said so, the numbers did
+      not.** Andy on the rebuilt sheet: *"it still doesn't make sense."* Opening
+      the frames rather than the JSON: an established whitewater band up-line of
+      the mark **in column 1** (`foam_model` 0.87 in the first cell), the tracked
+      wave then **decaying** across the row (crest 2.98 → 2.94 → 2.85 → 2.74 →
+      2.71 m), and the most salient moving object in the sequence being the
+      *next* unbroken swell closing in. The page annotated one wave and showed
+      another. Everything I had defined as a number passed: marker within 1.6 px
+      of its model position on 80/80 cells, cam drift 0.00 m, crest advance a
+      clean 0.25 Λ. **None of them measured whether the row contained a break.**
+      **CONVICTED: the anchor, and it was a correct measurement of the wrong
+      instant.** `t*` was the argmax of crest HEIGHT at the break line — and a
+      wave is tallest AT the line, where it is already breaking, so that clock
+      sits at or after break onset BY CONSTRUCTION. No span around it can
+      produce a "before" column.
+      **FIX (rig only), four parts:**
+      *(1) anchor + span = the measured BREAK EVENT.* `measureBreakEvent` seeds
+      on the crest nearest the line at the takeoff station at the set anchor,
+      walks time BACK a full period and forward 0.8 T, and reads the model's
+      foam AT THE TRACKED CREST. The row runs from the last clock at or below
+      0.02 to the first at or above 0.60. Measured: 3.85 / 4.40 / 4.25 / 3.85 s
+      = **0.250–0.275 T on every row that breaks**, at T = 14–17 s. (Trap that
+      cost a run: scanning the finished track *backwards* for the last quiet
+      clock finds one AFTER the tracked wave has broken — at `day=big` it
+      reported the SECOND event. Find the first rise, then walk back.)
+      *(2) foam is read ON THE CREST, not at a station.* At a point break the
+      bore from previous waves never goes quiet at a fixed point, which is
+      exactly how a pre-break column reported 0.87. Same field, on the crest:
+      **0.01 → 0.05 → 0.14 → 0.22 → 0.86**.
+      *(3) the ring is withheld before the wave reaches the line.* It is now the
+      largest `pocket` ALONG THE TRACKED CREST — this wave's own breaking point
+      — and below `RING_MIN_POCKET` there is no ring at all rather than one
+      sitting on the previous wave. An empty column 1 is what "still unbroken"
+      looks like.
+      *(4) the crop takes in the break line under the crest.* A crest is a thin
+      horizontal thing and a window fitted to one alone lands on the horizon with
+      the wave's whole face below frame — which is what the first cropped build
+      did.
+      **ACCEPTANCE, printed by the run and on the page**: foam at the tracked
+      crest must start pre-break and end broken. Four rows pass
+      (`modelcard` / `overhead` / `big` / `h0=2.5`, all ending 0.86–0.89); **two
+      fail and are labelled as non-breaking cases** — `day=small` (peak 0.193)
+      and `h0=0.7` (peak 0.341), both H₀ 0.70 m against Second Peak's measured
+      **1.08 m peel floor**, i.e. the documented low-H₀ branch collapse arriving
+      through another door. `day=small` is **dropped from the published set** and
+      the page says why; the published small end is now `day=modelcard`.
+      The 0.60 threshold is measured, not picked: peak foam-at-the-crest is
+      bimodal across the bank — breaking rows plateau at 0.858–0.890,
+      non-breaking rows top out at 0.193 and 0.341, and **nothing lands between
+      0.35 and 0.85**.
+      Pinned in `tests/qa-publish.test.js` (anchored-on-a-transition,
+      walks-backwards, first-rise-then-back, acceptance-can-fail,
+      ring-withheld-pre-break, non-breaking-row-not-published) and written up as
+      MEASUREMENT_LESSONS 15b.
+
 **The screensaver read (mission #1)**
 - [x] WAVE SHAPE, second cause — **`dropMag` FLATTENED THE POCKET** (fixed
       2026-08-18, ships ON, `#drop=legacy` reverts; `scripts/measure_pocket_crest.mjs`
