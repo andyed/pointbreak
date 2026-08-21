@@ -1,9 +1,33 @@
 # Measuring set structure — a spike against a finer spectral grid
 
-**Status: SPEC, not run.** Written 2026-08-20. Nothing here has been measured.
-This document exists so the experiment is pre-registered before it is executed;
-if it is run, its results belong in `PP_SPECTRAL_SETS.md` §8 and this file
-becomes the record of what was asked, including anything it failed to answer.
+**Status: RUN 2026-08-20. OUTCOME D — the premise fails, the route is closed.**
+Step 1 was decisive and the spike stopped there, as §11 says it should. The
+measurement is in `data/climatology/pp_spectral_grids.json`, regenerable with
+`python3 data/climatology/check_spectral_grids.py --out`, and written up in
+`PP_SPECTRAL_SETS.md` §8. Steps 2–6 below were never executed.
+
+**What was measured.** At Pleasure Point's own swell peak (T 14.5 s →
+0.0690 Hz) both sources step at **0.005 Hz** — CDIP buoy 156 is *not* finer
+than the SC116 MOP grid where the swell actually is. The smallest separation
+either can resolve is 0.010 Hz, and the authored Δf of 0.006 Hz stays below
+that floor. §6.5's proposed instrument change does not reach the question.
+
+**The trap this nearly walked into.** The buoy carries **64 bands against the
+model's 20**, which is why §6.5 expected it to be finer — and by band *count*
+it plainly is. But the extra bands are at high frequency: the buoy runs to
+0.58 Hz in 0.01 Hz steps, against the model's 0.4 Hz. Compare *spacing at the
+frequency of interest* and the two are identical. Band count was the
+misleading statistic, and a partitioning pipeline built on it would have
+produced Δf estimates the grid cannot support, with a plausible provenance
+story attached. Lesson 8c again: check the domain before reading the value.
+
+**Where the buoy is genuinely better**, recorded so this is not read as a
+blanket dismissal: it holds 0.005 Hz spacing from 0.025–0.095 Hz against the
+model's 0.040–0.075 Hz, so short-period windswell and very long groundswell are
+better resolved there, and it is in-situ rather than model output. Neither
+bears on Δf.
+
+Original spec follows unchanged, as the record of what was asked.
 
 Naming follows the house rule: the artifact is named after the mechanism
 (spectral partitions), not after the library used to compute it.

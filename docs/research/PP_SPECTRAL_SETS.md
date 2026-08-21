@@ -276,3 +276,49 @@ down fine over OPeNDAP ASCII and 20-band spectral arrays do not.
 weighting are right. That check should be re-run after any change to the
 frequency handling — it is cheap and it is the only thing standing between a
 band-weighting slip and a plausible wrong answer.
+
+## 8. §6.5's proposed instrument does not reach the question (2026-08-20)
+
+§6.5 said that if set structure ever needed measuring properly, *the instrument
+has to change*, and named CDIP **buoy 156** on the grounds that buoy spectra are
+published on a finer grid than MOP model output. That premise was tested before
+anything was built on it. **It is false in the band that matters.**
+
+Measured (`check_spectral_grids.py`, both grids pulled over OPeNDAP;
+`pp_spectral_grids.json`):
+
+| | SC116 MOP | buoy 156 |
+|---|---|---|
+| bands | 20 | **64** |
+| range | 0.04–0.4 Hz | 0.025–0.58 Hz |
+| **spacing at PP's swell peak** (T 14.5 s = 0.0690 Hz) | **0.005 Hz** | **0.005 Hz** |
+| resolvable Δf there | 0.010 Hz | **0.010 Hz** |
+| authored Δf | | 0.006 Hz — **still below the floor** |
+
+The buoy has 3.2× the bands and is not finer where the swell is. Its extra
+resolution is at high frequency: it runs to 0.58 Hz in 0.01 Hz steps against the
+model's 0.4 Hz. **Band count is the misleading comparison.** A partitioning
+pipeline built on "64 versus 20" would have returned Δf values this grid cannot
+support, carrying the provenance of an in-situ instrument — the most persuasive
+possible wrong answer. §1's verdict is unchanged and now holds for two
+independent sources rather than one.
+
+Where the buoy *is* better, so this is not over-read: it holds 0.005 Hz spacing
+across 0.025–0.095 Hz against the model's 0.040–0.075 Hz, so short-period
+windswell and long groundswell are better resolved, and it measures water rather
+than modelling it. Neither property bears on Δf.
+
+**What this closes.** The first of §6.5's two paths. Δf is not merely
+unresolvable at SC116; it is unresolvable at the finer-looking alternative too,
+for the same reason. Any future attempt needs a source whose *spacing near
+0.069 Hz* is below 0.003 Hz, and that requirement should be checked first, in
+one request, before any pipeline is written.
+
+**What this promotes.** §6.5's second path is now the only one left: measure
+crest recurrence **directly from the rendered field** with the temporal harness,
+which observes groups rather than inferring them from a spectrum. That is also
+the only route that can check the authored value against what the model actually
+draws, rather than against what an instrument can see.
+
+Full spec, pre-registered outcomes, and the reasoning for stopping at step 1:
+`PP_SPECTRAL_PARTITIONS_SPIKE.md` (outcome D).
