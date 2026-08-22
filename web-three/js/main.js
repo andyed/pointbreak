@@ -42,6 +42,32 @@ import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 // (zipper peels +x), z shoreward. Centered on the break at the origin, biased
 // +10 m shoreward to match web/'s drone framing (z = -uv.y*170 + 10).
 const STAGE_W = 600, STAGE_D = 500, STAGE_Z0 = 10;
+// Where the horizontal-offset bound starts saturating, as a FRACTION of the
+// live ceiling (shaders.js: min(OFF_MAX_M, S/k) — a length the wave supplies,
+// not a constant). A fraction rather than metres because the ceiling moves
+// with the local wavenumber: 0.75 against the old flat 20 m reproduces the
+// 15 m knee the first cut shipped, and against the shoaling ceiling it stays
+// in the same relative place instead of drifting toward it.
+const OFF_KNEE_FRAC = 0.75;
+// Drone obliquity. The tilt is measured OFF NADIR (0 = straight down), which
+// is the drone-operator convention and the one the "not fully top down"
+// framing note used. The station is derived from it rather than authored, so
+// the angle is the knob and the geometry follows: 15 deg at 365 m puts the
+// camera 97.8 m shoreward of what it looks at, against the 40 m (6.25 deg) it
+// stood at before. If this ever wants to be an angle above the HORIZON
+// instead, it is DRONE_ALT_M / tan(angle) and the constant below is the only
+// line that changes.
+const DRONE_ALT_M = 365;
+const DRONE_TILT_DEG = 15;
+const DRONE_OFFSET_M = DRONE_ALT_M * Math.tan(DRONE_TILT_DEG * Math.PI / 180);
+// Cover camera (the close-up). Standoff is the one knob worth touching: at
+// 16 m a ~5 m crest subtends most of a 28 deg frame, which is the cover crop.
+// Eye height is near the surface on purpose — a lip reads as an overhang only
+// against a low horizon — and the aim sits a little above still water so the
+// frame carries the lip rather than centring on the trough.
+const COVER_STANDOFF_M = 16;
+const COVER_EYE_M = 2.4;
+const COVER_AIM_Y_M = 3.2;
 // ---------- quality tiers ----------
 // MEASURED 2026-08-12 (GPU timer queries, not wall clock — wall clock is
 // rAF-capped on a fast machine and reports 8.3 ms for every configuration):
@@ -241,6 +267,54 @@ const uniforms = {
   // depth-limited ceiling 0.78 there against 1.05 one station away). The fix
   // ships ON — this is the revert arm for the A/B, not a feature flag.
   u_legacyDrop: { value: 0 },
+  // Soft knee on choppyPos' horizontal-offset bound, metres (#knee). The bound
+  // itself (OFF_MAX_M = 20 m, shaders.js) is UNCHANGED; what changes is that a
+  // hard min() mapped every over-limit vertex onto one surface, collapsing the
+  // neighbourhood's relative displacement and drawing a flat faceted slab on
+  // the breaking crest. Measured pile-up before the fix: the |off| histogram
+  // decays to 247 samples in the 16-18 m bin and then spikes to 1135 in
+  // 18-20 m, 3.3% sitting at >= 19.5 m. Ships ON — a defect fix, not a look —
+  // with `#knee=0` as the bit-identical revert arm. See the note at the clamp.
+  u_offKnee:    { value: OFF_KNEE_FRAC },
+  // Wave-derived offset ceiling, S/k — the cusp condition written as a length
+  // (S = 1 and |off| = 1/k are the same statement; 1/k = LAM/2pi is also the
+  // Gerstner cusp radius). Replaces a flat 20 m that had no wave in it and
+  // could not be right at two sizes at once. Scale-free: it tightens on its
+  // own as the wavelength shoals. Ships ON, `#lamcap=0` reverts to the flat
+  // ceiling. Aimed at the crease class (S small, offsets large anyway), NOT at
+  // the crest slab — that is the Sapp calibration, see the note at the clamp.
+  u_lamCap:     { value: 1 },
+  // Instrument: drop the offset bound entirely so the RAW distribution can be
+  // read (it is how 73.6 m was found under a 20 m clamp). JS-only on purpose —
+  // no hash param, because an unbounded mesh is not a state anyone should be
+  // able to land on from a URL.
+  u_offUnbound: { value: 0 },
+  // The choppy solve's amplitude. lam = S/(a*k^2) is derived from h = a*cos(kx)
+  // and wants the CARRIER's amplitude; it reads abs(h), the instantaneous
+  // displacement, which goes to zero between crests. ocean() has always held
+  // the honest number and now returns it.
+  //
+  // DEFAULT OFF, AND THE REASON IS A MEASUREMENT, NOT CAUTION (2026-08-22).
+  // The substitution is correct and it makes things WORSE as it stands,
+  // because S was calibrated on top of the wrong amplitude. Bounded, at
+  // sewers t = 36/42/54: fold points 365/531/359 -> 415/563/440, i.e. +6..+23%,
+  // and folded transects 78/96/74% -> 83/96/87%. Unbounded, which is where the
+  // mechanism shows: max |off| 73.4 -> 145.4 m — DOUBLED — while the BULK
+  // improves (samples over 20 m 455 -> 375, fold points 1091 -> 940). So the
+  // carrier amplitude fixes the middle of the distribution and blows up its
+  // tail, in the lull and the far field, exactly where amp -> 0 and lam
+  // = S/(a*k^2) has nothing left to divide by. The old 0.30*H0*VIS floor was
+  // covering that, which is why it existed.
+  //
+  // THE REAL FINDING: with the true 'a', S finally MEANS what it says (the
+  // cusp parameter of h = a*cos), and every S constant in choppyPos — Sapp
+  // 0.42, Sover's 0.15 + 1.30*plunge — was tuned against an 'a' that was
+  // roughly 2x the carrier at crests and near zero in troughs. Turning this on
+  // without re-deriving those is the documented trap: fixing a feature's SCALE
+  // invalidates the thresholds tuned to it, and accuracy drops. Re-tune S
+  // against the honest 'a', THEN flip this. The plumbing and the number stay
+  // available in the meantime.
+  u_carrierAmp: { value: 0 },
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -533,8 +607,22 @@ const CAM_PRESETS = [
                                        : [35, 8.5, breakLineJS(35) - 30],
     target: () => aimOn() ? [aimState.x, 4.0, aimState.z + 2]
                           : [0, 4.0, breakLineJS(0) + 2], fov: 32 },
-  { name: 'Drone',  pos: () => aimOn() ? [aimState.x, 365, aimState.z + 40]
-                                       : [0, 365, STAGE_Z0 + 40],
+  // Drone is deliberately NOT nadir (2026-08-22). It was pos.y = 365 over a
+  // 40 m shoreward offset, i.e. atan(40/365) = 6.25 deg off straight down —
+  // near enough to top-down that the wave read as a plan diagram: a crest has
+  // no silhouette from directly above, so height, fold and lip all project
+  // onto nothing and the shot could only ever show the PLAN of the break
+  // (peel direction, foam area) and never its FORM. Tilting to
+  // DRONE_TILT_DEG off nadir gives the crest something to stand up against.
+  // Altitude is held and the station moves, so the scale of the shot is
+  // unchanged to within 1/cos(tilt) = 3.5%; only the obliquity moves.
+  //
+  // NOTE FOR THE INSTRUMENTS: the QA sets sheet shoots every row at cam=drone
+  // and reports a bright-PIXEL fraction, which is a projection of the scene
+  // into THIS camera. Those numbers are not comparable across this change —
+  // rebuild the sheet rather than diffing pix columns over it.
+  { name: 'Drone',  pos: () => aimOn() ? [aimState.x, DRONE_ALT_M, aimState.z + DRONE_OFFSET_M]
+                                       : [0, DRONE_ALT_M, STAGE_Z0 + DRONE_OFFSET_M],
     target: () => aimOn() ? [aimState.x, 0, aimState.z]
                           : [0, 0, STAGE_Z0] },
   // The headland shot. Round-2 finding (ROUND2_FINDINGS_2026-08-11): Sewer
@@ -542,9 +630,43 @@ const CAM_PRESETS = [
   // the OSM apex — the Drone framing just crops it (footprint ends z=+173 m,
   // the corner's limbs sweep to +320). Higher and aimed shoreward, the corner
   // is in frame; a camera fix, not geometry work.
+  // ---- Cover: the close-up (2026-08-22) ----------------------------------
+  // The magazine-cover shot, and the only camera in the bank built to judge
+  // APPEARANCE rather than to read the model. Every other preset frames the
+  // stage: Cliff and Lineup stand off tens of metres to keep a peel in frame,
+  // Drone reads the plan. None of them puts water close enough to ask whether
+  // the surface is convincing AS WATER, which is the question a cover asks.
+  //
+  // Geometry, and why each number: it stands COVER_STANDOFF_M off the aim
+  // point — the baked line's action centroid, i.e. the travelling breakpoint,
+  // so the shot is on the pocket by construction and follows it as the peel
+  // runs — down-point of it (aim.x + standoff) so the wave is coming toward
+  // the lens and presents its face rather than being seen edge-on, and
+  // SHOREWARD of it (aim.z + standoff*0.55) so the camera looks BACK at the
+  // advancing face, which is the side a wave's face is on and where a water
+  // photographer sits. (First cut had this seaward and framed the BACK of the
+  // swell — an unlit dark hump against sky, no lip, no pocket. The face is
+  // shoreward of the crest; the sign is the whole shot.)
+  // COVER_EYE_M is deliberately near the surface: a lip only
+  // overhangs against a low horizon, and from any height the barrel closes up.
+  // Telephoto (fov 28) crops the stage out and lets the wave fill the frame.
+  //
+  // A HAZARD, stated: this parks the camera close to, and sometimes inside,
+  // breaking water — which is what it is for. The world-collision clamp
+  // (#noclip) is what keeps it out of the mesh; if the clamp ever fights the
+  // framing, that is the clamp doing its job and the standoff wants raising,
+  // not the clamp disabling.
+  { name: 'Cover',  pos: () => aimOn()
+      ? [aimState.x + COVER_STANDOFF_M, COVER_EYE_M, aimState.z + COVER_STANDOFF_M*0.55]
+      : [COVER_STANDOFF_M, COVER_EYE_M, breakLineJS(COVER_STANDOFF_M) + COVER_STANDOFF_M*0.55],
+    target: () => aimOn() ? [aimState.x, COVER_AIM_Y_M, aimState.z]
+                          : [0, COVER_AIM_Y_M, breakLineJS(0)], fov: 28 },
   { name: 'Point',  pos: () => [0, 560, 200],                                 target: () => [0, 0, 140] },
   { name: 'Follow', pos: () => cliffStation(cliffStationX()),                 target: () => [0, 2, breakLineJS(0) - 11] },
-  { name: 'Tour',   pos: () => [0, 365, STAGE_Z0 + 40],                       target: () => [0, 0, STAGE_Z0] },
+  // Tour's own pos/target is only where it is parked before the first cut —
+  // the legs resolve through CAM_PRESETS by name (TOUR_SHOTS). Kept in step
+  // with Drone so the park frame and the first leg are the same shot.
+  { name: 'Tour',   pos: () => [0, DRONE_ALT_M, STAGE_Z0 + DRONE_OFFSET_M],   target: () => [0, 0, STAGE_Z0] },
 ];
 let camIdx = 0;
 const BASE_FOV = 50;
@@ -564,7 +686,7 @@ controls.addEventListener('start', () => { userOrbited = true; });
 // The shots that follow the aim point per frame while the user has not taken
 // over. Follow is deliberately absent — it tracks the rider, who already rides
 // the baked line (m4RideSolve), so it aims off the bake by construction.
-const AIM_SHOTS = new Set(['Cliff', 'Lineup', 'Drone']);
+const AIM_SHOTS = new Set(['Cliff', 'Lineup', 'Drone', 'Cover']);
 
 function applyCam(i) {
   camIdx = i;
@@ -1865,6 +1987,21 @@ function applyHashParams() {
   // ships on, and this restores the term that flattened the pocket so the two
   // silhouettes can be captured from one build.
   if (h.get('drop') === 'legacy') uniforms.u_legacyDrop.value = 1;
+  // #knee: the offset bound's soft knee, metres. `0` is the REVERT arm (the
+  // pre-2026-08-22 hard clamp, bit-identical); a float sweeps the knee. Values
+  // at or above OFF_MAX_M remove the bound entirely and are an INSTRUMENT for
+  // reading the raw offset distribution — not safe for the mesh, which is why
+  // this parses as an explicit opt-in rather than defaulting anywhere near it.
+  if (h.has('knee')) {
+    const kn = parseFloat(h.get('knee'));
+    if (Number.isFinite(kn) && kn >= 0 && kn <= 1) uniforms.u_offKnee.value = kn;
+  }
+  // #lamcap=0 puts the flat 20 m ceiling back, for the A/B against the
+  // wave-derived S/k one. Revert arm, not a feature flag.
+  if (h.get('lamcap') === '0') uniforms.u_lamCap.value = 0;
+  // #amp=1 arms the carrier amplitude. Default OFF pending an S re-tune — see
+  // the uniform's note; the flag is a feature flag, not a revert arm.
+  if (h.get('amp') === '1') uniforms.u_carrierAmp.value = 1;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -1981,6 +2118,14 @@ window.__pointbreak = {
   setFidelityLook: (look) => { uniforms.u_fidelityLook.value = parseFidelityLook(look); },
   setCurl: (on) => { uniforms.u_curl.value = on ? 1 : 0; },
   setLegacyDrop: (on) => { uniforms.u_legacyDrop.value = on ? 1 : 0; },
+  // Offset-bound knee in metres, for sweeps and for the raw-distribution read
+  // (>= OFF_MAX_M = 20 removes the bound; instrument only). 0 = hard clamp.
+  setOffKnee: (f) => { if (Number.isFinite(f) && f >= 0 && f <= 1) uniforms.u_offKnee.value = f; },
+  offKnee: () => uniforms.u_offKnee.value,
+  setLamCap: (on) => { uniforms.u_lamCap.value = on ? 1 : 0; },
+  setCarrierAmp: (on) => { uniforms.u_carrierAmp.value = on ? 1 : 0; },
+  // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
+  setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },
   // ---- curlProbe: the displaced surface, as numbers ----
   // Reads back surfacePos() for a shore-normal transect at world x, sampling
   // the SOURCE coordinate z0 uniformly and returning the DISPLACED (x, y, z).

@@ -537,8 +537,24 @@ const SHEETS = [
         pubDrop: true,
       },
       {
+        id: 'cover', label: 'Cover camera — the close-up',
+        note: 'The same wave and the same derived clocks from 16 m, at eye height on the face side, riding the '
+            + 'travelling breakpoint. This row exists to answer a different question from the other two: not '
+            + '"is the model right" but "is the SURFACE convincing as water" — the magazine-cover question, which '
+            + 'no stage-scale camera can be pointed at. Read it for material and light, not for peel geometry: '
+            + 'tonal separation between wave and sky, whether the lip is an edge or a smear, whether whitewater is '
+            + 'a material or a gradient, and whether the surface carries any detail at all this close.',
+        base: 'preset=secondpeak&cam=cover', rows: BREAK_ROWS,
+        // LOCAL ONLY for now. The close-up is a NEW camera (2026-08-22) and its
+        // framing has had exactly one live look; publishing a cover-readiness
+        // claim off a shot nobody has signed off is the same error the cliff
+        // group's pubDrop guards against, in the other direction. Promote it
+        // once the framing is settled.
+        pubDrop: true,
+      },
+      {
         id: 'drone', label: 'Drone camera — overhead',
-        note: 'Same six rows, same derived clocks, from above: this is where the along-crest peel (the zipper) reads instead.',
+        note: 'Same six rows, same derived clocks, from above: this is where the along-crest peel (the zipper) reads instead. Tilted 15° off nadir since 2026-08-22 — it stood at 6.25°, near enough to straight down that a crest had no silhouette and the shot could only show the plan of the break, never its form.',
         base: 'preset=secondpeak&cam=drone', rows: BREAK_ROWS,
       },
     ],

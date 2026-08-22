@@ -1,5 +1,236 @@
 # TODO
 
+## 2026-08-22 — the offset bound was a constant, and the constant was the facet
+
+**Shipped (`#lamcap=0` and `#knee=0` revert, independently).** Live report: a
+white faceted slab on the crest from the lineup camera. Refuted first, cheaply:
+it is NOT the spray plume mesh (`sprayPoints.visible = false` → pixel-identical
+frame), so the TODO's "the spray plume mesh is the loudest hard edge" is a
+different artifact from this one and is still open on its own terms.
+
+**Convicted: `choppyPos`' horizontal-offset bound, `min(|off|, 20)`.** A hard
+clamp on a displacement field maps every over-limit vertex onto the SAME sphere,
+so relative displacement across the neighbourhood collapses to zero and the mesh
+draws a plane with a ruler-straight silhouette. The `|off|` histogram decays
+monotonically to 247 samples in the 16–18 m bin and then SPIKES to 1135 in
+18–20 m, 892 (3.3%) at ≥ 19.5 m, 2 sitting exactly on 20.00. Those vertices
+carry mean `pocket` 0.222 against 0.042 for the field at large.
+
+**Two fixes, and only the second one worked. Recorded that way on purpose.**
+1. *Soft knee* (`#knee`, now a fraction of the live ceiling). Removes the corner
+   and the coincident-vertex population — 892 → 667 at ≥ 19.5 m, zero on the
+   bound — and **did not change the frame**. Arms "old clamp" and "knee only"
+   are indistinguishable visually and in fold counts (2203 vs 2250). It ships
+   because it is a strictly better map, not because it fixed anything.
+2. *The ceiling is the wave's* (`#lamcap`). `S = 1` and `|off| = 1/k` are the
+   same statement — one dimensionless, one a length; `1/k = Λ/2π` is also the
+   Gerstner cusp radius — so the bound is `|off| ≤ S/k`, scale-free, tightening
+   on its own as the wavelength shoals. **This is the one that empties the
+   frame of the slab.** Sewers, six clocks: fold points −41…−56%, mean `|off|`
+   −25…−30%, **crest height bit-identical at all six** (8.28/8.59/9.72/8.71/
+   11.60/9.37 m). Sharks (ξ 0.45, spilling): fold points −84…−85%, crest
+   unchanged. Crease noise removed where the physics says there is no lip,
+   overturn kept where it says there is one, no per-site tuning.
+
+**Why the field ever exceeded the bound — the mechanism, and it is shared with
+the trough-crease pathology.** `|off|` is `lam·|grad|` with the TRUE local
+gradient, while `lam` was solved from `aEst`, a FLOORED amplitude estimate.
+Wherever the real slope outruns `aEst·k` the two disagree and the product runs
+away. Unbounded instrument (`setOffUnbound`, JS-only — deliberately no hash
+param): raw offsets reach **73.6 m** on a ~5 m crest band, 1073 samples over
+20 m.
+
+### ▶ CORRECTED — the first `Sapp` A/B was run on saturated data
+The claim "`Sapp` is the driver, the cusp cap is irrelevant" was first measured
+on CLAMPED output, where two different S values both exceed the bound and read
+identical. That comparison was structurally incapable of finding a difference.
+Re-run on the unbounded arm it survives — shipped 1073 over 20 m / max 73.6 /
+mean 4.49; `#curl=1` 1036 (−3%) / 70.9 / 4.31; `#look=full` 519 (−52%) / 60.0 /
+2.70 — but it should not have been asserted before the instrument existed.
+
+### ▶ STILL OPEN — the slab is not fully gone, and Sapp still owns it
+At the pocket S is near its 1.8 cap and k is the deep-ish carrier, so `S/k`
+lands at 19–26 m and the new ceiling is close to the old 20 m *there*. The
+remaining crest facet is the `Sapp` calibration, measured at −52%, and it
+belongs to the **`#look=full` unbundling**: that flag currently welds together
+`Sapp` 0.42→0.22, the S cap at 0.98, the backface `discard`, and the whole foam
+material + lifecycle hierarchy. Split the geometry half out so `Sapp` can be
+judged and defaulted without dragging the foam material with it.
+
+### ▶ NEW: `cam=cover`, the close-up — and the first thing it says
+
+Built 2026-08-22 to answer "are we cover-ready", which no existing camera could
+be pointed at: Cliff and Lineup stand off tens of metres to keep a peel in
+frame, Drone reads the plan, and none of them puts water close enough to ask
+whether the surface is convincing AS WATER. Cover stands 16 m off the aim point
+(the travelling breakpoint, so it rides the peel), down-point so the wave comes
+toward the lens, SHOREWARD of the crest so it looks back at the advancing face,
+eye 2.4 m, fov 28.
+
+**The sign was wrong on the first cut and it is worth remembering why**: parked
+seaward, the frame was the BACK of the swell — an unlit dark hump against sky,
+no lip, no pocket, and nothing in the numbers would have caught it. A wave's
+face is on its shoreward side.
+
+**First read, sewers sim 54 (the tall clock, crest 11.6 m), and it is NOT
+cover-ready.** What works: the peak carries volume, there is a translucent
+under-lip green, the lip has a defined edge, face and foam separate tonally.
+What does not, in the order it hurts:
+- **No tonal range.** Sky and water sit at nearly the same value; the whole
+  frame is one grey. A cover needs a subject that separates from its ground.
+- **No micro-detail at close range.** The surface is glassy-smooth 16 m from
+  the lens — `detailH`'s frequencies are tuned for stage-scale viewing and
+  carry nothing at this distance. This is the single most specific gap.
+- **Whitewater is an airbrushed gradient**, not a material — the same
+  foam-on-top finding from earlier today, seen from a distance that makes it
+  undeniable.
+- **No spray or droplets** anywhere near the lip.
+- The curl is a soft smear rather than a crisp lip line.
+
+STILL TO DO: wire a Cover row set into `scripts/build_qa_sheets.mjs` so the
+close-up joins the contact sheets. Deliberately NOT done yet — the framing is a
+taste call that already needed one correction, so get an eye on the shot before
+baking 125 frames through it.
+
+### ▶ Drone is no longer nadir (2026-08-22)
+It stood at atan(40/365) = 6.25 deg off straight down, near enough to top-down
+that a crest had no silhouette and the shot could only show the PLAN of the
+break, never its form. Now 15 deg off nadir (`DRONE_TILT_DEG`), altitude held
+so shot scale moves only 1/cos15 = 3.5%. **The QA sets sheet shoots every row
+at cam=drone and reports a bright-PIXEL fraction, which is a projection into
+this camera — those numbers are not comparable across the change.** Rebuild the
+sheet rather than diffing `pix` columns over it.
+
+### ▶ OPEN — the essay's OG hero cannot just be re-shot; sim 42 is no longer a hero clock
+
+Asked to update the essay screenshots for the new drone view. `docs/figures/`'s
+inline images are all `cliff_*` and are unaffected; the two in-essay iframes are
+LIVE embeds at `cam=drone` and will pick the tilt up on the next deploy with no
+regeneration. The one generated drone artifact is the OG social card hero,
+`capture_og_hero.mjs` → `assets/og_hero.png` → `gen_og.py` → `og-card.png`.
+(The card's coastline/contour vectors are an INDEPENDENT orthographic
+projection, not registered to the hero — the hero is a picture-in-picture
+panel — so re-shooting it carries no registration risk. Checked before
+touching it.)
+
+**Re-shot it, and the result is much worse than the committed card**: no peel
+line, a saturated foam mass with hard plate edges filling the frame. **The
+camera is NOT the cause.** Controlled test — today's model at the OLD 6.25°
+angle — produces the same foam mass, so the tilt is exonerated. The committed
+`og_hero.png` dates from **2026-08-10** (38e67ad), twelve days and a dozen model
+commits back: `#arm`, `#env`, `#wrap`, `#pitch`, the dropMag re-scope, the foam
+size contract, the peel floor, and today's offset bound. The likeliest single
+cause is **`#arm`, which by design puts a cresting set on the break line at
+exactly the house clocks (sims 36–54)** — the clock that used to frame quiet
+water and a clean peel now frames a full set closing out.
+
+**Reverted `og_hero.png` to the committed version** rather than ship a worse
+card. What it needs is a NEW hero clock (and possibly a different preset —
+First Peak's drone rows in the QA sheet read well) chosen against today's model.
+That is a small search plus a taste call, not a regeneration.
+
+Worth noting for its own sake: the saturated white mass in that frame IS the
+foam-material problem at stage scale — hard-edged plates, no interior
+structure, blown to near-white. The hero shot is an unusually honest instrument
+for it.
+
+### ▶ `aEst` — the root fix, built, MEASURED WORSE, and shipped OFF (`#amp=1`)
+
+Concern 2 of the list below, attacked directly. `lam = S/(a*k^2)` is derived
+from h = a*cos(kx) and wants the CARRIER's amplitude; choppyPos read it off
+abs(h), the instantaneous displacement, which is a different quantity and goes
+to zero twice a period. ocean() has always computed the honest number
+(`amp = 0.5*Heff*grow*decay*env*shoreFade`) and simply never returned it. It
+does now — one out-parameter, free, since ocean() is already evaluated five
+times per vertex. Carrier only: no chop, boil, mound or setup lift, which is
+the point, because those are the terms that were polluting the estimate.
+
+**It makes things worse as it stands, and the numbers say so.** Bounded, at
+sewers t = 36/42/54: fold points 365/531/359 -> **415/563/440 (+6..+23%)**,
+folded transects 78/96/74% -> 83/96/87%, crest unchanged. Unbounded, which is
+where the mechanism shows: **max |off| 73.4 -> 145.4 m, doubled**, while the
+BULK improves (samples over 20 m 455 -> 375, fold points 1091 -> 940). A new
+faceted slab appeared in the far field of the lineup frame, which is the same
+story in pixels.
+
+So the carrier amplitude repairs the middle of the distribution and blows up
+its tail — in the lull and the far field, where amp -> 0 and lam has nothing
+left to divide by. **The old 0.30*H0*VIS floor was covering exactly that.**
+That floor was never the mechanism; it was the patch. Removing the patch
+without removing the need for it is not a fix.
+
+**THE REAL FINDING, and it is the useful one.** With the true 'a', S finally
+MEANS what it says — the cusp parameter of h = a*cos(kx). Every S constant in
+choppyPos (Sapp 0.42, Sover's 0.15 + 1.30*plunge, the 1.8 clamp, the 0.98/1.0
+caps) was tuned against an 'a' that ran ~2x the carrier at crests and near zero
+in troughs. Turning the honest amplitude on without re-deriving them is the
+documented trap: **fixing a feature's SCALE invalidates every threshold tuned
+to it, and accuracy drops.** That is the shape of this result exactly.
+
+NEXT, in order: (1) re-derive the S constants against the honest 'a' — the cusp
+is S = 1 by construction now, so they can be reasoned about rather than fitted;
+(2) decide what a lull should do, because "S constant while a -> 0" is the
+question the floor was answering badly — sharpening should probably fall WITH
+the carrier rather than be rescued by a floor; (3) then flip `#amp` and re-run
+every measurement in this file against it. The plumbing, the number and the A/B
+all stay in the tree in the meantime.
+
+### ▶ CONCERNS WE WILL COME BACK TO — read this before touching the bound again
+
+Written down while it is fresh, because every one of these is a plausible
+reason to reopen this path, and none of them is a defect today.
+
+1. **The ceiling still contains a constant.** It is `min(OFF_MAX_M, S/k)`, and
+   `OFF_MAX_M` is still 20 m of world space with no wave in it. At the pocket
+   `S/k` lands at 19–26 m, so the constant IS binding part of the time — the
+   `min` is not decoration. Decide deliberately whether 20 is a mesh backstop
+   worth keeping (it bounds the damage when `S/k` is itself wrong) or a vestige
+   that should go now that a derived length exists. Do not let it rot into
+   "that's just how it is".
+2. **`aEst` is the generator and is untouched.** We bounded the symptom in a
+   more honest currency. The defect is still that `lam = S/(aEst·k²)` solves
+   against a FLOORED estimate of amplitude while multiplying the TRUE gradient.
+   A real local-amplitude estimate (envelope over a wavelength, or carrying `a`
+   out of `ocean()` rather than re-estimating it from `|h|`) would retire this
+   whole family — bound, knee, creases and slab together. That is the real fix
+   and this is not it.
+3. **Sharks lost 84–85% of its folds and NOBODY HAS LOOKED AT IT.** The Sharks
+   evidence is numerical only: the screenshot taken there framed open water
+   with no breaking wave in it, so the spilling case has **no visual
+   confirmation**. ξ 0.45 also sits right on Battjes' 0.5 spilling/plunging
+   line, so "a spilling wave should not overturn" is an argument, not a
+   measurement. If a later call says Sharks should show *some* overturn, this
+   bound is the first suspect.
+4. **`#knee` is nearly redundant now.** With `#lamcap` on, knee-on vs knee-off
+   is 1280 vs 1287 fold points — inside noise. It ships because it is a
+   strictly better map (monotone, C1, no coincident vertices), but two flags
+   for one effect is debt. If it never earns its keep in a live verdict,
+   retire it rather than carrying it.
+5. **NONE OF THIS HAS BEEN GRADED IN MOTION.** Every number and every frame
+   here is `speed=0` at pinned clocks. That is MEASUREMENT LESSONS 1 pointed
+   straight at this entry: a still cannot support a claim about motion, and
+   "the facet is gone" is a claim about what the eye catches while the lip
+   travels. The fold count could be halved and the remainder could still
+   scintillate frame to frame. This needs the live pass before it is believed.
+6. **The residual slab is `Sapp`'s and the unbundling is still owed.** See the
+   STILL OPEN note above. Until `#look=full` is split, the only way to get the
+   good geometry is to also take the foam material, which measured visibly
+   blotchier in the same capture.
+7. **The foam-floating-on-top finding is independent of all of this and is
+   still open** (2026-08-22, same session): only one whitewater term reaches
+   `h`, gated to a 9–16 m band at the bore front, so the inner shelf is a
+   colour mask on flat water — relief RMS collapses 0.95 m → 0.175 m in one
+   20 m step and stays at 0.079–0.136 m for 200 m while foam holds 0.51–0.63.
+   Nothing in this bound work touches it.
+
+### ▶ Rig note, cost two wrong readings
+`__pointbreak` probes read `u_time`/uniform state that only the render loop
+writes, and rAF is parked whenever the preview pane is occluded. A probe run
+straight after `location.reload()` returns CONSTRUCTION defaults (H₀ 1.5, T 14,
+`breakMix` 0) and `setSim()` silently returns the same clock every time. Force a
+paint first, assert `u_time`/`u_breakMix` before trusting a run, and drive
+`u_time` directly for multi-clock sweeps.
+
 ## 2026-08-19 — the foam field's size contract, and two things it did NOT fix
 
 **Shipped (`#lipn=0` reverts).** The QA contact sheet's seasons rows caught

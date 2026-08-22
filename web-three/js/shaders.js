@@ -250,6 +250,15 @@ uniform float u_fidelityLook; // 0 current, 1 foam, 2 connected face/lip probe
 uniform float u_curl;   // #curl=1: lip overturn (rotation, not throw). Default 0.
 uniform float u_legacyDrop; // #drop=legacy: restore the pre-2026-08-18 dropMag
                             // (the one that flattened the pocket). A/B only.
+uniform float u_offKnee;    // #knee: soft knee as a FRACTION of the live offset
+                            // ceiling. 0 = the pre-2026-08-22 hard clamp
+                            // (bit-identical revert). Default OFF_KNEE_FRAC.
+uniform float u_lamCap;     // #lamcap=0: revert the wave-derived offset ceiling
+                            // S/k back to the flat 20 m. Ships ON.
+uniform float u_offUnbound; // instrument (JS-only): remove the bound entirely
+                            // to read the raw offset distribution. Never ship.
+uniform float u_carrierAmp; // #amp=0: revert the choppy solve's amplitude to the
+                            // pre-2026-08-22 abs(h) estimate. Ships ON.
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
 ${KELP_GLSL}
@@ -259,6 +268,12 @@ export const SURFACE_GLSL = `
 // stage rect for the far fade — mirrors STAGE_* in main.js
 const vec2 STAGE_HALF   = vec2(300.0, 250.0);
 const vec2 STAGE_CENTER = vec2(0.0, 10.0);
+
+// Horizontal-offset bound for choppyPos. OFF_MAX_M is unchanged from the
+// original hard clamp (2026-08-10) — this is the mesh backstop, and the
+// 2026-08-22 soft knee deliberately does not move it. OFF_KNEE_M is where
+// saturation begins; see the long note at the clamp itself.
+const float OFF_MAX_M  = 20.0;
 
 // far skirt: the stretched outer cells (see main.js) are far bigger than
 // LAM and would alias the carrier into low-frequency junk, so displacement
@@ -309,7 +324,8 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     return vec3(xz0.x, 0.0, xz0.y);
   }
 
-  float h = ocean(xz0, t, foam, pocket, brk, crest);
+  float carrierAmp;
+  float h = ocean(xz0, t, foam, pocket, brk, crest, carrierAmp);
 
   // horizontal height gradient by central FD. e = 2 m: well under LAM/8 so
   // the carrier slope is resolved, but above the finest bore/chop noise so
@@ -345,17 +361,32 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // wavenumber or the solved lam is wrong by (k_local/k_LAM)^2 — a factor of
   // ~1.9 in 2 m of water. kLocalAt collapses to 2*PI/LAM when u_psiMix is off.
   float kk     = kLocalAt(xz0);
-  // PACK-ICE FIX (drone critique, 2026-08-11): between crests h crosses zero,
-  // so the old fixed 0.6 m floor let lam = S/(a k^2) blow up over near-flat
-  // water, and the wind-chop gradient (9 m / 3 m noise cells, resolved by the
-  // e = 2 m FD) got amplified into grid creases — a polygonal crack web with
-  // bright seams across the whole aftermath zone. Verified cause: state.chop=0
-  // removes the web, foam-tau toggles do not. Floor the amplitude estimate at
-  // a fraction of the day's DISPLAYED swell height instead: crests (|h| well
-  // above the floor) are untouched, troughs stop turning noise into folds.
-  // This is not a size factor (no H0 = 1.5 identity contract) — it must
-  // change trough behavior at every size; that is the fix.
-  float aEst   = clamp(abs(h), max(0.6, 0.30*u_H0*VIS), 12.0);  // local displayed amplitude, m
+  // ---- THE AMPLITUDE THE SOLVE ACTUALLY WANTS (2026-08-22, #amp=0 reverts) --
+  // lam = S/(a*k^2) is solved from h = a*cos(k*x), where 'a' is the CARRIER's
+  // amplitude. This read it off abs(h) — the instantaneous DISPLACEMENT, a
+  // different quantity that goes to zero twice a period. Every pathology in
+  // this neighbourhood traces back to that substitution:
+  //   * the trough creases (lam blowing up over near-flat water — the
+  //     2026-08-11 "pack ice" polygonal crack web, whose fix was to FLOOR the
+  //     estimate rather than to stop using the wrong signal);
+  //   * the 20 m offset clamp's pile-up, because |off| = lam*|grad| runs away
+  //     wherever the true slope outruns aEst*k (measured 2026-08-22: raw
+  //     offsets to 73.6 m on a ~5 m crest band);
+  //   * and the floor itself, which only existed to paper over the first.
+  // ocean() has held the honest number all along (amp = 0.5*Heff*grow*decay*
+  // env*shoreFade) and now hands it out. Carrier only — no chop, no boil, no
+  // whitewater mound, no setup lift — which is exactly right: those are the
+  // terms that were polluting the estimate, and none of them is in the model
+  // the cusp solve is derived from.
+  //
+  // The clamp stays as a guard, not as a mechanism. The LOW end can be far
+  // smaller now (a genuinely small carrier in the lull SHOULD sharpen little)
+  // but not zero, or lam divides by nothing; the high end is unchanged.
+  // #amp=0 restores the abs(h) estimate and its 0.30*H0*VIS floor verbatim, so
+  // the A/B is exact and every measurement above can be re-run against it.
+  float aLegacy = clamp(abs(h), max(0.6, 0.30*u_H0*VIS), 12.0);
+  float aTrue   = clamp(carrierAmp, 0.05, 12.0);
+  float aEst    = u_carrierAmp > 0.5 ? aTrue : aLegacy;   // displayed metres
   // M6 part 1c: size enters through the breaking excess. ocean() computes
   // Hsh/Hlim for the foam gate; the curl never saw it. Recomputed here (4
   // lines) rather than widening ocean()'s signature, which both vehicles
@@ -658,8 +689,176 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
 
   // guards: bounded (foam-front FD spikes must not shred the mesh), finite,
   // and faded with the skirt exactly like the height
+  //
+  // ---- SOFT KNEE (2026-08-22, #knee=0 reverts) --------------------------
+  // THE BOUND WAS A FACET GENERATOR. This was min(offLen, OFF_MAX_M): every
+  // vertex whose desired offset exceeded the bound was mapped onto the SAME
+  // sphere of radius OFF_MAX_M, so relative displacement across the whole
+  // over-limit neighbourhood collapsed to zero and the mesh rendered a PLANE
+  // with a ruler-straight silhouette — the "white faceted slab on the crest"
+  // (Andy, live, 2026-08-22).
+  //
+  // Measured at sewers/lineup sim 42 (27,000 samples, 45 transects, defaults):
+  // the |off| histogram decays monotonically through the 16-18 m bin —
+  // 1599 / 979 / 652 / 504 / 430 / 247 — and then SPIKES to 1135 in 18-20 m,
+  // with 892 samples (3.3%) at >= 19.5 m and max exactly 20.00. A tail does
+  // not do that; a pile-up against a wall does. Those vertices carry mean
+  // pocket 0.222 against 0.042 for the field at large, i.e. they sit on the
+  // breaking crest, which is where the slab is seen.
+  //
+  // NOT THE LIP THROW, and this change does not pretend to fix that argument.
+  // #curl=1 computes throwMag and never applies it (legacyLip = 0) and caps S
+  // at 1.0: the pile-up goes 892 -> 922, i.e. unchanged. #look=full, which
+  // drops the broad approach term Sapp 0.42 -> 0.22, halves it: 892 -> 400.
+  // So the DRIVER is Sapp. That is a taste call about how much the approach
+  // should converge and it belongs to the #look unbundling, not here.
+  //
+  // What this change does is mechanical and orthogonal: keep the SAME bound,
+  // remove the CORNER. Identity below the knee, then tanh-saturating to
+  // OFF_MAX_M:
+  //
+  //     |off| <= k :  |off|
+  //     |off| >  k :  k + (M - k)*tanh((|off| - k)/(M - k))
+  //
+  // Three properties are the reason it is this map and not a rescale:
+  //   * C1 at the knee (tanh'(0) = 1), so nothing kinks where it engages;
+  //   * STRICTLY MONOTONIC above it, so distinct desired offsets stay
+  //     distinct — the neighbourhood keeps its relative displacement and
+  //     compresses instead of flattening, which is the whole point;
+  //   * it never REACHES M, so the mesh backstop the hard clamp existed for
+  //     is strictly tighter than it was, not looser.
+  // k = 15 m leaves 94.3% of samples bit-identical (measured: 5.74% of
+  // samples exceed 15 m). tanh is written out because this material compiles
+  // as GLSL ES 1.00 (three.js ShaderMaterial, no glslVersion: GLSL3), where
+  // tanh() does not exist.
+  //
+  // ---- MEASURED AFTER, AND IT IS A PARTIAL FIX. Do not read it as more. ----
+  // Same rig, same clocks, three arms in one build:
+  //   hard clamp   : 892 samples >= 19.5 m (3.30%), 2 sitting exactly on 20.00
+  //   soft knee k=15: 667 (2.47%), ZERO on the bound  -- -25%, and the
+  //                   coincident-vertex population is gone by construction
+  //   UNBOUNDED    : 1073 samples over 20 m, max 73.6 m
+  // So the raw field genuinely wants to move up to 73.6 m on a ~5 m crest
+  // band. The knee asymptotes at 20, so those 4% are no longer identical but
+  // are still compressed into the last 2 m, and the faceted slab is still
+  // visible from the lineup camera. The corner is gone; the crowding is not.
+  //
+  // THE ROOT CAUSE IS UPSTREAM OF THIS BOUND, in lam = S/(aEst*kk*kk).
+  // The over-20 m samples carry mean pocket 0.317 against 0.042 for the field
+  // at large (7.5x) at median y 1.84 m -- the mid-face under the pocket, where
+  // Sover drives S toward 1.8 while aEst is modest. Re-measured on the
+  // UNBOUNDED arm, so the numbers are not saturated (the first pass of this
+  // A/B was run on clamped output, where two different S values both exceed
+  // the bound and read identical -- that comparison could not have discovered
+  // a difference and should not have been trusted):
+  //   shipped                          1073 over 20 m, max 73.6, mean 4.49 m
+  //   #curl=1     (S capped at 1.0)    1036 (-3%),     max 70.9, mean 4.31 m
+  //   #look=full  (Sapp 0.42 -> 0.22)   519 (-52%),    max 60.0, mean 2.70 m
+  // Sapp is confirmed as the driver on unsaturated data, and the cusp cap is
+  // confirmed irrelevant to it. But even Sapp = 0.22 leaves a 60 m tail, so
+  // halving the approach term is not a bound either. The next fix is to bound
+  // lam IN ITS OWN TERMS -- against the local crest spacing, the Tessendorf
+  // convention, which is a length the wave supplies -- rather than against a
+  // magic 20 m in world space downstream of it.
+  //
+  // ---- THE CEILING IS THE WAVE'S, NOT A CONSTANT (#lamcap=0 reverts) -----
+  // OFF_MAX_M = 20 m is a world-space number with no wave in it. It cannot be
+  // right at two sizes at once, and it was measured above to be the wrong KIND
+  // of bound: the field wants 73.6 m, so a constant ceiling can only decide how
+  // hard to crush the overshoot, never whether the overshoot is legitimate.
+  //
+  // There is an exact length to bound against, and this function already
+  // computes both of its factors. For off = lam*grad on h = a*cos(k*x),
+  // dx/dx0 = 1 - lam*a*k^2*cos, so S := lam*a*k^2 = 1 is the cusp (the note at
+  // S's declaration derives this). At the steepest point |grad| = a*k, so
+  //
+  //     |off| = lam*|grad| = (S/(a*k^2))*(a*k) = S/k
+  //
+  // i.e. S = 1 and |off| = 1/k are THE SAME STATEMENT, one written as a
+  // dimensionless overturn knob and one as a length. 1/k = LAM/2pi is also the
+  // Gerstner cusp radius, so this is the classical bound arriving twice.
+  //
+  // The bound therefore is |off| <= S/k -- "the displacement this much overturn
+  // implies at this wavelength" -- and it is SCALE-FREE: it shrinks with the
+  // shoaling wavelength on its own (LAM 90 m -> 66 m raises k by 1.36x and
+  // tightens the ceiling by the same factor) and needs no size calibration.
+  //
+  // WHY THE FIELD EVER EXCEEDS IT, which is the actual defect: |off| is
+  // lam*|grad| with the TRUE local gradient, while lam was solved from aEst,
+  // a FLOORED amplitude ESTIMATE. Wherever the real slope outruns aEst*k --
+  // chop riding a low-amplitude estimate, a foam-front FD spike, the trough
+  // where aEst is on its floor -- the two disagree and the product runs away.
+  // Bounding at S/k restores the identity the solve assumed. This is the same
+  // mechanism as the documented trough-crease pathology (lam = S/(a*k^2)
+  // amplifying chop where the amplitude estimate bottoms out), so the bound is
+  // aimed at both and is measured against both below.
+  //
+  // STATED PLAINLY, so the next reader does not expect too much: at the POCKET
+  // S is near its 1.8 cap and k is the deep-ish carrier, so S/k lands at
+  // 19-26 m and this ceiling is close to the old 20 m there. It is not a cure
+  // for the crest slab -- that is the Sapp calibration, measured above at -52%
+  // and belonging to the #look unbundling. What it does own is everywhere S is
+  // SMALL and the offsets were large anyway: the creases.
+  //
+  // ---- MEASURED. The prediction above is half right, and the half it gets
+  // ---- wrong is in this change's favour, so read the numbers not the prose.
+  // Three-arm A/B in ONE build at ONE clock (sewers, lineup, sim 42), which
+  // separates this from the knee that shipped an hour earlier:
+  //   1 old hard clamp, flat 20 m : mean |off| 3.90 m, 2203 fold points
+  //   2 knee only,      flat 20 m : mean |off| 3.89 m, 2250 fold points
+  //   3 knee + S/k ceiling        : mean |off| 2.75 m, 1280 fold points
+  // Arms 1 and 2 are indistinguishable in the frame AND in the numbers -- the
+  // knee alone changes nothing, which is what the earlier note already
+  // conceded. Arm 3 is where the faceted slab leaves the frame.
+  //
+  // SIX CLOCKS, sewers (u_time driven directly; setSim needs a paint and
+  // silently returns the same clock four times if you do not):
+  //   t = 30/36/42/48/54/60 fold points 928/810/907/1106/674/938
+  //                                  -> 500/365/531/ 482/359/524  (-41..-56%)
+  //   mean |off| -25..-30% at every clock
+  //   CREST HEIGHT BIT-IDENTICAL AT EVERY CLOCK: 8.28 / 8.59 / 9.72 / 8.71 /
+  //   11.60 / 9.37 m. The fold reduction is not paid for in wave height, which
+  //   is the failure mode this whole area keeps producing (see dropMag).
+  //   Folded transects 91-100% -> 74-96%: it still folds. "A folding lip that
+  //   z-fights beats a smooth mound" survives.
+  //
+  // AND IT DISCRIMINATES, which is the result worth keeping. At SHARKS
+  // (xi 0.45, spilling, H0 1.0 -- plunge = 0, so Sover ~ 0 and the ceiling is
+  // tight) fold points go 523/574/509 -> 83/85/75 at t = 36/42/48, an 84-85%
+  // cut, folded transects 70% -> 39-48%, crest unchanged (4.15/4.50/4.24 m).
+  // A spilling wave should not overturn, and now it mostly does not. So the
+  // bound removes crease noise where the physics says there is no lip and
+  // keeps the overturn where the physics says there is one -- from one length,
+  // with no per-site tuning.
+  //
+  // u_offKnee : knee as a FRACTION of the live ceiling. 0 = hard clamp, the
+  //             bit-identical pre-2026-08-22 revert (#knee=0). Default
+  //             OFF_KNEE_FRAC. (It was metres for one commit; a fraction is
+  //             the only thing that means anything against a moving ceiling.)
+  // u_lamCap  : 1 = ceiling is min(OFF_MAX_M, S/k). 0 = the flat OFF_MAX_M.
+  // u_offUnbound : no bound at all. INSTRUMENT — this is how the raw offset
+  //             distribution was read. Not safe for the mesh; JS-only, there
+  //             is deliberately no hash param for it.
   float offLen = length(off);
-  off *= min(offLen, 20.0) / max(offLen, 1e-6);
+  float offMax = u_lamCap > 0.5
+               ? min(OFF_MAX_M, S / max(kk, 1e-4))
+               : OFF_MAX_M;
+  float offTarget;
+  if (u_offUnbound > 0.5) {
+    offTarget = offLen;                          // instrument
+  } else if (u_offKnee <= 0.0) {
+    offTarget = min(offLen, offMax);             // hard clamp
+  } else {
+    float k = clamp(u_offKnee, 0.0, 1.0) * offMax;
+    if (offLen <= k) {
+      offTarget = offLen;                        // below the knee: identity
+    } else {
+      float span = max(offMax - k, 1e-3);
+      float e2   = exp(-2.0*(offLen - k)/span);  // tanh, written out
+      offTarget  = k + span*(1.0 - e2)/(1.0 + e2);
+    }
+  }
+  off *= offTarget / max(offLen, 1e-6);
   if (!(dot(off, off) == dot(off, off))) off = vec2(0.0);   // NaN guard (house rule)
 
   foam   *= fade;

@@ -79,7 +79,10 @@ vec3 waterColor(vec2 xz, float h, vec3 N, vec3 V, float foam, float pocket, floa
 
 vec3 shade(vec2 xz, float t, vec3 V){
   float foam, pocket, brk, crest;
-  float h = ocean(xz, t, foam, pocket, brk, crest);
+  // web/ is DEPRECATED (CLAUDE.md). This line is kept in step with the shared
+  // model's signature only so the file still compiles; the value is unused.
+  float carrierAmpUnused;
+  float h = ocean(xz, t, foam, pocket, brk, crest, carrierAmpUnused);
   float e = 2.0;
   vec3 N = normalize(vec3(
     oceanH(xz - vec2(e,0.0), t) - oceanH(xz + vec2(e,0.0), t),

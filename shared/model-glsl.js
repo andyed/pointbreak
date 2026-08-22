@@ -848,8 +848,30 @@ float crestShape(float phase, float q){
 }
 
 // Height field + break bookkeeping packed together.
-// Returns h; outs: foam, pocket, brk (surf-zone mask), crest (unbroken crest lines)
-float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, out float crest){
+// Returns h; outs: foam, pocket, brk (surf-zone mask), crest (unbroken crest lines),
+// carrierAmp (the CARRIER's own amplitude in DISPLAYED metres — see below).
+//
+// WHY carrierAmp IS AN OUTPUT (2026-08-22). The renderer's choppy term solves
+// lam = S/(a*k^2) and needs 'a', the local amplitude of the wave it is
+// sharpening. It had no way to ask for it, so choppyPos ESTIMATED it as
+// clamp(abs(h), floor, 12) — the instantaneous surface displacement, which is
+// a different quantity and goes to ZERO between crests. The floor was there to
+// stop lam blowing up in the troughs, and it is the reason a floor was ever
+// needed: 'a' was being read off a signal that legitimately crosses zero twice
+// a period.
+//
+// The honest number already exists three lines below as 'amp', derived from
+// the shoaling and breaking the model just computed. Handing it out is one
+// out-parameter and it costs nothing — ocean() is already evaluated five times
+// per vertex for the FD, and this is a value it holds anyway.
+//
+// It is the CARRIER only: no chop, no boil, no whitewater mound, no setup
+// lift. That is deliberate and is the whole point — those terms are exactly
+// what was polluting the estimate, and h = a*cos(k*x), the model the cusp
+// solve is derived from, has none of them in it. Scaled by VIS so it is in the
+// same displayed metres as the h the renderer measures gradients on.
+float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, out float crest,
+            out float carrierAmp){
   float x = xz.x, z = xz.y;
   float w = 2.0*PI/u_T;
   float zb = breakLine(x);
@@ -997,6 +1019,12 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float q      = qBase + qGain*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
   float amp    = 0.5*Heff * grow * decay * env * shoreFade;
   float h      = amp * crestShape(-theta, q) * 2.0;
+  // The carrier's amplitude, displayed metres. crestShape carries a mean
+  // removal and a factor 2, so this is the scale of the carrier rather than
+  // its exact peak — which is what a cusp parameter wants. Guarded finite here
+  // so no consumer has to.
+  carrierAmp   = amp * VIS;
+  if (!(carrierAmp == carrierAmp)) carrierAmp = 0.0;
 
   // The mean-surface tilt itself: raise the water by the setup so the
   // shoreline advance/retreat is EMERGENT — the renderers already take
@@ -1284,5 +1312,5 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   return h;
 }
 
-float oceanH(vec2 xz, float t){ float f,p,b,c; return ocean(xz, t, f, p, b, c); }
+float oceanH(vec2 xz, float t){ float f,p,b,c,a; return ocean(xz, t, f, p, b, c, a); }
 `;
