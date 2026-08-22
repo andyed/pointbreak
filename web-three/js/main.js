@@ -315,6 +315,12 @@ const uniforms = {
   // against the honest 'a', THEN flip this. The plumbing and the number stay
   // available in the meantime.
   u_carrierAmp: { value: 0 },
+  // Instrument for the S re-derivation sweep (shaders.js choppyPos). Scales
+  // the cusp parameter as one number so the mis-scaling introduced by the
+  // honest carrier amplitude can be READ OFF the fold statistics rather than
+  // argued from algebra. Default 1 = shipped. JS-only; if a value is adopted
+  // it gets baked into the constants and this goes away.
+  u_sScale:     { value: 1 },
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -2124,6 +2130,7 @@ window.__pointbreak = {
   offKnee: () => uniforms.u_offKnee.value,
   setLamCap: (on) => { uniforms.u_lamCap.value = on ? 1 : 0; },
   setCarrierAmp: (on) => { uniforms.u_carrierAmp.value = on ? 1 : 0; },
+  setSScale: (v) => { if (Number.isFinite(v) && v > 0) uniforms.u_sScale.value = v; },
   // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
   setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },
   // ---- curlProbe: the displaced surface, as numbers ----

@@ -175,6 +175,60 @@ the carrier rather than be rescued by a floor; (3) then flip `#amp` and re-run
 every measurement in this file against it. The plumbing, the number and the A/B
 all stay in the tree in the meantime.
 
+### ▶ The S re-derivation, three passes: the BULK is now better than legacy, the TAIL is invariant
+
+Started from "re-derive the S constants against the honest 'a'". The algebra
+predicted a global factor: crestShape peaks at 1 - 0.5/q and is doubled, so
+h_peak ~ 1.54-1.73*a at q = 2.2-3.7, meaning the old estimate ran ~1.6x the
+carrier at crests and the EFFECTIVE cusp parameter was ~0.62 of the authored S.
+
+**That prediction is falsified.** Swept u_sScale (new JS-only instrument) with
+#amp=1: reproducing the shipped fold count needs ~x0.92, not x0.62
+(x1.00 -> 563 fold points, x0.85 -> 475, x0.75 -> 419, x0.62 -> 343, against a
+shipped 531). A single scalar cannot reproduce legacy because the mis-scaling is
+POSITION-DEPENDENT — ~1.6x at crests, floor-dominated everywhere else. And
+reproducing legacy is the wrong objective anyway: legacy is the thing that was
+wrong. With the honest 'a', S = 1 IS the cusp by construction, so the constants
+can be reasoned about instead of fitted. That is the win, and it is real.
+
+**Two principled fixes followed, both under the #amp arm (default path
+bit-identical, verified in the frame):**
+1. *Sapp's missing gate.* Sover is gated by breaking excess; Sapp never was —
+   it is exp(-d/70)*reefWindow, pure geometry, sharpening water by PROXIMITY TO
+   THE LINE whether or not it is near breaking. Harmless under a floored
+   estimate, fatal under an honest one.
+2. *Sharpening proportional to the carrier.* Instead of another floor on 'a',
+   make S ∝ a, so lam = (S0*a/aRef)/(a*k^2) = S0/(aRef*k^2) — the singularity
+   cancels ALGEBRAICALLY, no floor anywhere, and the gate is exactly 1 at the
+   old floor's own reference so the calibration point does not move.
+
+**Measured, sewers t=42, cumulative:**
+
+| arm | bounded foldPts | unbounded foldPts | unbounded over-20 | unbounded MAX |
+|---|---|---|---|---|
+| legacy            | 531 | 1091 | 455 | 73.4 m |
+| #amp alone        | 563 | 940  | 375 | 145.4 m |
+| + Sapp gate       | 512 | 838  | 366 | 145.4 m |
+| + carrier-∝ gate  | **427** | **679** | **329** | **145.4 m** |
+
+Crest height 9.72 m in every arm. The bulk is now **20% below legacy bounded
+and 38% below unbounded** — better than the thing it replaces, on the honest
+amplitude, with no floors.
+
+**THE TAIL IS INVARIANT AT 145.4 m ACROSS ALL THREE, AND THAT IS THE FINDING.**
+Three successive changes to how S is formed moved the bulk substantially and
+did not move the maximum by one decimal. So the outlier does not travel through
+S at all — it comes from a path none of these gates touch. Candidates, in
+order: the lip THROW (`off.y += throwMag*legacyLip`, added AFTER lam*grad and
+scaled by none of this), and kLocalAt going small in deep water, where
+lam = S0/(aRef*k^2) is still ~97*S0.
+
+NEXT: decompose `off` per-term through a probe channel and find which one owns
+that vertex. Guessing has now been wrong three times in a row here; the next
+move is an instrument, not another gate. #amp stays OFF until the tail is
+understood — the bulk numbers are encouraging but a single 145 m vertex is a
+facet generator all by itself.
+
 ### ▶ CONCERNS WE WILL COME BACK TO — read this before touching the bound again
 
 Written down while it is fresh, because every one of these is a plausible

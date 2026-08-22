@@ -257,8 +257,10 @@ uniform float u_lamCap;     // #lamcap=0: revert the wave-derived offset ceiling
                             // S/k back to the flat 20 m. Ships ON.
 uniform float u_offUnbound; // instrument (JS-only): remove the bound entirely
                             // to read the raw offset distribution. Never ship.
-uniform float u_carrierAmp; // #amp=0: revert the choppy solve's amplitude to the
-                            // pre-2026-08-22 abs(h) estimate. Ships ON.
+uniform float u_carrierAmp; // #amp=1: use ocean()'s carrier amplitude in the
+                            // choppy solve. Default OFF pending the S re-tune.
+uniform float u_sScale;     // instrument (JS-only): scale the cusp parameter S,
+                            // for the re-derivation sweep. Default 1.
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
 ${KELP_GLSL}
@@ -408,9 +410,49 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // with structural anatomy and plunge disabled. Full keeps the pocket-owned
   // break sharpening but halves the broad approach compression, restoring a
   // curved lead-in to the hinge. Current/foam retain the authored 0.42 path.
-  float Sapp   = mix(0.42, 0.22, connectedLook) * steep;
+  // ---- Sapp's missing gate (2026-08-22, rides with #amp=1) ---------------
+  // Sover is gated by sizeGate, i.e. by the BREAKING EXCESS Hsh/(gamma*h).
+  // Sapp never was: it is exp(-d/70)*reefWindow, pure geometry, so it
+  // sharpens water by PROXIMITY TO THE LINE whether or not that water is
+  // anywhere near breaking. Under the old floored amplitude estimate that was
+  // harmless — the floor capped lam — and it is precisely what breaks when the
+  // honest carrier amplitude arrives: in a lull or the far field, a -> 0 while
+  // Sapp stays at full strength, so lam = S/(a*k^2) has nothing left to divide
+  // by. That is the measured 145 m tail, and it is why removing the floor on
+  // its own made things worse.
+  //
+  // So the floor is not replaced by a smaller floor; it is replaced by the
+  // physics it was standing in for. A wave sharpens as it approaches breaking,
+  // and "approaching breaking" is a quantity this function already computes.
+  // Gated on u_carrierAmp because the two are ONE change: the honest amplitude
+  // needs the honest gate, and the legacy arm must stay bit-identical.
+  float appGate = mix(1.0, smoothstep(0.35, 0.95, excessQ), u_depthMix*u_carrierAmp);
+  float Sapp   = mix(0.42, 0.22, connectedLook) * steep * appGate;
   float Sover  = (0.15 + 1.30*plunge) * pocket * sizeGate;
-  float S      = clamp(Sapp + Sover, 0.0, 1.8);      // >1 folds; cap guards the mesh
+  // u_sScale: INSTRUMENT for the 2026-08-22 S re-derivation. With the honest
+  // carrier amplitude (#amp=1) every constant feeding S is mis-scaled, because
+  // all of them were fitted against an estimate that ran ~1.6x the carrier at
+  // crests. Rather than guess a new set, scale the whole sum and measure which
+  // factor reproduces the shipped fold statistics — that factor IS the
+  // mis-scaling, read off the output instead of derived from algebra. Default
+  // 1.0, so the shipped path is untouched; JS-only (setSScale).
+  // ---- the singularity, removed by construction rather than clamped -------
+  // excessQ above is computed from u_H0 — the DAY's swell height — so it is
+  // blind to the set envelope and cannot tell a lull from a peak. That is why
+  // gating Sapp on it improved the bulk and left the tail untouched. Meanwhile
+  // aTrue's 0.05 m low clamp permits lam = S/(a*k^2) ~ 2000 m at a single
+  // station, which is the 145 m outlier.
+  //
+  // Clamping 'a' harder would be another floor. The honest statement is that a
+  // wave sharpens IN PROPORTION TO ITS OWN SIZE: a tiny carrier in a lull is
+  // nowhere near cusping. Make S proportional to the carrier and the
+  // singularity cancels algebraically —
+  //     lam = S/(a*k^2) = (S0*a/aRef)/(a*k^2) = S0/(aRef*k^2)
+  // — finite as a -> 0, with no floor anywhere. aRef is the same reference the
+  // retired floor used (0.30*H0*VIS), so at the calibration amplitude the gate
+  // is 1 and nothing moves. Under the amp arm only.
+  float ampGate = mix(1.0, clamp(aTrue / max(0.30*u_H0*VIS, 0.05), 0.0, 1.0), u_carrierAmp);
+  float S      = clamp((Sapp + Sover) * u_sScale * ampGate, 0.0, 1.8);      // >1 folds; cap guards the mesh
   // Field-fidelity probe: the old full over-cusp range produced a broad
   // self-intersecting sheet. From the cliff camera its DoubleSide underside
   // read as several detached black manta polygons, not one wave face. Keep
