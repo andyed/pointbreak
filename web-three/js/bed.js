@@ -619,13 +619,31 @@ function bilinearAt(g, x, z) {
   return (a * (1 - tx) + b * tx) * (1 - tz) + (c * (1 - tx) + d * tx) * tz;
 }
 
+// The value bedElevAt/bedElevBlended return when there is NO grid to read:
+// an unmapped site (Privates carries geoSpot null), a patch that failed to
+// decode, a bed-shape mode whose grid is not bound. It is a SENTINEL, not a
+// measurement — nothing may do arithmetic with it and call the result a
+// depth, an elevation or a floor. Named rather than inline so the places that
+// must test for it can say so (MEASUREMENT_LESSONS 13: a fallback that reads
+// as data is the recurring defect in this repo, and it bit the camera clamp
+// on 2026-08-21 — see hasBedGrid/cameraFloorY below).
+export const BED_UNKNOWN = -999;
+
+// Is there a real grid behind bedElevBlended(spotName, ..., bedShape)?
+// The one honest way to tell a measurement from the sentinel. Same key the
+// grid itself is cached under, so this cannot disagree with what a read
+// would return.
+export function hasBedGrid(spotName, bedShape = 0) {
+  return Boolean(spotName && elevGrid(spotName, bedShape === 0));
+}
+
 // MEASURED bed, no reef: the shoreline/cliff consumers below. The clamp makes
 // the two grids identical wherever the measured bed is at/above -0.5 m
 // NAVD88, so cameras and the waterline read the same either way — measured is
 // used so that stays provable rather than incidental.
 export function bedElevAt(spotName, x, z) {
   const g = spotName && elevGrid(spotName, false);
-  if (!g) return -999;
+  if (!g) return BED_UNKNOWN;
   return bilinearAt(g, x, z);
 }
 
@@ -688,7 +706,7 @@ export function applyBed(uniforms, spotName, tideM = 0, bedShape = 0) {
 // break-line/refraction bakes. Same bedShape mode contract as applyBed.
 export function bedElevBlended(spotName, x, z, bedShape = 0) {
   const g = spotName && elevGrid(spotName, bedShape === 0);
-  if (!g) return -999;
+  if (!g) return BED_UNKNOWN;
   const measured = bilinearAt(g, x, z);
   if (bedShape !== 1) return measured;
   const pf = PP_DEPTH_DATA.patches[spotName]?.planeFit;
@@ -701,6 +719,35 @@ export function bedElevBlended(spotName, x, z, bedShape = 0) {
   const t = Math.min(Math.max((measured - (MSL_ABOVE_NAVD88 + 0.15)) / -0.3, 0), 1);
   const wet = t * t * (3 - 2 * t);
   return measured + (plane - measured) * wet;
+}
+
+// How deep the eye may dip where THERE IS NO BED, metres below still water.
+// Not a measurement and not derived from one: with no patch bound there is no
+// seabed to measure, and the two numbers that look like one are both storage
+// artefacts — bedElevBlended's BED_UNKNOWN sentinel, and the -30 m low edge of
+// the RGBA8 quantization window that EMPTY_BED decodes to on the GPU (the
+// crestCeilM case, MEASUREMENT_LESSONS 13). So this is DECLARED: deep enough
+// that going under the surface stays available at every synthetic preset's
+// wave scale (the Snell's-window pass, u_camUnder — the deepest card is
+// H0 = 2.2 m), shallow enough that the eye can never leave the neighbourhood
+// the model claims. Raising it is a choice about the view, never a fix.
+export const UNMAPPED_DIP_M = 6;
+
+// THE CAMERA FLOOR, in WORLD units — y = 0 is still water, which is the frame
+// the eye, the water grid and the seabed mesh all live in. Returns null when
+// the bed is unknown; a caller must decide what to do about that rather than
+// being handed a number it can compare against.
+//
+// TWO datums meet here and they are not the same one (fixed 2026-08-21). The
+// grid is metres NAVD88; every drawn surface is metres relative to the water
+// (BED_VERT: `bedElevM(xz) - u_waterLevel`, and the water grid's land path
+// does the same). The clamp used the NAVD88 number raw, so it guarded a
+// surface sitting u_waterLevel above the one you can see — 0.905 m at MSL,
+// and TIDE-DEPENDENT, which is the tell: a collision floor that moves when
+// the tide slider moves is not the floor of anything drawn.
+export function cameraFloorY(spotName, x, z, bedShape = 0, waterLevelM = MSL_ABOVE_NAVD88) {
+  if (!hasBedGrid(spotName, bedShape)) return null;
+  return bedElevBlended(spotName, x, z, bedShape) - waterLevelM;
 }
 
 export function planeResidualRms(spotName) {

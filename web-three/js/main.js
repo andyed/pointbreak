@@ -23,10 +23,11 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, breakGapAt, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
-         setReefNose, REEF_NOSE_FRAC_TUNED, bedElevBlended,
+         setReefNose, REEF_NOSE_FRAC_TUNED,
          setReefAmp, setReefFlank, getReefShape, reefAudit,
          setShelter, getShelter, setDensityLine, breakCandidates,
-         breakExcessProfile, setOnsetMerge, getOnsetMerge } from './bed.js';
+         breakExcessProfile, setOnsetMerge, getOnsetMerge,
+         cameraFloorY, UNMAPPED_DIP_M } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { MONTHLY_OCEAN, MONTHLY_OCEAN_PCT, getMonthlyOcean } from '../../data/climatology/pp_monthly_ocean.js';
@@ -1588,9 +1589,32 @@ function frame(now) {
       v.x = Math.min(Math.max(v.x, -1200), 1200);
       v.z = Math.min(Math.max(v.z, -1000), 1000);
       if (!isTarget) v.y = Math.min(v.y, 900);
-      const floorY = bedElevBlended(state.geoSpot, v.x, v.z, state.bedShape || 0)
-                   + (isTarget ? 0.0 : 0.4);
-      if (v.y < floorY) v.y += (floorY - v.y) * 0.5;   // ease up, half-life ~1 frame
+      // The floor is in WORLD units and comes back null where there is no bed
+      // to stand on. bedElevBlended used to be read here directly, which was
+      // wrong twice over: it is NAVD88 rather than water-relative, and with no
+      // grid it returns the BED_UNKNOWN sentinel — so at Privates (geoSpot
+      // null) the "floor" was -999 m and the eye fell a kilometre through the
+      // world and stayed there (measured 2026-08-21: settled 269 m under the
+      // drawn ground, 982 m under a held pan, and it never came back).
+      const measured = cameraFloorY(state.geoSpot, v.x, v.z, state.bedShape || 0,
+                                    uniforms.u_waterLevel.value);
+      // No bed bound means no bed is DRAWN either (u_depthMix 0 hides the
+      // seabed mesh and the water grid's land path), so there is nothing to
+      // collide with — but "nothing to collide with" is not "descend without
+      // limit". Hold the declared dip instead of inventing a measurement.
+      const floorY = (measured ?? -UNMAPPED_DIP_M) + (isTarget ? 0.0 : 0.4);
+      // HARD, not eased (2026-08-21). The old form recovered half the
+      // penetration per frame, and it ran after controls.update(), so any
+      // input that lowered the eye faster than that per frame held it under
+      // permanently: an OrbitControls pan moves at targetDistance*2/clientHeight
+      // per pixel, ~15 m/frame from a 700 m orbit, which parked the eye 13.7 m
+      // below the drawn terrace at EVERY mapped preset and bed mode — the
+      // reported "looking up at the underside of the land" frame. An eased
+      // constraint is a suggestion; the invariant is that the eye is never
+      // below the bed at the END of a frame. Continuous input now slides the
+      // eye ALONG the ground, which is smooth for the same reason the ease
+      // was wanted, without leaving the violation standing.
+      if (v.y < floorY) v.y = floorY;
     };
     clampEye(camera.position, false);
     if (!following && !touring) clampEye(controls.target, true);
