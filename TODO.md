@@ -1,5 +1,53 @@
 # TODO
 
+## ▶ PARKED, TOP OF THE LIST (2026-08-22) — the lip is a detached white shelf over open water
+
+Live report, close camera: "floating foam?" — a white sheet hanging in the air
+with open water visible underneath it. **Measured, and it is not what the
+earlier foam-on-top finding was.** That one was foam with no relief (a colour
+mask on flat water). This one is foam on real geometry that has NOTHING BENEATH
+IT.
+
+Scan at sewers, cover camera, pocket transects — bins where the surface is
+multivalued, counting those whose TOP sample is foam-bright and whose BOTTOM
+sample is bare water:
+
+    arm                 overhang bins   foam over bare water   worst gap
+    #sgrow=1&amp=1              283                     19        7.56 m
+    default                     279                     21        7.67 m
+
+Worst case: a surface at **y = 11.33 m carrying foam 0.90**, with bare water at
+**y = 3.77 m, foam 0.00** directly under it at the same screen-z.
+
+Three things are settled and should not be re-litigated:
+1. **Not caused by the new flags.** 19 vs 21 occurrences, 7.56 vs 7.67 m —
+   identical within noise, present on the DEFAULT path.
+2. **Not the spray plume mesh.** These numbers come from `curlProbe`, which
+   renders `surfacePos` — the water grid only; spray is not in the probe at
+   all. Second independent exoneration of spray in one day.
+3. **It is the fold**, and `topPocket` 0.81-0.85 says where: the mesh folds at
+   the pocket (intended, that IS the overturn) and the overhanging part carries
+   `vFoam` with it, because its SOURCE vertex sits at the break line where foam
+   is high.
+
+**The physical error:** a real plunging lip is joined to the face by a falling
+CURTAIN, and the space it encloses is the barrel — dark and enclosed. Here the
+lip is a detached white shelf over open water. Same defect family as the
+"manta" facets: the fold translates a band and never connects it back to the
+wave.
+
+Fix directions, most honest first:
+1. **Give the overhang a curtain** — geometry joining the thrown lip back down
+   to the face. `#curl`'s bend was reaching for this (it preserves arc length,
+   so the band keeps thickness) but the bend still does not CLOSE the void.
+2. Do not paint foam on a surface with open water under it. Cheap; treats the
+   symptom, not the cause.
+3. `#look=full` already discards backfaces, which changes what is seen from
+   below an overhang. Free A/B, worth running on this specific artifact.
+
+Recommended: (1). It is the same conclusion the slab work kept arriving at —
+the geometry is incomplete, not mis-shaded.
+
 ## 2026-08-22 — the offset bound was a constant, and the constant was the facet
 
 **Shipped (`#lamcap=0` and `#knee=0` revert, independently).** Live report: a
