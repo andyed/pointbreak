@@ -326,6 +326,12 @@ const uniforms = {
   // wave length in it, convicted by the argmax at ~51 m of throw on a crest
   // whose ceiling is 7.34 m. Default OFF until the calibration is measured.
   u_throwLen:   { value: 0 },
+  // Let the breaking-excess size signal through the clamps that were eating
+  // it (shaders.js choppyPos). Measured: excess runs 0.43/0.95/1.62/1.94 over
+  // H0 0.7/1.5/2.5/3.0 and was clamped at 1.5 by sizeGate and again at 1.8 by
+  // S. Growth is keyed to (excessQ - 1), which is zero at the card day, so
+  // that day is bit-exact by construction. Default OFF pending measurement.
+  u_sGrow:      { value: 0 },
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -2015,6 +2021,8 @@ function applyHashParams() {
   if (h.get('amp') === '1') uniforms.u_carrierAmp.value = 1;
   // #throwlen=1 arms the cusp-length throw. Default OFF pending calibration.
   if (h.get('throwlen') === '1') uniforms.u_throwLen.value = 1;
+  // #sgrow=1 lets the size signal past the sizeGate/S clamps. Default OFF.
+  if (h.get('sgrow') === '1') uniforms.u_sGrow.value = 1;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -2139,6 +2147,7 @@ window.__pointbreak = {
   setCarrierAmp: (on) => { uniforms.u_carrierAmp.value = on ? 1 : 0; },
   setSScale: (v) => { if (Number.isFinite(v) && v > 0) uniforms.u_sScale.value = v; },
   setThrowLen: (on) => { uniforms.u_throwLen.value = on ? 1 : 0; },
+  setSGrow: (on) => { uniforms.u_sGrow.value = on ? 1 : 0; },
   // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
   setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },
   // ---- curlProbe: the displaced surface, as numbers ----

@@ -319,6 +319,45 @@ question "how many cusps past vertical may a 3 m day go?" is answerable rather
 than arbitrary — and the S/k ceiling means letting it grow no longer risks a
 runaway, because the bound grows with it.
 
+### ▶ The size signal, and the THREE clamps in series eating it (`#sgrow`)
+
+Followed the throw result to its cause. The breaking excess H0*Ks/(gamma*h) is a
+clean monotone size signal — measured at sewers pocket stations, mean excess
+**0.43 / 0.95 / 1.62 / 1.94** across H0 0.7 / 1.5 / 2.5 / 3.0, a 4.5x range.
+It was being discarded twice before reaching a pixel: `sizeGate` clamps it at
+1.5 (measured saturating 1.487 -> 1.500 from H0 2.5 to 3.0) and `S` clamps the
+sum at 1.8. THAT is why the lip throw saturates in both forms and why measuring
+it in the wave's own length changed nothing — the length was never the problem.
+
+`#sgrow` opens both: sizeGate to 3.0, and the S cap to
+`1.8 + 0.8*max(excess - 1, 0)` under a hard mesh backstop S_CAP_HARD = 3.2.
+**The card day sits at excess 0.95**, so growth keyed to (excess - 1) is exactly
+zero there — the calibration day is unchanged BY CONSTRUCTION rather than by
+tuning, and so is everything below the breaking limit.
+
+**Measured BOUNDED, i.e. in real shipping geometry, at pocket stations:**
+
+    H0            0.7     1.5     2.5     3.0      mean |off|, m
+    #sgrow=0     5.26    7.51    9.29    9.37
+    #sgrow=1     5.26    7.51    9.75   10.46
+                 same    SAME    +5%     +12%
+
+Crest height identical in both arms at every size (3.13 / 7.84 / 11.91 /
+13.32 m). Saturation is broken where it was worst: the OFF arm moves only
+9.29 -> 9.37 (+0.9%) from H0 2.5 to 3.0, the ON arm 9.75 -> 10.46 (+7.3%).
+
+**AND THE THIRD CLAMP IS NOW THE BINDING ONE.** maxOff reads exactly 20.0 in
+BOTH arms at H0 >= 2.5: `OFF_MAX_M`. The chain is
+`sizeGate 1.5 -> S 1.8 -> min(OFF_MAX_M, S/k)`, and having opened the first two
+the size signal now dies at the third. Under `#lamcap` the physical bound is
+S/k, which grows with S — at H0 3.0 that is 2.55/0.0698 = 36.5 m — so the 20 m
+constant is once again a world-space number with no wave in it, exactly the
+thing #lamcap was built to remove, still sitting in the `min`.
+
+That last step is NOT taken here, deliberately: OFF_MAX_M is the mesh backstop,
+and letting a 36 m overhang through is the one change in this chain with real
+mesh-integrity risk. It wants a live look before it wants a commit.
+
 ### ▶ CONCERNS WE WILL COME BACK TO — read this before touching the bound again
 
 Written down while it is fresh, because every one of these is a plausible

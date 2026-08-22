@@ -263,6 +263,8 @@ uniform float u_sScale;     // instrument (JS-only): scale the cusp parameter S,
                             // for the re-derivation sweep. Default 1.
 uniform float u_throwLen;   // #throwlen: express the lip throw as a fraction of
                             // the cusp length S/k instead of face height.
+uniform float u_sGrow;      // #sgrow: let the breaking-excess size signal past
+                            // the sizeGate and S clamps that were eating it.
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
 ${KELP_GLSL}
@@ -281,6 +283,9 @@ const float OFF_MAX_M  = 20.0;
 // Plunging throw as a fraction of the cusp length S/k. Calibrated against the
 // shipped throw at the 1.5 m model-card day — see the note at the throw.
 const float THROW_FRAC = 0.30;
+// Mesh backstop for the cusp parameter under #sgrow. Deliberately well ABOVE
+// the working range rather than inside it: a guard, not a physical statement.
+const float S_CAP_HARD = 3.2;
 // Same 0.144 ratio the legacy arm's 5.0 -> 0.72 carries, so the connected-look
 // probe shrinks the throw identically whichever length it is measured in.
 const float THROW_FRAC_FULL = 0.0432;
@@ -409,7 +414,27 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float depQ    = modelDepthM(xz0);
   float KsQ     = clamp(sqrt((G*u_T/(4.0*PI))/sqrt(G*depQ)), 0.7, 2.6);
   float excessQ = (u_H0*KsQ) / max(GAMMA*depQ, 0.05);
-  float sizeGate = mix(1.0, clamp(excessQ, 0.0, 1.5), u_depthMix);
+  // ---- the size signal, and the three clamps that were eating it (#sgrow) --
+  // MEASURED at sewers pocket stations: mean breaking excess runs 0.43 / 0.95 /
+  // 1.62 / 1.94 across H0 0.7 / 1.5 / 2.5 / 3.0 — a clean 4.5x monotone size
+  // signal, exactly what "a bigger day breaks harder" should feed on. It was
+  // then discarded twice before reaching a pixel: sizeGate clamps it at 1.5
+  // (saturating by H0 2.5 — measured 1.487 -> 1.500 from 2.5 to 3.0) and S
+  // clamps the sum at 1.8. That is why the throw saturates at BOTH forms
+  // (16.01 -> 16.03 shipped, 15.27 -> 15.31 cusp-length) and why re-expressing
+  // it in the wave's own length changed nothing: the length was never the
+  // problem, the caps were.
+  //
+  // The card day sits at excess 0.95, right at the breaking limit — so growth
+  // keyed to (excessQ - 1) is exactly ZERO there and the calibration day is
+  // unchanged BY CONSTRUCTION, not by tuning. Below the limit nothing changes
+  // either; only days that genuinely break harder than the card day get more.
+  //
+  // The hard cap survives as a mesh backstop, but well above the working range
+  // rather than inside it — the distinction OFF_MAX_M failed to make before
+  // #lamcap, one level up. And letting S grow is only safe BECAUSE of #lamcap:
+  // the offset ceiling is S/k, so it grows with S instead of being outrun by it.
+  float sizeGate = mix(1.0, clamp(excessQ, 0.0, mix(1.5, 3.0, u_sGrow)), u_depthMix);
   float connectedLook = step(1.5, u_fidelityLook);
   // S calibrated against the old convergence at the 1.5 m model-card day
   // (approach ~0.42, full pocket on plunging ~1.4 before the gate). Field
@@ -460,7 +485,10 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // retired floor used (0.30*H0*VIS), so at the calibration amplitude the gate
   // is 1 and nothing moves. Under the amp arm only.
   float ampGate = mix(1.0, clamp(aTrue / max(0.30*u_H0*VIS, 0.05), 0.0, 1.0), u_carrierAmp);
-  float S      = clamp((Sapp + Sover) * u_sScale * ampGate, 0.0, 1.8);      // >1 folds; cap guards the mesh
+  // The cap grows with how far past the breaking limit this water is. Zero
+  // growth at excess <= 1 (the card day and below), so that day is bit-exact.
+  float sCap   = mix(1.8, min(1.8 + 0.8*max(excessQ - 1.0, 0.0), S_CAP_HARD), u_sGrow);
+  float S      = clamp((Sapp + Sover) * u_sScale * ampGate, 0.0, sCap);      // >1 folds; cap guards the mesh
   // Field-fidelity probe: the old full over-cusp range produced a broad
   // self-intersecting sheet. From the cliff camera its DoubleSide underside
   // read as several detached black manta polygons, not one wave face. Keep
