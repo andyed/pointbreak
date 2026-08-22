@@ -229,6 +229,96 @@ move is an instrument, not another gate. #amp stays OFF until the tail is
 understood — the bulk numbers are encouraging but a single 145 m vertex is a
 facet generator all by itself.
 
+### ▶ The 145 m "tail" was ME MIS-READING MY OWN METRIC — and what is actually left
+
+Found the vertex instead of guessing at it (the argmax record, not another
+gate). At sewers t=42, #amp=1, unbounded:
+
+    dz 145.4 m · x 0 · 7.3 m SHOREWARD OF THE BREAK LINE · depth 3.67 m
+    pocket 0.80 · brk 0.74 · foam 0.86 · y 4.72 m · ceil 7.34 m
+
+**It is at the breaking pocket, in 3.7 m of water.** So "kLocalAt going small in
+deep water" is REFUTED — the local wavenumber there is ~0.0698 rad/m, the same
+as the deep-water carrier, and depth is nowhere near deep.
+
+Ran it again with the throw and drop disabled (#curl=1 sets legacyLip = 0):
+max **145.4 -> 94.0 m** at the same station (x 0, 7.8 m off the line, depth
+3.66, pocket 0.776). So the throw owns ~51 m of it and lam*grad owns ~94 m.
+
+**AND HERE IS THE CORRECTION, which matters more than either number.** At a
+pocket station S is driven to its 1.8 cap *deliberately* — that is the
+over-cusp fold this renderer exists to produce. lam = S/(a*k^2) with S = 1.8,
+a ~ 3 m displayed and k ~ 0.0698 gives lam ~ 123, and on an already-steep face
+(|grad| ~ 0.5-0.8) that is 60-100 m of raw horizontal displacement BY DESIGN.
+The S/k ceiling then turns it into a fold instead of a runaway: 1.8/0.0698 =
+25.8 m, min with OFF_MAX_M -> 20 m.
+
+So **"unbounded max" is not a defect metric at pocket stations**, and I spent
+three passes treating it as one. The genuine defect metric is the offset where
+S is SMALL — troughs, lulls, the far field — which is exactly the population
+the two gates fixed: bulk fold points 1091 -> 679 unbounded (-38%) and 531 ->
+427 bounded (-20%), crest bit-identical. Those numbers stand; the interpretation
+of the invariant maximum was wrong, not the fixes.
+
+**WHAT IS ACTUALLY LEFT, and it is a real one.** throwMag adds ~51 m of
+horizontal offset at that station, applied AFTER lam*grad and scaled by NO
+wave-derived length — it is
+`mix(5.0, 0.72, connectedLook)*pocket*plunge*hM*lipJit*lipTip`, metres of face
+height times dimensionless factors, bounded only by the final ceiling. The
+TODO already had "throwMag 12-19 m against a 5 m crest band, saturating its own
+20 m clamp"; measured here it is 51 m. It has the same defect the offset bound
+had before #lamcap — a magnitude with no length of the wave's in it — and it
+has the same fix available: scale it by S/k, the cusp length, which this
+function now computes anyway. That is the next change, and unlike the last
+three it is aimed at something the instrument actually convicted.
+
+**Consequence for #amp:** the reason it was held OFF was the tail, and the tail
+turns out to be the intended fold. Its bulk numbers now beat legacy on the
+honest amplitude with no floors. It is a LIVE-VERDICT item now rather than a
+blocked one — it needs an eye, not another measurement.
+
+### ▶ The throw in the wave's own length: MEASURED NEUTRAL, and the reason is the real finding
+
+Built `#throwlen`: the plunging throw as `THROW_FRAC * pocket * plunge *
+lipJit * lipTip * (S/k)` — a dimensionless fraction of the cusp length — instead
+of `mix(5.0, 0.72, connectedLook) * pocket * plunge * hM * lipJit * lipTip`,
+which is metres of FACE HEIGHT times a magic 5.0. The rationale was that the
+new form would "shoal with the wavelength on its own and grow with the overturn
+through S", i.e. fix the throw's size-blindness.
+
+**Falsified. Swept H0 0.7 -> 3.0 at the pocket stations, unbounded:**
+
+    H0        0.7    1.0    1.5    2.0    2.5    3.0
+    shipped   6.91   8.55  11.79  14.83  16.01  16.03   mean |off|, m
+    cusp-len  6.67   8.13  11.14  14.13  15.27  15.31
+    ratio    0.965  0.951  0.945  0.953  0.954  0.955
+
+The ratio is FLAT at 0.945-0.965 across the entire range. The new form tracks
+the old one to within 5% at every size, so it delivers none of the scaling it
+was built for. It is a dimensionally honest refactor and a measurable no-op —
+the same shape of result as `#knee`, and it is recorded as such rather than
+dressed up. Default OFF.
+
+**WHY IT IS FLAT IS THE FINDING, AND IT IS BIGGER THAN THE THROW.** Look at the
+shipped row: 16.01 -> 16.03 from H0 2.5 to 3.0. That is `hM`'s 3.5 m cap
+biting, the documented size-blindness. Now look at the new row: 15.27 -> 15.31,
+saturating just as hard — because at the pocket **S is pinned at its 1.8 clamp**
+whatever the swell is, so `S/k` is very nearly constant too. Both forms
+saturate, for different reasons, at the same place.
+
+So the throw is not size-blind because of the length it is measured in. **The
+size-scaling of the whole fold-and-throw system dies at `clamp(Sapp + Sover,
+0, 1.8)`.** sizeGate already carries the breaking excess into Sover — and then
+the 1.8 clamp throws that growth away exactly where the wave is biggest. That
+clamp is a mesh guard doing duty as a physical statement, which is the same
+confusion `OFF_MAX_M` was making before `#lamcap`, one level up.
+
+NEXT, and this one is aimed by a measurement rather than by a hunch: decide what
+S should do above 1.8. It is now a MEANINGFUL number (cusps of overturn), so the
+question "how many cusps past vertical may a 3 m day go?" is answerable rather
+than arbitrary — and the S/k ceiling means letting it grow no longer risks a
+runaway, because the bound grows with it.
+
 ### ▶ CONCERNS WE WILL COME BACK TO — read this before touching the bound again
 
 Written down while it is fresh, because every one of these is a plausible

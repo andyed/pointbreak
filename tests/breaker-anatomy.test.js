@@ -49,7 +49,12 @@ test('field-fidelity full look replaces the detached fold with a connected hinge
   assert.match(shaders, /uniform float u_fidelityLook;/);
   assert.match(shaders, /float Sapp\s+= mix\([\d.]+, [\d.]+, connectedLook\) \* steep/);
   assert.match(shaders, /if \(connectedLook > 0\.5\) S = min\(S, [\d.]+\)/);
-  assert.match(shaders, /float throwMag = mix\([\d.]+, [\d.]+, connectedLook\)/);
+  // throwMag is a uniform branch since the 2026-08-22 cusp-length re-form
+  // (#throwlen), so — exactly like dropMag below — the claim is made once per
+  // arm: BOTH must still shrink with the connected look, whichever length the
+  // throw is measured in. Structural, not tuned.
+  assert.match(shaders, /throwMag = mix\(THROW_FRAC, THROW_FRAC_FULL, connectedLook\)/);
+  assert.match(shaders, /throwMag = mix\([\d.]+, [\d.]+, connectedLook\)/);
   // dropMag is a uniform branch since the 2026-08-18 re-scope (#drop=legacy),
   // so the claim is made once per arm: BOTH must still shrink with the
   // connected look. Same structural-not-tuned rule as the rest of this test.

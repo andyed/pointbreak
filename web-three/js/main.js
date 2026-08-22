@@ -321,6 +321,11 @@ const uniforms = {
   // argued from algebra. Default 1 = shipped. JS-only; if a value is adopted
   // it gets baked into the constants and this goes away.
   u_sScale:     { value: 1 },
+  // The lip throw measured in the wave's own length (shaders.js choppyPos).
+  // The shipped form is face height times a magic 5.0 — a magnitude with no
+  // wave length in it, convicted by the argmax at ~51 m of throw on a crest
+  // whose ceiling is 7.34 m. Default OFF until the calibration is measured.
+  u_throwLen:   { value: 0 },
   // Land-vertex wave-math skip threshold, m above still water (shaders.js
   // surfacePos). A uniform rather than a const so it can be A/B'd inside ONE
   // page session — GPU timing across separate browser launches is too noisy
@@ -2008,6 +2013,8 @@ function applyHashParams() {
   // #amp=1 arms the carrier amplitude. Default OFF pending an S re-tune — see
   // the uniform's note; the flag is a feature flag, not a revert arm.
   if (h.get('amp') === '1') uniforms.u_carrierAmp.value = 1;
+  // #throwlen=1 arms the cusp-length throw. Default OFF pending calibration.
+  if (h.get('throwlen') === '1') uniforms.u_throwLen.value = 1;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -2131,6 +2138,7 @@ window.__pointbreak = {
   setLamCap: (on) => { uniforms.u_lamCap.value = on ? 1 : 0; },
   setCarrierAmp: (on) => { uniforms.u_carrierAmp.value = on ? 1 : 0; },
   setSScale: (v) => { if (Number.isFinite(v) && v > 0) uniforms.u_sScale.value = v; },
+  setThrowLen: (on) => { uniforms.u_throwLen.value = on ? 1 : 0; },
   // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
   setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },
   // ---- curlProbe: the displaced surface, as numbers ----

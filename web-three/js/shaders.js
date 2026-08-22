@@ -261,6 +261,8 @@ uniform float u_carrierAmp; // #amp=1: use ocean()'s carrier amplitude in the
                             // choppy solve. Default OFF pending the S re-tune.
 uniform float u_sScale;     // instrument (JS-only): scale the cusp parameter S,
                             // for the re-derivation sweep. Default 1.
+uniform float u_throwLen;   // #throwlen: express the lip throw as a fraction of
+                            // the cusp length S/k instead of face height.
 ${MODEL_GLSL}
 ${DETAIL_GLSL}
 ${KELP_GLSL}
@@ -276,6 +278,12 @@ const vec2 STAGE_CENTER = vec2(0.0, 10.0);
 // 2026-08-22 soft knee deliberately does not move it. OFF_KNEE_M is where
 // saturation begins; see the long note at the clamp itself.
 const float OFF_MAX_M  = 20.0;
+// Plunging throw as a fraction of the cusp length S/k. Calibrated against the
+// shipped throw at the 1.5 m model-card day — see the note at the throw.
+const float THROW_FRAC = 0.30;
+// Same 0.144 ratio the legacy arm's 5.0 -> 0.72 carries, so the connected-look
+// probe shrinks the throw identically whichever length it is measured in.
+const float THROW_FRAC_FULL = 0.0432;
 
 // far skirt: the stretched outer cells (see main.js) are far bigger than
 // LAM and would alias the carrier into low-frequency junk, so displacement
@@ -507,8 +515,46 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // thickness, which is precisely the "thin shell" read the rotation exists to
   // fix. Blending rather than branching so the two are one continuum.
   float legacyLip = 1.0 - clamp(u_curl, 0.0, 1.0);
-  float throwMag = mix(5.0, 0.72, connectedLook)
-                 * pocket * plunge * hM * lipJit * lipTip;
+  // ---- the throw, in the wave's own length (2026-08-22, #throwlen) --------
+  // CONVICTED BY THE ARGMAX, not by argument. At sewers t=42 the largest raw
+  // offset in the stage is 145.4 m, at x = 0, 7.3 m shoreward of the break
+  // line in 3.67 m of water with pocket 0.80. Disabling the throw and drop
+  // (#curl=1 -> legacyLip = 0) drops it to 94.0 m at the same station, so THIS
+  // TERM CONTRIBUTES ~51 m of horizontal displacement on a crest whose ceiling
+  // is 7.34 m.
+  //
+  // The form is why. mix(5.0, 0.72)*pocket*plunge*hM*lipJit*lipTip is metres of
+  // FACE HEIGHT times a magic 5.0 and three dimensionless factors: a magnitude
+  // with no length of the WAVE's in it, exactly the defect the offset bound had
+  // before #lamcap, and bounded by nothing until the final ceiling catches it.
+  // hM is also capped at 3.5 m, so on a big day the throw stops growing with
+  // the wave and just saturates — the same size-blindness SIZE_AUDIT went
+  // through the foam terms to remove.
+  //
+  // The honest length is the one this function already computes for the
+  // ceiling: S/k, the cusp length (S = 1 and |off| = 1/k are the same
+  // statement; 1/k = LAM/2pi is the Gerstner cusp radius). A plunging jet is
+  // thrown a fraction of it, and that fraction is dimensionless and
+  // size-free — so the throw shoals with the wavelength on its own, grows with
+  // the overturn through S, and can never outrun the ceiling that bounds the
+  // whole offset, because it is measured in the same units as that ceiling.
+  //
+  // THROW_FRAC is calibrated below, not guessed. #throwlen=0 is the exact
+  // revert; the arms are a uniform branch so each is bit-exact.
+  float throwLen = S / max(kk, 1e-4);          // the cusp length, metres
+  float throwMag;
+  if (u_throwLen > 0.5) {
+    // connectedLook tempers the throw here exactly as it does in the legacy
+    // arm (5.0 -> 0.72, a factor 0.144): the #look=full probe's whole claim is
+    // a connected hinge instead of a detached thrown ribbon, and that claim is
+    // independent of which length the throw is measured in.
+    throwMag = mix(THROW_FRAC, THROW_FRAC_FULL, connectedLook)
+             * pocket * plunge * lipJit * lipTip * throwLen;
+  } else {
+    throwMag = mix(5.0, 0.72, connectedLook)
+             * pocket * plunge * hM * lipJit * lipTip;
+  }
+  if (!(throwMag == throwMag)) throwMag = 0.0;   // NaN guard (house rule)
   off.y += throwMag * legacyLip;
 
   // Curl downward. LINEAR in face height — the first metre-calibration kept
