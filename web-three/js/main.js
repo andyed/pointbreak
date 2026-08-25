@@ -267,6 +267,10 @@ const uniforms = {
   // the "reference height, not a clamp" decision — see choppyPos). Ships ON,
   // but inert unless u_curl is on, so the default frame is untouched.
   u_earn:       { value: 1 },
+  // #sapp= unbundles the approach-term strength from #look=full (the measured
+  // driver of the runaway offsets and the oversized head plate). 0.42 is the
+  // shipped calibration; #look=full's 0.22 still wins on that arm.
+  u_sApp:       { value: 0.42 },
   // #drop=legacy: restore the pre-2026-08-18 dropMag, which was proportional to
   // the height it was subtracted from and weighted only by `pocket`, so the
   // wave came out flattest exactly at the breaking pocket (median crest /
@@ -2032,6 +2036,12 @@ function applyHashParams() {
   // reachable through the #curl branch, so #curl=1&earn=0 is the pre-floor
   // bend and #curl=1 alone is the shipped-floor arm).
   if (h.get('earn') === '0') uniforms.u_earn.value = 0;
+  // #sapp= takes a strength in (0, 1]; anything unparseable keeps the shipped
+  // 0.42 rather than sending NaN into the S solve.
+  if (h.has('sapp')) {
+    const v = parseFloat(h.get('sapp'));
+    if (Number.isFinite(v) && v > 0 && v <= 1) uniforms.u_sApp.value = v;
+  }
   // #drop=legacy is a REVERT arm, not a feature flag: the re-scoped dropMag
   // ships on, and this restores the term that flattened the pocket so the two
   // silhouettes can be captured from one build.

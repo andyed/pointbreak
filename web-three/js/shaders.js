@@ -251,6 +251,9 @@ uniform float u_curl;   // #curl=1: lip overturn (rotation, not throw). Default 
 uniform float u_earn;   // #earn=0 reverts: over-fill earns bend (floor on the
                         // arc angle inside the #curl branch). Default 1; inert
                         // unless u_curl is on.
+uniform float u_sApp;   // #sapp=: approach-term strength, unbundled from
+                        // #look=full. Default 0.42 (shipped); the full look's
+                        // own 0.22 still wins on that arm.
 uniform float u_legacyDrop; // #drop=legacy: restore the pre-2026-08-18 dropMag
                             // (the one that flattened the pocket). A/B only.
 uniform float u_offKnee;    // #knee: soft knee as a FRACTION of the live offset
@@ -463,7 +466,14 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // Gated on u_carrierAmp because the two are ONE change: the honest amplitude
   // needs the honest gate, and the legacy arm must stay bit-identical.
   float appGate = mix(1.0, smoothstep(0.35, 0.95, excessQ), u_depthMix*u_carrierAmp);
-  float Sapp   = mix(0.42, 0.22, connectedLook) * steep * appGate;
+  // #sapp= unbundles the approach-term strength from #look=full. The 0.42 vs
+  // 0.22 gap is the measured driver of the runaway offsets (892 -> 400 at
+  // >= 19.5 m on the unbounded arm) and therefore of the oversized bare
+  // plate at the head — but until now the only way to judge the smaller
+  // approach was to take the whole connected look with it. u_sApp defaults
+  // to 0.42, so both existing arms are bit-identical at default; the full
+  // arm keeps its own 0.22 through the same mix.
+  float Sapp   = mix(u_sApp, 0.22, connectedLook) * steep * appGate;
   float Sover  = (0.15 + 1.30*plunge) * pocket * sizeGate;
   // u_sScale: INSTRUMENT for the 2026-08-22 S re-derivation. With the honest
   // carrier amplitude (#amp=1) every constant feeding S is mis-scaled, because

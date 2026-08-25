@@ -47,7 +47,13 @@ test('field-fidelity full look replaces the detached fold with a connected hinge
   // cap S below the fold threshold, and shrink lip throw/drop — which exact
   // numbers do that is tuning, and a retune must not fail the suite.
   assert.match(shaders, /uniform float u_fidelityLook;/);
-  assert.match(shaders, /float Sapp\s+= mix\([\d.]+, [\d.]+, connectedLook\) \* steep/);
+  // 2026-08-25: the base strength is u_sApp (#sapp=, unbundled from the full
+  // look so the approach calibration can be judged alone); the full arm's own
+  // constant still wins through the same mix, so the structural claim — the
+  // connected look tempers the approach — is unchanged.
+  assert.match(shaders, /float Sapp\s+= mix\(u_sApp, [\d.]+, connectedLook\) \* steep/);
+  assert.match(main, /u_sApp:\s+\{ value: 0\.42 \}/);
+  assert.match(main, /h\.has\('sapp'\)/);
   assert.match(shaders, /if \(connectedLook > 0\.5\) S = min\(S, [\d.]+\)/);
   // throwMag is a uniform branch since the 2026-08-22 cusp-length re-form
   // (#throwlen), so — exactly like dropMag below — the claim is made once per
