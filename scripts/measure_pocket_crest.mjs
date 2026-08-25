@@ -111,8 +111,12 @@ const rows = [];
 for (const spot of SPOTS) {
   for (const arm of ARMS) {
     for (const sim of TIMES) {
+      // --hash= appends extra hash params to EVERY arm, so a change that
+      // lives inside one branch (e.g. #earn=0 inside #curl) can be A/B'd
+      // with the same instrument in one build — the probe_wave_shape idiom.
+      const extra = flag('hash', '') ? `&${flag('hash', '').replace(/^[#&]/, '')}` : '';
       const hash = `preset=${spot.preset}&cam=${spot.cam}&month=card&controls=0&q=${TIER}` +
-                   `&speed=0&sim=${sim}${arm.hash}`;
+                   `&speed=0&sim=${sim}${arm.hash}${extra}`;
       // about:blank between configs: #drop and #curl are boot-only, so a clean
       // load is the only way to be sure which build produced the numbers.
       await page.goto('about:blank');

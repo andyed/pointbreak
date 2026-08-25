@@ -119,6 +119,25 @@ the pinned defect frame (cliff, sims 39/54, judge bundle): the slab's flat
 cap lowers and rounds; a smaller translucent ledge SURVIVES — needs the live
 eye before promotion talk, same queue as #curl itself.
 
+**TAIL MEASURED (2026-08-25), the 1.4–1.7× stations:** still real on the
+DEFAULT arm at HEAD (2/42 pocket stations >1.2: fill 1.679 at sim 42 x=2,
+1.392 at sim 54 x=−19 — `#lamcap` did not clear them). The bend alone takes
+the max to 1.137; the floor takes it to **1.079** with p95 1.074 — on the
+`#curl` arm the whole distribution now sits inside the calibrated norm band.
+
+**THE SURVIVING LEDGE, DIAGNOSED (2026-08-25):** flat-run probe at the sim 39
+head, both arms. Two components, neither a floor defect: (1) the arc's crown —
+flat-runs grow 1.1 → 3.4 m exactly where the floor engages (curl 0.51), but a
+circular arc of R ≈ 3.1 m IS flat within 0.15 m over ~1.9 m of z; that is
+barrel-crown geometry, not a box. (2) the translucent ledge left of the head
+is the UNBROKEN SHOULDER (x=+5..+20, fill 1.06–1.07, pocket 0.03–0.21) —
+the legal-standing norm the decision protects, and an unbroken swell standing
+slightly over the just-broken crest is physically right. The pre-floor box
+read came from the head standing 0.9–1.2 m ABOVE its neighbours under a hard
+cap; that silhouette step is now 0.36 m. If the live eye still reads a box,
+the next knob is the shoulder side (how fill>1 water outside the pocket
+reads), not the floor's gates.
+
 ## 2026-08-22 — the offset bound was a constant, and the constant was the facet
 
 **Shipped (`#lamcap=0` and `#knee=0` revert, independently).** Live report: a
