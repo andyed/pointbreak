@@ -48,6 +48,21 @@ Fix directions, most honest first:
 Recommended: (1). It is the same conclusion the slab work kept arriving at —
 the geometry is incomplete, not mis-shaded.
 
+**IN PROGRESS (2026-08-24): fix (1) is built, flag-gated `#curtain=1`.** A
+strip mesh (`curtainMesh`, `CURTAIN_VERT/FRAG`), both edges evaluations of the
+shipped `surfacePos`: tip at the crest source point, landing `0.9·h_crest`
+shoreward, quadratic Bézier continuing the bend's tangent between them. Gated
+on the bend's own `curl` out, so it requires `#curl=1` — the bundle to judge
+live is `#curl=1&lip=1&curtain=1`. Measured so far (sewers, sim 39, x=−20,
+curl 0.73): cliff A/B diff 848 px all inside the pocket; the undercut band
+under the detached shelf fills with streaked white. Sharks ξ 0.45: 0 diff px
+(spilling hangs nothing). Default path: mesh invisible, zero cost. OPEN:
+(a) the inside-the-tube (down-line) view is only partially closed — the strip
+is one fall-column per alongshore x and the gate narrows it to the strongest
+overturn; (b) `CURT_REACH = 0.9·h_crest` is authored, the Mead & Black
+vortex-ratio refinement would replace it; (c) needs the live eye before any
+promotion talk.
+
 ## 2026-08-22 — the offset bound was a constant, and the constant was the facet
 
 **Shipped (`#lamcap=0` and `#knee=0` revert, independently).** Live report: a

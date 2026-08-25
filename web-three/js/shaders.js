@@ -1836,6 +1836,131 @@ void main(){
 }
 `;
 
+// ---------- the curtain (#curtain=1, 2026-08-24, default OFF) ----------
+// THE VOID, CLOSED WITH GEOMETRY. The bend (#curl) takes the crest band over
+// itself and stops: past the tip there is nothing — a lip hanging over open
+// water, measured on the pocket transects as foam-bright top samples with bare
+// water directly beneath (TODO 2026-08-22: 21 of 279 overhang bins, worst gap
+// 7.67 m). A real plunging lip is joined to the face by a falling CURTAIN, and
+// the space the curtain encloses is the barrel. Painting the foam out would
+// treat the symptom; this is the recommended fix (1): real geometry joining
+// the thrown lip back down to the face.
+//
+// HOW IT IS BUILT. A strip mesh, shader-authored like the spray but CONNECTED:
+// position.x is alongshore world metres, position.y is the fall parameter
+// v in [0,1] (0 = lip tip, 1 = landing). Both ends are evaluations of the
+// SHIPPED surface, not estimates of it:
+//   * the tip is surfacePos at the crest source point — the vertex the bend
+//     carries farthest over — so the curtain hangs from the drawn lip, and
+//     moves with every term that moves the lip (choppy, throw ceiling, bend);
+//   * the landing is surfacePos at a source point CURT_REACH·h_crest
+//     shoreward, so the bottom edge sits ON the drawn face. C0 at both ends
+//     by construction — no seam to tune.
+// Between them a quadratic Bezier whose control point continues the bend's
+// own tangent at the tip (t = (sin th, cos th) in the (z, y) plane), so the
+// jet leaves the lip tangentially instead of kinking off it.
+//
+// WHAT GATES IT. The curl out of surfacePos — th/PI, the turns of overturn
+// the bend actually performed. No overturn, no curtain: spilling sites hang
+// nothing, lulls hang nothing, and with u_curl = 0 the gate is identically
+// zero (curl is only written by the bend). #curtain therefore REQUIRES
+// #curl=1 to draw anything; that is the roadmap, not an accident — the
+// curtain is the piece the bend was measured to be missing, and the two are
+// judged together (#curl=1&lip=1&curtain=1). breakMask is applied the same
+// way the aer path applies it: a section gap is line transport, not a
+// breaking crest, and hangs no curtain.
+//
+// CURT_REACH: the landing sits 0.9·h_crest shoreward of the crest source.
+// AUTHORED, in the wave's own length (the #lamcap lesson: no world-space
+// constants in displacement paths). The 0.9 is the classical plunging-jet
+// picture — the jet lands roughly a face height ahead — and is the knob the
+// Mead & Black vortex-ratio refinement would replace (MODEL.md 1.4).
+export const CURTAIN_VERT = `
+${SURFACE_PRELUDE}
+${SURFACE_GLSL}
+varying float vCurtA;    // curtain alpha: overturn gate x far fade
+varying vec2  vCurtUV;   // (alongshore metres, fall parameter v) for streaks
+const float CURT_REACH = 0.9;
+
+void main(){
+  float x0 = position.x;               // alongshore, world metres
+  float v  = position.y + 0.5;         // PlaneGeometry y in [-0.5, 0.5] -> [0,1]
+
+  // The crest source point nearest the break line — the zipper's lip. Same
+  // construction as the bend's dzC, solved for z instead of measured from it:
+  // theta falls shoreward at kz, so the crest (theta = 0) sits thetaW/kz
+  // shoreward of the break line.
+  float zb     = breakLine(x0);
+  float w      = 2.0*PI/u_T;
+  float kk     = kLocalAt(vec2(x0, zb));
+  float thetaB = w*u_time - rayPhase(vec2(x0, zb));
+  float thetaW = mod(thetaB + PI, 2.0*PI) - PI;
+  float kz     = max(kk*cos(swellPhi()), 0.25*kk);
+  float zc     = zb + thetaW/kz;
+
+  // Both ends of the curtain are the shipped surface itself.
+  float f1, p1, b1, c1, l1, a1, curlT;
+  vec3 Ptip = surfacePos(vec2(x0, zc), u_time, f1, p1, b1, c1, l1, a1, curlT);
+  float hC   = crestCeilM(vec2(x0, zc));
+  float f2, p2, b2, c2, l2, a2, k2;
+  vec3 Pland = surfacePos(vec2(x0, zc + CURT_REACH*hC), u_time, f2, p2, b2, c2, l2, a2, k2);
+
+  // Overturn gate: full curtain only where the lip is genuinely over
+  // (curl = th/PI; 0.35 turns = 63 deg). Land kills it — a lip clamped to
+  // the bed hangs nothing (surfacePos already zeroed curl there, but the
+  // landing can be ashore of the tip on the last metres of the point).
+  float gate = smoothstep(0.30, 0.55, curlT) * breakMask(x0)
+             * (1.0 - l1) * (1.0 - l2) * farFadeAt(vec2(x0, zc));
+
+  // Tangent continuation: the bend's arc direction at the tip, in (z, y).
+  float thTip = curlT*PI;
+  vec2  tan2  = vec2(sin(thTip), cos(thTip));
+  float span  = distance(Ptip.zy, Pland.zy);
+  vec2  ctrl  = Ptip.zy + tan2*0.45*span;
+
+  // Quadratic Bezier tip -> landing; collapse to the tip when gated off so
+  // the strip degenerates instead of stretching a stray sheet across a lull.
+  float u1 = 1.0 - v;
+  vec2 zy = u1*u1*Ptip.zy + 2.0*u1*v*ctrl + v*v*Pland.zy;
+  vec3 P  = mix(Ptip, vec3(x0, zy.y, zy.x), gate > 0.001 ? 1.0 : 0.0);
+  if (!(P.x == P.x && P.y == P.y && P.z == P.z)) P = Ptip;   // NaN guard (house rule)
+
+  vCurtA  = gate;
+  vCurtUV = vec2(x0, v);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
+}
+`;
+
+// Aerated falling water: the whitest thing in frame in field footage, streaked
+// vertically because it is water in free fall, darkening slightly toward the
+// landing where it entrains into the bore. Streak motion runs DOWN the curtain
+// on the simulation clock (seconds — rate independence), not the frame clock.
+export const CURTAIN_FRAG = `
+varying float vCurtA;
+varying vec2  vCurtUV;
+uniform float u_time;
+
+// Local value noise: MODEL_GLSL's vnoise2 lives in the vertex stage's prelude
+// and is not spliced here; the curtain needs one octave, so it carries its
+// own copy of the same hash rather than pulling the whole model in.
+float chash21(vec2 p){ vec3 q = fract(vec3(p.xyx)*0.1031); q += dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+float cnoise2(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f*f*(3.0 - 2.0*f);
+  return mix(mix(chash21(i), chash21(i + vec2(1.0, 0.0)), u.x),
+             mix(chash21(i + vec2(0.0, 1.0)), chash21(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+void main(){
+  float streak = cnoise2(vec2(vCurtUV.x*0.9, vCurtUV.y*3.0 - u_time*1.4));
+  float alpha = vCurtA * (0.80 + 0.20*streak);
+  if (alpha < 0.02) discard;
+  vec3 foamCol = mix(vec3(0.76, 0.80, 0.79), vec3(0.97), 0.35 + 0.65*streak);
+  foamCol *= 1.0 - 0.18*vCurtUV.y;   // entrains darker toward the landing
+  gl_FragColor = vec4(foamCol, alpha);
+}
+`;
+
 export const SPRAY_FRAG = `
 varying float vSprayAlpha;
 varying float vSprayShade;

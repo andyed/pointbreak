@@ -12,7 +12,8 @@ import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS,
          reefWindowKnots, PEEL_FLOOR, peelFloorH0 } from '../../shared/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
-         SPRAY_VERT, SPRAY_FRAG, SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
+         SPRAY_VERT, SPRAY_FRAG, CURTAIN_VERT, CURTAIN_FRAG,
+         SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
@@ -426,6 +427,28 @@ const sprayMat = new THREE.ShaderMaterial({
 const sprayPoints = new THREE.Points(makeSprayGeometry(), sprayMat);
 sprayPoints.frustumCulled = false; // positions are shader-authored from seeds
 scene.add(sprayPoints);
+
+// ---------- the curtain (#curtain=1, default OFF) ----------
+// The falling sheet joining the bent lip back down to the face — the geometry
+// the 2026-08-22 overhang measurement said was missing (TODO, top). A strip:
+// x alongshore in world metres, y the fall parameter; both edges are authored
+// by CURTAIN_VERT from the shipped surfacePos, so the curtain hangs from the
+// drawn lip and lands on the drawn face with no seam to tune. Gated on the
+// bend's own overturn (vCurl's source), so it draws NOTHING unless #curl=1 —
+// the two are one bundle and are judged together. Invisible by default:
+// mesh.visible is the flag, so the default path pays zero cost.
+const curtainMat = new THREE.ShaderMaterial({
+  vertexShader: CURTAIN_VERT,
+  fragmentShader: CURTAIN_FRAG,
+  uniforms,
+  transparent: true,
+  depthWrite: true,            // it must OCCLUDE the bare water behind it
+  side: THREE.DoubleSide,      // seen from the beach and from inside the barrel
+});
+const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 12), curtainMat);
+curtainMesh.frustumCulled = false;  // positions are shader-authored
+curtainMesh.visible = false;
+scene.add(curtainMesh);
 
 // ---------- the seabed ----------
 // Its own surface so the free camera can dive and watch the floor descend.
@@ -2023,6 +2046,9 @@ function applyHashParams() {
   if (h.get('throwlen') === '1') uniforms.u_throwLen.value = 1;
   // #sgrow=1 lets the size signal past the sizeGate/S clamps. Default OFF.
   if (h.get('sgrow') === '1') uniforms.u_sGrow.value = 1;
+  // #curtain=1 hangs the falling sheet off the bent lip. Draws nothing
+  // without #curl=1 (the gate is the bend's own overturn) — see curtainMesh.
+  if (h.get('curtain') === '1') curtainMesh.visible = true;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -2147,6 +2173,7 @@ window.__pointbreak = {
   setCarrierAmp: (on) => { uniforms.u_carrierAmp.value = on ? 1 : 0; },
   setSScale: (v) => { if (Number.isFinite(v) && v > 0) uniforms.u_sScale.value = v; },
   setThrowLen: (on) => { uniforms.u_throwLen.value = on ? 1 : 0; },
+  setCurtain: (on) => { curtainMesh.visible = !!on; },
   setSGrow: (on) => { uniforms.u_sGrow.value = on ? 1 : 0; },
   // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
   setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },
