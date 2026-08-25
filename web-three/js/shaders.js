@@ -254,6 +254,9 @@ uniform float u_earn;   // #earn=0 reverts: over-fill earns bend (floor on the
 uniform float u_sApp;   // #sapp=: approach-term strength, unbundled from
                         // #look=full. Default 0.42 (shipped); the full look's
                         // own 0.22 still wins on that arm.
+uniform float u_onset;  // #onset=1: the overturn develops behind the zipper
+                        // head instead of leading it. Default 0 (shipped look)
+                        // pending a live verdict.
 uniform float u_legacyDrop; // #drop=legacy: restore the pre-2026-08-18 dropMag
                             // (the one that flattened the pocket). A/B only.
 uniform float u_offKnee;    // #knee: soft knee as a FRACTION of the live offset
@@ -475,6 +478,46 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // arm keeps its own 0.22 through the same mix.
   float Sapp   = mix(u_sApp, 0.22, connectedLook) * steep * appGate;
   float Sover  = (0.15 + 1.30*plunge) * pocket * sizeGate;
+  // ---- #onset=1: the overturn develops BEHIND the zipper head ------------
+  // The pocket bell is symmetric about the travelling breakpoint, so it
+  // extends ~25 m AHEAD of the head onto water the zipper has not reached
+  // (measured sim 43: pocket 0.56 at x=30 with the head at x~5-15) — and
+  // through Sover it hands that unbroken water the same fully-developed
+  // fold reach as the mature mid-line. Seen from above that is the white
+  // plate DETACHED off the end of the whitewater line, moated by the
+  // stretch band where the displacement jumps ("flying saucer", live
+  // 2026-08-25 aerial). Causality gate on the model's own breaker clock
+  // (breakerLifecycleAtX's idiom): ageB = time since THIS station's crest
+  // crossed the line. Ahead of the head ageB reads ~T (the mod wraps), so
+  // one continuous window does both jobs — the fresh side ramps the fold in
+  // over ~0.2T of development (Basco's plunge cycle: the vortex forms after
+  // onset, not at it; the small pre-onset lead keeps the just-breaking head
+  // from losing its nascent lip entirely), and the far side cuts unbroken
+  // water off. The window is continuous through the wrap (both ends ~0), so
+  // the crossing itself prints no seam. TIME-domain window, stated caveat:
+  // the head's along-line speed varies ~13x (the #arm lesson), so the
+  // development LENGTH stretches with the flank speed; if that shows, the
+  // metric (metres-behind-head) form is the recorded upgrade path.
+  // TWO gates, not one — the first cut used one window for everything and
+  // measured a regression: with the bend and earn floor suppressed at the
+  // just-crossed head, the sim 39 block stood back up at fill 1.414 (the
+  // crest is TALLER when nothing folds it). The split: a breaking crest
+  // pitches from onset (aheadCut only, fast-ramped so the wrap prints no
+  // hard x-seam at the head), while the fold's horizontal REACH develops
+  // behind it (devRamp too).
+  float aheadCut = 1.0, bendOnset = 1.0;
+  if (u_onset > 0.5) {
+    float wOn  = 2.0*PI/u_T;
+    float ageB = mod(wOn*t - rayPhase(vec2(xz0.x, breakLine(xz0.x))), 2.0*PI)/wOn;
+    aheadCut = 1.0 - smoothstep(0.72*u_T, 0.90*u_T, ageB);
+    float devRamp = smoothstep(0.0, 0.20*u_T, ageB + 0.05*u_T);
+    // ageB wraps T -> 0 exactly at the head, where aheadCut jumps 0 -> 1;
+    // the short lead-in keeps that from printing a one-cell cliff in the
+    // bend while leaving the head's nascent lip ~fully active by ~0.4 s in.
+    bendOnset = aheadCut * smoothstep(0.0, 0.06*u_T, ageB + 0.03*u_T);
+    if (!(bendOnset == bendOnset)) { bendOnset = 1.0; aheadCut = 1.0; }
+    Sover *= devRamp * aheadCut;
+  }
   // u_sScale: INSTRUMENT for the 2026-08-22 S re-derivation. With the honest
   // carrier amplitude (#amp=1) every constant feeding S is mis-scaled, because
   // all of them were fitted against an estimate that ran ~1.6x the carrier at
@@ -754,8 +797,11 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     // sim 36/48: best station pocket 0.99, overturn 3.4 deg. Linear clamp
     // instead, the same idiom as sizeGate above.
     float overGate = mix(1.0, clamp(excessQ, 0.0, 1.5), u_depthMix);
+    // bendOnset: the bend obeys the zipper's causality (nothing overturns
+    // ahead of the head) but NOT the fold's development ramp — a breaking
+    // crest pitches from onset (#onset=1; 1.0 with the flag off).
     float kEff = (mix(0.30, 2.60, plunge)/max(hCrest, 0.5))
-               * overGate * pocket * bandZ * (0.80 + 0.30*lipJit);
+               * overGate * pocket * bandZ * (0.80 + 0.30*lipJit) * bendOnset;
     float th   = clamp(dyB*kEff, 0.0, 2.30);   // 132 deg; the mesh backstop
     // ---- over-fill earns overturn (#earn=0 reverts; 2026-08-25) ----------
     // THE DECISION on "crestCeilM is a reference height, not a clamp"
@@ -790,7 +836,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     float fillQ  = h/max(hCrest, 0.5);
     float rNeed  = clamp(0.65/max(fillQ - 0.35, 1e-3), 0.0, 1.0);
     float thNeed = sqrt(6.0*(1.0 - rNeed))*(1.0 + 0.22*(1.0 - rNeed));
-    float earnG  = smoothstep(0.10, 0.40, pocket) * mix(0.30, 1.0, plunge);
+    float earnG  = smoothstep(0.10, 0.40, pocket) * mix(0.30, 1.0, plunge) * bendOnset;
     if (u_earn > 0.5) th = min(max(th, thNeed*earnG), 2.30);
     if (!(th == th)) th = 0.0;                 // NaN guard (house rule)
     // Stable arc form: the (1-cos th)/th and sin(th)/th factors are written
