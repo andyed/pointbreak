@@ -267,6 +267,10 @@ const uniforms = {
   // the "reference height, not a clamp" decision — see choppyPos). Ships ON,
   // but inert unless u_curl is on, so the default frame is untouched.
   u_earn:       { value: 1 },
+  // #splash=1: the crash — Peregrine splash-up at the landing, on the
+  // lifecycle impact bell. Default OFF pending a live verdict: it adds a
+  // travelling white burst to the default-path height field.
+  u_splash:     { value: 0 },
   // #sapp= unbundles the approach-term strength from #look=full (the measured
   // driver of the runaway offsets and the oversized head plate). 0.42 is the
   // shipped calibration; #look=full's 0.22 still wins on that arm.
@@ -2047,6 +2051,12 @@ function applyHashParams() {
     if (Number.isFinite(v) && v > 0 && v <= 1) uniforms.u_sApp.value = v;
   }
   if (h.get('onset') === '1') uniforms.u_onset.value = 1;
+  // #splash= takes a gain: 1 = the calibrated 0.90*H0 burst, higher scales it
+  // (live-dialable like #sapp; the crash is a look calibration). 0/absent = off.
+  if (h.has('splash')) {
+    const v = parseFloat(h.get('splash'));
+    if (Number.isFinite(v) && v > 0 && v <= 3) uniforms.u_splash.value = v;
+  }
   // #drop=legacy is a REVERT arm, not a feature flag: the re-scoped dropMag
   // ships on, and this restores the term that flattened the pocket so the two
   // silhouettes can be captured from one build.
