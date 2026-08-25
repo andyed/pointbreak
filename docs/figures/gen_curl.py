@@ -459,9 +459,26 @@ for i, (n, rows, cls) in enumerate(stats):
 
 svg.append("</svg>")
 
+# ---- namespace the classes for HTML inlining -------------------------------
+# The essay inlines this SVG into index.html, where <style> blocks are
+# document-global: generic names like .title would collide with the page and
+# with the other inlined figures (they use .topo-*, .lbl-*). Prefix everything.
+import re as _re
+_CLASSES = ["fg-text", "foam-dim-text", "foam-text", "sand-text", "mono",
+            "title", "subtitle", "strip-label", "panel-name", "eq", "caption",
+            "annot-b", "annot", "stat-n"]
+_svg_text = "\n".join(svg)
+for _c in _CLASSES:
+    _svg_text = _re.sub(r"\." + _re.escape(_c) + r"\b", ".curl-" + _c, _svg_text)
+def _ns_class_attr(m):
+    toks = m.group(1).split()
+    return 'class="' + " ".join(
+        ("curl-" + t) if t in _CLASSES else t for t in toks) + '"'
+_svg_text = _re.sub(r'class="([^"]*)"', _ns_class_attr, _svg_text)
+
 out = os.path.join(HERE, "fig-curl.svg")
 with open(out, "w") as f:
-    f.write("\n".join(svg))
+    f.write(_svg_text)
 print("wrote", out)
 for k_, v in CONTRASTS.items():
     print("  %-56s %6.2f:1  %s" % (k_, v, "PASS" if v >= 8 else "FAIL"))
