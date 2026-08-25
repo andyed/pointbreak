@@ -98,6 +98,27 @@ and S values that promotion changes. Fixing it first means fixing it twice.~~
 2026-08-13 (PSI_SPEC §0 verdict), so this fill table was measured against
 current ceilings all along. Phase 3 is unblocked and in progress.
 
+**BUILT (2026-08-25, `#earn=0` reverts): over-fill earns overturn.** The
+fill>1 question is DECIDED: `crestCeilM` stays a reference height (the ~1.05
+`month=card` norm stays legal, no clamp), but water over the reference AND
+breaking may not stand — a floor on the bend's arc angle returns its apex to
+the ceiling, `θ_need` from the bend's own map (`sin θ/θ = 0.65/(fill−0.35)`),
+gated by `pocket` and the plunge blend (spilling crumbles at ~1/3 return) and
+deliberately NOT by `bandZ` — the apex sits off the crest phase line, bandZ
+is ~0.35 exactly at the block, and gating by it reproduced the defect
+(measured: head row bit-identical until it was removed). Measured after
+(curlProbe sweep, 5 sewers + 3 sharks clocks): the pinned head station
+sim 39 x=−20 fill **1.132 → 1.011**, earned bend 47° → 92°; sim 54
+1.090 → 1.009; sim 42 head 1.049 → 1.006. Every pocket≈0 station
+bit-identical (the norm survives). Sharks: one station 1.069 → 1.063, rest
+unchanged — spilling character kept. Fold audit (measure_curl, new `--hash`
+passthrough): overhangs/faces held; one transect (sim 42 x=−138) has its
+11.3 m crest-scoped fold re-binned as 11.96 m stray — the floor moved the
+apex the scope window keys on, total folded length conserved. A/B frames at
+the pinned defect frame (cliff, sims 39/54, judge bundle): the slab's flat
+cap lowers and rounds; a smaller translucent ledge SURVIVES — needs the live
+eye before promotion talk, same queue as #curl itself.
+
 ## 2026-08-22 — the offset bound was a constant, and the constant was the facet
 
 **Shipped (`#lamcap=0` and `#knee=0` revert, independently).** Live report: a

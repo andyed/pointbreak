@@ -262,6 +262,11 @@ const uniforms = {
   // verdict: it replaces the shipped throw/drop pair with a rotation of the
   // crest band, which is a visible change to every plunging wave.
   u_curl:       { value: 0 },
+  // #earn=0 reverts: inside the #curl bend, over-ceiling breaking water earns
+  // the arc angle that returns its apex to the ceiling (the head-block fix and
+  // the "reference height, not a clamp" decision — see choppyPos). Ships ON,
+  // but inert unless u_curl is on, so the default frame is untouched.
+  u_earn:       { value: 1 },
   // #drop=legacy: restore the pre-2026-08-18 dropMag, which was proportional to
   // the height it was subtracted from and weighted only by `pocket`, so the
   // wave came out flattest exactly at the breaking pocket (median crest /
@@ -2023,6 +2028,10 @@ function applyHashParams() {
   // on the mask keys off vCurl instead of the unapplied throw (see choppyPos),
   // so the two flags describe the same event through different geometry.
   if (h.get('curl') === '1') uniforms.u_curl.value = 1;
+  // #earn is the revert arm for the over-fill bend floor (default on; only
+  // reachable through the #curl branch, so #curl=1&earn=0 is the pre-floor
+  // bend and #curl=1 alone is the shipped-floor arm).
+  if (h.get('earn') === '0') uniforms.u_earn.value = 0;
   // #drop=legacy is a REVERT arm, not a feature flag: the re-scoped dropMag
   // ships on, and this restores the term that flattened the pocket so the two
   // silhouettes can be captured from one build.

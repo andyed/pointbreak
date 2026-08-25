@@ -248,6 +248,9 @@ uniform float u_time;   // simulation seconds (speed-scaled, pausable, JS-side)
 uniform vec2  u_cell;   // core grid cell size in metres (x, z) — normal FD step
 uniform float u_fidelityLook; // 0 current, 1 foam, 2 connected face/lip probe
 uniform float u_curl;   // #curl=1: lip overturn (rotation, not throw). Default 0.
+uniform float u_earn;   // #earn=0 reverts: over-fill earns bend (floor on the
+                        // arc angle inside the #curl branch). Default 1; inert
+                        // unless u_curl is on.
 uniform float u_legacyDrop; // #drop=legacy: restore the pre-2026-08-18 dropMag
                             // (the one that flattened the pocket). A/B only.
 uniform float u_offKnee;    // #knee: soft knee as a FRACTION of the live offset
@@ -744,6 +747,41 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     float kEff = (mix(0.30, 2.60, plunge)/max(hCrest, 0.5))
                * overGate * pocket * bandZ * (0.80 + 0.30*lipJit);
     float th   = clamp(dyB*kEff, 0.0, 2.30);   // 132 deg; the mesh backstop
+    // ---- over-fill earns overturn (#earn=0 reverts; 2026-08-25) ----------
+    // THE DECISION on "crestCeilM is a reference height, not a clamp"
+    // (TODO 2026-08-19, PSI_SPEC Phase 3): it stays a reference. Standing a
+    // few percent over it is legal — the measured norm at month=card is
+    // ~1.05 across all six mapped sites, and clamping was the old dropMag
+    // world (and the facet-slab lesson: hard limits on fields make planes).
+    // But water that is over the reference AND breaking may not simply
+    // STAND; the over-limit height is routed into the bend instead. The
+    // head block (fill 1.13, bend only 50 deg at the top vertex) is exactly
+    // the case the multiplicative gates cannot reach: kEff decays with
+    // pocket at the break head, so the tallest water gets the least bend.
+    // A floor on the arc angle inverts that: from the bend's own map,
+    // apex-back-at-the-ceiling means sin(th)/th = 0.65/(fill - 0.35), and
+    // the floor is that angle — zero at fill <= 1 by construction, growing
+    // with the over-fill, so over-fill EARNS overturn instead of standing.
+    // sqrt(6(1-r)) inverts sin(th)/th to 3% over the working range; the
+    // (1 + 0.22(1-r)) factor trims that to < 1.5% (checked r = 0.5..0.9).
+    // Gates on the floor, each with a reason: pocket (breaking-ness — a
+    // non-breaking crest over the reference keeps standing, which IS the
+    // decision) and the bend's own plunge blend (character: a spiller's
+    // over-fill crumbles at ~1/3 of the return angle rather than being
+    // thrown — forcing the full return at Sharks would plunge-ify a spilling
+    // wave, the invariant PSI_SPEC Phase 0 names). Deliberately NOT bandZ:
+    // the head's apex sits OFF the crest phase line (forward pitch and chop
+    // move the tallest water away from theta = 0), so bandZ is ~0.35 exactly
+    // at the block — gating the floor by it reproduces the failure the floor
+    // exists to fix (measured 2026-08-25: with bandZ in the gate the head
+    // row was bit-identical across arms). The floor's own trigger already
+    // scopes it: fill > 1 only happens on crest-top water, and pocket keeps
+    // it at the travelling breakpoint.
+    float fillQ  = h/max(hCrest, 0.5);
+    float rNeed  = clamp(0.65/max(fillQ - 0.35, 1e-3), 0.0, 1.0);
+    float thNeed = sqrt(6.0*(1.0 - rNeed))*(1.0 + 0.22*(1.0 - rNeed));
+    float earnG  = smoothstep(0.10, 0.40, pocket) * mix(0.30, 1.0, plunge);
+    if (u_earn > 0.5) th = min(max(th, thNeed*earnG), 2.30);
     if (!(th == th)) th = 0.0;                 // NaN guard (house rule)
     // Stable arc form: the (1-cos th)/th and sin(th)/th factors are written
     // over th, not over kEff, so kEff -> 0 is the identity with no divide.
