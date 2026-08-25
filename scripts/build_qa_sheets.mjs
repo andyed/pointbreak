@@ -553,6 +553,23 @@ const SHEETS = [
         pubDrop: true,
       },
       {
+        id: 'cover-curl', label: 'Cover camera — the #curl bundle (Sewers)',
+        note: 'The OPT-IN lip arm — curl=1&lip=1&curtain=1, default OFF — through the same derived break '
+            + 'clocks. Site is Sewers, not Second Peak: the bend and its curtain gate on plunge, and at '
+            + 'ξ 0.65 (Second Peak) the lip barely goes over, so a bundle group there would show frames '
+            + 'that do not carry the claim. Sewers (ξ 1.15) reaches the 132° bend backstop; the cover '
+            + 'camera rides the breakpoint at 16 m, so the bluff that keeps Sewers off the cliff group does '
+            + 'not occlude here. Read it for the two things the bundle claims: whether the lip is a tube '
+            + 'with thickness rather than a translated sheet (#curl, 2026-08-18), and whether the space '
+            + 'under the thrown lip is closed by falling water rather than open air (#curtain, 2026-08-24).',
+        base: 'preset=sewers&cam=cover&curl=1&lip=1&curtain=1', rows: BREAK_ROWS,
+        // LOCAL ONLY, structurally: published QA is CURRENT STATE, and an
+        // opt-in arm is not the current state — publishing it would claim the
+        // shipped model draws a curtain it does not draw. Promote only if the
+        // bundle itself is promoted to default.
+        pubDrop: true,
+      },
+      {
         id: 'drone', label: 'Drone camera — overhead',
         note: 'Same six rows, same derived clocks, from above: this is where the along-crest peel (the zipper) reads instead. Tilted 15° off nadir since 2026-08-22 — it stood at 6.25°, near enough to straight down that a crest had no silhouette and the shot could only show the plan of the break, never its form.',
         base: 'preset=secondpeak&cam=drone', rows: BREAK_ROWS,
