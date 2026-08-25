@@ -39,6 +39,16 @@ All four flags stay opt-in. Promotion of the bundle remains gated on the
 Privates bed-less reference (decision (b), 2026-08-19 note) — that gate is
 unchanged by this session — plus the missing crash above.
 
+Surfaced by the same-day sheet rebuild, NOT caused by it (every change this
+session is flag-gated or bit-identical at default, and the failing group runs
+the default path): `break-progression/drone/h0-low` (H₀ 0.70 m, Second Peak)
+fails its break-event acceptance — foam at the crest 0.05→0.10 against the
+threshold, BREAK EVENT NO. A 0.70 m day that never visibly breaks at the
+watch station is either honest (below this spot's real break threshold —
+then the acceptance row should say n/a, the §4.6 pattern) or the small-day
+foam family again. Un-triaged; do not tune anything to make the row pass
+before deciding which.
+
 ## ▶ PARKED, TOP OF THE LIST (2026-08-22) — the lip is a detached white shelf over open water
 
 Live report, close camera: "floating foam?" — a white sheet hanging in the air
