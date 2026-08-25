@@ -1912,20 +1912,32 @@ void main(){
   float gate = smoothstep(0.30, 0.55, curlT) * breakMask(x0)
              * (1.0 - l1) * (1.0 - l2) * farFadeAt(vec2(x0, zc));
 
-  // Tangent continuation: the bend's arc direction at the tip, in (z, y).
+  // Tangent continuation: the bend's arc direction at the tip, in (z, y) —
+  // with the y component FLOORED AT ZERO. Below 90 deg of overturn the arc
+  // tangent still points upward, and the first cut used it raw: the control
+  // point sat ABOVE the lip and the curtain arced up out of the crest before
+  // falling — a pale veil floating over the wave (live report 2026-08-24).
+  // The curtain inherits the bend's own contract: it never lifts.
   float thTip = curlT*PI;
-  vec2  tan2  = vec2(sin(thTip), cos(thTip));
+  vec2  tan2  = vec2(sin(thTip), min(cos(thTip), 0.0));
   float span  = distance(Ptip.zy, Pland.zy);
   vec2  ctrl  = Ptip.zy + tan2*0.45*span;
+  ctrl.y = min(ctrl.y, Ptip.y);   // belt and braces: no control point above the lip
 
-  // Quadratic Bezier tip -> landing; collapse to the tip when gated off so
-  // the strip degenerates instead of stretching a stray sheet across a lull.
-  float u1 = 1.0 - v;
-  vec2 zy = u1*u1*Ptip.zy + 2.0*u1*v*ctrl + v*v*Pland.zy;
-  vec3 P  = mix(Ptip, vec3(x0, zy.y, zy.x), gate > 0.001 ? 1.0 : 0.0);
+  // Quadratic Bezier tip -> landing, walked only as far as the overturn has
+  // earned: the fall parameter is v*gate, so a marginal station hangs a short
+  // jet growing off the lip instead of a full-size sheet at ghost alpha —
+  // the second half of the same floating-veil defect. Full gate = full drop,
+  // C0 at the landing exactly when the overturn is complete.
+  float vG = v*gate;
+  float u1 = 1.0 - vG;
+  vec2 zy = u1*u1*Ptip.zy + 2.0*u1*vG*ctrl + vG*vG*Pland.zy;
+  vec3 P  = vec3(x0, zy.y, zy.x);
   if (!(P.x == P.x && P.y == P.y && P.z == P.z)) P = Ptip;   // NaN guard (house rule)
 
-  vCurtA  = gate;
+  // A young jet is still water, not gauze: opacity rises much faster than
+  // geometric reach (sqrt), so what exists reads solid.
+  vCurtA  = sqrt(gate);
   vCurtUV = vec2(x0, v);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
 }
