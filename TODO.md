@@ -63,6 +63,35 @@ overturn; (b) `CURT_REACH = 0.9·h_crest` is authored, the Mead & Black
 vortex-ratio refinement would replace it; (c) needs the live eye before any
 promotion talk.
 
+**NEW FINDING (2026-08-24 live, "still a bit raised up"): the head block is
+the over-ceiling crest the bend leaves standing.** A flat-topped pale block
+rides above the peel at the break head on every #curl arm. Acquitted by
+four-arm A/B at one pinned frame (sewers, cliff, sim 39): identical on
+`bundle`, `bundle+look=foam`, `curl=1&lip=1`, and `curl=1` BARE — so not the
+curtain, not the foam material, not the aer paint. Probed at the head
+(curlProbe, per-station crest max vs ceiling):
+
+    x     yMax    ceil    fill   curl@top
+    -30   5.73    7.71    0.74   0.01
+    -20   8.69    7.67    1.13   0.28   <- the block
+    -10   7.53    7.56    1.00   0.17
+      0   7.81    7.47    1.05   0.15
+
+The crest at the head genuinely stands 1.13x its depth-limited ceiling (the
+open "pocket stations above 1.0" item, seen live), and the bend only reaches
+50 deg at the top vertex there — it lowers-as-it-pitches only what its gates
+select, and the gates (pocket*bandZ*overGate) leave the very top of the head
+mostly unbent. On the DEFAULT arm the old dropMag pulled that band down;
+#curl removes the drop (legacyLip = 0) and replaces it with a bend that
+under-engages exactly where the drop used to act. The arc's apex plateau
+(sin th ~ 1 across 70-110 deg) flattens whatever stands, which is why it
+reads as a box. NOT fixed tonight on purpose: the fill>1 question is an open
+mapped-site finding ("crestCeilM is a reference height, not a clamp"), and
+re-aiming the bend's gates without deciding that first is repair-the-output.
+Candidate directions when it is decided: key the bend's reach to the RAW
+local crest (dyB against h, not the ceiling) so over-fill earns more bend,
+or saturate overGate later than 1.5 at the head.
+
 ## 2026-08-22 — the offset bound was a constant, and the constant was the facet
 
 **Shipped (`#lamcap=0` and `#knee=0` revert, independently).** Live report: a
