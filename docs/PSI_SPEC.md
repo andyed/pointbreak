@@ -6,6 +6,45 @@ Method-named per house convention: Ψ is the eikonal phase `Ψ(contourZ) =
 runs on it instead of the frozen 90 m plane wave. Written 2026-08-24; the
 evidence it cites is committed as of `201ad24`.
 
+## 0. Verdict (2026-08-25) — CLOSED: the promotion had already shipped
+
+Phase 0 ran the day after this spec was committed and falsified it in a
+direction §4 did not anticipate: **Ψ has been the shipped default since
+2026-08-13** (`6795980`, "M6 part 3, closed out" in WEB_THREE_SPEC.md), with
+every Phase-1 consumer already closed that week — rider + JS twin (`11ba59c`),
+audio crest solve + `setEnv` group speed (`69fd820`) — and `#psi=0` as the
+revert arm. The §2 inventory ("OFF by default, water only, consumers still on
+the plane wave") was read off the staging note at `model-glsl.js:91`, which
+had outlived the flip by eleven days; MODEL.md §2.2a's "the wave never
+shortens as it shoals" carried the same rot. Both are corrected as of
+`b0f7705` and the §2.2a fix committed with this verdict.
+
+What Phase 0 measured, arms relabeled (`#psi=0` vs shipped default; four
+spots × three clocks, `probe_wave_shape.mjs` after the instrument repair in
+`e17180d`):
+
+- Median crest spacing across the stage 88–91 m frozen → 48–71 m shipped;
+  gauge-table wavelength ~108 m at the 7 m deep edge tapering inshore.
+- Per-transect steepest front face: physical median 48.0° → 61.3°, displayed
+  74.3° → 80.3°. Second Peak near-line physical face 19–53° → 74–78°, and it
+  folds only on the Ψ arm. The face moves toward Carini — the §4 ship
+  criterion — and has been shipping for eleven days.
+- Invariants hold: gauge crest heights within 0.7% (H is Ks-owned); biphase
+  near the Ruessink −59° inner-surf target on three of four spots on *both*
+  arms. Sewers runs shallow (−33…−43°) on both — open, and not Ψ's.
+- §3 is moot on stage: max gauge depth ~7 m puts L ≈ 108 m, not 351 m; the
+  feared 4× offshore divergence has no water to appear in, and the shipped
+  look has been the Ψ look since the 13th with no emptiness report.
+
+Disposition: §§1–3 stand as a correct account of *why* the shipped mechanism
+is right. Phases 0–2 are closed (retroactively — the work predates the spec).
+**Phase 3 is the only live section**, and its ordering rationale is dissolved:
+the head-block fill table (TODO 2026-08-24) was measured post-promotion, so
+its ceilings and S values are current and the crest-budget work starts
+immediately. The lesson for the next spec: an inventory is verified against
+`git log` and the live uniforms, not against comment blocks — a staging note
+is a snapshot, and this one cost a full spec.
+
 ## 1. Why this, and why now
 
 The model has already named its own next shape frontier, in writing. MODEL.md

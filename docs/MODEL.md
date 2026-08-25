@@ -359,10 +359,23 @@ physical face angle is still far below a real breaking wave. The steepest point
 of the front face at the line is **6.8–9.9° physical** (20.9–29.2° displayed),
 up from 4.3–8.9°, against Carini et al. (2021)'s 22° spilling / 30° plunging at
 breaking onset. The face is 30–75% steeper than before the correction and still
-2–4× too gentle; closing the rest needs the frozen 90 m wavelength (§2.6,
-`u_psiMix` — the wave never shortens as it shoals) and the 20 m displacement
-clamp, **not** more skew: `s` already sits at its monotonicity ceiling of 0.8 at
-the line, and the ceiling is structural.
+2–4× too gentle, **not** from more skew: `s` already sits at its monotonicity
+ceiling of 0.8 at the line, and the ceiling is structural.
+
+*Attribution corrected 2026-08-25.* This paragraph originally charged the
+remainder to "the frozen 90 m wavelength (`u_psiMix` — the wave never shortens
+as it shoals)" and the 20 m displacement clamp. Half of that was stale when
+written: `#psi` had been default-ON since 2026-08-13 (`6795980`, M6p3 closeout
+in WEB_THREE_SPEC), so these numbers were **measured with the wavelength
+already shoaling** — that lever was pulled, and the deficit above is what
+survives it. The Phase-0 A/B of `docs/PSI_SPEC.md` (2026-08-25, `#psi=0` vs
+default) measured what Ψ actually buys: median crest spacing 88–91 m frozen →
+48–71 m shipped, per-transect steepest front face +8–13° median, Second Peak's
+near-line physical face 19–53° → 74–78°, gauge crest heights invariant within
+0.7%. The clamp half of the sentence became the wave-derived `S/k` ceiling on
+2026-08-22 (`#lamcap`). The still-open remainder therefore belongs to the
+*breaking-crest* mechanisms (the bend and its budget — TODO's head block), not
+to the carrier.
 
 Wave height `H` is untouched by the `q` change — the crest sits 3% lower above
 the mean and the trough 3% deeper, and `H = 2·amp` either way — but the crest's

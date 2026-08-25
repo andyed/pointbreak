@@ -90,10 +90,13 @@ mapped-site finding ("crestCeilM is a reference height, not a clamp"), and
 re-aiming the bend's gates without deciding that first is repair-the-output.
 Candidate directions when it is decided: key the bend's reach to the RAW
 local crest (dyB against h, not the ceiling) so over-fill earns more bend,
-or saturate overGate later than 1.5 at the head. SPEC'D: the head
+or saturate overGate later than 1.5 at the head. ~~SPEC'D: the head
 block is Phase 3 of `docs/PSI_SPEC.md` — deliberately AFTER the shoaling-
 wavelength promotion, because its fill numbers are measured against ceilings
-and S values that promotion changes. Fixing it first means fixing it twice.
+and S values that promotion changes. Fixing it first means fixing it twice.~~
+**ORDERING DISSOLVED (2026-08-25):** the promotion had already shipped on
+2026-08-13 (PSI_SPEC §0 verdict), so this fill table was measured against
+current ceilings all along. Phase 3 is unblocked and in progress.
 
 ## 2026-08-22 — the offset bound was a constant, and the constant was the facet
 
