@@ -111,6 +111,33 @@ async function probeInPage(cfg) {
   }
   const t0 = pb.sim();
 
+  // GRID_VERT declares its uniforms OUTSIDE the sliced choppyPos block, and
+  // that list grows with every render feature (u_carrierAmp, u_curl, u_lamCap,
+  // ...). Declaring them by hand here is a treadmill the probe has already
+  // fallen off once, so: collect every u_* the slice references, subtract the
+  // ones MODEL_GLSL (or this preamble) already declares, and declare the rest
+  // with the type read off the LIVE uniform object — the same authority the
+  // values are bound from, so declaration and binding cannot disagree.
+  const declared = new Set([...`${MODEL_GLSL}`.matchAll(/uniform\s+\w+\s+(u_\w+)/g)].map((m) => m[1]));
+  ['u_fidelityLook', 'u_pRectA', 'u_pRectB', 'u_pMode', 'u_pSize', 'u_pT', 'u_gauge'].forEach((n) => declared.add(n));
+  const glType = (v) => {
+    if (typeof v === 'number') return 'float';
+    if (v && v.isVector2) return 'vec2';
+    if (v && v.isVector3) return 'vec3';
+    if (v && v.isVector4) return 'vec4';
+    if (v && v.isTexture) return 'sampler2D';
+    return null;
+  };
+  const missing = [];
+  for (const name of new Set([...CHOPPY.matchAll(/\bu_\w+/g)].map((m) => m[0]))) {
+    if (declared.has(name)) continue;
+    const u = pb.uniforms[name];
+    const ty = u ? glType(u.value) : null;
+    if (!ty) throw new Error(`slice references ${name} but no live uniform of a declarable type exists`);
+    missing.push(`uniform ${ty} ${name};`);
+  }
+  prov.autoDeclared = missing.map((d) => d.split(' ')[2].replace(';', ''));
+
   // ---- probe material ----
   const FRAG = `
 precision highp float;
@@ -124,6 +151,7 @@ uniform float u_pT;
 // gauge table for the TIME pass, one (x,z) per row
 uniform vec2  u_gauge[16];
 ${MODEL_GLSL}
+${missing.join('\n')}
 ${CHOPPY}
 void main(){
   float col = floor(gl_FragCoord.x);
