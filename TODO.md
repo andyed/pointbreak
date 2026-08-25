@@ -1,5 +1,44 @@
 # TODO
 
+## ▶ NEW (2026-08-25, live) — the crash is missing
+
+Live verdict on the judged stack (below): "we're missing the crash of the
+wave." The lip bends over (#curl), the curtain closes the fall (#curtain),
+the overturn develops behind the head (#onset) — and then the lip LANDS with
+no event. No impact burst, no thrown white mass at the landing line, no
+splash-up. The model side already computes an impact channel
+(`breakerLifecycleAtX` returns impact gain, consumed by foam paint), so the
+gap is the GEOMETRY/MATERIAL of the landing, not the clock: candidates are an
+impact-keyed white mass where the curtain's landing edge meets the face
+(the curtain already knows its landing point), and/or driving the spray
+plume off the same landing line (the spray mesh is currently the loudest
+hard edge at low cameras — one fix could serve both). Not started; next
+strand for the bundle after the 2026-08-25 saucer session.
+
+## ✔ LIVE SESSION 2026-08-25 — the flying saucer strand, judged
+
+Verdict on the stack `#curl=1&lip=1&curtain=1&look=foam&sapp=0.22&onset=1`:
+**"big improvement, no more flying saucers"** (and earlier in the same
+session: the lace foam material reads better than the shipped carpet, and
+`sapp=0.22` "wave shape lookin better"). The session's chain, each measured
+and committed same-day:
+
+- `aee7878` — aer gate follows the bend's own curl (one authority on "has it
+  gone over"; the bare glass plate at the head was the two gates disagreeing).
+- `b14d50e` — `#sapp=` unbundles the approach strength from `#look=full`;
+  0.22 turns the straight deck edge into an arcing lip.
+- `990f8c4` — `#onset`: the overturn develops behind the zipper head; the
+  detached plate off the end of the whitewater line was the pocket bell
+  handing unbroken water the mature fold reach. Split gates (bend/floor act
+  from onset, fold reach develops) after the one-window cut measured the
+  head block standing back up at 1.414.
+- QA break sheet now carries the stack: `cover-curl` group updated,
+  `drone-curl` group added (the shot that convicted the saucer).
+
+All four flags stay opt-in. Promotion of the bundle remains gated on the
+Privates bed-less reference (decision (b), 2026-08-19 note) — that gate is
+unchanged by this session — plus the missing crash above.
+
 ## ▶ PARKED, TOP OF THE LIST (2026-08-22) — the lip is a detached white shelf over open water
 
 Live report, close camera: "floating foam?" — a white sheet hanging in the air

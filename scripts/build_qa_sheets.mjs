@@ -554,19 +554,41 @@ const SHEETS = [
       },
       {
         id: 'cover-curl', label: 'Cover camera — the #curl bundle (Sewers)',
-        note: 'The OPT-IN lip arm — curl=1&lip=1&curtain=1, default OFF — through the same derived break '
-            + 'clocks. Site is Sewers, not Second Peak: the bend and its curtain gate on plunge, and at '
-            + 'ξ 0.65 (Second Peak) the lip barely goes over, so a bundle group there would show frames '
-            + 'that do not carry the claim. Sewers (ξ 1.15) reaches the 132° bend backstop; the cover '
-            + 'camera rides the breakpoint at 16 m, so the bluff that keeps Sewers off the cliff group does '
-            + 'not occlude here. Read it for the two things the bundle claims: whether the lip is a tube '
-            + 'with thickness rather than a translated sheet (#curl, 2026-08-18), and whether the space '
-            + 'under the thrown lip is closed by falling water rather than open air (#curtain, 2026-08-24).',
-        base: 'preset=sewers&cam=cover&curl=1&lip=1&curtain=1', rows: BREAK_ROWS,
+        note: 'The OPT-IN lip arm, at the stack the 2026-08-25 live session judged — '
+            + 'curl=1&lip=1&curtain=1&look=foam&sapp=0.22&onset=1, all default OFF. Site is Sewers, not '
+            + 'Second Peak: the bend and its curtain gate on plunge, and at ξ 0.65 (Second Peak) the lip '
+            + 'barely goes over, so a bundle group there would show frames that do not carry the claim. '
+            + 'Sewers (ξ 1.15) reaches the 132° bend backstop; the cover camera rides the breakpoint at '
+            + '16 m, so the bluff that keeps Sewers off the cliff group does not occlude here. Read it for '
+            + 'the bundle’s claims in order: the lip is a tube with thickness, not a translated sheet '
+            + '(#curl); the space under it is closed by falling water (#curtain); whitewater is a '
+            + 'perforated material, not a smooth blur (#look=foam); the approach term at 0.22 keeps the '
+            + 'crest an arcing lip rather than a straight-edged deck (#sapp); over-ceiling breaking water '
+            + 'bends down to its ceiling instead of standing as a box (#earn, rides with #curl); and the '
+            + 'overturn develops BEHIND the zipper head (#onset) — verdict 2026-08-25: "big improvement, '
+            + 'no more flying saucers". KNOWN MISSING, same verdict: the crash — the lip lands with no '
+            + 'impact event.',
+        base: 'preset=sewers&cam=cover&curl=1&lip=1&curtain=1&look=foam&sapp=0.22&onset=1',
+        rows: BREAK_ROWS,
         // LOCAL ONLY, structurally: published QA is CURRENT STATE, and an
         // opt-in arm is not the current state — publishing it would claim the
         // shipped model draws a curtain it does not draw. Promote only if the
         // bundle itself is promoted to default.
+        pubDrop: true,
+      },
+      {
+        id: 'drone-curl', label: 'Drone camera — the #curl bundle from above (Sewers)',
+        note: 'The same judged stack, plan view — this is the shot that convicted the "flying saucer" '
+            + '(2026-08-25): the pocket bell extends ~25 m ahead of the travelling breakpoint, and before '
+            + '#onset it handed that unbroken water the mature fold reach, drawing a detached white plate '
+            + 'off the END of each whitewater line, moated by the stretch band. Read the line ENDS: they '
+            + 'must feather out into foam, never dock a plate. The head keeps a compact nascent fold '
+            + '(the overturn develops over ~0.2T behind the head, Basco’s plunge cycle) and the '
+            + 'sim 39 head block stays at its ceiling (fill 1.011 — the #earn floor is not suppressed at '
+            + 'onset; the first cut of #onset was, and the block stood back up at 1.414).',
+        base: 'preset=sewers&cam=drone&curl=1&lip=1&curtain=1&look=foam&sapp=0.22&onset=1',
+        rows: BREAK_ROWS,
+        // LOCAL ONLY: same structural rule as cover-curl above.
         pubDrop: true,
       },
       {
