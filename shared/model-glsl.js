@@ -88,10 +88,13 @@ uniform vec4 u_surferPos;
 // table (bakeRefraction -> dispersion.js integratePsi) exactly as M4 bakes the
 // break line. u_psiMix cross-fades to it; at 0 this whole path costs one mix.
 //
-// STAGED (WEB_THREE_SPEC.md M6 part 3): step 1 is the WATER ONLY. The rider,
-// the audio crest solve and setEnv's group speed all still assume the
-// constant-phi plane wave, so with u_psiMix = 1 the rider will drift off the
-// crests. That is expected and is why this is off by default (#psi=1 to try).
+// SHIPPED (WEB_THREE_SPEC.md "M6 part 3, closed out"): default ON since
+// 2026-08-13 on bed-backed sites — rider, audio crest solve and setEnv group
+// speed all run the same baked phase authority (main.js psiPhaseFn). #psi=0
+// is the frozen-LAM A/B revert. A prior version of this note said "off by
+// default, water only"; it outlived the flip by 11 days and seeded a spec
+// (docs/PSI_SPEC.md) proposing work that had already shipped — comments about
+// staging state go stale, so this one now names the closeout record instead.
 uniform sampler2D u_refrTex;
 uniform float u_psiMix;     // 0 = frozen-LAM plane wave, 1 = baked Psi
 uniform float u_shelterMix; // 1 = H_eff sheltering field, 0 = flat H0 (#shelter=0)
