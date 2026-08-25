@@ -830,7 +830,21 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // from painting a standing white smear.
   float lipKey = u_curl > 0.5 ? smoothstep(0.10, 0.50, curl)
                               : clamp(throwMag / max(1.2*hM, 0.5), 0.0, 1.0);
-  float aerCurtain = smoothstep(0.80, 1.15, Sapp + Sover) * lipKey;
+  // With #curl ON the S-cusp factor is a SECOND authority on the same
+  // question lipKey already answers ("has this water gone over"), left from
+  // the throw era — and the two gates disagree exactly at the advancing
+  // head, where the bend has folded real geometry (measured sim 43 x=30:
+  // fold 10.9 m, curl 0.22) while Sapp+Sover has already fallen off its
+  // 0.80 ramp (aer 0.94 -> 0.01 in 5 m). Because the head advances with the
+  // zipper, that freshly-bent-never-whitened band is PERMANENT in the
+  // head's frame: a bare glass plate riding ahead of the whitewater (live
+  // report 2026-08-25, "alien ship following the wave"). One mechanism,
+  // one gate: on the #curl arm the overturn count alone keys the aeration;
+  // the lipKey 0.10 floor still leaves the very tip of a fresh lip glass,
+  // which is what a real pitching lip is. The throw arm keeps the S factor
+  // (its lip and its cusp are separate mechanisms, so the AND is earned).
+  float aerCurtain = u_curl > 0.5 ? lipKey
+                                  : smoothstep(0.80, 1.15, Sapp + Sover) * lipKey;
   float aerSpill   = 0.30 * pocket * (1.0 - plunge);
   aer = max(aerCurtain, aerSpill);
   if (aer > 0.003) {

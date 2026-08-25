@@ -151,7 +151,14 @@ test('the aeration curtain keys off the mechanism that is actually drawing the l
   // the applied throw when it is not.
   assert.match(shaders, /float lipKey = u_curl > 0\.5 \? smoothstep\([\d.]+, [\d.]+, curl\)/);
   assert.match(shaders, /clamp\(throwMag \/ max\([\d.]+\*hM, [\d.]+\), 0\.0, 1\.0\)/);
-  assert.match(shaders, /float aerCurtain = smoothstep\([\d.]+, [\d.]+, Sapp \+ Sover\) \* lipKey/);
+  // 2026-08-25: the same principle, one step further — on the curl arm the
+  // S-cusp factor was a SECOND authority on the question lipKey already
+  // answers, and the two disagreed exactly at the advancing head (fold
+  // 10.9 m, aer 0.01 — the bare "alien ship" plate). Curl arm: overturn
+  // count alone. Throw arm: lip and cusp are separate mechanisms, so the
+  // S-gate AND is earned there and must stay.
+  assert.match(shaders, /float aerCurtain = u_curl > 0\.5 \? lipKey/);
+  assert.match(shaders, /: smoothstep\([\d.]+, [\d.]+, Sapp \+ Sover\) \* lipKey/);
   // curl is written before the aeration block reads it, or the key is stale.
   assert.ok(shaders.indexOf('curl   = th/PI;') < shaders.indexOf('float lipKey'),
             'curl must be written before the aeration key reads it');
