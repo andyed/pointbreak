@@ -302,6 +302,12 @@ test('published frames are re-encoded for the budget, but never measured after',
   assert.match(rig, /against the 9\.9 MB essay bundle/);
 });
 
+test('published pages are emitted diff-clean', () => {
+  assert.match(rig, /const cleanHTML = \(html\) => html\.replace\(\/\[ \\t\]\+\$\/gm, ''\)/);
+  assert.match(rig, /writeFileSync\(join\(OUT, sheet\.file\), cleanHTML\(sheetHTML\(/);
+  assert.match(rig, /writeFileSync\(join\(OUT, 'index\.html'\), cleanHTML\(indexHTML\(/);
+});
+
 // ---------------------------------------------------------------------------
 // The break sheet's anchor, span and marker (2026-08-20).
 //

@@ -242,6 +242,10 @@ function digestApp() {
 }
 const APP_DIGEST = digestApp();
 
+// Generated pages are committed into the public website bundle. Keep their
+// textual output diff-clean rather than making the release worktree repair it.
+const cleanHTML = (html) => html.replace(/[ \t]+$/gm, '');
+
 const MODE = flags.mode === 'published' ? 'published' : 'local';
 // ONE published set, replaced in place. qa/ (local) is the full working
 // instrument; qa/published/ is what build_site.py ships.
@@ -2449,11 +2453,11 @@ if (flags['html-only']) {
     const p = join(OUT, `${sheet.id}.json`);
     if (!existsSync(p)) { console.warn(`skip ${sheet.id}: no ${p}`); continue; }
     const data = JSON.parse(readFileSync(p, 'utf8'));
-    writeFileSync(join(OUT, sheet.file), sheetHTML(sheet, data, data.linkBase || LINK_BASE, SHEET_NOTES[sheet.id] || ''));
+    writeFileSync(join(OUT, sheet.file), cleanHTML(sheetHTML(sheet, data, data.linkBase || LINK_BASE, SHEET_NOTES[sheet.id] || '')));
     rebuilt.push({ sheet, data });
     console.log(`-> ${join(OUT, sheet.file)}`);
   }
-  writeFileSync(join(OUT, 'index.html'), indexHTML(rebuilt));
+  writeFileSync(join(OUT, 'index.html'), cleanHTML(indexHTML(rebuilt)));
   console.log(`done (html only) -> ${OUT}`);
   process.exit(0);
 }
@@ -2513,11 +2517,11 @@ try {
       ...captured,
     };
     writeFileSync(join(OUT, `${sheet.id}.json`), JSON.stringify(data, null, 2));
-    writeFileSync(join(OUT, sheet.file), sheetHTML(sheet, data, LINK_BASE, SHEET_NOTES[sheet.id] || ''));
+    writeFileSync(join(OUT, sheet.file), cleanHTML(sheetHTML(sheet, data, LINK_BASE, SHEET_NOTES[sheet.id] || '')));
     built.push({ sheet, data });
     console.log(`-> ${join(OUT, sheet.file)}`);
   }
-  writeFileSync(join(OUT, 'index.html'), indexHTML(built));
+  writeFileSync(join(OUT, 'index.html'), cleanHTML(indexHTML(built)));
 } finally {
   await browser.close();
   stopServer();
