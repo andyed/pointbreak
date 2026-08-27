@@ -29,11 +29,13 @@ viewpoint as the map -- so the pair reads as one place seen twice, measured and
 modelled. It carries a SIMULATED caption: at a glance the render is
 photographic enough to be mistaken for an aerial photo, and it is not one.
 
-Deterministic; no randomness. Requires docs/figures/assets/og_hero.png --
-run capture_og_hero.mjs first. Run render_og.mjs afterwards for the PNG.
+Deterministic; no randomness. Requires the visually accepted
+docs/figures/assets/og_hero.png. capture_og_hero.mjs makes a candidate; it is
+not a prerequisite on every model change. Run render_check.mjs afterwards for
+the PNG.
 
 Usage:
-  node docs/figures/capture_og_hero.mjs     # once, or when the model changes
+  node docs/figures/capture_og_hero.mjs     # only to make a review candidate
   python3 docs/figures/gen_og.py
   node docs/figures/render_check.mjs docs/figures/og-card.svg \
         docs/figures/og-card.png 2

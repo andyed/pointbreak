@@ -10,6 +10,11 @@
 // jumped to a fixed SIM_T rather than sampled from wall-clock, and the preset
 // is asserted after load, so re-runs are comparable frame-for-frame.
 //
+// This is a MANUAL candidate generator, not a build step. The accepted asset
+// remains the 2026-08-10 capture from 38e67ad: the 2026-08-26 promoted-anatomy
+// recapture was reviewed, looked worse at card size, and was deferred. Do not
+// commit this script's output without a new visual acceptance.
+//
 // Why drone/sewers: the card's map is a plan view, so the hero is too -- the
 // two read as the same viewpoint, one measured and one modelled. Sewers is the
 // most plunging preset in the bank (xi = 1.15) and the only one whose peel

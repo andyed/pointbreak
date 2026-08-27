@@ -39,12 +39,15 @@ borrowed names remain.
 
 ## Social-preview inset
 
-`og_hero.png` is a 1280×752 crop of the same renderer at Sewers, Drone camera,
-`sim=42&speed=0`, captured by `docs/figures/capture_og_hero.mjs`. It was
-regenerated on 2026-08-26 with the promoted anatomy default, then embedded by
-`gen_og.py` and rasterised at 2× by `render_check.mjs`:
+`og_hero.png` is a 1280×752 crop of the renderer at Sewers, Drone camera. The
+accepted asset remains the 2026-08-10 capture from commit `38e67ad`. A
+2026-08-26 recapture with the promoted anatomy default looked worse at card size
+and was deliberately deferred. `gen_og.py` embeds the accepted capture and
+`render_check.mjs` rasterises the card at 2×:
 
 ```bash
+# Optional: produce a review candidate. Do not replace the accepted asset
+# without visual approval.
 node docs/figures/capture_og_hero.mjs
 python3 docs/figures/gen_og.py
 node docs/figures/render_check.mjs docs/figures/og-card.svg \
