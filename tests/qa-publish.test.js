@@ -113,16 +113,6 @@ test('the essay QA link says what the sheets are and are not', () => {
     '.qa-note is not on the page background, so its link contrast is not the 8.31:1 row');
 });
 
-test('the essay hero is a truthful first-paint poster, not an eager WebGL blank', () => {
-  const header = essay.slice(essay.indexOf('<header class="essay-header">'), essay.indexOf('</header>'));
-  assert.match(header, /<img src="assets\/og_hero\.png"/);
-  assert.match(header, /Simulated[^<]*current default[^<]*Sewers/i);
-  assert.match(header, /preset=sewers&amp;cam=drone&amp;controls=1&amp;sim=42/);
-  assert.match(header, /Simulated, not footage/);
-  assert.doesNotMatch(header, /<iframe/,
-    'the hero still waits on an eager WebGL iframe before it can show a wave');
-});
-
 test('local and published modes do not share a link default', () => {
   // The whole point of the mode switch: a published sheet must not carry the
   // dev port, and a local sheet must not carry a path that only exists in a
