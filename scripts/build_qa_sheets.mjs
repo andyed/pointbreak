@@ -39,7 +39,7 @@
 //      mirrors the app to. --linkbase= overrides either. A published page whose
 //      links only resolve on one laptop is broken for every other reader.
 //   3. SUBSAMPLING. Local mode is the working instrument and keeps the FULL
-//      matrix (125 frames). Published mode emits a slim view of the same
+//      configured matrix. Published mode emits a slim view of the same
 //      instrument — see PUB_ROWS below for which rows survive and why. The
 //      columns are never cut: on the break sheet the sequence IS the artifact,
 //      and on the set sheet lull→peak→lull is the whole demonstration.
@@ -458,7 +458,7 @@ const SEASON_MONTHS = [
 // ---------------------------------------------------------------------------
 // WHAT THE PUBLISHED SET KEEPS, AND WHY
 //
-// Local mode is the working instrument: the full matrix, 125 frames. Published
+// Local mode is the working instrument: the full configured matrix. Published
 // mode is a slim view of the SAME instrument, cut on ROWS only.
 //
 // Columns are never cut. On the break sheet the five clocks across the tracked
@@ -553,42 +553,34 @@ const SHEETS = [
         pubDrop: true,
       },
       {
-        id: 'cover-curl', label: 'Cover camera — the #curl bundle (Sewers)',
-        note: 'The OPT-IN lip arm, at the stack the 2026-08-25 live session judged — '
-            + 'curl=1&lip=1&curtain=1&look=foam&sapp=0.22&onset=1, all default OFF. Site is Sewers, not '
-            + 'Second Peak: the bend and its curtain gate on plunge, and at ξ 0.65 (Second Peak) the lip '
-            + 'barely goes over, so a bundle group there would show frames that do not carry the claim. '
+        id: 'cover-anatomy', label: 'Cover camera — default anatomy stress view (Sewers)',
+        note: 'The promoted 2026-08-26 anatomy at the most plunging mapped site, with no feature hash: '
+            + 'curl, aerated lip, connected curtain, causal onset and Sapp 0.22 are the current renderer. '
             + 'Sewers (ξ 1.15) reaches the 132° bend backstop; the cover camera rides the breakpoint at '
-            + '16 m, so the bluff that keeps Sewers off the cliff group does not occlude here. Read it for '
-            + 'the bundle’s claims in order: the lip is a tube with thickness, not a translated sheet '
-            + '(#curl); the space under it is closed by falling water (#curtain); whitewater is a '
-            + 'perforated material, not a smooth blur (#look=foam); the approach term at 0.22 keeps the '
-            + 'crest an arcing lip rather than a straight-edged deck (#sapp); over-ceiling breaking water '
-            + 'bends down to its ceiling instead of standing as a box (#earn, rides with #curl); and the '
-            + 'overturn develops BEHIND the zipper head (#onset) — verdict 2026-08-25: "big improvement, '
-            + 'no more flying saucers". KNOWN MISSING, same verdict: the crash — the lip lands with no '
-            + 'impact event.',
-        base: 'preset=sewers&cam=cover&curl=1&lip=1&curtain=1&look=foam&sapp=0.22&onset=1',
+            + '16 m, so the bluff that keeps Sewers off the cliff group does not occlude here. Read the '
+            + 'lip as a tube with thickness, the falling water as a connection back to the face, and the '
+            + 'overturn as something that develops behind the zipper head rather than docking a pale plate '
+            + 'ahead of it. The optional look=foam material arm is deliberately absent: it was not promoted. '
+            + 'KNOWN MISSING: transported impact mass — the lip still lands without a persistent crash/roller state.',
+        base: 'preset=sewers&cam=cover',
         rows: BREAK_ROWS,
-        // LOCAL ONLY, structurally: published QA is CURRENT STATE, and an
-        // opt-in arm is not the current state — publishing it would claim the
-        // shipped model draws a curtain it does not draw. Promote only if the
-        // bundle itself is promoted to default.
+        // LOCAL ONLY: this is the close-range stress view of the current state.
+        // The published break sheet keeps the smaller current-state drone cut;
+        // the cover framing still has no separate publication sign-off.
         pubDrop: true,
       },
       {
-        id: 'drone-curl', label: 'Drone camera — the #curl bundle from above (Sewers)',
-        note: 'The same judged stack, plan view — this is the shot that convicted the "flying saucer" '
-            + '(2026-08-25): the pocket bell extends ~25 m ahead of the travelling breakpoint, and before '
-            + '#onset it handed that unbroken water the mature fold reach, drawing a detached white plate '
-            + 'off the END of each whitewater line, moated by the stretch band. Read the line ENDS: they '
-            + 'must feather out into foam, never dock a plate. The head keeps a compact nascent fold '
-            + '(the overturn develops over ~0.2T behind the head, Basco’s plunge cycle) and the '
-            + 'sim 39 head block stays at its ceiling (fill 1.011 — the #earn floor is not suppressed at '
-            + 'onset; the first cut of #onset was, and the block stood back up at 1.414).',
-        base: 'preset=sewers&cam=drone&curl=1&lip=1&curtain=1&look=foam&sapp=0.22&onset=1',
+        id: 'drone-anatomy', label: 'Drone camera — default anatomy from above (Sewers)',
+        note: 'The promoted default in the plan view that convicted the "flying saucer" on 2026-08-25. '
+            + 'The pocket bell extends ahead of the travelling breakpoint; before the causal onset gate it '
+            + 'handed that water mature fold reach and drew a detached bright plate off the end of each '
+            + 'whitewater line. Read those line ends: they should feather into the head, never dock a plate. '
+            + 'There is no anatomy flag in this row and no look=foam override — it is the renderer a plain '
+            + 'Sewers URL now opens.',
+        base: 'preset=sewers&cam=drone',
         rows: BREAK_ROWS,
-        // LOCAL ONLY: same structural rule as cover-curl above.
+        // LOCAL ONLY: the locations sheet already carries Sewers/current-default
+        // at set scale; this duplicate exists specifically for break-head QA.
         pubDrop: true,
       },
       {
@@ -620,11 +612,12 @@ const SHEETS = [
         })),
       },
       {
-        id: 'seasons', label: 'Seasons — two presets × three months',
+        id: 'seasons', label: 'Requested seasons — two presets × three months',
         pubLabel: 'Seasons — two presets × two months',
-        note: 'The season axis: January (peak), October (shoulder), August (flat). Sewers and Second Peak only — see "What was left out".',
+        note: 'The requested season axis: January (peak), October (shoulder), August (flat). The shipped peel floor then governs the drawn H₀: Sewers collapses all three requests to 1.61 m; Second Peak keeps January at 1.245 m and raises October/August to 1.08 m. Row headers report the drawn state — see "What month actually does".',
         pubNote: 'The season axis at its two extremes: January (the peak month, H₀ p75 1.245 m) against August '
-            + '(the flat one, 0.585 m). Sewers and Second Peak only — see "What was left out".',
+            + '(the flat request, 0.585 m). The shipped peel floor may raise the drawn H₀; Sewers collapses '
+            + 'both requests to 1.61 m, while Second Peak draws 1.245 m against 1.08 m. See "What month actually does".',
         base: 'cam=drone',
         rows: SEASON_PRESETS.flatMap((p) => SEASON_MONTHS.map((m) => ({
           id: `sea-${p}-${m.key}`, label: `${PRESET_LABELS[p]} · ${m.label}`,
@@ -2360,6 +2353,12 @@ card's own T, chop and Δf and changes nothing but height. Tide is not a CDIP pr
 <code>month=</code> and <code>day=</code> are mutually exclusive; an explicit <code>h0=</code> beats both.
 August is the flat one for a measured reason: across 2000–2024 there are <b>zero hours</b> at or above
 Hs 1.3 m in July or August. See <code>docs/research/PP_CDIP_CLIMATOLOGY.md</code>.</p>
+<p><b>The requested and drawn heights are not always the same.</b> Monthly p75 is routed through the shipped
+peel floor before rendering. In this sampled matrix Sewers raises January, October and August to the same
+1.61 m drawn H₀; Second Peak keeps January at 1.245 m and raises October/August to 1.08 m. Identical Sewers
+season rows are therefore a visible cost of the current model policy, not stale captures. Every row header
+prints the drawn state; the requested climatology remains in the row label and permalink. See
+<code>docs/MODEL.md</code> §4.6 and the <code>clamp</code> control.</p>
 <p><b>What is on this sheet.</b> The location axis is all seven presets at <code>month=january</code>
 (7 rows). The season axis is two presets × three months (6 rows): January the peak month, October the
 autumn shoulder, August the flat one. <code>privates</code> is the <b>synthetic-stage</b> site — it has

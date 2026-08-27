@@ -2,13 +2,14 @@
 """Generate fig-floor.svg — "PLEASURE POINT, the floor is a ramp".
 
 The companion to fig-topology. That figure answers *where* the point is; this
-one answers *why it can no longer make a peel*, which is the finding recorded in
-MODEL.md 2.4 and is invisible in a contour plot.
+one shows the straight-contour counterfactual that first exposed how little
+incidence the mean ramp contributes. It is a diagnostic, not the canonical
+peel authority: an oblique point-break route need not follow those contours.
 
 The claim, in one line: over submerged ground the seabed is 0.58 m RMS about a
 1:53 plane whose contours run 4 deg off shore-parallel, and refracted crests
-arrive at 10 deg — leaving ~5 deg between crest and break line. 5 deg is a
-closeout. Both ingredients of a peel are missing: relief AND bearing.
+arrive at 10 deg — leaving ~5 deg between crest and the parallel-contour route.
+That counterfactual is closeout-like; it does not bound an oblique route.
 
 MEASUREMENT NOTE. Building this figure is what surfaced the plane-fit bug fixed
 on 2026-08-10 (MODEL.md 2.2 correction): the A/B plane was fitted over every
@@ -339,13 +340,13 @@ parts = []
 parts.append(
     f'<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" '
     f'font-family="-apple-system, \'Helvetica Neue\', Arial, sans-serif">')
-parts.append('<title>Pleasure Point, the floor: relief without bearing</title>')
+parts.append('<title>Pleasure Point, the floor: ramp and crest incidence</title>')
 parts.append(
     '<desc>Oblique wireframe of the submerged seabed at Pleasure Point from the '
     'NOAA NCEI coastal DEM, with the reference break-depth locus and the '
-    'refracted crest direction drawn on the same surface. The seabed carries '
-    'the seabed is a smooth ramp whose contours and the arriving crests are '
-    'nearly parallel, which is why the modelled wave closes out.</desc>')
+    'refracted crest direction drawn on the same surface. The seabed is a '
+    'smooth ramp whose contours and arriving crests are nearly parallel in '
+    'this straight-contour counterfactual.</desc>')
 
 # Contrast note, computed. SVG comments may not contain a double hyphen.
 parts.append(
@@ -397,8 +398,8 @@ parts.append(f'<text class="flr-lbl" x="48" y="98" font-size="18" font-weight="5
              f'Contours run {abs(CONTOUR_BEARING_DEG):.0f}\u00b0 off shore-parallel; '
              f'refracted crests arrive at {PHI_B_DEG:.0f}\u00b0.</text>')
 parts.append(f'<text class="flr-lbl" x="48" y="124" font-size="18" font-weight="500">'
-             f'The {PEEL_DEG:.0f}\u00b0 between them is the peel angle \u2014 and '
-             f'{PEEL_DEG:.0f}\u00b0 is a closeout.</text>')
+             f'The {PEEL_DEG:.0f}\u00b0 between them is closeout-like incidence here \u2014 '
+             f'not a universal bound on an oblique breaking route.</text>')
 parts.append(f'<text class="flr-credit" x="48" y="152" font-size="14" font-weight="500">'
              f'Bathymetry: NOAA NCEI Monterey Bay 1/3\u2033 coastal DEM, NAVD88. '
              f'Coastline &amp; spots: OpenStreetMap (ODbL 1.0).</text>')
@@ -545,4 +546,4 @@ print(f"  residual RMS       {RMS:.2f} m   (n = {len(PLANE_SAMPLES)} submerged s
 print(f"  mean plane slope   {PLANE_SLOPE_DEG:.2f} deg  (1:{1/math.tan(math.radians(PLANE_SLOPE_DEG)):.0f})")
 print(f"  contour bearing    {CONTOUR_BEARING_DEG:+.1f} deg off shore-parallel")
 print(f"  refracted crest    {PHI_B_DEG:.1f} deg")
-print(f"  peel angle implied {abs(abs(CONTOUR_BEARING_DEG) - PHI_B_DEG):.1f} deg")
+print(f"  contour incidence gap {abs(abs(CONTOUR_BEARING_DEG) - PHI_B_DEG):.1f} deg")

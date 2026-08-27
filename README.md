@@ -118,7 +118,8 @@ Use `scripts/serve.py`, not `python3 -m http.server`. The stdlib server sends
 no `Cache-Control`, so Chrome heuristically caches ES modules across reloads
 and you edit a file, reload, and see the old build — including import errors
 naming exports that are present on disk. `scripts/serve.py` is the same server
-with `no-store`.
+with `no-store`. It binds to `127.0.0.1` only; the development checkout is not
+exposed to other devices on the network.
 
 Keys: `1`–`7` sites, `V` camera, `S` surfer, `C` cross-section, `M` audio,
 `-` `+` wave size, `[` `]` tide, `D` condition day, `B` seabed mode,

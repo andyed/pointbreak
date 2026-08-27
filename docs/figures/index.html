@@ -996,15 +996,17 @@ depth and exposure.</desc>
       ramp.
     </p>
     <p class="prose">
-      That matters because a peel is an angle, not a lump. The break line
-      follows the depth contours; the crest arrives at whatever angle
-      refraction leaves it. Where those two run parallel, the whole wave
-      breaks at once. Here they are 6&deg; apart.
+      That matters because a peel is an angle, not a lump. In the deliberately
+      simple counterfactual below, the breaking route follows the mean depth
+      contours while the crest arrives at whatever angle refraction leaves it;
+      the two are only 6&deg; apart. The actual point-break route can be oblique
+      to those contours, which is why this figure diagnoses the ramp rather
+      than defining every peel the model may draw.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame"><svg viewBox="0 0 1200 820" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif">
-<title>Pleasure Point, the floor: relief without bearing</title>
-<desc>Oblique wireframe of the submerged seabed at Pleasure Point from the NOAA NCEI coastal DEM, with the reference break-depth locus and the refracted crest direction drawn on the same surface. The seabed carries the seabed is a smooth ramp whose contours and the arriving crests are nearly parallel, which is why the modelled wave closes out.</desc>
+<title>Pleasure Point, the floor: ramp and crest incidence</title>
+<desc>Oblique wireframe of the submerged seabed at Pleasure Point from the NOAA NCEI coastal DEM, with the reference break-depth locus and the refracted crest direction drawn on the same surface. The seabed is a smooth ramp whose contours and arriving crests are nearly parallel in this straight-contour counterfactual.</desc>
 <!-- WCAG contrast, computed (sRGB relative luminance, WCAG 2.x).
      No text uses opacity; dimmed labels are solid pre blended colors, so
      the ratios below ARE what renders. Every text color sits on an opaque
@@ -1040,7 +1042,7 @@ depth and exposure.</desc>
 <rect class="flr-bg" x="0" y="0" width="1200" height="820"/>
 <text class="flr-title" x="48" y="62" font-size="34" font-weight="700" font-family="Georgia, 'Times New Roman', serif">PLEASURE POINT — the floor is a ramp</text>
 <text class="flr-lbl" x="48" y="98" font-size="18" font-weight="500">0.50 m RMS about a 1:58 plane. Contours run 4° off shore-parallel; refracted crests arrive at 10°.</text>
-<text class="flr-lbl" x="48" y="124" font-size="18" font-weight="500">The 6° between them is the peel angle — and 6° is a closeout.</text>
+<text class="flr-lbl" x="48" y="124" font-size="18" font-weight="500">The 6° between them is closeout-like incidence here — not a universal bound on an oblique breaking route.</text>
 <text class="flr-credit" x="48" y="152" font-size="14" font-weight="500">Bathymetry: NOAA NCEI Monterey Bay 1/3″ coastal DEM, NAVD88. Coastline &amp; spots: OpenStreetMap (ODbL 1.0).</text>
 <text class="flr-credit" x="48" y="172" font-size="14" font-weight="500">Submerged ground only (MSL = NAVD88 + 0.905 m, NOAA CO-OPS 9413450). Vertical exaggeration ×7.</text>
 <rect class="flr-frame" x="54" y="206" width="1108" height="510"/>
@@ -1127,7 +1129,7 @@ depth and exposure.</desc>
 <text class="flr-lbl-dim" x="68" y="196" font-size="16" font-weight="500">&#8593; offshore</text>
 <text class="flr-lbl-dim" x="1148" y="196" font-size="16" font-weight="500" text-anchor="end">down-point &#8594;</text>
 </svg></div>
-      <figcaption><span class="cap-label">Fig. 4</span> &mdash; The submerged floor as a 30&nbsp;&times;&nbsp;20&nbsp;m grid, vertically exaggerated &times;7. The white line is where a 1.5&nbsp;m swell reaches breaking depth; the sand strokes are crests after refraction. They differ by 6&deg;, and 6&deg; is a closeout: the peel this model cannot make is missing bearing, not relief. Deviation from the mean plane is 0.50&nbsp;m RMS about a 1:58 ramp. <a href="fig-floor.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
+      <figcaption><span class="cap-label">Fig. 4</span> &mdash; The submerged floor as a 30&nbsp;&times;&nbsp;20&nbsp;m grid, vertically exaggerated &times;7. The white line is where a 1.5&nbsp;m swell reaches breaking depth; the sand strokes are crests after refraction. Their 6&deg; incidence explains why this straight-contour counterfactual is closeout-like; it is not a universal limit on an oblique point-break route. Deviation from the mean plane is 0.50&nbsp;m RMS about a 1:58 ramp. <a href="fig-floor.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
     </figure>
   </section>
 
@@ -1147,9 +1149,11 @@ depth and exposure.</desc>
     <p class="prose">
       The model is kinematic, not a fluid solver. A phase travels along a
       break line, and the seabed supplies water depth. Depth then drives
-      shoaling by Green's law
+      shoaling by conservation of wave-energy flux
       (<span class="mono">K<sub>s</sub> = &radic;(c<sub>g0</sub>/c<sub>g</sub>)</span>),
-      depth-limited breaking at
+      using the finite-depth linear group velocity from the same dispersion
+      relation as the crest phase rather than substituting its shallow-water
+      limit at every depth. It then applies depth-limited breaking at
       <span class="mono">H = min(H<sub>0</sub>K<sub>s</sub>, &gamma;h)</span>
       with &gamma; &asymp; 0.78, and a shoreline wherever depth crosses zero.
       None of it has been checked against a measurement of this break.
@@ -1201,6 +1205,17 @@ depth and exposure.</desc>
       components a few millihertz apart make a group envelope with period
       <span class="mono">1/&Delta;f</span> &mdash; about 124&nbsp;s at the
       settings here, measured in-app.
+    </p>
+
+    <p class="prose">
+      One implementation detail turned out to be physical, not cosmetic. The
+      mesh moves water horizontally to sharpen and overturn the crest, but the
+      phase, breaking permission, lifecycle and foam age belong to the water
+      sample <em>before</em> that displacement. Terrain, lighting and fog belong
+      where the sample ends up. The renderer now carries both positions. Before
+      that split a point shifted as much as 20&nbsp;m could ask a neighbouring
+      wave whether it had broken, which detached bright plates from the peel
+      head even when every individual mechanism was behaving as written.
     </p>
 
     <p class="prose">
@@ -1298,14 +1313,14 @@ depth and exposure.</desc>
         Second Peak, Jack's (38th), The Hook and Sharks use surveyed profiles.
         Private's runs on a synthetic seabed because its coastline defeats the
         contour fit; it is labelled as such in the app.</li>
-      <li><strong>The break line is derived; the peel-angle targets are not.</strong>
-        Since this page first went up, the break line became emergent &mdash;
-        the locus where shoaled height first exceeds the depth limit,
-        computed over the measured bed &mdash; and single-step refraction
-        landed with it. But each site&rsquo;s synthetic reef is still fitted
-        toward an authored target angle, and those targets came from surf
-        guides, not measurements. Five of seven exceed a physical bound
-        (section 07).</li>
+      <li><strong>The break line is derived; its current calibration is not yet
+        canonical.</strong> The runtime now reports signed peel as the angle
+        between the baked breaking route and the refracted crest. The synthetic
+        reef still fits the older line-bearing proxy, explicitly, because the
+        binary break-onset field has branch jumps and limiter gaps; fitting the
+        new metric before that field is continuous makes Second Peak reverse
+        through a closeout. Section 07 separates that migration limit from the
+        authored targets themselves.</li>
       <li><strong>Tidal datum is approximate.</strong> Depths are NAVD88; the
         conversion to local sea level (0.905 m) comes from NOAA station 9413450
         at Monterey, about 40 km away, because the Santa Cruz gauge publishes
@@ -1362,7 +1377,7 @@ QA_LINK_END -->
   </section>
 
   <section class="essay-part">
-    <h2><span class="num">06</span> The curl <span class="wip-badge">flag-gated, off by default</span></h2>
+    <h2><span class="num">06</span> The curl <span class="wip-badge">current renderer</span></h2>
     <p class="prose">
       Everything above is a height field: one water surface for every point on
       the seabed. That is enough for shoaling, refraction, and deciding where
@@ -1387,20 +1402,15 @@ QA_LINK_END -->
       own face.
     </p>
     <p class="prose">
-      What ships today adds a <em>throw</em> (the crest band translated
-      shoreward) and a <em>drop</em> (the front face pulled down). From the
-      lineup they mostly work, and they have a structural problem no
-      calibration removes: a translation does not preserve thickness. A
-      translated band of crest is the same zero-thickness sheet, somewhere
-      else. From a close camera it reads as a thin shell because that is what
-      it is. The throw also carried a second defect, worth recording because
-      the shape of the error recurs: its magnitude had no length of the
-      <em>wave&rsquo;s</em> in it, and neither did the 20&nbsp;m ceiling that
-      bounded the whole displacement. Both were re-derived against the cusp
-      length <span class="mono">S/k</span> &mdash; a bound the wavelength
-      tightens on its own as the wave shoals. Measured across six clocks at
-      Sewers: fold points down 41&ndash;56%, and crest height bit-identical at
-      every clock. The frame lost the artifact and kept the wave.
+      The first solution added a <em>throw</em> (translate the crest band
+      shoreward) and a <em>drop</em> (pull the front face down). From the lineup
+      they mostly worked, but a translation cannot preserve thickness: the
+      translated crest is still the same zero-thickness sheet, somewhere else.
+      Its magnitude also carried no length of the wave&rsquo;s in it. Rewriting
+      the bound against the cusp length <span class="mono">S/k</span> cut fold
+      points 41&ndash;56% across six Sewers clocks without moving crest height,
+      but it could not turn a translated sheet into a volume. That path remains
+      available as one reversible old-renderer URL; it is no longer the default.
     </p>
     <p class="prose">
       The honest cure for the thin shell is a <em>bend</em>, not more throw. A
@@ -1425,11 +1435,11 @@ QA_LINK_END -->
       arriving at the same answer through geometry.
     </p>
     <p class="prose">
-      The bend overhangs; it does not close. A real plunging lip is joined to
+      The bend overhangs, but a bend alone does not close. A real plunging lip is joined to
       the face by a falling <em>curtain</em>, and the space the curtain
       encloses is the barrel. Without it the overhanging band is a sheet in the
       air with open water visible underneath &mdash; measured on the default
-      path as 21 of 279 overhang bins carrying foam-bright water over bare
+      path before the repair as 21 of 279 overhang bins carrying foam-bright water over bare
       water, the worst gap 7.67&nbsp;m of nothing. The curtain is now built the
       same way the rest of the model is: both of its edges are evaluations of
       the shipped surface &mdash; the top at the lip the bend actually draws,
@@ -1439,20 +1449,51 @@ QA_LINK_END -->
       changes not one pixel.
     </p>
     <p class="prose">
-      All of this ships behind flags, off by default, because it has not yet
-      survived the only test that counts here: a live eye on the running water.
-      Two defects are already known and measured. From inside the tube the
-      curtain closes the void only partially. And at the break head the crest
-      stands 13% above its own depth-limited ceiling and the bend leaves it
-      standing &mdash; a flat pale block over the peel that traces back to an
-      open question about the ceiling itself, not to any of the machinery on
-      this page.
+      On 26 August the pieces became one default renderer: the bend, aerated
+      lip, connected curtain, causal development behind the travelling head,
+      and a smaller approach sharpening term
+      (<span class="mono">S<sub>app</sub>&nbsp;=&nbsp;0.22</span>). The order
+      matters. The onset window stops fully developed overturn appearing ahead
+      of the zipper, while the weaker approach stops proximity to the break line
+      from sharpening that unbroken water into a plate. A deterministic matrix
+      over all seven presets removed the detached bright head without adding a
+      mapped-site failure, and a live review promoted the bundle. Every old
+      value remains available in the URL for a direct A/B.
+    </p>
+
+    <div class="sim-pair">
+      <figure class="sim-figure">
+        <div class="sim-frame">
+          <iframe class="sim-embed" loading="lazy"
+            data-src="sim/web-three/#preset=sewers&amp;cam=drone&amp;controls=1&amp;sim=42&amp;speed=0"
+            title="Current connected breaker anatomy at Sewers"></iframe>
+        </div>
+        <figcaption>Current default: bend, aerated lip, connected curtain, causal onset and <span class="mono">S<sub>app</sub>&nbsp;0.22</span>.</figcaption>
+      </figure>
+      <figure class="sim-figure">
+        <div class="sim-frame">
+          <iframe class="sim-embed" loading="lazy"
+            data-src="sim/web-three/#preset=sewers&amp;cam=drone&amp;controls=1&amp;sim=42&amp;speed=0&amp;curl=0&amp;lip=0&amp;curtain=0&amp;onset=0&amp;sapp=0.42"
+            title="Legacy breaker anatomy at Sewers"></iframe>
+        </div>
+        <figcaption>Legacy A/B: translated lip, clean fold, no curtain, symmetric onset and <span class="mono">S<sub>app</sub>&nbsp;0.42</span>.</figcaption>
+      </figure>
+    </div>
+
+    <p class="prose">
+      This is a better breaking shape, not the end of the event. The optional
+      <span class="mono">look=foam</span> material was not promoted, and the
+      existing splash is too small and too brief to read as transported crash
+      mass. The next visual problem is therefore not another lip tune: it is a
+      roller and foam state that is born at curtain contact, moves with the
+      broken wave, and leaves a coherent wake. From inside the tube the curtain
+      also still closes the void only partially.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame">
 <svg viewBox="0 0 1200 1360" xmlns="http://www.w3.org/2000/svg" style="width:1200px;height:auto;max-width:none;display:block;">
 <title>The curl &#8212; how the wave gets over itself</title>
-<desc>Four cross-sections of the wave model&#8217;s overturn mechanisms (pitch, choppy at the cusp, choppy folded, throw and drop), the bend construction with the missing curtain marked, and three measured results.</desc>
+<desc>Four cross-sections of the wave model&#8217;s overturn mechanisms (pitch, choppy at the cusp, choppy folded, and the legacy throw and drop), followed by the default bend and connected curtain, and three measured results.</desc>
 <!--
 WCAG contrast ratios computed for this figure (see gen_curl.py):
   cream(#e6e4d2) on bg(#0f1216): 14.66:1  [PASS >=8:1]
@@ -1523,17 +1564,17 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
 <text class="curl-foam-dim-text curl-caption" x="612.0" y="479.0">is multivalued. But it folds</text>
 <text class="curl-foam-dim-text curl-caption" x="612.0" y="500.0">SYMMETRICALLY about the crest.</text>
 <text class="curl-foam-dim-text curl-caption" x="612.0" y="521.0">That is a fold, not a lip.</text>
-<text class="curl-foam-text curl-panel-name" x="898.0" y="182.0">4. THROW + DROP</text>
+<text class="curl-foam-text curl-panel-name" x="898.0" y="182.0">4. LEGACY THROW + DROP</text>
 <text class="curl-fg-text curl-eq curl-mono" x="898.0" y="204.0">off_z += 0.30&#183;(S/k)</text>
 <text class="curl-fg-text curl-eq curl-mono" x="898.0" y="224.0">&#215; pocket &#215; plunge</text>
 <rect x="898.0" y="232.0" width="262.0" height="200.0" fill="none" stroke="#6b7f8c" stroke-width="1"/>
 <line x1="898.0" y1="347.0" x2="1160.0" y2="347.0" stroke="#6b7f8c" stroke-width="1" stroke-dasharray="4 4"/>
 <path d="M 975.97 345.18 L 975.61 344.20 L 975.23 343.24 L 974.84 342.29 L 974.44 341.35 L 974.02 340.43 L 973.59 339.52 L 973.15 338.63 L 972.71 337.75 L 972.26 336.88 L 971.80 336.03 L 971.34 335.19 L 970.88 334.37 L 970.42 333.56 L 969.96 332.76 L 969.50 331.98 L 969.04 331.21 L 968.58 330.46 L 968.13 329.72 L 967.69 328.99 L 967.25 328.28 L 966.82 327.58 L 966.40 326.90 L 965.98 326.23 L 965.58 325.57 L 965.18 324.92 L 964.80 324.29 L 964.43 323.68 L 964.07 323.07 L 963.72 322.48 L 963.38 321.90 L 963.06 321.33 L 962.75 320.78 L 962.46 320.24 L 962.18 319.71 L 961.92 319.19 L 961.67 318.69 L 961.44 318.19 L 961.22 317.71 L 961.02 317.24 L 960.83 316.78 L 960.66 316.33 L 960.51 315.89 L 960.37 315.46 L 960.25 315.04 L 960.15 314.63 L 960.07 314.23 L 960.00 313.84 L 959.95 313.46 L 959.92 313.09 L 959.90 312.73 L 959.90 312.38 L 959.92 312.04 L 959.96 311.70 L 960.01 311.38 L 960.08 311.06 L 960.17 310.75 L 960.28 310.44 L 960.40 310.15 L 960.54 309.86 L 960.70 309.58 L 960.87 309.31 L 961.07 309.04 L 961.28 308.78 L 961.50 308.52 L 961.75 308.28 L 962.01 308.03 L 962.29 307.80 L 962.58 307.57 L 962.89 307.34 L 963.22 307.12 L 963.57 306.91 L 963.93 306.70 L 964.31 306.49 L 964.71 306.29 L 965.12 306.10 L 965.55 305.91 L 966.00 305.72 L 966.46 305.53 L 966.94 305.35 L 967.43 305.18 L 967.94 305.01 L 968.47 304.84 L 969.02 304.67 L 969.58 304.51 L 970.15 304.35 L 970.75 304.19 L 971.36 304.03 L 971.98 303.88 L 972.62 303.73 L 973.28 303.58 L 973.95 303.43 L 974.64 303.29 L 975.34 303.14 L 976.06 303.00 L 976.80 302.86 L 977.55 302.72 L 978.32 302.58 L 979.10 302.44 L 979.90 302.30 L 980.71 302.17 L 981.54 302.03 L 982.38 301.89 L 983.24 301.76 L 984.11 301.62 L 984.99 301.48 L 985.90 301.35 L 986.81 301.21 L 987.74 301.07 L 988.68 300.94 L 989.64 300.80 L 990.61 300.66 L 991.60 300.52 L 992.60 300.38 L 993.61 300.24 L 994.63 300.09 L 995.67 299.95 L 996.71 299.80 L 997.77 299.65 L 998.85 299.50 L 999.93 299.35 L 1001.02 299.20 L 1002.13 299.05 L 1003.24 298.89 L 1004.37 298.73 L 1005.50 298.57 L 1006.64 298.41 L 1007.80 298.24 L 1008.96 298.07 L 1010.12 297.90 L 1011.30 297.73 L 1012.48 297.56 L 1013.67 297.38 L 1014.86 297.20 L 1016.06 297.02 L 1017.27 296.83 L 1018.47 296.64 L 1019.68 296.45 L 1020.90 296.26 L 1022.11 296.07 L 1023.33 295.87 L 1024.54 295.67 L 1025.76 295.47 L 1026.98 295.26 L 1028.19 295.05 L 1029.40 294.84 L 1030.61 294.63 L 1031.81 294.41 L 1033.01 294.19 L 1034.20 293.97 L 1035.39 293.75 L 1036.56 293.53 L 1037.73 293.30 L 1038.89 293.07 L 1040.04 292.84 L 1041.17 292.61 L 1042.30 292.38 L 1043.40 292.14 L 1044.50 291.91 L 1045.58 291.67 L 1046.64 291.43 L 1047.68 291.20 L 1048.70 290.96 L 1049.70 290.72 L 1050.69 290.48 L 1051.64 290.24 L 1052.58 290.00 L 1053.49 289.76 L 1054.37 289.52 L 1055.22 289.29 L 1056.05 289.05 L 1056.85 288.82 L 1057.61 288.59 L 1058.34 288.36 L 1059.04 288.13 L 1059.71 287.91 L 1060.33 287.69 L 1060.93 287.47 L 1061.48 287.26 L 1061.99 287.05 L 1062.46 286.85 L 1062.89 286.65 L 1063.28 286.46 L 1063.63 286.27 L 1063.93 286.09 L 1064.18 285.92 L 1064.38 285.75 L 1064.54 285.60 L 1064.65 285.45 L 1064.71 285.31 L 1064.71 285.18 L 1064.67 285.06 L 1064.57 284.94 L 1064.42 284.85 L 1064.21 284.76 L 1063.95 284.68 L 1063.63 284.62 L 1063.26 284.57 L 1062.83 284.53 L 1062.34 284.51 L 1061.80 284.50 L 1061.20 284.51 L 1060.54 284.55 L 1059.82 284.69 L 1059.04 284.93 L 1058.21 285.25 L 1057.31 285.65 L 1056.36 286.14 L 1055.35 286.70 L 1054.28 287.33 L 1053.15 288.03 L 1051.97 288.78 L 1050.73 289.58 L 1049.44 290.43 L 1048.09 291.32 L 1046.69 292.25 L 1045.23 293.20 L 1043.73 294.18 L 1042.17 295.18 L 1040.56 296.18 L 1038.91 297.19 L 1037.21 298.20 L 1035.47 299.21 L 1033.68 300.22 L 1031.85 301.21 L 1029.98 302.18 L 1028.08 303.14 L 1026.14 304.07 L 1024.18 304.98 L 1022.18 305.86 L 1020.15 306.72 L 1018.10 307.55 L 1016.03 308.35 L 1013.94 309.12 L 1011.84 309.87 L 1009.72 310.58 L 1007.60 311.27 L 1005.46 311.94 L 1003.33 312.58 L 1001.20 313.20 L 999.07 313.80 L 996.95 314.38 L 994.84 314.94 L 992.75 315.50 L 990.68 316.04 L 988.63 316.58 L 986.61 317.13 L 984.61 317.68 L 982.66 318.24 L 980.74 318.81 L 978.87 319.41 L 977.05 320.03 L 975.27 320.68 L 973.56 321.36 L 971.90 322.08 L 970.30 322.84 L 968.78 323.64 L 967.32 324.49 L 965.94 325.57 L 964.64 327.08 L 963.43 328.62 L 962.30 330.17 L 961.26 331.75 L 960.31 333.34 L 959.46 334.94 L 958.72 336.56 L 958.07 338.20 L 957.54 339.85 L 957.11 341.50 L 956.80 343.17 L 956.60 344.85 L 956.52 346.53 L 956.56 348.22 L 956.72 349.92 L 957.01 351.61 L 957.42 353.31 L 957.96 355.01 L 958.63 356.71 L 959.43 358.40 L 960.37 360.09 L 961.43 361.77 L 962.63 363.45 L 963.95 365.12 L 965.42 366.77 L 967.01 368.41 L 968.74 370.04 L 970.60 371.66 L 972.59 373.26 L 974.71 374.84 L 976.96 376.40 L 979.33 377.93 L 981.84 379.45 L 984.46 380.94 L 987.21 382.41 L 990.08 383.85 L 993.06 385.26 L 996.16 386.64 L 999.37 387.99 L 1002.68 389.30 L 1006.10 390.59 L 1009.63 391.83 L 1013.25 393.05 L 1016.96 394.22 L 1020.76 395.36 L 1024.65 396.46 L 1028.62 397.52 L 1032.67 398.54 L 1036.79 399.52 L 1040.97 400.45 L 1045.22 401.34 L 1049.53 402.19 L 1053.89 402.99 L 1058.30 403.75 L 1062.76 404.46 L 1067.25 405.13 L 1071.77 405.74 L 1076.33 406.32 L 1080.90 406.84 L 1085.50 407.32 L 1090.11 407.75 L 1094.72 408.13 L 1099.34 408.47 L 1103.96 408.76 L 1108.57 409.00 L 1113.17 409.19 L 1117.75 409.34 L 1122.31 409.44 L 1126.85 409.49 L 1131.35 409.50 L 1135.82 409.46 L 1140.26 409.37 L 1144.64 409.24 L 1148.99 409.07 L 1153.28 408.85 L 1157.51 408.59 L 1161.69 408.29 L 1165.81 407.95 L 1169.86 407.56 L 1173.84 407.14 L 1177.76 406.67 L 1181.59 406.17 L 1185.36 405.63 L 1189.04 405.06 L 1192.64 404.45 L 1196.16 403.80 L 1199.60 403.12 L 1202.94 402.41 L 1206.20 401.67 L 1209.37 400.90 L 1212.45 400.10 L 1215.44 399.27 L 1218.33 398.41 L 1221.13 397.53 L 1223.84 396.63 L 1226.45 395.70 L 1228.96 394.74 L 1231.39 393.77 L 1233.71 392.78 L 1235.95 391.77 L 1238.09 390.74 L 1240.13 389.69 L 1242.08 388.63 L 1243.95 387.55 L 1245.72 386.46 L 1247.40 385.36 L 1248.99 384.25 L 1250.49 383.12 L 1251.91 381.99 L 1253.24 380.85 L 1254.49 379.71 L 1255.65 378.55 L 1256.74 377.40 L 1257.75 376.24 L 1258.68 375.07 L 1259.54 373.90 L 1260.32 372.74 L 1261.04 371.57 L 1261.68 370.40 L 1262.26 369.23 L 1262.78 368.07 L 1263.23 366.90 L 1263.62 365.75 L 1263.96 364.59 L 1264.24 363.44 L 1264.46 362.30 L 1264.64 361.16 L 1264.76 360.03 L 1264.84 358.90 L 1264.87 357.79 L 1264.86 356.68 L 1264.81 355.58 L 1264.72 354.49 L 1264.60 353.41 L 1264.44 352.34 L 1264.25 351.28 L 1264.03 350.24 L 1263.78 349.20 L 1263.50 348.18 L 1263.20 347.16 L 1262.88 346.16 L 1262.53 345.18 L 1262.53 432.00 L 975.97 432.00 Z" fill="#1d2b28" fill-rule="nonzero" stroke="#4a8f85" stroke-width="2" stroke-linejoin="round"/>
-<text class="curl-sand-text curl-caption" x="898.0" y="458.0">What ships today. The crest band</text>
+<text class="curl-sand-text curl-caption" x="898.0" y="458.0">The reversible old path. The band</text>
 <text class="curl-sand-text curl-caption" x="898.0" y="479.0">is translated shoreward and the</text>
 <text class="curl-sand-text curl-caption" x="898.0" y="500.0">front face pulled down. A trans-</text>
 <text class="curl-sand-text curl-caption" x="898.0" y="521.0">lation cannot preserve thickness.</text>
-<text class="curl-fg-text curl-strip-label" x="40" y="578">THE BEND &#8212; what <tspan class="curl-mono">#curl</tspan> does, and the one piece that is missing</text>
+<text class="curl-fg-text curl-strip-label" x="40" y="578">THE DEFAULT BEND &#8212; the lip and the curtain it is joined to</text>
 <line x1="40" y1="590" x2="1160" y2="590" stroke="#6b7f8c" stroke-width="1"/>
 <rect x="40.0" y="612.0" width="660.0" height="478.0" fill="none" stroke="#6b7f8c" stroke-width="1"/>
 <line x1="40.0" y1="913.9" x2="700.0" y2="913.9" stroke="#6b7f8c" stroke-width="1" stroke-dasharray="4 4"/>
@@ -1546,11 +1587,11 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
 <circle cx="527.0" cy="1023.5" r="4.5" fill="none" stroke="#c9a86a" stroke-width="2"/>
 <text class="curl-foam-text curl-annot-b" x="357.8" y="790.8">&#952; = 97&#176; at the lip</text>
 <text class="curl-foam-dim-text curl-annot" x="357.8" y="810.8">(132&#176; is the mesh backstop)</text>
-<text class="curl-sand-text curl-annot" x="541.8" y="901.2">THE CURTAIN &#8212; not built.</text>
-<text class="curl-sand-text curl-annot" x="541.8" y="922.2">The void it would close</text>
-<text class="curl-sand-text curl-annot" x="541.8" y="943.2">is the barrel.</text>
+<text class="curl-sand-text curl-annot" x="541.8" y="901.2">CURTAIN: CONNECTED</text>
+<text class="curl-sand-text curl-annot" x="541.8" y="922.2">a second surface</text>
+<text class="curl-sand-text curl-annot" x="541.8" y="943.2">joins lip to face.</text>
 <text class="curl-foam-dim-text curl-caption" x="40.0" y="1116.0">Dashed pale: the crest band BEFORE the bend, drawn only where the bend actually acts. Solid teal: after. The bend never lifts, so the crest lowers as it pitches.</text>
-<text class="curl-foam-dim-text curl-caption" x="40.0" y="1137.0">Filled dot: the top surface sample. Hollow dot: the bottom sample at the same screen-z. Between them the model currently has open air.</text>
+<text class="curl-foam-dim-text curl-caption" x="40.0" y="1137.0">Filled dot: the lip. Hollow dot: the face landing point. The pale curve between them is the connected falling sheet; it is a second surface, not height-field paint.</text>
 <rect x="730" y="612" width="430" height="478" fill="#1d2b28" rx="4"/>
 <text class="curl-foam-text curl-panel-name" x="750" y="644">A BEND, NOT A ROTATION</text>
 <text class="curl-fg-text curl-eq curl-mono" x="750.0" y="674.0">&#952;  = dy / R</text>
@@ -1580,10 +1621,10 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
 <text class="curl-foam-dim-text curl-caption" x="424.0" y="1286.0">peak overturn at Sewers &#8212; which is the mesh</text>
 <text class="curl-foam-dim-text curl-caption" x="424.0" y="1306.0">backstop &#8212; against Shark&#8217;s Cove (&#958; 0.45).</text>
 <text class="curl-foam-dim-text curl-caption" x="424.0" y="1326.0">Spilling barely bends. The knob works.</text>
-<text class="curl-foam-text curl-stat-n" x="808.0" y="1260">21 of 279</text>
-<text class="curl-sand-text curl-caption" x="808.0" y="1286.0">overhang bins on the default path carry</text>
-<text class="curl-sand-text curl-caption" x="808.0" y="1306.0">foam over bare water. Worst gap 7.67 m.</text>
-<text class="curl-sand-text curl-caption" x="808.0" y="1326.0">That is the missing curtain, measured.</text>
+<text class="curl-foam-text curl-stat-n" x="808.0" y="1260">DEFAULT, 26 AUG</text>
+<text class="curl-sand-text curl-caption" x="808.0" y="1286.0">bend + aerated lip + connected curtain;</text>
+<text class="curl-sand-text curl-caption" x="808.0" y="1306.0">onset grows them behind the head;</text>
+<text class="curl-sand-text curl-caption" x="808.0" y="1326.0">Sapp 0.22 removes the detached plate.</text>
 </svg>
       </div>
       <figcaption><span class="cap-label">Fig. 5</span> &mdash; One shore-normal
@@ -1591,9 +1632,9 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
       expression evaluated at declared parameters &mdash; none is drawn by
       hand. The pitch alone cannot overhang; the choppy term cusps at
       <span class="mono">S&nbsp;=&nbsp;1</span> and folds symmetrically past
-      it; the shipped throw-and-drop translates the crest band without
-      preserving thickness; the bend curves it onto an arc that keeps its
-      thickness and never lifts. The dashed line is the curtain closing the
+      it; the legacy throw-and-drop translates the crest band without
+      preserving thickness; the default bend curves it onto an arc that keeps its
+      thickness and never lifts. The pale curve is the connected curtain closing the
       barrel; the two dots are the top and bottom surface samples the void was
       measured between. <a href="fig-curl.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
     </figure>
@@ -1666,13 +1707,12 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
       the distribution for anywhere in California.
     </p>
     <p class="prose">
-      Against that near-empty record, the guides were this page&rsquo;s
-      source: &ldquo;mellow&rdquo;, &ldquo;softer-breaking&rdquo;,
+      Against that near-empty record, the guides were this page&rsquo;s first
+      source: &ldquo;mellow&rdquo;, &ldquo;softer-breaking&rdquo; and
       &ldquo;longboard-favored&rdquo; became 58&ndash;70&deg; at the
-      down-point spots. The physics disagrees, and it disagrees with a
-      closed form. As waves shoal, refraction turns their crests parallel to
-      the depth contours; on a planar reef the peel angle <em>is</em> the
-      incidence angle at breaking, so Snell&rsquo;s law bounds it:
+      down-point spots. A straight-contour counterfactual objected. If the
+      breaking route follows parallel contours, the peel angle equals crest
+      incidence at breaking and Snell&rsquo;s law bounds that incidence:
       <span class="mono">sin&nbsp;&alpha;<sub>max</sub> = c<sub>b</sub>/c<sub>s</sub></span>
       &mdash; the ratio of wave speed at breaking to wave speed where
       refraction begins
@@ -1682,39 +1722,32 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
       refraction more room to work, which is why reef designers rotate
       larger reefs further off the swell rather than building them steeper
       (<a href="https://researchcommons.waikato.ac.nz/handle/10289/13967" target="_blank" rel="noopener">Mead
-      2000</a>). Run on this model&rsquo;s own dispersion code at each
-      site&rsquo;s own breaking depth, the bound lands at roughly
-      35&ndash;54&deg; across the mapped spots &mdash; and five of the seven
-      guide-derived targets sat above it. The two that cleared it, Sewers
-      (38&deg;) and First Peak (50&deg;), were exactly the two the simulation
-      already reproduced on target. The Topanga model agrees from a completely
-      different direction: across twelve scenarios and three sections of that
-      point, its section-averaged peel angles run <strong>31 to
-      53&deg;</strong> and never once exceed 53&deg;. A bound derived from
-      Snell&rsquo;s law and an independent engineering study of a California
-      point break land in the same band &mdash; and the guides&rsquo;
-      58&ndash;70&deg; sits outside both.
+      2000</a>). On this model&rsquo;s own dispersion code the counterfactual
+      lands at roughly 35&ndash;54&deg;, in the same band as Topanga&rsquo;s
+      31&ndash;53&deg; section averages. That made it a useful warning against
+      the original 58&ndash;70&deg; bank. It is <em>not</em> a universal
+      validity bound on point-break peel: at a real point the breaking route
+      can be oblique to the contours, and peel is the signed angle between
+      that route and the crest. An earlier version of this essay promoted the
+      straight-contour incidence bound into the authority for every route.
+      That was too strong.
     </p>
     <p class="prose">
-      This also resolves what the guides meant. Smaller waves break in
-      shallower water, refract longer, and end up with a <em>lower</em>
-      peel-angle ceiling &mdash; at Raglan the same reef bends 1&nbsp;m waves
-      40&deg; and 4&nbsp;m waves only 15&deg;. So the sheltered down-point
-      spots, which receive the smallest swell, are precisely where physics
-      forbids the high angles this page asked of them. The mellowness locals
-      describe is real, but it is <em>sheltering</em> &mdash; smaller,
-      weaker waves as the point&rsquo;s corner shadows the swell &mdash; not
-      a slower-hinging peel. The model encoded that mellowness in the wrong
-      variable until mid-August 2026. The bank now carries each spot&rsquo;s
-      own ceiling, derived from the model&rsquo;s own geometry
-      (31&ndash;50&deg; across the seven) and pinned by a test that fails if
-      any target is ever raised back above its bound; an explicit sheltering
-      field, calibrated from the preset bank&rsquo;s own down-point
-      swell-height gradient, carries the character instead. How faithfully
-      the drawn break line delivers those angles is measured and still being
-      litigated in the repository &mdash; the honest current answer is that
-      the instruments certify the reef fit more confidently than they
-      certify the wave.
+      The retarget still made a good editorial correction. The bank now asks
+      for 31&ndash;50&deg; rather than treating &ldquo;mellow&rdquo; as an order
+      for an extreme angle, and a separate sheltering field carries the smaller,
+      weaker down-point waves. What changed again on 26 August is the
+      instrument, not those authored hypotheses. It now differentiates the
+      baked phase along the breaking route and reports a signed crest-relative
+      peel plus breakpoint velocity; the old
+      <span class="mono">atan(|dz<sub>b</sub>/dx|)</span> is retained only as
+      a named line-bearing diagnostic. The result is less flattering and more
+      useful: off-reef reversals and limiter-pinned stations remain, and the
+      synthetic reef is still calibrated against the old bearing while the
+      onset field is discontinuous. A direct canonical refit was tried and made
+      Second Peak reverse through a closeout. The next honest investment is a
+      continuous break-activation field, then a refit against the quantity the
+      wave actually draws.
     </p>
     <p class="prose">
       The measurement itself is now tractable, which is the invitation this
@@ -1742,7 +1775,7 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
     <div class="credit-row"><span class="credit-label">Ground-truth guides:</span> <a href="https://www.surfer.com/culture/a-visitors-guide-to-longboarding-pleasure-point" target="_blank" rel="noopener">Surfer.com, &ldquo;A Visitor's Guide to Longboarding Pleasure Point&rdquo;</a> &middot; <a href="https://sunnycalifornia.com/blogs/news/beginners-guide-surfing-pleasure-point" target="_blank" rel="noopener">Sunny California, &ldquo;A Beginner's Guide to Surfing Pleasure Point&rdquo;</a>.</div>
     <div class="credit-row"><span class="credit-label">Surf science:</span> Walker (1974, Look Laboratory TR-30) &middot; Hutt, Black &amp; Mead (2001, <em>JCR</em> SI&nbsp;29) &middot; Mead (2000, PhD, Waikato) &middot; Henriquez (2004, MSc, TU Delft) &middot; Scarfe, Healy &amp; Rennie (2009, <em>JCR</em> 25(3)) &middot; Thompson et al. (2021, <em>Remote Sensing</em> 13:3372) &middot; Atkin, McIntosh &amp; Bryan (2022, ICCE) &middot; Integral Consulting (2023, Topanga Surf Quality Impact Assessment). Full citations, verbatim-checked quotes and the search record: <span class="mono">docs/research/SURF_SCIENCE_REFS.md</span> in the repository.</div>
     <div class="credit-row"><span class="credit-label">Licence:</span> Code, writing and figures MIT; OpenStreetMap-derived data ODbL 1.0; NOAA NCEI bathymetry public domain. Source and the full breakdown in the <span class="mono">pointbreak</span> repository.</div>
-    <div class="credit-row"><span class="credit-label">Renders:</span> the pointbreak wave-model renderer. The seven-site figure runs the guide-derived preset bank of 2026-08-09, kept as the before picture; the live embeds run the current retargeted bank (2026-08-13).</div>
+    <div class="credit-row"><span class="credit-label">Renders:</span> the pointbreak wave-model renderer. The seven-site figure and live embeds use the current 2026-08-26 default: bend, aerated lip, connected curtain, causal onset and <span class="mono">S<sub>app</sub>&nbsp;0.22</span>; they do not enable the optional <span class="mono">look=foam</span> material.</div>
     <div class="colophon"><a href="https://mindbendingpixels.com/">Mind Bending Pixels</a> &middot; an adventure in experiential science</div>
   </footer>
 

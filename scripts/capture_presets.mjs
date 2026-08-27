@@ -53,7 +53,7 @@ const presets = (await readFile(join(ROOT, 'shared/params.js'), 'utf8'))
   .map((l) => (l.match(/^\s*(\w+):/) || [])[1]).filter(Boolean);
 
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
-await new Promise((r) => server.listen(PORT, r));
+await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
 const browser = await chromium.launch({ args: ['--use-angle=metal'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -62,7 +62,7 @@ page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 for (const key of presets) {
-  const url = `http://localhost:${PORT}/web-three/#preset=${key}&cam=drone&hud=0&sim=${SIM_T}&month=card`;
+  const url = `http://127.0.0.1:${PORT}/web-three/#preset=${key}&cam=drone&hud=0&sim=${SIM_T}&speed=0&month=card`;
   await page.goto(url, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });     // hash-only nav wouldn't re-init
   await page.waitForTimeout(2600);              // shader compile + first frames

@@ -46,7 +46,7 @@
 <text x="842" y="127" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">3</text>
 <text class="wk-name" x="820" y="332">Second Peak</text>
 <line class="wk-rule" x1="820" y1="341" x2="1186" y2="341"/>
-<text class="wk-spec" x="820" y="362">α58° · ξ0.65 · σ0.15 · T14s · H0 1.5m</text>
+<text class="wk-spec" x="820" y="362">α41° · ξ0.65 · σ0.15 · T14s · H0 1.5m</text>
 <text class="wk-read" x="820" y="384">glassy shoulder, mellow</text>
 <text class="wk-read" x="820" y="404">crumble at the pocket</text>
 <clipPath id="wk-clip3"><rect x="1210" y="100" width="366" height="206" rx="3"/></clipPath>
@@ -56,7 +56,7 @@
 <text x="1232" y="127" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">4</text>
 <text class="wk-name" x="1210" y="332">Jack&#39;s (38th)</text>
 <line class="wk-rule" x1="1210" y1="341" x2="1576" y2="341"/>
-<text class="wk-spec" x="1210" y="362">α62° · ξ0.5 · σ0.1 · T13s · H0 1.1m</text>
+<text class="wk-spec" x="1210" y="362">α37° · ξ0.5 · σ0.1 · T13s · H0 1.1m</text>
 <text class="wk-read" x="1210" y="384">soft crumble along the face,</text>
 <text class="wk-read" x="1210" y="404">light peel, rare section</text>
 <clipPath id="wk-clip4"><rect x="40" y="424" width="366" height="206" rx="3"/></clipPath>
@@ -66,7 +66,7 @@
 <text x="62" y="451" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">5</text>
 <text class="wk-name" x="40" y="656">The Hook</text>
 <line class="wk-rule" x1="40" y1="665" x2="406" y2="665"/>
-<text class="wk-spec" x="40" y="686">α48° · ξ0.8 · σ0.2 · T13s · H0 1.5m</text>
+<text class="wk-spec" x="40" y="686">α41° · ξ0.8 · σ0.2 · T13s · H0 1.5m</text>
 <text class="wk-read" x="40" y="708">curling lip at the pocket,</text>
 <text class="wk-read" x="40" y="728">mixed crumble and section</text>
 <clipPath id="wk-clip5"><rect x="430" y="424" width="366" height="206" rx="3"/></clipPath>
@@ -76,7 +76,7 @@
 <text x="452" y="451" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">6</text>
 <text class="wk-name" x="430" y="656">Sharks</text>
 <line class="wk-rule" x1="430" y1="665" x2="796" y2="665"/>
-<text class="wk-spec" x="430" y="686">α66° · ξ0.45 · σ0.1 · T13s · H0 1m</text>
+<text class="wk-spec" x="430" y="686">α36° · ξ0.45 · σ0.1 · T13s · H0 1m</text>
 <text class="wk-read" x="430" y="708">slow rolling shoulder,</text>
 <text class="wk-read" x="430" y="728">wide mellow lines</text>
 <clipPath id="wk-clip6"><rect x="820" y="424" width="366" height="206" rx="3"/></clipPath>
@@ -86,7 +86,7 @@
 <text x="842" y="451" text-anchor="middle" fill="#eef2f3" font="700 14px sans-serif" font-size="14" font-weight="700" font-family="-apple-system, sans-serif">7</text>
 <text class="wk-name" x="820" y="656">Privates</text>
 <line class="wk-rule" x1="820" y1="665" x2="1186" y2="665"/>
-<text class="wk-spec" x="820" y="686">α70° · ξ0.35 · σ0.05 · T12s · H0 0.7m</text>
+<text class="wk-spec" x="820" y="686">α31° · ξ0.35 · σ0.05 · T12s · H0 0.7m</text>
 <text class="wk-read" x="820" y="708">thin feathering crest,</text>
 <text class="wk-read" x="820" y="728">barely spilling, sheltered</text>
 <line class="wk-rule" x1="40" y1="770" x2="1576" y2="770"/>

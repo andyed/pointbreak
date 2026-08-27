@@ -8,9 +8,12 @@ four separate false signals in one session: a HUD field that "didn't work"
 served correctly, and two rounds of "not seeing changes". The tell is
 `performance.getEntriesByType('resource')` reporting transferSize 0.
 
-    python3 scripts/serve.py [port]      # default 8127
+    python3 scripts/serve.py [port]      # default 8127, loopback only
 
 Same directory root as `python3 -m http.server`, so every existing URL works.
+The server binds only to 127.0.0.1: this is a development checkout, not a LAN
+file server, and serving the repository on every interface exposes source and
+local generated artifacts unnecessarily.
 """
 import sys
 from functools import partial
@@ -31,5 +34,6 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
 
 if __name__ == '__main__':
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8127
-    print(f'pointbreak dev server (no-store) on http://localhost:{port}/web-three/')
-    ThreadingHTTPServer(('', port), partial(NoCacheHandler)).serve_forever()
+    host = '127.0.0.1'
+    print(f'pointbreak dev server (no-store, loopback only) on http://{host}:{port}/web-three/')
+    ThreadingHTTPServer((host, port), partial(NoCacheHandler)).serve_forever()

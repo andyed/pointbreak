@@ -26,7 +26,7 @@ Transcribed expressions and where they live
   drop, post-2026-08-18 (band-scoped)             shaders.js:645-652
       yBendD = 0.35*crestCeil ; dyD = max(h - yBendD, 0)
       dropMag = clamp(0.80*pocket*plunge*frontPhase, 0, 0.85) * dyD
-  the bend (#curl)                                shaders.js:701-748
+  the bend (shipped default; #curl=0 reverts)     shaders.js:701-748
       yBend = 0.35*hCrest ; dyB = h - yBend
       kEff  = (mix(0.30,2.60,plunge)/hCrest) * overGate * pocket * bandZ
       th    = clamp(dyB*kEff, 0, 2.30)          (2.30 rad = 132 deg backstop)
@@ -46,8 +46,9 @@ Measured numbers quoted in the evidence strip (all from committed sources):
     Sharks (xi 0.45) moves 12 deg
   - shaders.js:690-696 (FALSIFIED note): rigid rotation, apex 8.8 -> 12.4 m,
     +41% over the depth-limited ceiling
-  - TODO.md head (2026-08-22): 279 overhang bins on the default path, 21 foam
-    over bare water, worst gap 7.67 m
+  - tests/breaker-anatomy.test.js: the 2026-08-26 default ships curl, aerated
+    lip, connected curtain and causal onset together, with explicit reverts;
+    the approach strength is 0.22
 
 Deterministic; no randomness.
 Run: python3 gen_curl.py
@@ -161,7 +162,7 @@ def profile_choppy(S):
     return out
 
 def profile_throw_drop(S):
-    """D: the shipped default -- choppy fold, plus the throw (shoreward
+    """D: the legacy A/B -- choppy fold, plus the throw (shoreward
     translation of the crest band) and the band-scoped drop."""
     lam = S / (A * K * K)
     out = []
@@ -261,6 +262,8 @@ audit.append("text only directly on bg (8.31:1), never on kelp (6.51:1, would fa
 audit.append("strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor throughout.")
 
 svg.append('<svg viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">' % (VB_W, VB_H))
+svg.append('<title>The curl &#8212; how the wave gets over itself</title>')
+svg.append('<desc>Four cross-sections show pitch, cusp, fold and the legacy throw-and-drop path; the second strip shows the default bend joined to its connected curtain, followed by measured evidence.</desc>')
 svg.append("<!--\n" + "\n".join(audit) + "\n-->")
 svg.append("""<style>
   .fg-text { fill: %s; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; }
@@ -313,9 +316,9 @@ panels = [
       "is multivalued. But it folds",
       "SYMMETRICALLY about the crest.",
       "That is a fold, not a lip."], "fold", "foam-dim-text"),
-    ("4. THROW + DROP",
+    ("4. LEGACY THROW + DROP",
      ["off_z += 0.30&#183;(S/k)", "&#215; pocket &#215; plunge"],
-     ["What ships today. The crest band",
+     ["The reversible old path. The band",
       "is translated shoreward and the",
       "front face pulled down. A trans-",
       "lation cannot preserve thickness."], "throwdrop", "sand-text"),
@@ -347,7 +350,7 @@ for i, (name, eq, caption, key, cls) in enumerate(panels):
 
 # ==== STRIP B ==============================================================
 B_TOP = 578
-svg.append('<text class="fg-text strip-label" x="40" y="%d">THE BEND &#8212; what <tspan class="mono">#curl</tspan> does, and the one piece that is missing</text>' % B_TOP)
+svg.append('<text class="fg-text strip-label" x="40" y="%d">THE DEFAULT BEND &#8212; the lip and the curtain it is joined to</text>' % B_TOP)
 svg.append('<line x1="40" y1="%d" x2="1160" y2="%d" stroke="%s" stroke-width="1"/>' % (B_TOP + 12, B_TOP + 12, SLATE))
 
 BP = Panel(40, B_TOP + 34, 660, 478, -45.0, 20.0, -2.8, 4.8)
@@ -399,11 +402,11 @@ svg.append('<circle cx="%.1f" cy="%.1f" r="4.5" fill="none" stroke="%s" stroke-w
 svg.append('<text class="foam-text annot-b" x="%.1f" y="%.1f">&#952; = %.0f&#176; at the lip</text>' % (tx - 150, tyy - 8, math.degrees(tth)))
 svg.append('<text class="foam-dim-text annot" x="%.1f" y="%.1f">(132&#176; is the mesh backstop)</text>' % (tx - 150, tyy + 12))
 lines("sand-text", "annot", tx + 34, (tyy + fyy) / 2.0 - 10,
-      ["THE CURTAIN &#8212; not built.", "The void it would close", "is the barrel."])
+      ["CURTAIN: CONNECTED", "a second surface", "joins lip to face."])
 
 lines("foam-dim-text", "caption", BP.x0, BP.y0 + BP.h + 26,
       ["Dashed pale: the crest band BEFORE the bend, drawn only where the bend actually acts. Solid teal: after. The bend never lifts, so the crest lowers as it pitches.",
-       "Filled dot: the top surface sample. Hollow dot: the bottom sample at the same screen-z. Between them the model currently has open air."])
+       "Filled dot: the lip. Hollow dot: the face landing point. The pale curve between them is the connected falling sheet; it is a second surface, not height-field paint."])
 
 # ---- right column: the card ----------------------------------------------
 CX, CY, CW, CH = 730, B_TOP + 34, 430, 478
@@ -446,10 +449,10 @@ stats = [
      ["peak overturn at Sewers &#8212; which is the mesh",
       "backstop &#8212; against Shark&#8217;s Cove (&#958; 0.45).",
       "Spilling barely bends. The knob works."], "foam-dim-text"),
-    ("21 of 279",
-     ["overhang bins on the default path carry",
-      "foam over bare water. Worst gap 7.67 m.",
-      "That is the missing curtain, measured."], "sand-text"),
+    ("DEFAULT, 26 AUG",
+     ["bend + aerated lip + connected curtain;",
+      "onset grows them behind the head;",
+      "Sapp 0.22 removes the detached plate."], "sand-text"),
 ]
 SW = (1120 - 2 * 32) / 3.0
 for i, (n, rows, cls) in enumerate(stats):

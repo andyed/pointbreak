@@ -1,9 +1,14 @@
-# Asset provenance — fig-week.svg raster material
+# Asset provenance — rendered raster material
 
 The seven `cliff_*.png` frames in this directory are renders from the
 pointbreak model, one per Pleasure Point site, captured headlessly at
 1280×720 (Playwright + Chromium, `--use-angle=metal`), Drone camera,
-simulation clock jumped to a fixed t = 42 s so re-runs are comparable.
+simulation clock jumped to a fixed t = 42 s so re-runs are comparable. They
+were regenerated on 2026-08-26 after the judged breaker anatomy became the
+default: lip bend, aeration, connected curtain, causal onset, and
+`Sapp = 0.22`. The optional `look=foam` material is not enabled.
+Both capture URLs set `speed=0`; shader warm-up therefore cannot advance the
+supposedly pinned model clock before the screenshot.
 
 Regenerate both the captures and the figure:
 
@@ -31,3 +36,20 @@ Historical note: the first version of this sheet carried three west-side spot
 names (Cowell's, The Slot, Middle Peak) inherited from an early preset bank.
 The bank was retargeted to the real Pleasure Point canon on 2026-08-10 and no
 borrowed names remain.
+
+## Social-preview inset
+
+`og_hero.png` is a 1280×752 crop of the same renderer at Sewers, Drone camera,
+`sim=42&speed=0`, captured by `docs/figures/capture_og_hero.mjs`. It was
+regenerated on 2026-08-26 with the promoted anatomy default, then embedded by
+`gen_og.py` and rasterised at 2× by `render_check.mjs`:
+
+```bash
+node docs/figures/capture_og_hero.mjs
+python3 docs/figures/gen_og.py
+node docs/figures/render_check.mjs docs/figures/og-card.svg \
+  docs/figures/og-card.png 2
+```
+
+The inset is a simulated render, not aerial photography; the card labels it
+`SIMULATED` in the adjacent high-contrast caption.

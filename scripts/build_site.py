@@ -50,6 +50,7 @@ ITEMS = [
     ('docs/figures/fig-ladder.svg',    'fig-ladder.svg'),
     ('docs/figures/fig-week.svg',      'fig-week.svg'),
     ('docs/figures/fig-floor.svg',     'fig-floor.svg'),
+    ('docs/figures/fig-curl.svg',      'fig-curl.svg'),
     ('docs/figures/assets',            'assets'),
     ('docs/figures/vendor',            'vendor'),
     ('docs/figures/js',                'js'),
@@ -114,6 +115,8 @@ EXCLUDE_NAMES = {'render_check.mjs'}
 # supplied by the page's import map and deliberately do not participate.
 LOCAL_IMPORT = re.compile(
     r'''\b(?:from|import)\s*(?:\(\s*)?['"](\.{1,2}/[^'"]+)['"]''')
+HTML_COMMENT = re.compile(r'<!--[\s\S]*?-->')
+LOCAL_PAGE_REF = re.compile(r'''\b(?:href|src|data-src)=['"]([^'"]+)['"]''')
 
 
 def copy(src: Path, dst: Path):
@@ -135,6 +138,23 @@ def missing_local_imports(out: Path):
             target = (module.parent / spec).resolve()
             if not target.is_relative_to(out) or not target.is_file():
                 missing.append((module.relative_to(out), spec))
+    return missing
+
+
+def missing_local_page_refs(out: Path):
+    """Return visible local href/src/data-src targets absent from the bundle."""
+    page = out / 'index.html'
+    text = HTML_COMMENT.sub('', page.read_text(encoding='utf-8'))
+    missing = []
+    for spec in LOCAL_PAGE_REF.findall(text):
+        if re.match(r'^[a-z][a-z0-9+.-]*:', spec, re.I) or spec.startswith(('#', '/')):
+            continue
+        path_spec = spec.split('#', 1)[0].split('?', 1)[0]
+        if not path_spec:
+            continue
+        target = (page.parent / path_spec).resolve()
+        if not target.is_relative_to(out) or not target.exists():
+            missing.append(spec)
     return missing
 
 
@@ -184,6 +204,14 @@ def main():
         print('MISSING local module imports:')
         for module, spec in missing_imports:
             print(f'  {module}: {spec}')
+        return 1
+
+
+    missing_refs = missing_local_page_refs(out)
+    if missing_refs:
+        print('MISSING local page references:')
+        for spec in missing_refs:
+            print(f'  index.html: {spec}')
         return 1
 
     files = [p for p in out.rglob('*') if p.is_file()]

@@ -68,7 +68,7 @@ const server = createServer(async (req, res) => {
 });
 
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
-await new Promise((r) => server.listen(PORT, r));
+await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
 const browser = await chromium.launch({ args: ['--use-angle=metal'] });
 const page = await browser.newPage({ viewport: VIEW, deviceScaleFactor: DSF });
@@ -76,7 +76,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
-const url = `http://localhost:${PORT}/web-three/#preset=${PRESET}&cam=drone&surfer=0&hud=0&sim=${SIM_T}`;
+const url = `http://127.0.0.1:${PORT}/web-three/#preset=${PRESET}&cam=drone&surfer=0&hud=0&sim=${SIM_T}&speed=0`;
 await page.goto(url, { waitUntil: 'load' });
 await page.reload({ waitUntil: 'load' });     // hash-only nav wouldn't re-init
 await page.waitForTimeout(2600);              // shader compile + first frames
