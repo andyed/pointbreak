@@ -26,6 +26,12 @@ import { MODEL_GLSL } from '../../shared/model-glsl.js';
 // internal) so the fragment can damp ripple detail over the glassy dome.
 const VARYINGS = `
 varying vec3  vWorldPos;
+// The undisplaced model coordinate this water vertex came from. Tessendorf
+// displacement is a Lagrangian map: breaker state and foam history travel with
+// the source water, while lighting and deliberately Eulerian surface detail are
+// evaluated at vWorldPos. Keeping both coordinates explicit prevents the
+// fragment stage from silently asking a displaced vertex about another wave.
+varying vec2  vSourceXZ;
 varying vec3  vNormal;
 varying float vFoam;
 varying float vPocket;
@@ -326,7 +332,7 @@ float crestCeilM(float dep, float Ks){
 }
 float crestCeilM(vec2 xz0){
   float dep = modelDepthM(xz0);
-  return crestCeilM(dep, clamp(sqrt((G*u_T/(4.0*PI))/sqrt(G*dep)), 0.7, 2.6));
+  return crestCeilM(dep, shoalingKsAt(dep));
 }
 
 // ---- M2: choppy horizontal displacement (the reason web-three exists) ----
@@ -421,7 +427,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // with H0 (0.7 m day ~ 0.6, 1.5 m ~ 1.0-1.2, 2.5 m ~ 1.5 clamped), so big
   // days fold harder and small days crumble, from one physical number.
   float depQ    = modelDepthM(xz0);
-  float KsQ     = clamp(sqrt((G*u_T/(4.0*PI))/sqrt(G*depQ)), 0.7, 2.6);
+  float KsQ     = shoalingKsAt(depQ);
   float excessQ = (u_H0*KsQ) / max(GAMMA*depQ, 0.05);
   // ---- the size signal, and the three clamps that were eating it (#sgrow) --
   // MEASURED at sewers pocket stations: mean breaking excess runs 0.43 / 0.95 /
@@ -1192,6 +1198,7 @@ void main() {
   P.y += detailH(P.xz, u_time) * vAmp * fade * (1.0 - land);  // sand doesn't ripple
 
   vWorldPos = P;
+  vSourceXZ = xz;
   vNormal   = N;
   vFoam     = foam;      // choppyPos already far-faded the outs
   vPocket   = pocket;
@@ -1279,7 +1286,13 @@ vec2 foamGrad(vec2 p, float t){
 }
 
 void main() {
-  vec2 xz = vWorldPos.xz;
+  // COORDINATE OWNERSHIP. sourceXZ identifies the modeled water/material;
+  // worldXZ identifies where that water was rasterized after choppy/curl
+  // displacement. Phase, lifecycle, break attachment and foam material history
+  // are Lagrangian and use sourceXZ. Bed/land, modeled-domain coverage,
+  // lighting, fog and fine surface-normal detail are Eulerian and use worldXZ.
+  vec2 sourceXZ = vSourceXZ;
+  vec2 worldXZ = vWorldPos.xz;
   float t = u_time;
   vec3 V = normalize(cameraPosition - vWorldPos);
   float dist = length(cameraPosition - vWorldPos);
@@ -1304,14 +1317,14 @@ void main() {
   // lift (MODEL.md 2.5) is what walks the waterline up and down the beach on
   // the set rhythm, and thresholding on still water here would pin the
   // visible line and erase the breathe the vertex geometry already performs.
-  float bedYf = mix(-999.0, bedElevM(xz) - u_waterLevel - VIS*setupLiftM(xz, t), u_depthMix);
+  float bedYf = mix(-999.0, bedElevM(worldXZ) - u_waterLevel - VIS*setupLiftM(worldXZ, t), u_depthMix);
   float landF = smoothstep(-0.22, 0.18, bedYf);   // swash band, ~0.4 m of elevation
   vec3 landCol = vec3(0.0);
   if (landF > 0.001) {
     float above = max(bedYf, 0.0);   // m above still water, fragment-exact
     // static swash-band wetness, unioned with the model's set-peak drying
     // band (call must precede the vec3 below, which hides the function)
-    float wetness = max(1.0 - smoothstep(0.05, 1.30, above), wetSand(xz, t));
+    float wetness = max(1.0 - smoothstep(0.05, 1.30, above), wetSand(worldXZ, t));
     vec3 wetSand  = vec3(0.30, 0.27, 0.23);
     vec3 drySand  = vec3(0.60, 0.53, 0.41);
     vec3 cliffCol = vec3(0.52, 0.46, 0.36);
@@ -1327,13 +1340,13 @@ void main() {
     vec3 scrubCol = vec3(0.31, 0.33, 0.23);
     float terrace = smoothstep(6.5, 10.0, above);
     float veg = smoothstep(0.35, 0.75,
-        vnoise2(xz*0.055 + vec2(7.7, -3.1))*0.6 + vnoise2(xz*0.21)*0.4);
+        vnoise2(worldXZ*0.055 + vec2(7.7, -3.1))*0.6 + vnoise2(worldXZ*0.21)*0.4);
     albedo = mix(albedo, mix(dirtCol, scrubCol, veg), terrace);
     // roughen with the same noise field the water uses, so the two surfaces
     // read as one scene rather than two asset libraries. The third, sub-metre
     // octave is the blocky-sand fix: the two coarse octaves alone left the
     // 7 m DEM posts reading as evenly-shaded squares from the drone.
-    float grain = vnoise2(xz*1.7)*0.42 + vnoise2(xz*0.42)*0.33 + vnoise2(xz*6.1)*0.25;
+    float grain = vnoise2(worldXZ*1.7)*0.42 + vnoise2(worldXZ*0.42)*0.33 + vnoise2(worldXZ*6.1)*0.25;
     albedo *= 0.86 + 0.28*grain;
     // second half of the blocky-sand fix: the mesh normal (vNormal) is a
     // grid-cell FD over the bilinear bed, whose slope is piecewise-constant
@@ -1341,8 +1354,8 @@ void main() {
     // field per fragment at half a post instead (BED_FRAG's trick, wider e),
     // so shading crosses post edges smoothly.
     float eL = 3.5;
-    float hxL = bedElevM(xz + vec2(eL, 0.0)) - bedElevM(xz - vec2(eL, 0.0));
-    float hzL = bedElevM(xz + vec2(0.0, eL)) - bedElevM(xz - vec2(0.0, eL));
+    float hxL = bedElevM(worldXZ + vec2(eL, 0.0)) - bedElevM(worldXZ - vec2(eL, 0.0));
+    float hzL = bedElevM(worldXZ + vec2(0.0, eL)) - bedElevM(worldXZ - vec2(0.0, eL));
     vec3 Nl = normalize(vec3(-hxL, 2.0*eL, -hzL));
     float lamL = 0.42 + 0.58*clamp(dot(Nl, sunDir), 0.0, 1.0);
     landCol = albedo * lamL;
@@ -1353,7 +1366,7 @@ void main() {
     // skip it, so unmodeled land stayed sharp while the water beside it faded
     // (the striped far cliff in the 2026-08-11 free-cam report). Same
     // treatment, same pre-fog placement as section 4.6 below.
-    float provL = provenanceAt(xz);
+    float provL = provenanceAt(worldXZ);
     if (provL < 1.0) {
       float lumaL = dot(landCol, vec3(0.299, 0.587, 0.114));
       vec3 matteL = mix(vec3(lumaL), vec3(0.55, 0.60, 0.61), 0.4);
@@ -1397,7 +1410,7 @@ void main() {
   // flip (erosion amplitude, threshold width, and a 2x aftermath multiplier),
   // so the raw mod() drew the hardest edge in the frame along the crest line.
   // See crestClockS in model-glsl.js for the measurement; #wrap=0 reverts.
-  float tSince = crestClockS(mod(wA*t - rayPhase(xz), 2.0*PI)/wA);
+  float tSince = crestClockS(mod(wA*t - rayPhase(sourceXZ), 2.0*PI)/wA);
   float ageK = smoothstep(1.2, 0.62*u_T, tSince);   // 0 fresh -> 1 aftermath
   float foamLook = step(0.5, u_fidelityLook);
   float fullLook = step(1.5, u_fidelityLook);
@@ -1410,7 +1423,7 @@ void main() {
   // smears with the swash instead of sitting on a static noise grid. The
   // mod() jump in tSince lands on the crest line, where foam is fresh and the
   // seam is repainted before it can read.
-  vec2 axz = xz - vec2(0.0, 1.1)*min(tSince, 7.0);
+  vec2 axz = sourceXZ - vec2(0.0, 1.1)*min(tSince, 7.0);
   float er = vnoise2(axz*0.35 + vec2(t*0.08, -t*0.05))*0.65
            + vnoise2(axz*0.90 + vec2(t*0.10, -t*0.07))*0.35;
   // FIELD-VIDEO PROBE (2026-08-15): real whitewater is a perforated material,
@@ -1478,7 +1491,7 @@ void main() {
   // vPocket >= 0.667 — which, on a closed-out line, is most of the stage.
   // foamSizeAt is exactly 1.0 at the 1.5 m card day, so the floor is unchanged
   // there and the relative claim is now true at every size instead of one.
-  foamM = max(foamM, u_crestRead * 0.72 * mix(1.0, foamSizeAt(xz.x), u_lipSize)
+  foamM = max(foamM, u_crestRead * 0.72 * mix(1.0, foamSizeAt(sourceXZ.x), u_lipSize)
                      * clamp(vPocket*1.5, 0.0, 1.0));
   // COMET CARVE (2026-08-14, #head=0 A/B): direction from altitude. The
   // line-attached stripe's whitewater encodes when the zipper passed each
@@ -1491,8 +1504,8 @@ void main() {
   // ~30% while the live breakpoint stays at full white — each stripe becomes
   // a comet, and the comet points the peel. Placed after the pocket floor:
   // at the live head lifeAge ~ 0 so the floor is never carved.
-  float zbC = breakLine(xz.x);
-  vec4 lifeC = breakerLifecycleAtX(xz.x, t);
+  float zbC = breakLine(sourceXZ.x);
+  vec4 lifeC = breakerLifecycleAtX(sourceXZ.x, t);
   // SEAM DIRECTION (Andy, 2026-08-14 night): the first carve was a moving
   // freshness window — its trailing edge chased the head at zipper speed, and
   // the mod() reset re-brightened foam under the old bore before the new bore
@@ -1506,8 +1519,8 @@ void main() {
   // multiplier, so a snap in lifeC.x prints a vertical seam on the stripe.
   float lifeClk = crestClockS(lifeC.x);
   float foamAge = mix(lifeClk + u_T, lifeClk,
-                      smoothstep(xz.y - 3.0, xz.y + 3.0, lifeC.y));
-  float onStripe = exp(-pow((xz.y - zbC)/25.0, 2.0));
+                      smoothstep(sourceXZ.y - 3.0, sourceXZ.y + 3.0, lifeC.y));
+  float onStripe = exp(-pow((sourceXZ.y - zbC)/25.0, 2.0));
   // #arm (2026-08-18): the 9 s carve clock has the same defect the model's
   // comet tail had — the head's along-line speed varies ~13x, so a temporal
   // tail collapses to ~30 m where the head crawls (the visible oblique arm)
@@ -1518,8 +1531,8 @@ void main() {
   // under #arm=0 / #arm=anchor.
   float eC = 2.0;
   float wC = 2.0*PI/u_T;
-  float dSdxC = abs(rayPhase(vec2(xz.x + eC, breakLine(xz.x + eC)))
-                  - rayPhase(vec2(xz.x - eC, breakLine(xz.x - eC)))) / (2.0*eC);
+  float dSdxC = abs(rayPhase(vec2(sourceXZ.x + eC, breakLine(sourceXZ.x + eC)))
+                  - rayPhase(vec2(sourceXZ.x - eC, breakLine(sourceXZ.x - eC)))) / (2.0*eC);
   float behindC = foamAge * wC / max(dSdxC, 1e-3);
   float carveTail = mix(exp(-foamAge/9.0), exp(-behindC/110.0), u_armRead);
   foamM *= mix(1.0, 0.45 + 0.55*carveTail, onStripe*u_headRead);
@@ -1540,12 +1553,12 @@ void main() {
   // because both ride the same phase field. Downstream shading over the
   // canonical clock, never a new clock.
   if (u_stripeLife > 0.5) {
-    float stripeAgeF = stripeAgeAt(xz, t);
+    float stripeAgeF = stripeAgeAt(sourceXZ, t);
     float alongF = mod(stripeAgeF, u_T);
     float lagF = stripeAgeF - alongF;
     float stripeCarve = (0.45 + 0.55*exp(-alongF/max(0.33*u_T, 1.0)))
                       * (0.55 + 0.45*exp(-lagF/max(2.4*u_tau, 1.0)));
-    float innerF = smoothstep(zbC + 12.0, zbC + 34.0, xz.y);
+    float innerF = smoothstep(zbC + 12.0, zbC + 34.0, sourceXZ.y);
     foamM *= mix(1.0, min(stripeCarve, 1.0), innerF);
   }
   // Probe 1 changes only the material response. Probe 2 additionally spends
@@ -1554,7 +1567,7 @@ void main() {
   // This is downstream shading over the canonical lifecycle, never a new clock.
   foamM *= mix(1.0, materialCoverage, foamLook);
   float liveHead = onStripe * exp(-lifeC.x/3.2);
-  float liveBore = exp(-pow((xz.y - lifeC.y)/13.0, 2.0)) * exp(-lifeC.x/5.5);
+  float liveBore = exp(-pow((sourceXZ.y - lifeC.y)/13.0, 2.0)) * exp(-lifeC.x/5.5);
   float hierarchy = mix(0.48 + 0.20*(1.0 - ageK), 1.0,
                         clamp(max(liveHead, 0.78*liveBore), 0.0, 1.0));
   foamM *= mix(1.0, hierarchy, fullLook);
@@ -1572,9 +1585,9 @@ void main() {
   // stages must agree or the geometry and the normals describe two surfaces.
   // Computed once here and reused by the colour code below, so the mask costs
   // nothing beyond the vDepth varying the vertex stage already interpolates.
-  float kelpM  = kelpMask(xz, vDepth);
+  float kelpM  = kelpMask(worldXZ, vDepth);
   float damp = (1.0 - 0.85*foamM) * (1.0 - 0.9*boil) * (1.0 - 0.55*kelpM);
-  vec2 g = detailGrad(xz, t) * (0.55 + 0.55*u_chop) * damp * detailVis;
+  vec2 g = detailGrad(worldXZ, t) * (0.55 + 0.55*u_chop) * damp * detailVis;
   // M2's folded lip shows its underside (material is DoubleSide); flip the
   // geometric normal for back faces so the curl shades as a surface, not a hole
   vec3 Ng = normalize(vNormal) * (gl_FrontFacing ? 1.0 : -1.0);   // wave-scale normal
@@ -1598,7 +1611,7 @@ void main() {
   // foam roughness normal (used for foam's own lighting below); influence kept
   // low — foam under a marine layer is lit mostly ambiently, strong normal
   // shading was reading as grey streaks (critique #1)
-  vec2 fg = foamGrad(xz, t) * 0.25 * foamM;
+  vec2 fg = foamGrad(worldXZ, t) * 0.25 * foamM;
   vec3 Nf = normalize(vec3(N.x - fg.x, N.y, N.z - fg.y));
 
   // base albedo: web/'s NorCal palette (slate blue -> shelf -> murky inner).
@@ -1607,7 +1620,7 @@ void main() {
   // each other. Same hues (ratios preserved), values pulled DOWN ~30% so the
   // dark water body sets the floor, fresh foam the near-white ceiling, and the
   // marine-layer sky sits between: three distinct values at thumbnail size.
-  float shoreT = smoothstep(-250.0, 60.0, xz.y - breakLine(xz.x));
+  float shoreT = smoothstep(-250.0, 60.0, sourceXZ.y - breakLine(sourceXZ.x));
   vec3 deep  = vec3(0.065, 0.10, 0.135);
   vec3 shelf = vec3(0.075, 0.145, 0.155);
   vec3 inner = vec3(0.135, 0.195, 0.185);
@@ -1743,7 +1756,7 @@ void main() {
                            * smoothstep(0.35, 1.35, vWorldPos.y));
   float lip = smoothstep(0.5, 1.5, u_xi)
             * mix(vPocket, connectedLip, fullLook);
-  float lipOld = vnoise2(xz*0.6 + t);
+  float lipOld = vnoise2(sourceXZ*0.6 + t);
   float lipTexture = 1.2*lipOld;
   if (fullLook > 0.5) {
     float lipCells = vnoise2(cellQ*0.58 + vec2(17.0, -9.0));
@@ -1762,8 +1775,8 @@ void main() {
   // sun shading multiplicatively dropped it to wet-grey (critique #1) — the
   // clump texture and sun term are narrow modulations on a white base now.
   // Structure (bore, streaks, lace, spray, crumb) arrives inside vFoam.
-  float ftex = 0.58 + 0.42*(vnoise2(xz*0.35 + vec2(t*0.15, -t*0.1))*0.6
-                          + vnoise2(xz*1.15 - vec2(t*0.08, t*0.05))*0.4);
+  float ftex = 0.58 + 0.42*(vnoise2(sourceXZ*0.35 + vec2(t*0.15, -t*0.1))*0.6
+                          + vnoise2(sourceXZ*1.15 - vec2(t*0.08, t*0.05))*0.4);
   ftex = mix(ftex, 0.42 + 0.58*foamCell, foamLook);
   float lamF = clamp(dot(Nf, sunDir), 0.0, 1.0);
   // fresh whitewater is the brightest thing in frame (tonal ceiling, raised
@@ -1785,7 +1798,7 @@ void main() {
   // the 6b argmax discriminator — the head and its competitor rose together.
   // Attachment means the LINE holds the ceiling; distance to it is the one
   // signal the inner field cannot fake.
-  float nearLine = exp(-pow((xz.y - breakLine(xz.x))/25.0, 2.0));
+  float nearLine = exp(-pow((sourceXZ.y - breakLine(sourceXZ.x))/25.0, 2.0));
   float freshCore = u_crestRead * (1.0 - ageK) * smoothstep(0.55, 0.90, foamM)
                   * max(nearLine, clamp(vPocket*1.4, 0.0, 1.0));
   foamCol = mix(foamCol, vec3(1.0), 0.6*freshCore);
@@ -1829,7 +1842,7 @@ void main() {
   // Pre-fog, same rule as the land blend: haze applies once to the matted
   // result. Structure stays visible but stops asserting — desaturated toward
   // a marine grey so the fade reads as atmosphere, not as a broken region.
-  float prov = provenanceAt(xz);
+  float prov = provenanceAt(worldXZ);
   if (prov < 1.0) {
     float luma = dot(col, vec3(0.299, 0.587, 0.114));
     vec3 matte = mix(vec3(luma), vec3(0.55, 0.60, 0.61), 0.4);

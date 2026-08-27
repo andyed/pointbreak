@@ -215,8 +215,8 @@ const uniforms = {
   u_stripeLife: { value: 0 },   // per-stripe along-crest lifecycle clock; #slife=1 arms it
                                 // (feature flag, OFF pending a live verdict — repo convention
                                 // for unverified visual mechanisms)
-  u_lipAer:     { value: 0 },   // aerated lip/curl whitening keyed to the fold geometry;
-                                // #lip=1 arms it (feature flag, OFF pending a live verdict)
+  u_lipAer:     { value: 1 },   // aerated lip/curl whitening keyed to the fold geometry;
+                                // #lip=0 is the pre-anatomy A/B revert
   u_breakMix:   { value: 0 },
   u_breakX:     { value: new THREE.Vector2(-300, 300) },
   u_breakZ:     { value: new THREE.Vector2(BREAK_Z_MIN, BREAK_Z_MAX) },
@@ -258,27 +258,27 @@ const uniforms = {
   // Field-video fidelity probe: 0 shipped/current, 1 foam material only,
   // 2 foam + per-wave hierarchy + tightened face/lip. #look= names the A/B.
   u_fidelityLook: { value: 0 },
-  // Lip overturn (shaders.js choppyPos, "#curl"). DEFAULT OFF pending a live
-  // verdict: it replaces the shipped throw/drop pair with a rotation of the
-  // crest band, which is a visible change to every plunging wave.
-  u_curl:       { value: 0 },
+  // Lip overturn (shaders.js choppyPos). Promoted with lip/curtain/onset after
+  // the 2026-08-26 all-preset matrix removed detached head plates on every
+  // mapped drone view; #curl=0 restores the translated throw/drop path.
+  u_curl:       { value: 1 },
   // #earn=0 reverts: inside the #curl bend, over-ceiling breaking water earns
   // the arc angle that returns its apex to the ceiling (the head-block fix and
-  // the "reference height, not a clamp" decision — see choppyPos). Ships ON,
-  // but inert unless u_curl is on, so the default frame is untouched.
+  // the "reference height, not a clamp" decision — see choppyPos). Ships ON as
+  // part of the promoted bend; it becomes inert on the #curl=0 revert arm.
   u_earn:       { value: 1 },
   // #splash=1: the crash — Peregrine splash-up at the landing, on the
   // lifecycle impact bell. Default OFF pending a live verdict: it adds a
   // travelling white burst to the default-path height field.
   u_splash:     { value: 0 },
-  // #sapp= unbundles the approach-term strength from #look=full (the measured
-  // driver of the runaway offsets and the oversized head plate). 0.42 is the
-  // shipped calibration; #look=full's 0.22 still wins on that arm.
-  u_sApp:       { value: 0.42 },
-  // #onset=1: overturn develops behind the zipper head (causality gate on the
-  // breaker clock — kills the detached plate leading the whitewater line).
-  // Default OFF pending a live verdict: it changes the default-path fold.
-  u_onset:      { value: 0 },
+  // #sapp= unbundles the approach-term strength from #look=full. 0.22 is now
+  // the calibrated default: it halves the measured runaway-offset population
+  // and removes the oversized head plate; #sapp=0.42 is the legacy A/B.
+  u_sApp:       { value: 0.22 },
+  // Overturn develops behind the zipper head (causality gate on the breaker
+  // clock). Promoted with the anatomy bundle; #onset=0 restores the symmetric
+  // pocket that handed fully-developed fold reach to water ahead of the head.
+  u_onset:      { value: 1 },
   // #drop=legacy: restore the pre-2026-08-18 dropMag, which was proportional to
   // the height it was subtracted from and weighted only by `pocket`, so the
   // wave came out flattest exactly at the breaking pocket (median crest /
@@ -445,15 +445,14 @@ const sprayPoints = new THREE.Points(makeSprayGeometry(), sprayMat);
 sprayPoints.frustumCulled = false; // positions are shader-authored from seeds
 scene.add(sprayPoints);
 
-// ---------- the curtain (#curtain=1, default OFF) ----------
+// ---------- the curtain (default ON; #curtain=0 reverts) ----------
 // The falling sheet joining the bent lip back down to the face — the geometry
 // the 2026-08-22 overhang measurement said was missing (TODO, top). A strip:
 // x alongshore in world metres, y the fall parameter; both edges are authored
 // by CURTAIN_VERT from the shipped surfacePos, so the curtain hangs from the
 // drawn lip and lands on the drawn face with no seam to tune. Gated on the
-// bend's own overturn (vCurl's source), so it draws NOTHING unless #curl=1 —
-// the two are one bundle and are judged together. Invisible by default:
-// mesh.visible is the flag, so the default path pays zero cost.
+// bend's own overturn (vCurl's source), so it draws NOTHING unless curl is on —
+// the two are one promoted anatomy bundle and are judged together.
 const curtainMat = new THREE.ShaderMaterial({
   vertexShader: CURTAIN_VERT,
   fragmentShader: CURTAIN_FRAG,
@@ -464,7 +463,7 @@ const curtainMat = new THREE.ShaderMaterial({
 });
 const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 12), curtainMat);
 curtainMesh.frustumCulled = false;  // positions are shader-authored
-curtainMesh.visible = false;
+curtainMesh.visible = true;
 scene.add(curtainMesh);
 
 // ---------- the seabed ----------
@@ -2015,11 +2014,9 @@ function applyHashParams() {
   // live verdict); #slife=1 arms it — inner re-breaking stripes gain the
   // phase-lagged copy of the zipper's along-crest age (model-glsl stripeMod)
   if (h.get('slife') === '1') uniforms.u_stripeLife.value = 1;
-  // aerated lip/curl (feature flag, default OFF pending live verdict);
-  // #lip=1 arms it — the plunging fold whitens on its own geometry (cusp
-  // parameter + lip throw in GRID_VERT choppyPos) instead of rendering as
-  // clean glass; spilling sites get the gentler crest crumble
-  if (h.get('lip') === '1') uniforms.u_lipAer.value = 1;
+  // Aerated lip/curl ships with the anatomy bundle; #lip=0 restores the clean
+  // glass fold. Existing #lip=1 links remain compatible with the default.
+  if (h.get('lip') === '0') uniforms.u_lipAer.value = 0;
   // The #arm pair defaults ON (the peel arm lights at the house capture
   // clocks): set-envelope anchor + metric comet tail. `arm=0` reverts both;
   // `arm=anchor` / `arm=tail` keep only the named half, for bisection.
@@ -2035,22 +2032,19 @@ function applyHashParams() {
   if (armV === '0') { uniforms.u_setAnchor.value = 0; uniforms.u_armRead.value = 0; }
   else if (armV === 'anchor') uniforms.u_armRead.value = 0;
   else if (armV === 'tail') uniforms.u_setAnchor.value = 0;
-  // lip overturn defaults OFF; #curl=1 arms the crest-band rotation. It
-  // REPLACES the throw/drop pair the #lip aeration mask reads, and when it is
-  // on the mask keys off vCurl instead of the unapplied throw (see choppyPos),
-  // so the two flags describe the same event through different geometry.
-  if (h.get('curl') === '1') uniforms.u_curl.value = 1;
+  // Lip overturn ships with the anatomy bundle; #curl=0 restores the old
+  // translated throw/drop pair. Existing #curl=1 links remain compatible.
+  if (h.get('curl') === '0') uniforms.u_curl.value = 0;
   // #earn is the revert arm for the over-fill bend floor (default on; only
-  // reachable through the #curl branch, so #curl=1&earn=0 is the pre-floor
-  // bend and #curl=1 alone is the shipped-floor arm).
+  // reachable through the curl branch, so #earn=0 is the pre-floor bend).
   if (h.get('earn') === '0') uniforms.u_earn.value = 0;
-  // #sapp= takes a strength in (0, 1]; anything unparseable keeps the shipped
-  // 0.42 rather than sending NaN into the S solve.
+  // #sapp= takes a strength in (0, 1]; anything unparseable keeps the promoted
+  // 0.22 rather than sending NaN into the S solve. #sapp=0.42 is the legacy A/B.
   if (h.has('sapp')) {
     const v = parseFloat(h.get('sapp'));
     if (Number.isFinite(v) && v > 0 && v <= 1) uniforms.u_sApp.value = v;
   }
-  if (h.get('onset') === '1') uniforms.u_onset.value = 1;
+  if (h.get('onset') === '0') uniforms.u_onset.value = 0;
   // #splash= takes a gain: 1 = the calibrated 0.90*H0 burst, higher scales it
   // (live-dialable like #sapp; the crash is a look calibration). 0/absent = off.
   if (h.has('splash')) {
@@ -2080,9 +2074,9 @@ function applyHashParams() {
   if (h.get('throwlen') === '1') uniforms.u_throwLen.value = 1;
   // #sgrow=1 lets the size signal past the sizeGate/S clamps. Default OFF.
   if (h.get('sgrow') === '1') uniforms.u_sGrow.value = 1;
-  // #curtain=1 hangs the falling sheet off the bent lip. Draws nothing
-  // without #curl=1 (the gate is the bend's own overturn) — see curtainMesh.
-  if (h.get('curtain') === '1') curtainMesh.visible = true;
+  // The falling sheet ships with the bend and draws nothing when curl is off;
+  // #curtain=0 is the geometry A/B. Existing #curtain=1 links remain compatible.
+  if (h.get('curtain') === '0') curtainMesh.visible = false;
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 

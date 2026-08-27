@@ -40,8 +40,9 @@ if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
 // the shipped-look fragment foam pipeline (shaders.js lines ~660-770,
 // foamLook = fullLook = 0). Everything reads live uniforms; nothing is
 // hardcoded from the preset bank.
-function probeInPage(step) {
+async function probeInPage(step) {
   const pb = window.__pointbreak;
+  const disp = await import('/web-three/js/dispersion.js');
   const U = {};
   for (const [k, u] of Object.entries(pb.uniforms)) {
     const v = u.value;
@@ -246,8 +247,7 @@ function probeInPage(step) {
     const reef = reefWindow(x);
     const lift = setupLiftM(x, z, tt);
     const dep = modelDepthM(x, z) + lift;
-    const cg0 = G * U.u_T / (4 * PI);
-    const Ks = clamp(Math.sqrt(cg0 / Math.sqrt(G * dep)), 0.7, 2.6);
+    const Ks = disp.shoaledHeight(1, U.u_T, dep);
     const Heff = U.u_H0 * shelterAt(x);
     const Hsh = Heff * Ks;
     const Hlim = GAMMA * dep;

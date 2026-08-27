@@ -388,8 +388,7 @@ void main(){
     const lift = setupLiftM(x, z, tt);
     const dep = modelDepthM(x, z) + lift;
     const growSyn = 1 + 0.85 * Math.exp(-Math.max(d, 0) / 90) * reef;
-    const cg0 = G * U.u_T / (4 * PI);
-    const Ks = clamp(Math.sqrt(cg0 / Math.sqrt(G * dep)), 0.7, 2.6);
+    const Ks = disp.shoaledHeight(1, U.u_T, dep);
     const Heff = U.u_H0 * shelterAt(x);
     const Hsh = Heff * Ks, Hlim = GAMMA * dep;
     const growGeo = Math.min(Hsh, Hlim) / Math.max(Heff, 0.05);
@@ -479,15 +478,14 @@ void main(){
   let sect = null;
   if (pb.state.geoSpot) {
     const wl = bed.MSL_ABOVE_NAVD88 + (pb.state.tide || 0);
-    const cg0 = disp.G * pb.state.T / (4 * Math.PI);
     let prev = null, cross = null;
     for (let i = 0; i <= 440; i++) {
       const z = -260 + (180 - -260) * (i / 440);
       const b = bed.bedElevBlended(pb.state.geoSpot, xg, z, pb.state.bedShape || 0) - wl;
       const depth = Math.max(-b, 0);
       if (depth <= 0.05) continue;
-      const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(disp.G * Math.max(depth, 0.35))), 0.7), 2.6);
-      const Hsh = pb.state.H0 * Ks, Hlim = disp.GAMMA * Math.max(depth, 0.35);
+      const Hsh = disp.shoaledHeight(pb.state.H0, pb.state.T, Math.max(depth, 0.35));
+      const Hlim = disp.GAMMA * Math.max(depth, 0.35);
       if (prev && prev.Hsh <= prev.Hlim && Hsh > Hlim && !cross) cross = { z, depth };
       prev = { Hsh, Hlim };
     }

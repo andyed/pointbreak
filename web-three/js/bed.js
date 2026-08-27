@@ -19,8 +19,9 @@ import { PRESETS, reefWindowKnots } from '../../shared/params.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 import {
   alongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,
-  incidenceAt as dispIncidenceAt, GAMMA, G, shelterFactor,
+  incidenceAt as dispIncidenceAt, GAMMA, G, shelterFactor, shoaledHeight,
 } from './dispersion.js';
+import { signedPeelGeometryAt } from './peel-geometry.js';
 
 // 1x1 stand-in so the sampler is always bound. Presets with no bathymetry run
 // with u_depthMix = 0, and an unbound sampler is undefined behaviour.
@@ -187,10 +188,8 @@ function ridgeNoise(s, seed) {
 // the shoaled height first exceeds what the water can carry (same criterion
 // and Ks clamp as the M4 march below).
 function breakDepthFor(H0, T) {
-  const cg0 = G * T / (4 * Math.PI);
   for (let h = 8; h > 0.4; h -= 0.05) {
-    const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * h)), 0.7), 2.6);
-    if (H0 * Ks >= GAMMA * h) return h;
+    if (shoaledHeight(H0, T, h) >= GAMMA * h) return h;
   }
   return 0.5;
 }
@@ -220,6 +219,17 @@ function reefWinFor(spotName) {
   return pr?.contourFit?.usable
     ? reefWindowKnots(pr.stageBoundsM[0], pr.stageBoundsM[1])
     : reefWindowKnots(-110, 290);
+}
+
+// MODEL-TWIN of model-js coastCurve for mapped, non-A-frame sites. Keeping
+// this tiny form here lets the reef fit measure angle against the same contour
+// frame as the Psi carrier without importing model-js (which would invert the
+// bed/phase ownership boundary).
+function spotContourCurve(spotName, x) {
+  const pr = PP_GEO_DATA.profiles[spotName];
+  if (!pr?.contourFit?.usable) return x * x / 5000;
+  const gx = Math.min(Math.max(x, pr.stageBoundsM[0]), pr.stageBoundsM[1]);
+  return pr.contourFit.x2 * gx * gx + pr.contourFit.x3 * gx * gx * gx;
 }
 
 function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
@@ -299,12 +309,11 @@ function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
 // candidate reefs that do not exist in any grid yet). Same criterion, step and
 // clamps as markBreak below.
 function marchBreakFn(elevAt, x, H0, T) {
-  const cg0 = G * T / (4 * Math.PI);
   const wl = MSL_ABOVE_NAVD88;
   const { z0, z1 } = PP_DEPTH_DATA.grid;
   let last = null, fLast = null;
   for (let z = z0; z <= z1; z += MARCH_DZ) {
-    const f = breakExcess(elevAt(x, z), wl, effH0(H0, x), cg0);
+    const f = breakExcess(elevAt(x, z), wl, effH0(H0, x), T);
     if (f === null) break;
     if (f >= 0) {
       if (last === null || fLast === null) return z;
@@ -411,22 +420,30 @@ export function reefFitFor(name) {
       sxz += dx * smZ[i]; sxx += dx * dx;
     }
     const zbs = smZ;
-    // DIRECTION (MODEL.md 4.5: authorship owns it, the derivation must respect
-    // it). The mean slope is taken |absolute| below, which is exactly where the
-    // sign — the peel direction — used to be discarded. Keep it, and check that
-    // the LOCAL slope holds that same sign at every station: one sign means one
-    // crossing means one peel. A sign change is a line whose bearing sweeps
-    // through the crest bearing, and that tears the wave into a left and a
-    // right at a site that is a right.
     const meanSlope = sxz / sxx;
+
+    // MIGRATION GUARD. The synthetic reef was calibrated against this line
+    // bearing before the project had a canonical crest-relative peel metric.
+    // Retuning it directly against signed peel is premature while the selected
+    // onset locus still contains branch jumps and limiter gaps: Second Peak
+    // reverses through a closeout under that objective. Keep the old fit metric
+    // explicit here, while derivedAlphaDeg() below reports the honest signed
+    // crest-relative result. Once the break-activation field is continuous,
+    // this fit can move to that same canonical metric without destabilising the
+    // shipping bed in the meantime.
+    const lineBearingDeg = Math.atan(Math.abs(meanSlope)) * 180 / Math.PI;
     const dir = Math.sign(meanSlope) || 1;
+
+    // Fix the smoothing-arm indexing defect while preserving its historical
+    // direction contract: dense z samples must use dense x spacing. The prior
+    // xs[i] denominator became NaN after the ninth sample.
     let viol = 0;
     for (let i = 1; i < zbs.length; i++) {
-      const local = (zbs[i] - zbs[i - 1]) / (xs[i] - xs[i - 1]);
+      const dx = dense[i] - dense[i - 1];
+      const local = (zbs[i] - zbs[i - 1]) / dx;
       if (Math.sign(local) !== dir) viol++;
     }
-    const d = Math.atan(Math.abs(meanSlope)) * 180 / Math.PI;
-    return { derived: d, reefFn: fn, viol };
+    return { derived: lineBearingDeg, reefFn: fn, viol };
   };
 
   let bestErr = Infinity;
@@ -477,6 +494,8 @@ export function reefFitFor(name) {
     targetDeg: card.alphaDeg,
     betaDeg: beta,
     fitDerivedDeg: derived,
+    fitMetric: 'legacy-break-line-bearing',
+    canonicalFitDeferred: true,
     residualDeg: card.alphaDeg - derived,
     withinTol: Math.abs(card.alphaDeg - derived) <= 5,
     // Carried, not hidden — same contract as withinTol. A fit that hits its
@@ -766,13 +785,11 @@ export function planeResidualRms(spotName) {
 // this per fragment would cost ~100 texture fetches.
 export function depthBreakOffset(spotName, x, breakLineZ, { H0, T, tide = 0, bedShape = 0 } = {}) {
   if (!spotName) return 0;
-  const cg0 = G * T / (4 * Math.PI);
   const wl = MSL_ABOVE_NAVD88 + tide;
   const { z0, z1 } = PP_DEPTH_DATA.grid;
   for (let z = Math.max(z0, -260); z <= Math.min(z1, 200); z += 3) {
     const depth = Math.max(wl - bedElevBlended(spotName, x, z, bedShape), 0.35);
-    const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * depth)), 0.7), 2.6);
-    if (H0 * Ks >= GAMMA * depth) {
+    if (shoaledHeight(H0, T, depth) >= GAMMA * depth) {
       // seaward is -z, so a break further out is a POSITIVE offset to subtract
       return Math.min(Math.max(breakLineZ - z, -60), 160);
     }
@@ -811,6 +828,7 @@ const MARCH_DZ = 2;
 // smoothing kernel the renderer uses is resolved in the fit too.
 const FIT_DENSE_DX = 10;
 let breakTex = null, breakKey = '', breakArr = new Float32Array(BREAK_N);
+let activeBreakSpotName = null;
 // Per-texel section-gap flags (1 = limiter-pinned, rendered as NOT BREAKING).
 // Lives alongside breakArr under the same cache discipline: any key change
 // rebakes both, so the exported readbacks always match the live texture.
@@ -818,21 +836,19 @@ let gapArr = new Uint8Array(BREAK_N);
 
 // Excess at a station: H0*Ks - gamma*h. Negative seaward of the break, positive
 // inside it; the break line is its zero crossing.
-function breakExcess(elev, wl, H0, cg0) {
+function breakExcess(elev, wl, H0, T) {
   const depth = wl - elev;
   if (depth <= 0.35) return null;                   // beach
-  const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * depth)), 0.7), 2.6);
-  return H0 * Ks - GAMMA * depth;
+  return shoaledHeight(H0, T, depth) - GAMMA * depth;
 }
 
 function markBreak(spotName, x, opts) {
   const { H0, T, tide, bedShape } = opts;
-  const cg0 = G * T / (4 * Math.PI);
   const wl = MSL_ABOVE_NAVD88 + tide;
   const { z0, z1 } = PP_DEPTH_DATA.grid;
   let last = null, fLast = null;
   for (let z = z0; z <= z1; z += MARCH_DZ) {
-    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), cg0);
+    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), T);
     if (f === null) break;                          // hit the beach; stop
     if (f >= 0) {
       // INTERPOLATE the crossing. Returning the march step quantized the break
@@ -882,7 +898,6 @@ export function getOnsetMerge() { return onsetMergeM; }
 // contract (seaward-most only) for the plane/measured A-B beds.
 function markBreakCrossings(spotName, x, opts) {
   const { H0, T, tide, bedShape } = opts;
-  const cg0 = G * T / (4 * Math.PI);
   const wl = MSL_ABOVE_NAVD88 + tide;
   const { z0, z1 } = PP_DEPTH_DATA.grid;
   const crossings = [];
@@ -891,7 +906,7 @@ function markBreakCrossings(spotName, x, opts) {
   // the seaward-most onset is always kept whatever the merge threshold is.
   let dipMin = -Infinity;
   for (let z = z0; z <= z1; z += MARCH_DZ) {
-    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), cg0);
+    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), T);
     if (f === null) break;
     if (f >= 0 && fLast !== null && fLast < 0) {
       // A new onset only if the wave actually stopped breaking in between.
@@ -918,12 +933,11 @@ function markBreakCrossings(spotName, x, opts) {
 // scripts/probe_break_anchor.mjs to decide whether the two branches are one.
 export function breakExcessProfile(spotName, x, opts) {
   const { H0, T, tide, bedShape } = opts;
-  const cg0 = G * T / (4 * Math.PI);
   const wl = MSL_ABOVE_NAVD88 + tide;
   const { z0, z1 } = PP_DEPTH_DATA.grid;
   const zs = [], fs = [];
   for (let z = z0; z <= z1; z += MARCH_DZ) {
-    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), cg0);
+    const f = breakExcess(bedElevBlended(spotName, x, z, bedShape), wl, effH0(H0, x), T);
     if (f === null) break;
     zs.push(z); fs.push(f);
   }
@@ -1066,6 +1080,7 @@ export function breakCandidates(spotName, xRange, opts, stride = 4) {
 
 // Returns { texture, x0, x1 } or null when the site has no bathymetry.
 export function bakeBreakLine(spotName, xRange, opts) {
+  activeBreakSpotName = spotName || null;
   if (!spotName) return null;
   const [x0, x1] = xRange;
   // Direction belongs in the key: the peel constraint below consumes
@@ -1277,15 +1292,39 @@ export function breakZAt(x, x0, x1) {
   return breakArr[i] + (breakArr[i + 1] - breakArr[i]) * (f - i);
 }
 
-// Peel angle as a READOUT: the slope of the emergent line, atan(dz/dx). This is
-// what M4 buys — alpha stops being typed and starts being measured.
-// Stencil widened from one texel to three with M5: the synthetic ridges put
-// real O(10 m) structure on the line, and a +-4.7 m difference reads the ridge
-// noise, not the wedge strike. +-14 m reads the strike the fit targets.
-export function derivedAlphaDeg(x, x0, x1) {
+// Explicitly retained line-only diagnostic. This is a world-space bearing,
+// NOT a peel angle: it contains no information about the crest orientation.
+export function legacyBreakLineAngleDeg(x, x0, x1) {
   const e = 3 * (x1 - x0) / BREAK_N;
   const dz = breakZAt(x + e, x0, x1) - breakZAt(x - e, x0, x1);
   return Math.abs(Math.atan2(dz, 2 * e) * 180 / Math.PI);
+}
+
+// Canonical signed peel readout for the baked line. The default phase is the
+// latest Psi bake for the same spot. On the explicit Psi-off arm, fall back to
+// the model's documented 9-degree breaking-incidence reference, still in the
+// measured contour frame; even that fallback remains crest-relative rather
+// than quietly reverting to atan(dz/dx).
+export function derivedPeelGeometry(x, x0, x1, { omega = null } = {}) {
+  const e = 3 * (x1 - x0) / BREAK_N;
+  let phaseAt;
+  if (activeBreakSpotName && refrSpotName === activeBreakSpotName) {
+    phaseAt = (px, pz) => refrKappa * px + psiSample(
+      refrPsi, pz + spotContourCurve(activeBreakSpotName, px),
+      REFR_ZC_MIN, REFR_ZC_MAX);
+  } else {
+    const phi = PHI_BREAK_DEG * Math.PI / 180;
+    phaseAt = (px, pz) => px * Math.sin(phi)
+      + (pz + spotContourCurve(activeBreakSpotName, px)) * Math.cos(phi);
+  }
+  return signedPeelGeometryAt({
+    x, breakZAt: (px) => breakZAt(px, x0, x1), phaseAt, omega,
+    lineStep: e, phaseStep: 1,
+  });
+}
+
+export function derivedAlphaDeg(x, x0, x1) {
+  return derivedPeelGeometry(x, x0, x1)?.alphaDeg ?? NaN;
 }
 
 // Is this station inside a baked section gap? Nearest-texel readback of the
@@ -1311,7 +1350,7 @@ export function breakGapAt(x, x0, x1) {
 // it bakes to a 256-sample table exactly like the break line above.
 const REFR_N = 256;
 export const REFR_ZC_MIN = -260, REFR_ZC_MAX = 170;
-let refrTex = null, refrKey = '';
+let refrTex = null, refrKey = '', refrSpotName = null;
 const refrPsi = new Float32Array(REFR_N);
 let refrKappa = 0, refrPsiMin = 0, refrPsiMax = 1;
 
@@ -1320,6 +1359,7 @@ let refrKappa = 0, refrPsiMin = 0, refrPsiMax = 1;
 // function owns only the bathymetry sampling and the texture packing.
 export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg = 50, xRef = 0 } = {}) {
   if (!spotName) return null;
+  refrSpotName = spotName;
   const key = [spotName, T, tide, bedShape, swellDeg, xRef].join('|');
   if (refrTex && key === refrKey) {
     return { texture: refrTex, kappa: refrKappa, psiMin: refrPsiMin, psiMax: refrPsiMax };

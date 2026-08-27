@@ -16,9 +16,9 @@
 // against a depth axis is a chart, and charts belong in chart space.
 
 import { bedElevBlended, MSL_ABOVE_NAVD88, planeResidualRms, TIDE_RANGE, tideLabel } from './bed.js';
-// G and GAMMA come from dispersion.js — the one JS mirror of the GLSL
+// GAMMA and shoaledHeight come from dispersion.js — the one JS mirror of the GLSL
 // constants — so the chart can never disagree with the model it plots.
-import { G, GAMMA } from './dispersion.js';
+import { GAMMA, shoaledHeight } from './dispersion.js';
 const Z0 = -260, Z1 = 180; // transect span in stage metres (seaward -> inland)
 const N = 220;
 
@@ -91,13 +91,6 @@ export function makeSection(container, opts = {}) {
   cv.addEventListener('pointercancel', endDrag);
   cv.addEventListener('pointerleave', () => { if (!drag) { hot = false; cv.style.cursor = 'default'; } });
 
-  // Green's law, identical to the GLSL: Ks = sqrt(cg0/cg), shallow cg = sqrt(gh)
-  function shoaled(H0, T, depth) {
-    const cg0 = G * T / (4 * Math.PI);
-    const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * Math.max(depth, 0.35))), 0.7), 2.6);
-    return H0 * Ks;
-  }
-
   function draw(state, xStation = 0, tide = 0, bedShape = 0) {
     if (!W || !H) return;
     ctx.clearRect(0, 0, W, H);
@@ -119,7 +112,7 @@ export function makeSection(container, opts = {}) {
       const z = Z0 + (Z1 - Z0) * (i / N);
       const bed = bedElevBlended(spot, xStation, z, bedShape) - wl;  // m rel. water
       const depth = Math.max(-bed, 0);
-      const Hsh = shoaled(state.H0, state.T, Math.max(depth, 0.35));
+      const Hsh = shoaledHeight(state.H0, state.T, Math.max(depth, 0.35));
       const Hlim = GAMMA * Math.max(depth, 0.35);
       samples.push({ z, bed, depth, Hsh, Hlim });
       yMin = Math.min(yMin, bed - 0.5);

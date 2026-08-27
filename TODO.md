@@ -1,5 +1,18 @@
 # TODO
 
+## ✔ 2026-08-26 — anatomy core promoted; transported crash remains next
+
+The judged anti-saucer mechanisms now ship together: curl, aerated lip,
+connected curtain, onset causality, and `Sapp = 0.22`. A fresh all-seven-preset
+matrix on the source/world coordinate fix removed detached bright head plates
+in every mapped drone comparison; Privates remained visually neutral. The old
+paths remain available as `#curl=0&lip=0&curtain=0&onset=0&sapp=0.42`.
+
+This does **not** close the section below. `#splash` was re-measured as a tiny
+garnish rather than transported impact mass, so it remains off. The next
+breaker tranche is still an advected roller/foam state plus curtain-contact
+deposit, not promotion of the existing height burst.
+
 ## ▶ NEW (2026-08-25, live) — the crash is missing
 
 Live verdict on the judged stack (below): "we're missing the crash of the

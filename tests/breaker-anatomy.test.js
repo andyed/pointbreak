@@ -52,7 +52,7 @@ test('field-fidelity full look replaces the detached fold with a connected hinge
   // constant still wins through the same mix, so the structural claim — the
   // connected look tempers the approach — is unchanged.
   assert.match(shaders, /float Sapp\s+= mix\(u_sApp, [\d.]+, connectedLook\) \* steep/);
-  assert.match(main, /u_sApp:\s+\{ value: 0\.42 \}/);
+  assert.match(main, /u_sApp:\s+\{ value: 0\.22 \}/);
   assert.match(main, /h\.has\('sapp'\)/);
   assert.match(shaders, /if \(connectedLook > 0\.5\) S = min\(S, [\d.]+\)/);
   // throwMag is a uniform branch since the 2026-08-22 cusp-length re-form
@@ -70,6 +70,18 @@ test('field-fidelity full look replaces the detached fold with a connected hinge
   assert.match(shaders, /if \(fullLook > 0\.5 && !gl_FrontFacing\) discard/);
   assert.match(shaders, /float facePocket = fullLook \* steepF/);
   assert.match(shaders, /float connectedLip = max\(vPocket/);
+});
+
+test('the judged breaker-anatomy bundle ships together and remains revertible', () => {
+  assert.match(main, /u_lipAer:\s+\{ value: 1 \}/);
+  assert.match(main, /u_curl:\s+\{ value: 1 \}/);
+  assert.match(main, /u_onset:\s+\{ value: 1 \}/);
+  assert.match(main, /curtainMesh\.visible = true/);
+
+  assert.match(main, /h\.get\('lip'\) === '0'[\s\S]{0,80}?u_lipAer\.value = 0/);
+  assert.match(main, /h\.get\('curl'\) === '0'[\s\S]{0,80}?u_curl\.value = 0/);
+  assert.match(main, /h\.get\('onset'\) === '0'[\s\S]{0,80}?u_onset\.value = 0/);
+  assert.match(main, /h\.get\('curtain'\) === '0'[\s\S]{0,80}?curtainMesh\.visible = false/);
 });
 
 test('airborne whitewater is a separate deterministic render pass', () => {
@@ -100,7 +112,9 @@ test('per-stripe lifecycle clock is canonical, phase-lagged, and flag-gated', ()
   assert.match(model, /tSince \+ phaseLag\/max\(w, [\de.-]+\)/);
   assert.doesNotMatch(model, /stripeMod/);
   assert.match(shaders, /if \(u_stripeLife > 0\.5\)/);
-  assert.match(shaders, /float stripeAgeF = stripeAgeAt\(xz, t\)/);
+  // The lifecycle belongs to the source water, not the horizontally displaced
+  // fragment position; otherwise the fold asks a neighbouring crest for age.
+  assert.match(shaders, /float stripeAgeF = stripeAgeAt\(sourceXZ, t\)/);
   assert.match(shaders, /float alongF = mod\(stripeAgeF, u_T\)/);
   assert.match(shaders, /float lagF = stripeAgeF - alongF/);
   assert.match(shaders, /exp\(-alongF\/max\([\d.]+\*u_T, [\d.]+\)\)/);
@@ -195,7 +209,7 @@ test('every foam term carries the one size factor, pocket path included', () => 
   assert.match(model, /foam \+= lipFoam\*mix\([\d.]+, [\d.]+, shape\)\*mix\(1\.0, sizeFoam, u_lipSize\);/);
   // The fragment's pocket foam floor carries the same factor through the same
   // flag, or the two limbs of one defect can drift apart.
-  assert.match(shaders, /foamM = max\(foamM, u_crestRead \* [\d.]+ \* mix\(1\.0, foamSizeAt\(xz\.x\), u_lipSize\)/);
+  assert.match(shaders, /foamM = max\(foamM, u_crestRead \* [\d.]+ \* mix\(1\.0, foamSizeAt\(sourceXZ\.x\), u_lipSize\)/);
   // Wired ON by default with the A/B revert reachable from the hash.
   assert.match(main, /u_lipSize:\s+\{ value: 1 \}/);
   assert.match(main, /h\.get\('lipn'\) === '0'/);

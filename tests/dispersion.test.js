@@ -14,6 +14,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import * as D from '../web-three/js/dispersion.js';
 
 const { PP_DEPTH_DATA } = await import('../data/model/pp_depth_patches.js');
@@ -33,6 +34,11 @@ function exactK(omega, h) {
   return 0.5 * (lo + hi);
 }
 
+function finiteDepthCg(omega, h, k) {
+  const x = 2 * k * h;
+  return 0.5 * (1 + x / Math.sinh(x)) * omega / k;
+}
+
 // elevAt for a spot's submerged-fit plane at the stage origin (x = 0).
 function planeBed(spot) {
   const pf = PP_DEPTH_DATA.patches[spot].planeFit;
@@ -50,6 +56,73 @@ test('Guo (2002) is within 1% of the exact dispersion root, everywhere', () => {
   }
   assert.ok(worst < 0.01,
     `max k error ${(worst * 100).toFixed(2)}% at h=${worstH.toFixed(1)} m exceeds 1%`);
+});
+
+test('finite-depth group velocity uses the existing dispersion k and stays within 1% of the exact root', () => {
+  let worst = 0, worstH = 0;
+  for (let h = 0.05; h < 500; h *= 1.02) {
+    const k = D.wavenumberAt(OMEGA, h);
+    const fromExistingK = finiteDepthCg(OMEGA, h, k);
+    assert.ok(Math.abs(D.groupVelocityAt(OMEGA, h) - fromExistingK) < 1e-12,
+      `cg did not use the existing k at h=${h.toFixed(3)} m`);
+
+    const kExact = exactK(OMEGA, h);
+    const cgExact = finiteDepthCg(OMEGA, h, kExact);
+    const err = Math.abs(D.groupVelocityAt(OMEGA, h) - cgExact) / cgExact;
+    if (err > worst) { worst = err; worstH = h; }
+  }
+  assert.ok(worst < 0.01,
+    `max cg error ${(worst * 100).toFixed(2)}% at h=${worstH.toFixed(1)} m exceeds 1%`);
+});
+
+test('finite-depth group velocity reaches both asymptotes without substituting either between them', () => {
+  const shallow = D.groupVelocityAt(OMEGA, 0.05);
+  assert.ok(Math.abs(shallow - Math.sqrt(D.G * 0.05)) / shallow < 0.002,
+    `shallow cg ${shallow.toFixed(4)} did not approach sqrt(gh)`);
+
+  const deep = D.groupVelocityAt(OMEGA, 500);
+  const deepLimit = D.G * T / (4 * Math.PI);
+  assert.ok(Math.abs(deep - deepLimit) / deepLimit < 1e-5,
+    `deep cg ${deep.toFixed(4)} did not approach gT/4pi`);
+
+  // At intermediate depth the old sqrt(gh) substitution is materially high;
+  // this is the propagation error the correction is for, not rounding churn.
+  const h = 10;
+  const oldShallowSubstitute = Math.sqrt(D.G * h);
+  assert.ok(D.groupVelocityAt(OMEGA, h) < 0.95 * oldShallowSubstitute,
+    `cg(${h} m) still behaves like the shallow-only approximation`);
+});
+
+test('JS and shared GLSL carry one finite-depth cg/shoaling formula', () => {
+  const model = readFileSync(new URL('../shared/model-glsl.js', import.meta.url), 'utf8');
+  const shaders = readFileSync(new URL('../web-three/js/shaders.js', import.meta.url), 'utf8');
+  const bed = readFileSync(new URL('../web-three/js/bed.js', import.meta.url), 'utf8');
+  const section = readFileSync(new URL('../web-three/js/section.js', import.meta.url), 'utf8');
+  const waveProbe = readFileSync(new URL('../scripts/probe_wave_shape.mjs', import.meta.url), 'utf8');
+  const armProbe = readFileSync(new URL('../scripts/probe_arm_terms.mjs', import.meta.url), 'utf8');
+  const riderProbe = readFileSync(new URL('../scripts/measure_rider_surface.mjs', import.meta.url), 'utf8');
+
+  assert.match(model, /float groupVelocityAt\(float omega, float h\)/);
+  assert.match(model, /float k = waveNumberAt\(omega, h\);/);
+  assert.match(model, /return 0\.5\*\(1\.0 \+ xOverSinh\)\*omega\/k;/);
+  assert.match(model, /float shoalingKsAt\(float h\)/);
+  assert.match(model, /float Ks\s+= shoalingKsAt\(dep\);/);
+  assert.match(shaders, /crestCeilM\(dep, shoalingKsAt\(dep\)\)/);
+  assert.match(shaders, /float KsQ\s+= shoalingKsAt\(depQ\);/);
+  assert.match(bed, /shoaledHeight\(H0, T, depth\) - GAMMA \* depth/);
+  assert.match(section, /shoaledHeight\(state\.H0, state\.T/);
+  assert.match(waveProbe, /disp\.shoaledHeight\(1, U\.u_T, dep\)/);
+  assert.match(armProbe, /disp\.shoaledHeight\(1, U\.u_T, dep\)/);
+  assert.match(riderProbe, /disp\.shoaledHeight\(1, U\.u_T, depQ\)/);
+
+  // Guard the exact authority split we are removing from all live mirrors.
+  for (const [name, source] of [
+    ['model', model], ['shaders', shaders], ['bed', bed], ['section', section],
+    ['wave probe', waveProbe], ['arm probe', armProbe], ['rider probe', riderProbe],
+  ]) {
+    assert.doesNotMatch(source, /sqrt\(cg0\s*\/\s*(?:Math\.)?sqrt\(G\s*\*\s*/,
+      `${name} still substitutes shallow-water sqrt(gh) for finite-depth cg`);
+  }
 });
 
 test('both asymptotes hold: deep-water gT^2/2pi, shallow-water T*sqrt(gh)', () => {

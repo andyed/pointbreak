@@ -44,13 +44,28 @@ whatever the nowcast says *at load time* — the link reproduces the mode, not
 the conditions. That is the intended meaning of `live` and not a defect.
 
 Two kinds of flag, named as such below: a **feature flag** gates work that is
-landed but not yet default (default off, judged as an ensemble — TODO Track 1c);
-an **A/B revert** turns a shipped default OFF so a regression can be bisected
-without checking out old code. (The ensemble was judged on 2026-08-13 and
-REJECTED — no combination of the four feature flags ships; see
-`WEB_THREE_SPEC.md` "The ensemble, judged". They remain individually useful for
-A/B measurement.) A third kind, **sweep knob**, exposes a shipped constant so
-it can be measured across a range; it defaults to the shipped value.
+landed but not yet default; an **A/B revert** turns a shipped default OFF so a
+regression can be bisected without checking out old code. A third kind,
+**sweep knob**, exposes a shipped constant so it can be measured across a
+range; it defaults to the shipped value.
+
+**2026-08-26 anatomy promotion.** The later, judged breaker stack supersedes
+the older per-mechanism “default OFF pending a live verdict” notes retained in
+the detailed ledger below. Direct default/anatomy captures over all seven
+presets removed detached head plates without a new mapped-site failure. These
+five controls are now one shipped bundle and their old values are A/B reverts:
+
+| mechanism | shipped default | legacy A/B |
+|---|---:|---:|
+| lip bend | `curl=1` | `curl=0` |
+| aerated lip | `lip=1` | `lip=0` |
+| connected falling sheet | `curtain=1` | `curtain=0` |
+| causal development behind the head | `onset=1` | `onset=0` |
+| approach strength | `sapp=0.22` | `sapp=0.42` |
+
+Explicit `=1` links from the feature-flag period remain compatible. `splash`,
+`slife`, honest carrier amplitude, cusp-length throw and size-growth remain
+off; they were not promoted with the anatomy bundle.
 
 | param | values | default | what it does | kind |
 |---|---|---|---|---|

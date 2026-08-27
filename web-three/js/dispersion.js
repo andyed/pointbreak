@@ -46,6 +46,24 @@ export function wavelengthAt(omega, h, floorM = 0.05) {
   return 2 * Math.PI / wavenumberAt(omega, h, floorM);
 }
 
+// Exact finite-depth group velocity for the wavenumber above:
+//
+//   cg = n*c,  n = 1/2 * (1 + 2kh/sinh(2kh)),  c = omega/k
+//
+// "Exact" here means the linear finite-depth expression evaluated with this
+// module's existing Guo k authority; it does not introduce a second dispersion
+// solve. The small-x branch avoids the removable 0/0 as h approaches the depth
+// floor and is mirrored in shared/model-glsl.js.
+export function groupVelocityAt(omega, h, floorM = 0.05) {
+  const hh = Math.max(h, floorM);
+  const k = wavenumberAt(omega, hh, floorM);
+  const x = 2 * k * hh;
+  const xOverSinh = Math.abs(x) < 1e-3
+    ? 1 - x * x / 6 + 7 * x * x * x * x / 360
+    : x / Math.sinh(x);
+  return 0.5 * (1 + xOverSinh) * omega / k;
+}
+
 // Shallow-water limit, L = T*sqrt(g*h). The acceptance target for the bake:
 // at breaking depth the Guo wavelength must land within 10% of this.
 export function shallowWavelength(T, h) {
@@ -143,14 +161,15 @@ export function zcAtPsiIn(psi, target, zMin, zMax) {
 }
 
 // ---------- shoaling / steepness ----------
-// MODEL-TWIN of ocean()'s amplitude path: Green's law with the shallow-water
+// MODEL-TWIN of ocean()'s amplitude path: Green's law with the finite-depth
 // group speed, then the depth-limited cap. Kept here so the steepness acceptance
 // test measures the SAME height the renderer draws, not a second derivation.
 export const GAMMA = 0.78;
 
 export function shoaledHeight(H0, T, h) {
   const cg0 = G * T / (4 * Math.PI);                  // deep-water group speed
-  const Ks = Math.min(Math.max(Math.sqrt(cg0 / Math.sqrt(G * Math.max(h, 0.05))), 0.7), 2.6);
+  const cg = groupVelocityAt(2 * Math.PI / T, h);
+  const Ks = Math.min(Math.max(Math.sqrt(cg0 / cg), 0.7), 2.6);
   return H0 * Ks;
 }
 

@@ -51,8 +51,9 @@ if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
 // Also a transcription of the model-js twin's oceanH (the rider's reference)
 // so the set-phase the runtime P carries can be identified by matching the
 // mesh-derived height.
-function probeInPage() {
+async function probeInPage() {
   const pb = window.__pointbreak;
+  const disp = await import('/web-three/js/dispersion.js');
   const U = {};
   for (const [k, u] of Object.entries(pb.uniforms)) {
     const v = u.value;
@@ -264,8 +265,7 @@ function probeInPage() {
     const lift = setupLiftM(x, z, tt);
     const dep = modelDepthM(x, z) + lift;
     const growSyn = 1 + 0.85 * Math.exp(-Math.max(d, 0) / 90) * reef;
-    const cg0 = G * U.u_T / (4 * PI);
-    const Ks = clamp(Math.sqrt(cg0 / Math.sqrt(G * dep)), 0.7, 2.6);
+    const Ks = disp.shoaledHeight(1, U.u_T, dep);
     const Heff = U.u_H0 * shelterAt(x);
     const Hsh = Heff * Ks;
     const Hlim = GAMMA * dep;
@@ -344,7 +344,7 @@ function probeInPage() {
     const kk = kLocalAt(x0, z0);
     const aEst = clamp(Math.abs(h), Math.max(0.6, 0.30 * U.u_H0 * VIS), 12.0);
     const depQ = modelDepthM(x0, z0);
-    const KsQ = clamp(Math.sqrt((G * U.u_T / (4 * PI)) / Math.sqrt(G * depQ)), 0.7, 2.6);
+    const KsQ = disp.shoaledHeight(1, U.u_T, depQ);
     const excessQ = (U.u_H0 * KsQ) / Math.max(GAMMA * depQ, 0.05);
     const sizeGate = mix(1, clamp(excessQ, 0, 1.5), U.u_depthMix);
     const cl = step_(1.5, U.u_fidelityLook || 0);

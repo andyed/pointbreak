@@ -550,19 +550,46 @@ float rayS(vec2 xz){
   return xx*sin(phi) + contourZ(xz)*cos(phi);
 }
 
-// ---------- M6 part 3: local wavenumber and the Psi phase field ----------
+// ---------- M6 part 3: local dispersion and the Psi phase field ----------
 // Guo (2002) explicit dispersion, k*h = y/[1-exp(-y^1.25)]^0.4 with
 // y = omega^2*h/g. MODEL-TWIN of dispersion.js wavenumberAt(): 0.79% max error
 // against the exact root, verified in tests/dispersion.test.js. (The previous
 // y/sqrt(tanh y) form in bed.js was cited as Guo and is not — 4.98% error.)
+float waveNumberAt(float omega, float h){
+  h = max(h, 0.05);
+  float y = omega*omega*h/G;
+  // pow(0, 0.4) is 0 and the divide would blow up; h is floored, but the mesh
+  // is unforgiving about NaN so retain a denominator guard as well.
+  float den = max(pow(1.0 - exp(-pow(y, 1.25)), 0.4), 1e-4);
+  return (y/den)/h;
+}
+
+// Exact finite-depth group velocity evaluated with waveNumberAt's existing k:
+// cg = n*c, n = 0.5*(1 + 2kh/sinh(2kh)), c = omega/k. The Taylor branch
+// removes the 0/0 at very small kh. MODEL-TWIN of dispersion.js
+// groupVelocityAt(); tests/dispersion.test.js sweeps their parity.
+float groupVelocityAt(float omega, float h){
+  h = max(h, 0.05);
+  float k = waveNumberAt(omega, h);
+  float x = 2.0*k*h;
+  float x2 = x*x;
+  float xOverSinh = abs(x) < 1e-3
+    ? 1.0 - x2/6.0 + 7.0*x2*x2/360.0
+    : x/sinh(x);
+  return 0.5*(1.0 + xOverSinh)*omega/k;
+}
+
+// Green's-law shoaling coefficient. One function shared by ocean(), the
+// renderer's crest/curl diagnostics, and the JS twins in dispersion.js.
+float shoalingKsAt(float h){
+  float omega = 2.0*PI/u_T;
+  float cg0 = G*u_T/(4.0*PI);
+  return clamp(sqrt(cg0/groupVelocityAt(omega, h)), 0.7, 2.6);
+}
+
 float kLocalAt(vec2 xz){
   float omega = 2.0*PI/u_T;
-  float h = modelDepthM(xz);
-  float y = omega*omega*h/G;
-  // pow(0, 0.4) is 0 and the divide would blow up; y is floored by modelDepthM's
-  // 0.35 m so this is belt-and-braces, but the mesh is unforgiving about NaN.
-  float den = max(pow(1.0 - exp(-pow(y, 1.25)), 0.4), 1e-4);
-  float k = (y/den)/h;
+  float k = waveNumberAt(omega, modelDepthM(xz));
   // Off the bathymetry there is no depth to disperse over: fall back to the
   // frozen carrier so synthetic presets and the A-frame are untouched.
   return mix(2.0*PI/LAM, k, u_psiMix*u_depthMix);
@@ -885,7 +912,8 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
 
   // ---- shoaling ----
   // Synthetic stand-in (kept for presets with no bathymetry behind them) and
-  // the real thing: Green's law Ks = sqrt(cg0/cg), shallow-water cg = sqrt(gh).
+  // the real thing: Green's law Ks = sqrt(cg0/cg), with the exact finite-depth
+  // group coefficient evaluated from the existing Guo dispersion k.
   // Capped at 2.6 because breaking intervenes long before Ks runs away.
   // Setup/setdown water is REAL depth: it feeds the shoaling/breaking terms
   // here and lifts the surface itself further down, which is what walks the
@@ -896,8 +924,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float lift    = setupLiftM(xz, t);
   float dep     = modelDepthM(xz) + lift;
   float growSyn = 1.0 + 0.85*exp(-max(d,0.0)/90.0)*reef;
-  float cg0     = G*u_T/(4.0*PI);          // deep-water group speed, gT/4pi
-  float Ks      = clamp(sqrt(cg0/sqrt(G*dep)), 0.7, 2.6);
+  float Ks      = shoalingKsAt(dep);
   // H_eff, not H0, from here down: sheltering is part of the arriving wave,
   // so it feeds shoaling, the breaking gate AND the drawn amplitude — a wave
   // that is smaller down-point must also break later there, or the line and

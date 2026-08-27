@@ -40,9 +40,10 @@ Three standard relations turn those ingredients into a peeling wave:
 Deep-water dispersion: ω² = g·k. General (finite depth): ω² = g·k·tanh(k·h).
 Phase speed c = ω/k → √(g·h) in shallow water.
 
-As depth h decreases the wave slows, and conservation of energy flux makes it grow:
-Green's law, H ∝ h^(−1/4) (shallow-water approximation — adequate here; we are not
-doing coastal engineering). Slower + taller = steeper.
+As depth h decreases the wave slows, and conservation of energy flux makes it grow.
+The renderer evaluates `Ks = √(cg₀/cg)` with finite-depth linear group velocity;
+Green's law, H ∝ h^(−1/4), is its shallow-water asymptote rather than the speed
+law substituted across the whole stage. Slower + taller = steeper.
 
 ### 1.2 Refraction
 
@@ -161,8 +162,10 @@ and both vehicles bind it as `u_bed`.
   publishes none). The ~40 km extrapolation is carried explicitly in
   `mslSource`, not baked into a bare constant. This resolves the datum TODO
   that §2.1 deliberately refused to guess.
-- **Shoaling** is Green's law, `Ks = √(cg₀/cg)` with shallow `cg = √(gh)`,
-  replacing the `exp(−d/90)` distance-to-break stand-in.
+- **Shoaling** is Green's law, `Ks = √(cg₀/cg)` with the finite-depth linear
+  group velocity `cg = ½(1 + 2kh/sinh(2kh))·ω/k`, evaluated from the same Guo
+  wavenumber authority as Ψ. `√(gh)` is now only the shallow asymptote, not the
+  group speed substituted at every modeled depth.
 - **Depth-limited breaking.** `H = min(H₀·Ks, γh)` with γ = 0.78 (McCowan;
   field values ~0.7–0.9). Past the limit a wave is a bore whose height is set
   by the water it is in. Breaking is flagged where `H₀·Ks` exceeds `γh`.
@@ -392,6 +395,15 @@ arms); Sewers already saturated the clamp and its clamped fraction fell slightly
 → 0.73–0.93 of the wave height: the lip now encloses more volume, because the
 face it is thrown over is concave sooner. Nothing in `choppyPos` was changed to
 achieve that.
+
+**Coordinate ownership (2026-08-26).** `choppyPos` is a Lagrangian displacement:
+breaker permission, phase, lifecycle, foam provenance and material age belong
+to the undisplaced source water. `GRID_VERT` therefore carries `vSourceXZ`
+alongside `vWorldPos`; `GRID_FRAG` uses source coordinates for those modeled
+states and world coordinates for terrain, modeled-domain coverage, lighting,
+fog and deliberately Eulerian fine detail. Before this split the fragment
+recomputed lifecycle and break attachment after offsets of up to 20 m (73.6 m
+raw), silently asking a displaced vertex about a neighbouring wave.
 
 ### 2.3 The swell gets a direction (2026-08-10)
 
@@ -737,10 +749,15 @@ set-to-set period, with the wave count inside each set unchanged. See
 `docs/WEB_THREE_SPEC.md` and TODO.md's cadence entry.
 ### 2.6 Direction is a condition, not a character (2026-08-11)
 
-> **STATUS: DOCUMENTED, NOT WIRED.** Nothing in this section runs. The runtime
-> still does exactly what §2.3/§2.4 describe: one authored per-spot `alpha`
-> serves as the swell incidence, no observed direction reaches any uniform, and
-> `applyOcean` carries CDIP's `waveDp` into an inert state field
+> **STATUS: PARTIALLY WIRED.** The runtime now computes signed peel relative to
+> the baked Ψ crest and exposes breakpoint velocity from `dΦ_b/dx`; the old
+> `atan(|dz_b/dx|)` survives only as a named legacy line-bearing diagnostic.
+> The synthetic reef is deliberately still calibrated against that legacy
+> bearing until the binary onset locus and limiter gaps are replaced by a
+> continuous break-activation field—retuning early makes Second Peak reverse
+> through a closeout. The larger authority split below is still not wired: one
+> authored per-spot `alpha` serves as swell incidence, no observed direction
+> reaches any uniform, and `applyOcean` carries CDIP's `waveDp` into an inert state field
 > (`state.swellDpObserved`, `shared/cdip.js:80`) that no consumer reads. **The gate is Track 1 — the
 > reef owning the break line.** Until the break line stops being DEM noise, a
 > 4–8° direction signal cannot be observed on screen, let alone validated; see
@@ -1300,7 +1317,7 @@ all measured:
 |---|---|---|---|
 | wavelength | `LAM = 90` constant | linear dispersion | crests 36–40% too long through the surf zone; shoaling ramp 1.35× instead of 2.46× |
 | surface height | `model-js.oceanH`, synthetic | GPU `ocean()`, depth-limited | the rider stands on a wave that never breaks while the GPU draws one that does |
-| peel angle α | authored in the preset bank | derived from the M4 bake | fit hits the target at mid-window and crosses zero out on the flanks |
+| peel angle α | authored target in the preset bank | signed crest-relative readout from the break line and Ψ | readout is canonical; the synthetic reef fit remains explicitly on its legacy line-bearing calibration until the locus is continuous |
 | reef extent | hard-coded `(-110, -35, 215, 290)` | each spot's OSM bounds | one manufactured shelf edge at the same world x on all six spots |
 | peel direction | rider restricted to the `+x` branch | break field, no handedness | an A-frame at a point break; 8 of 18 preset × H₀ combos |
 | dispersion relation | "Guo (2002)" in the comment | a different formula in the code | 4.98% max error against a claimed ~1% |
@@ -1323,7 +1340,7 @@ declaration constrains the derivation — never the reverse.**
 | break *location* z_b(x) | **physics** — the `H₀K_s ≥ γh` locus over measured bathymetry | be constrained (see below), never overridden |
 | surface height under the rider | **physics** — one evaluation, shared | the CPU twin must *be* that evaluation, not a second model |
 | **peel direction** | **authorship** — the site is a right | the derivation must return only lines consistent with it |
-| **peel angle α** | **physics, as a derived diagnostic** — a consequence of `B_spot`, `D_p` and Snell; nobody authors it directly (§2.6.1) | `α_target` in the bank is the declaration it is measured against; the fit reports its residual honestly and is rejected if it violates direction |
+| **peel angle α** | **physics, as a derived diagnostic** — the signed angle between the baked break route and Ψ crest; nobody authors the readout directly (§2.6.1) | `α_target` is the declaration it is measured against. Current migration limit: reef calibration still uses the named legacy line bearing and reports that fact; canonical refit waits for a continuous break field. |
 | **break-line bearing `B_spot`** | **authorship** — the reef's obliquity, one constant per spot (§2.6.1) | physics supplies the contour it is read off; provisional today, gated on Track 1 |
 | spot identity, stage extent | **authorship** — OSM canon | supplies the numbers, does not pick the spots |
 | swell conditions (H₀, T, tide, chop, incident direction `D_p`) | **authorship** — the bank, or CDIP live | `D_p` is observed ocean state and may never carry site character (§2.6.2 rule 1). Documented, not wired. |

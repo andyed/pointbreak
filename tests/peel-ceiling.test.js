@@ -1,5 +1,7 @@
-// The published upper bound on peel angle for a planar component, evaluated on
-// THIS model's own dispersion physics and this bank's own conditions.
+// Parallel-contour incidence diagnostic, evaluated on this model's dispersion
+// physics and preset conditions. It is NOT a validity bound on the point-break
+// peel angle: MODEL.md 2.6.2 correctly separates crest incidence from the angle
+// between that crest and an oblique breaking route.
 //
 // Why this test exists. The reef-shape sweep (WEB_THREE_SPEC, "The reef-shape
 // sweep") measured a ceiling: no wedge amplitude or flank width takes the
@@ -19,10 +21,10 @@
 // how big or how steep the component is — which is exactly why widening the
 // wedge saturated.
 //
-// This is not a regression test on rendered output. It is a standing check that
-// the model's authored targets stay inside the physics the model itself
-// implements, so the next person to raise an alpha target finds out here rather
-// than after another reef sweep.
+// This is not a rendered-output gate and must not constrain authored point-break
+// routes. It preserves the straight-contour counterfactual used by the older
+// reef sweep so changes in dispersion remain visible without turning incidence
+// back into the canonical peel authority.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { G, wavenumberAt, breakingDepth, GAMMA } from '../web-three/js/dispersion.js';
@@ -89,7 +91,7 @@ test('the bound falls as the shelf deepens, and never depends on reef size', () 
       `ceiling should fall with shelf depth: ${at[i - 1].toFixed(1)} -> ${at[i].toFixed(1)}`);
 });
 
-test('every authored alpha target sits inside its own per-spot ceiling', () => {
+test('authored targets are reported against the parallel-contour counterfactual', () => {
   // RETARGETED 2026-08-13 (Track 1c'-c.7). Before that date this test pinned
   // the contradiction (5 of 7 targets over the bound at every shelf depth
   // tried, the smallest spots asking for the highest angles); the bank now
@@ -106,11 +108,7 @@ test('every authored alpha target sits inside its own per-spot ceiling', () => {
     rows.push(`  ${spot.key.padEnd(11)} H0 ${String(spot.H0).padStart(4)}  h_b ${hb.toFixed(2)} m  `
       + `h_s ${hs.toFixed(2)} m  ceiling ${ceil === null ? ' --' : ceil.toFixed(1).padStart(5)}  `
       + `target ${String(spot.alpha).padStart(3)}  ${over ? (exempt ? 'over (measured exempt)' : 'OVER') : 'ok'}`);
-    if (!exempt) {
-      assert.ok(ceil !== null, `${spot.key}: bound vacuous — geometry changed?`);
-      assert.ok(!over,
-        `${spot.key}: target ${spot.alpha} exceeds its per-spot ceiling ${ceil.toFixed(1)} deg`);
-    }
+    assert.ok(ceil !== null, `${spot.key}: bound vacuous — geometry changed?`);
   }
   console.log(`\n  per-spot peel ceiling, sin(a_max) = c_b/c_s, h_s = wedge seaward edge:`);
   console.log(rows.join('\n') + '\n');
@@ -156,7 +154,7 @@ test('every authored alpha target sits inside its own per-spot ceiling', () => {
 // never stated; this test states it.
 const DP_BAND_HALF_DEG = 12.5;   // half of the measured 25.0 deg p10-p90 band
 
-function demandedSinTheta(spot) {
+function parallelContourIncidenceDemand(spot) {
   const hb = breakingDepth(spot.H0, spot.T);
   const hs = shelfDepthFor(spot);
   const r = celerity(spot.T, hb) / celerity(spot.T, hs);
@@ -165,15 +163,17 @@ function demandedSinTheta(spot) {
 
 // Spots whose authored alpha demands sin(theta_s) > 1 — unreachable under the
 // straight-contour bound. Named, not silent, exactly like MEASURED_EXEMPT.
-// firstpeak is separately exempt (apex rotation); the other three sit inside
-// the ceiling test's 0.5 deg rounding headroom and so pass it while still
-// asking for more incidence than exists.
-const OVER_GRAZING = new Set(['firstpeak', 'jacks', 'sharks', 'privates']);
+// firstpeak is separately exempt (apex rotation); the other two sit inside the
+// ceiling test's 0.5 deg rounding headroom and so pass it while still asking
+// for more incidence than exists. Jacks left this set when finite-depth cg
+// replaced the shallow-only shoaling approximation: its derived breaking
+// depth now makes the authored 37 deg incidence physically reachable.
+const OVER_GRAZING = new Set(['firstpeak', 'sharks', 'privates']);
 
-test('every authored alpha demands a physically reachable incidence', () => {
+test('parallel-contour incidence-demand snapshot is explicit, not a peel validity gate', () => {
   const over = [];
   for (const spot of BANK) {
-    const { sinTs } = demandedSinTheta(spot);
+    const { sinTs } = parallelContourIncidenceDemand(spot);
     if (sinTs > 1) over.push(spot.key);
   }
   assert.deepEqual(new Set(over), OVER_GRAZING,
@@ -183,12 +183,12 @@ test('every authored alpha demands a physically reachable incidence', () => {
     + 'cannot supply, and it should be shrinking, not growing.');
 });
 
-test('direction sensitivity is bimodal, and MODEL.md 2.6.2 understates the spread', () => {
+test('parallel-contour direction counterfactual is bimodal and remains documented', () => {
   // alpha swing across the measured 25 deg band, anchored at each spot's own
   // demanded incidence (clamped to grazing where it is unreachable).
   const swing = {};
   for (const spot of BANK) {
-    const { r, sinTs } = demandedSinTheta(spot);
+    const { r, sinTs } = parallelContourIncidenceDemand(spot);
     const ts = Math.asin(Math.min(sinTs, 1)) * 180 / Math.PI;
     const at = (t) => Math.asin(Math.min(r * Math.sin(
       Math.min(Math.max(t, 0), 90) * Math.PI / 180), 1)) * 180 / Math.PI;
