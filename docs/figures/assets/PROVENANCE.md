@@ -41,8 +41,9 @@ borrowed names remain.
 
 `og_hero.png` is a 1280×752 crop of the same renderer at Sewers, Drone camera,
 `sim=42&speed=0`, captured by `docs/figures/capture_og_hero.mjs`. It was
-regenerated on 2026-08-26 with the promoted anatomy default, then embedded by
-`gen_og.py` and rasterised at 2× by `render_check.mjs`:
+regenerated on 2026-08-26 with the promoted anatomy default. The essay uses it
+as the opening poster and `gen_og.py` embeds it in the social card, which is
+rasterised at 2× by `render_check.mjs`:
 
 ```bash
 node docs/figures/capture_og_hero.mjs
@@ -51,5 +52,5 @@ node docs/figures/render_check.mjs docs/figures/og-card.svg \
   docs/figures/og-card.png 2
 ```
 
-The inset is a simulated render, not aerial photography; the card labels it
-`SIMULATED` in the adjacent high-contrast caption.
+The poster/inset is a simulated render, not aerial photography. Both surfaces
+label it `SIMULATED` in high-contrast text and link or caption the exact state.

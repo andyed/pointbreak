@@ -361,9 +361,9 @@
   }
 
   /* ---- simulation embeds ---- */
-  /* The opening simulation loads eagerly; the later analytical embeds are
-     loaded and UNLOADED by an IntersectionObserver. Each one is a live WebGL
-     context, and browsers cap how many may exist at once. */
+  /* The hero is a deterministic poster from the current renderer. The later
+     analytical embeds are loaded and UNLOADED by an IntersectionObserver.
+     Each one is a live WebGL context, and browsers cap how many may exist. */
   .wip-badge {
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 0.42em; font-weight: 700; letter-spacing: 0.08em;
@@ -397,10 +397,48 @@
     padding: 0 1.5rem;
     max-width: 100vw;
   }
-  .hero-sim .sim-frame {
-    width: min(100%, 1440px, calc((100vh - 18rem) * 16 / 9));
+  .hero-graphic {
+    position: relative;
+    display: block;
+    width: min(100%, 1280px);
     min-width: min(100%, 720px);
+    aspect-ratio: 16 / 9;
     margin: 0 auto;
+    overflow: hidden;
+    border: 1px solid #2a3138;
+    border-radius: 5px;
+    background: #0b0e11;
+    text-decoration: none;
+  }
+  .hero-graphic img {
+    width: 100%; height: 100%; display: block; object-fit: cover;
+  }
+  .hero-graphic:hover { border-color: #59646b; }
+  .hero-graphic:focus-visible { outline: 3px solid #c9a86a; outline-offset: 3px; }
+  .hero-stamp, .hero-open {
+    position: absolute;
+    bottom: 12px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    border: 1px solid #59646b;
+    border-radius: 4px;
+    color: #f4f1df;
+    background: #0f1216;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+  .hero-stamp {
+    left: 12px;
+    padding: 0 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .hero-open { right: 12px; padding: 0 14px; }
+  .hero-graphic:hover .hero-open {
+    color: #0f1216; background: #c9a86a; border-color: #c9a86a;
   }
   .hero-sim figcaption {
     width: min(100%, 1440px);
@@ -411,7 +449,9 @@
   @media (max-width: 720px) {
     .sim-pair { grid-template-columns: 1fr; }
     .hero-sim { padding: 0 1.1rem; margin-top: 2rem; margin-bottom: 2.8rem; }
-    .hero-sim .sim-frame { width: 100%; min-width: 0; aspect-ratio: 4 / 3; }
+    .hero-graphic { width: 100%; min-width: 0; aspect-ratio: 4 / 3; }
+    .hero-stamp { top: 10px; bottom: auto; min-height: 36px; font-size: 0.72rem; }
+    .hero-open { bottom: 10px; right: 10px; }
   }
   .limits { max-width: 70ch; margin: 1.2rem 0 1.6rem 0; padding-left: 1.2rem;
             color: #cccbbb; font-size: 1rem; line-height: 1.65; }
@@ -467,21 +507,24 @@
   <p class="kicker">Work in progress &middot; Santa Cruz, California</p>
   <h1>Modelling the waves at Pleasure Point</h1>
   <figure class="sim-figure hero-sim">
-    <div class="sim-frame">
-      <iframe class="sim-embed" loading="eager"
-        src="sim/web-three/#preset=firstpeak&amp;cam=cliff&amp;controls=1&amp;sim=42"
-        data-src="sim/web-three/#preset=firstpeak&amp;cam=cliff&amp;controls=1&amp;sim=42"
-        title="Live simulated view from the measured cliff at First Peak"></iframe>
-    </div>
+    <a class="hero-graphic"
+      href="sim/web-three/#preset=sewers&amp;cam=drone&amp;controls=1&amp;sim=42"
+      target="_blank" rel="noopener"
+      aria-label="Open the live Sewers simulation at the state shown in this poster">
+      <img src="assets/og_hero.png" width="1280" height="752"
+        loading="eager" fetchpriority="high"
+        alt="Simulated drone view of successive waves breaking at the Sewers preset">
+      <span class="hero-stamp">Simulated &middot; current default &middot; Sewers</span>
+      <span class="hero-open">Open live simulator &#8599;</span>
+    </a>
     <figcaption>
-      <strong>Live model, work in progress.</strong> First Peak from a camera
-      placed on the measured cliff, about 14 m above the water. This is a
-      kinematic model, not footage or a validated forecast. It boots the
-      January ocean &mdash; the p75 swell height of the biggest month in
-      25 years of hourly hindcast at this break (deep-water
-      H<sub>0</sub>&nbsp;1.25&nbsp;m) &mdash; because August, when this page
-      was written, is the flattest.
-      <a href="sim/web-three/#preset=firstpeak&amp;cam=cliff" target="_blank" rel="noopener">Open the full simulator &#8599;</a>
+      <strong>Simulated, not footage.</strong> A deterministic frame at
+      <span class="mono">sim&nbsp;=&nbsp;42</span> from the current Sewers
+      default: bend, aerated lip, connected curtain, causal onset and
+      <span class="mono">S<sub>app</sub>&nbsp;=&nbsp;0.22</span>. The
+      reference ocean is H<sub>0</sub>&nbsp;2.2&nbsp;m at 15&nbsp;s; the
+      optional <span class="mono">look=foam</span> material is off. The link
+      opens the live model at this same state.
     </figcaption>
   </figure>
   <p class="deck">A first pass. Public coastline and seafloor survey data for a long point break on the east side of Santa Cruz, and a WebGL model that tries to turn that data into breaking waves. The measurements are solid. The model is a start.</p>
@@ -1783,9 +1826,10 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
 
 
 <script>
-// Keep the opening simulation eager, then lazy-load / unload every WebGL embed
-// as it moves through the page. Detaching distant frames keeps the number of
-// live GL contexts bounded — the Psychodeli "Inside the Math" essay pattern.
+// Lazy-load / unload every analytical WebGL embed as it moves through the page.
+// The opening poster is static, so first paint does not wait on shader compile.
+// Detaching distant frames keeps the number of live GL contexts bounded — the
+// Psychodeli "Inside the Math" essay pattern.
 (function () {
   var UNLOAD_DELAY = 4000, timers = new Map();
 
