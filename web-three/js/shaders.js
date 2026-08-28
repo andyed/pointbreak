@@ -218,6 +218,13 @@ float kelpMask(vec2 xz, float depthM){
 // MODEL_GLSL — and the rename avoids redefinition where the water fragment
 // splices both.
 export const SKY_GLSL = `
+// Marine-layer density dial (#fog=, condition days). 1 = the shipped image.
+// Declared here rather than in FOG_GLSL because skyColor() reads it too: past
+// ~1.5x shipped density the day is socked in, and a socked-in sky has no blue
+// zenith — the dome converges on the same haze tone the surface fog fades
+// toward, so sky and fog cannot disagree about what a thick day looks like.
+uniform float u_fogAmt;
+
 vec3 sunDir = normalize(vec3(-0.45, 0.42, -0.28));
 
 float skyHash21(vec2 p){ vec3 q = fract(vec3(p.xyx)*0.1031); q += dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
@@ -238,7 +245,72 @@ vec3 skyColor(vec3 rd, float t){
     float cl = skyNoise2(cp)*0.6 + skyNoise2(cp*2.7)*0.3;
     sky = mix(sky, vec3(0.93, 0.93, 0.92), smoothstep(0.5, 0.85, cl)*0.45*smoothstep(0.02,0.2,rd.y));
   }
+  // socked-in blend (see u_fogAmt above): zenith, sun glow and cloud texture
+  // all flatten into one tone. That tone is LUMINOUS, not gloomy ("max fog is
+  // too dark", live verdict 2026-08-27): a marine layer scatters the sun into
+  // the sheet, so a thick day is bright flat grey and a maxed dial heads for
+  // white-out rather than deeper overcast.
+  vec3 sockTone = mix(vec3(0.90, 0.915, 0.925), vec3(0.965),
+                      smoothstep(4.0, 8.0, u_fogAmt));
+  sky = mix(sky, sockTone, smoothstep(1.5, 4.0, u_fogAmt));
   return sky;
+}
+`;
+
+// ---------- marine-layer fog ----------
+// ONE fog law for water, land and seabed: GRID_FRAG and BED_FRAG both splice
+// this chunk (it replaced constants duplicated across them, 2026-08-27), so
+// every surface converges on the same horizon instead of meeting at a seam.
+// Density is paired with the grid's ~4 km skirt (main.js FAR_EXTENT): the
+// plane outlives the fog, so the horizon is a fade, never a geometry edge.
+// The layer hugs the surface (HAZE_H): near-horizontal cliff rays run their
+// whole length through it, but the drone's near-vertical rays only cross
+// HAZE_H metres of haze — without this the top-down view greys out.
+// Requires MODEL_GLSL (vnoise2) and SKY_GLSL (u_fogAmt) spliced first.
+export const FOG_GLSL = `
+const float FOG_DENSITY = 0.0011;
+const float HAZE_H      = 70.0;
+// Drifting fog-bank modulation depth (#bank=, condition days). 0 = the
+// shipped uniform layer, 1 = full banks: thin air between them, up to ~2.6x
+// density inside one.
+uniform float u_fogBank;
+
+// The bank field: two-octave value noise at ~600 m scale, advected shoreward
+// at a marine-layer drift speed. Sampled in WORLD XZ so a bank is a place —
+// it rolls over the lineup, swallows the outside sets and releases them —
+// not a screen-space effect pinned to the camera.
+float fogBankMul(vec2 xz, float t){
+  vec2 p = (xz - vec2(3.6, 2.1)*t) * 0.0017;
+  float n = vnoise2(p)*0.62 + vnoise2(p*2.3 + vec2(17.0, 9.0))*0.38;
+  return mix(1.0, 0.30 + 2.3*smoothstep(0.30, 0.75, n), clamp(u_fogBank, 0.0, 1.0));
+}
+
+float fogAmount(float dist, float dy, vec2 xz, float t){
+  float inLayer = dy > HAZE_H ? HAZE_H / dy : 1.0;   // ray fraction inside the haze
+  // bank density averaged at the target and the ray midpoint: a bank sitting
+  // BETWEEN the eye and the wave still thickens the air in front of it,
+  // which is what makes banks read as volume rather than surface tint
+  float bank = 0.5*(fogBankMul(xz, t) + fogBankMul(0.5*(cameraPosition.xz + xz), t));
+  float f = 1.0 - exp(-dist * inLayer * FOG_DENSITY * u_fogAmt * bank);
+  // HORIZON FLOOR (2026-08-27, "minimum fog is not great"): the dial sets
+  // haze THICKNESS, but the world must still end in air — the grid's far
+  // skirt (main.js FAR_EXTENT = 4000) outlives any thin dial setting, and a
+  // pure exponential never actually finishes, so at low u_fogAmt the skirt
+  // printed as a hard silvered edge against the dome. A distance-anchored
+  // floor completes the fade by 4100 m REGARDLESS of the dial: fog=0 is now
+  // crystal air whose horizon still dissolves. Distance-only on purpose (no
+  // inLayer weighting): it also closes the grazing-ray far-field silvering
+  // from altitude, which the provenance matte called an instant-fake tell.
+  // At the shipped amt=1 the floor sits under the exponential until the last
+  // ~150 m before the skirt, where it finishes the ~1% the exp left over.
+  // The floor's START stretches toward the eye as the dial thins (clamped so
+  // amt >= 1 keeps the shipped 2400 m start): with a thin exponential under
+  // it, a fixed 2400 m start crossed dark-water-to-sky in the few pixels a
+  // grazing ray gives that range, and printed a banded stripe — a longer run
+  // reads as distance instead of a wall.
+  float floorStart = mix(1200.0, 2400.0, clamp(u_fogAmt, 0.0, 1.0));
+  f = max(f, smoothstep(floorStart, 4100.0, dist));
+  return f;
 }
 `;
 
@@ -1220,19 +1292,13 @@ ${MODEL_GLSL}
 ${SKY_GLSL}
 ${DETAIL_GLSL}
 ${KELP_GLSL}
+${FOG_GLSL}
 
-// fog density paired with the grid's ~4 km skirt (main.js FAR_EXTENT): the
-// plane outlives the fog, so the horizon is a fade, never a geometry seam.
-// The marine layer hugs the surface (HAZE_H): near-horizontal cliff rays run
-// their whole length through it, but the drone's near-vertical rays only
-// cross HAZE_H metres of haze — without this the top-down view greys out.
 uniform float u_camUnder;   // 1 when the eye is below the water surface
 uniform float u_matte;      // 1 = matte the unmodeled world (#matte=0 reverts)
 uniform float u_crestRead;  // Track 5 crest-first read (face darkening + fresh-foam core); #crest=0 reverts
 uniform float u_lipAer;     // aerated lip/curl whitening on the fold geometry; #lip=1 arms it (default OFF)
 uniform float u_fidelityLook; // 0 current, 1 foam material, 2 + lifecycle/face/lip (#look=)
-const float FOG_DENSITY = 0.0011;
-const float HAZE_H      = 70.0;
 
 // ---- modeled-domain provenance ----
 // 1 where the model has authority, ramping to 0 where it does not: outside
@@ -1385,8 +1451,7 @@ void main() {
       landCol = mix(vec3(0.60, 0.63, 0.64), landCol, smoothstep(0.0, 0.35, provL));
     }
     float dyL = max(cameraPosition.y - vWorldPos.y, 0.0);
-    float inLayerL = dyL > HAZE_H ? HAZE_H / dyL : 1.0;
-    vec3 colL = mix(landCol, skyColor(-V, t), 1.0 - exp(-dist * inLayerL * FOG_DENSITY));
+    vec3 colL = mix(landCol, skyColor(-V, t), fogAmount(dist, dyL, worldXZ, t));
     gl_FragColor = vec4(colL, 1.0);
     return;
   }
@@ -1859,8 +1924,7 @@ void main() {
   // fog toward the same procedural sky the dome draws, evaluated along the
   // view ray — the far plane converges on exactly what surrounds it
   float dy = max(cameraPosition.y - vWorldPos.y, 0.0);
-  float inLayer = dy > HAZE_H ? HAZE_H / dy : 1.0;   // ray fraction inside the haze
-  float fog = 1.0 - exp(-dist * inLayer * FOG_DENSITY);
+  float fog = fogAmount(dist, dy, worldXZ, t);
   col = mix(col, skyColor(-V, t), fog);
 
   // ---- 6. seen from underneath ----
@@ -2183,11 +2247,7 @@ ${MODEL_GLSL}
 ${DETAIL_GLSL}
 ${SKY_GLSL}
 ${BED_OUTSIDE_GLSL}
-
-// Aerial perspective, shared verbatim with GRID_FRAG so the water and the bed
-// converge on the same horizon instead of meeting at a seam (2026-08-12).
-const float FOG_DENSITY = 0.0011;
-const float HAZE_H      = 70.0;
+${FOG_GLSL}
 
 vec3 sunDirB = normalize(vec3(-0.45, 0.42, -0.28));
 
@@ -2294,9 +2354,8 @@ void main(){
   // Same law, same constants as GRID_FRAG's section 5, so the two surfaces
   // converge on one horizon rather than meeting at a seam.
   float dyB = max(cameraPosition.y - vBedPos.y, 0.0);
-  float inLayerB = dyB > HAZE_H ? HAZE_H / dyB : 1.0;
   vec3 VB = normalize(cameraPosition - vBedPos);
-  col = mix(col, skyColor(-VB, u_time), 1.0 - exp(-sight * inLayerB * FOG_DENSITY));
+  col = mix(col, skyColor(-VB, u_time), fogAmount(sight, dyB, xz, u_time));
   gl_FragColor = vec4(col, 1.0);
 }
 `;

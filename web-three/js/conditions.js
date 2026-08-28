@@ -22,6 +22,12 @@ export const CONDITION_DAYS = [
   { key: 'modelcard', label: 'model-card day',                H0: 1.5, T: 14, tideM: 0.0,   chop: 0.1,  dF: 0.006, good: true },
   // Mid-size mid-period pulse: the everyday good day between card and overhead.
   { key: 'pulse',     label: 'fun mid-period pulse',          H0: 1.2, T: 12, tideM: 0.2,   chop: 0.15, dF: 0.008, good: true },
+  // Socked-in morning glass-off: small clean swell under a heavy marine layer
+  // with banks drifting through the lineup. fog scales the renderer's shipped
+  // fog density; fogBank arms the drifting-bank modulation (shaders.js
+  // FOG_GLSL). They describe the AIR, not the ocean — days that omit them
+  // reset to the clear default (1 / 0), so fog never leaks across the cycle.
+  { key: 'foggy',     label: 'socked-in morning glass-off',   H0: 1.1, T: 13, tideM: 0.15,  chop: 0.05, dF: 0.007, fog: 3.5, fogBank: 0.6, good: true },
   // Overhead WNW groundswell on a draining low tide — the barrel day.
   { key: 'overhead',  label: 'overhead WNW groundswell, low', H0: 2.2, T: 16, tideM: -0.6,  chop: 0.1,  dF: 0.005, good: true },
   // Big and clean: long-period, glassy, long set cycles (small dF).
@@ -46,11 +52,19 @@ export function applyConditionDay(state, uniforms, key) {
   state.chop = d.chop;
   state.dF = d.dF;
   state.tide = clampTide(d.tideM);
+  // Fog is applied unconditionally: a day without fog fields is a CLEAR day,
+  // and must wash out whatever the previous day (or a typed #fog=) left in
+  // the air. Boot-order note: #fog=/#bank= are parsed after applyLiveParams,
+  // so an explicit hash value still wins over the day at load.
+  state.fog = d.fog ?? 1;
+  state.fogBank = d.fogBank ?? 0;
   if (uniforms) {
-    if (uniforms.u_H0)   uniforms.u_H0.value = d.H0;
-    if (uniforms.u_T)    uniforms.u_T.value = d.T;
-    if (uniforms.u_chop) uniforms.u_chop.value = d.chop;
-    if (uniforms.u_dF)   uniforms.u_dF.value = d.dF;
+    if (uniforms.u_H0)      uniforms.u_H0.value = d.H0;
+    if (uniforms.u_T)       uniforms.u_T.value = d.T;
+    if (uniforms.u_chop)    uniforms.u_chop.value = d.chop;
+    if (uniforms.u_dF)      uniforms.u_dF.value = d.dF;
+    if (uniforms.u_fogAmt)  uniforms.u_fogAmt.value = state.fog;
+    if (uniforms.u_fogBank) uniforms.u_fogBank.value = state.fogBank;
   }
   return d;
 }

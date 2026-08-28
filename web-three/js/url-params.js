@@ -37,8 +37,8 @@ export function parseSpeedParam(value, fallback = 1) {
 // so the same view always serialises to the same string — otherwise two people
 // on the same screen produce different links and neither can tell why.
 export const ROUND_TRIP_PARAMS = [
-  'preset', 'cam', 'day', 'month', 'h0', 'tide', 'bed',
-  'surfer', 'section', 'audio', 'speed', 'controls',
+  'preset', 'cam', 'day', 'month', 'h0', 'tide', 'fog', 'bank', 'burnoff',
+  'bed', 'surfer', 'section', 'audio', 'speed', 'controls',
 ];
 
 // Values equal to these are omitted: a default-state view must serialise to a
@@ -52,6 +52,9 @@ export const ROUND_TRIP_PARAMS = [
 const OMIT_WHEN = {
   surfer: '0', section: '0', audio: '0', speed: '1', bed: 'reef',
   preset: 'secondpeak', cam: 'free',
+  // fog=1 IS the shipped image (a pure multiplier on the aerial-perspective
+  // density), bank=0 the uniform layer, burnoff=0 no morning envelope.
+  fog: '1', bank: '0', burnoff: '0',
   // NO month entry, deliberately. The default ocean is the site card, so ANY
   // month is a reader's choice and must survive a copied link. A january
   // entry sat here while a global default month shipped (2026-08-16,

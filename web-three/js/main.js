@@ -31,6 +31,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          cameraFloorY, UNMAPPED_DIP_M } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
+import { burnoffFog } from './fog.js';
 import { MONTHLY_OCEAN, MONTHLY_OCEAN_PCT, getMonthlyOcean } from '../../data/climatology/pp_monthly_ocean.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../shared/cdip.js';
 import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook,
@@ -245,6 +246,14 @@ const uniforms = {
   // snap lands on a crest line and drew a straight hard foam edge. Ramped by
   // default; #wrap=0 restores the raw mod() (see crestClockS in model-glsl).
   u_crestWrap:  { value: 1 },
+  // Marine-layer fog dial (shaders.js FOG_GLSL/SKY_GLSL): u_fogAmt scales the
+  // shipped density (1 = the pre-knob image, exactly — x1.0 is exact in IEEE),
+  // u_fogBank arms drifting density banks (0 = uniform layer). state.fog /
+  // state.fogBank are the source of truth (drawer sliders, #fog=/#bank=,
+  // condition days); the frame sync writes them here, through the burn-off
+  // envelope (fog.js) when state.burnoff is armed.
+  u_fogAmt:     { value: 1 },
+  u_fogBank:    { value: 0 },
   // modeled-domain matte (shaders.js provenanceAt) — #matte=0 reverts
   u_matte:      { value: 1 },
   u_wwArea:     { value: 1 },  // 4a' whitewater-area coupling; #wwarea=0 is the pre-fix A/B
@@ -496,7 +505,9 @@ scene.add(bedMesh);
 const skyMat = new THREE.ShaderMaterial({
   vertexShader: SKY_VERT,
   fragmentShader: SKY_FRAG,
-  uniforms: { u_time: uniforms.u_time },   // shared clock object — one sim time
+  // shared objects — one sim time, and the fog dial so a socked-in day
+  // flattens the dome to the same haze the surface fog fades toward
+  uniforms: { u_time: uniforms.u_time, u_fogAmt: uniforms.u_fogAmt },
   side: THREE.BackSide,
   depthWrite: false,
 });
@@ -816,6 +827,10 @@ const monthControl = document.getElementById('monthControl');
 const monthValue = document.getElementById('monthValue');
 const tideControl = document.getElementById('tideControl');
 const tideValue = document.getElementById('tideValue');
+const fogControl = document.getElementById('fogControl');
+const fogValue = document.getElementById('fogValue');
+const fogBankControl = document.getElementById('fogBankControl');
+const fogBankValue = document.getElementById('fogBankValue');
 const sectionPositionControl = document.getElementById('sectionPositionControl');
 const sectionPosition = document.getElementById('sectionPosition');
 const sectionPositionValue = document.getElementById('sectionPositionValue');
@@ -836,6 +851,7 @@ function syncControlUI() {
     audio: isAudioEnabled(),
     pause: Boolean(state.paused),
     section: Boolean(showSection),
+    burnoff: Boolean(state.burnoff),
   };
   document.querySelectorAll('[data-action]').forEach((button) => {
     const active = toggleStates[button.dataset.action];
@@ -868,6 +884,18 @@ function syncControlUI() {
   if (tideValue) {
     const tide = state.tide || 0;
     tideValue.textContent = `${tide >= 0 ? '+' : ''}${tide.toFixed(2)} m · ${tideLabel(tide)}`;
+  }
+  if (fogControl) fogControl.value = String(state.fog ?? 1);
+  if (fogValue) {
+    const f = state.fog ?? 1;
+    const word = f < 0.7 ? 'crisp' : f < 1.3 ? 'clear' : f < 2.5 ? 'hazy'
+      : f < 4.5 ? 'thick' : 'socked in';
+    fogValue.textContent = `×${f.toFixed(1)} · ${word}`;
+  }
+  if (fogBankControl) fogBankControl.value = String(state.fogBank ?? 0);
+  if (fogBankValue) {
+    const b = state.fogBank ?? 0;
+    fogBankValue.textContent = b < 0.025 ? 'off' : `${Math.round(b * 100)}%`;
   }
   if (monthControl) {
     monthControl.value = activeMonthKey || 'card';
@@ -1204,6 +1232,31 @@ function setTide(value) {
   refreshHUD();
 }
 
+// Fog sliders clear the day for the same reason the tide slider does: a named
+// day claims the whole morning, air included, and a hand-moved dial makes the
+// label a lie. The burn-off toggle does NOT clear it — it is a time envelope
+// over whatever base is on screen, not a rival description of the day.
+// The dial floors at 0.3, not 0: coastal air is never optically empty, and
+// with NO exponential under it the horizon floor in fogAmount() reads as a
+// flat grey band ("minimum fog is not great", 2026-08-27 — measured by eye).
+// At 0.3 the exponential rebuilds the gradient and the floor just finishes it.
+const FOG_MIN = 0.3;
+function setFog(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return;
+  state.fog = Math.min(Math.max(v, FOG_MIN), 8);
+  clearActiveDay();
+  refreshHUD();
+}
+
+function setFogBank(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return;
+  state.fogBank = Math.min(Math.max(v, 0), 1);
+  clearActiveDay();
+  refreshHUD();
+}
+
 function cycleConditionDay() {
   const i = CONDITION_DAYS.findIndex((day) => day.key === activeDayKey);
   const next = CONDITION_DAYS[(i + 1 + CONDITION_DAYS.length) % CONDITION_DAYS.length].key;
@@ -1516,6 +1569,12 @@ function initControlUI() {
   }
   waveSizeControl.addEventListener('input', () => setH0(waveSizeControl.value));
   tideControl.addEventListener('input', () => setTide(tideControl.value));
+  fogControl?.addEventListener('input', () => setFog(fogControl.value));
+  fogBankControl?.addEventListener('input', () => setFogBank(fogBankControl.value));
+  document.querySelector('[data-action="burnoff"]')?.addEventListener('click', () => {
+    state.burnoff = !state.burnoff;
+    refreshHUD();
+  });
   sectionPosition.addEventListener('input', () => setSectionX(sectionPosition.value));
 
   initTopMenus();
@@ -1583,6 +1642,18 @@ function frame(now) {
   uniforms.u_tau.value = state.tau;
   uniforms.u_chop.value = state.chop;
   uniforms.u_aframe.value = state.aframe;
+  // Marine-layer fog: state is the base the reader (or a day) dialled; the
+  // burn-off envelope (fog.js) rides on top when armed — dawn sheet, banks at
+  // the half-burnt moment, then clear. Sim time, so #speed= scales the
+  // morning and #sim= seeds how far into it the view starts.
+  if (state.burnoff) {
+    const env = burnoffFog(state.fog, state.fogBank, simTime);
+    uniforms.u_fogAmt.value = env.fog;
+    uniforms.u_fogBank.value = env.bank;
+  } else {
+    uniforms.u_fogAmt.value = Number.isFinite(state.fog) ? state.fog : 1;
+    uniforms.u_fogBank.value = Number.isFinite(state.fogBank) ? state.fogBank : 0;
+  }
   uniforms.u_surfer.value = state.surfer;
   uniforms.u_geoMix.value = state.geoMix;
   uniforms.u_contourFit.value.set(state.contourX2, state.contourX3);
@@ -1882,6 +1953,18 @@ function applyLiveParams(h, { shapeChanged = false } = {}) {
   // decide the clamp against a tide the state is about to leave.
   if (h.has('tide')) state.tide = Math.min(Math.max(parseFloat(h.get('tide')) || 0, TIDE_RANGE[0]), TIDE_RANGE[1]);
   setMonth(h.has('month') ? h.get('month') : null);
+  // Fog rides on the day the way #tide= does: the day names a whole morning,
+  // and an explicit value in the permalink is the author's own air — parsed
+  // after the day block so the specific number wins.
+  if (h.has('fog')) {
+    const v = parseFloat(h.get('fog'));
+    if (Number.isFinite(v) && v <= 8) state.fog = Math.max(v, FOG_MIN);
+  }
+  if (h.has('bank')) {
+    const v = parseFloat(h.get('bank'));
+    if (Number.isFinite(v) && v >= 0 && v <= 1) state.fogBank = v;
+  }
+  if (h.has('burnoff')) state.burnoff = h.get('burnoff') === '1';
   // M5 bed modes: reef (default, 0), plane (1), measured/no-reef (2)
   if (h.get('bed') === 'plane') state.bedShape = 1;
   if (h.get('bed') === 'measured') state.bedShape = 2;
@@ -1979,6 +2062,8 @@ function applyHashParams() {
   // a real direction knob needs the MODEL.md §2.4/§4.5 variable split first.
   // See docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md ("Direction in the
   // code") and TODO.md Track 3a (doc) / 3c (wiring, gated on Track 1).
+  // #fog= / #bank= / #burnoff= are ROUND-TRIP controls, parsed inside
+  // applyLiveParams (after the day block, so an explicit value wins).
   // modeled-domain matte defaults ON; #matte=0 is the A/B revert
   if (h.get('matte') === '0') uniforms.u_matte.value = 0;
   // 4a' whitewater-area coupling defaults ON; #wwarea=0 is the pre-fix A/B
@@ -2104,6 +2189,15 @@ function currentHashSnapshot() {
     // pin the size and make the named ocean unfalsifiable on reload.
     h0: (activeDayKey || activeMonthKey) ? null : state.H0?.toFixed(2),
     tide: state.tide ? state.tide.toFixed(3) : null,
+    // A day claims the air like it claims the ocean: under a named day the
+    // fog values are the day's own, and writing them as well would pin the
+    // day's air and make it unfalsifiable on reload (same rule as h0 above).
+    // Burn-off is a mode the reader armed, not part of the day — always written.
+    fog: activeDayKey ? null
+      : (Number.isFinite(state.fog) ? String(+state.fog.toFixed(2)) : null),
+    bank: activeDayKey ? null
+      : (Number.isFinite(state.fogBank) ? String(+state.fogBank.toFixed(2)) : null),
+    burnoff: state.burnoff ? '1' : '0',
     bed: ['reef', 'plane', 'measured'][state.bedShape || 0],
     surfer: state.surfer ? '1' : '0',
     section: showSection ? '1' : '0',

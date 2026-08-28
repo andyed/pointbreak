@@ -94,6 +94,25 @@
           </span>
           <input id="tideControl" type="range" step="0.001">
         </label>
+        <label class="range-control" for="fogControl">
+          <span class="range-label">
+            <span>Fog</span>
+            <output id="fogValue" for="fogControl">—</output>
+          </span>
+          <input id="fogControl" type="range" min="0.3" max="8" step="0.1">
+        </label>
+        <label class="range-control" for="fogBankControl">
+          <span class="range-label">
+            <span>Fog banks</span>
+            <output id="fogBankValue" for="fogBankControl">—</output>
+          </span>
+          <input id="fogBankControl" type="range" min="0" max="1" step="0.05">
+        </label>
+      </div>
+      <div class="toggle-controls">
+        <button type="button" data-action="burnoff" aria-pressed="false">
+          <span>Morning burn-off</span><span class="control-state">Off</span>
+        </button>
       </div>
     </section>
 

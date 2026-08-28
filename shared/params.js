@@ -172,7 +172,11 @@ export function peelFloorH0(presetKey, { T = null, tideM = 0 } = {}) {
 }
 
 export function makeState() {
-  const state = { speed: 1, view: 1, surfer: 0, paused: false, preset: null };
+  // fog/fogBank/burnoff are renderer air (web-three FOG_GLSL + fog.js), not
+  // wave model — they live in state so days, sliders and the permalink writer
+  // share one source of truth, and they default to the clear shipped image.
+  const state = { speed: 1, view: 1, surfer: 0, paused: false, preset: null,
+                  fog: 1, fogBank: 0, burnoff: false };
   applyPreset(state, DEFAULT_PRESET);
   return state;
 }

@@ -120,7 +120,9 @@ test('the floor declines to bind off the ocean it was measured at', () => {
   // `#day=small` (T 9, tide +0.35) took Sewers from alpha 12.8 to 3.9 and The
   // Hook from 10.4 to 5.9 — the clamp manufacturing the closeouts it exists to
   // prevent. Lesson 13: check the domain before reading the number.
-  assert.equal(CONDITION_DAYS.length, 6, 'the conditions bank did not parse');
+  // 7 = the six original days + `foggy` (2026-08-27). Bank-size changes are
+  // deliberate; bump this with the bank so a parse regression cannot hide.
+  assert.equal(CONDITION_DAYS.length, 7, 'the conditions bank did not parse');
   for (const spot of MAPPED) {
     const b = PEEL_FLOOR[spot];
     assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: 0 }), b.floorH0);
