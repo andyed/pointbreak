@@ -182,6 +182,18 @@ const float CRASH_PEAK_S = 0.42;
 const float CRASH_SIGMA_S = 0.20;
 const float BORE_FADE_START_S = 2.60;
 const float BORE_END_S = 3.80;
+
+// The pitching lip is a short event, not a held pose. Its arc angle grows
+// quadratically into impact (constant angular acceleration), then the bend
+// releases over 1.5 impact sigmas so splash/bore can own the landing. Zero at
+// both lifecycle ends keeps the modulo crossing continuous.
+float breakerCurlCycle(float ageS){
+  float u = clamp(ageS/max(CRASH_PEAK_S, 1e-3), 0.0, 1.0);
+  float accelerate = u*u;
+  float release = 1.0 - smoothstep(CRASH_PEAK_S,
+                                   CRASH_PEAK_S + 1.5*CRASH_SIGMA_S, ageS);
+  return accelerate*release;
+}
 // ---- sheltering (H_eff, MODEL.md 2.6.7) ----
 // Energy decay as swell refracts around the apex: down-point (+x) the wave is
 // SMALLER AND WEAKER, which is what the golden-rule "mellow" actually is now
@@ -790,6 +802,26 @@ vec4 breakerLifecycleAtX(float x, float t){
   return vec4(age, frontZ, impact, bore);
 }
 
+// The carrier's crest bell is intentionally symmetric, but whitewater is not:
+// a station may foam only after the zipper has crossed it. Raw lifecycle age
+// is 0 at that crossing, grows through the wake, and reads near T on the
+// approaching side. Fade that approaching side out before the modulo reset;
+// the reset itself is the physical birth of foam at the new breakpoint.
+float breakerCausalGate(float ageS){
+  return 1.0 - smoothstep(0.72*u_T, 0.90*u_T, ageS);
+}
+
+// A real peeling lip carries a compact white leading edge immediately ahead
+// of the curl; only the broad wake belongs behind it. Convert time remaining
+// before the zipper crossing into metres along the break line so that edge
+// keeps the same footprint when local peel speed changes. 0.12*LAM is about
+// one crest-edge span; farther-ahead water stays glassy.
+float breakerLeadGate(float ageS, float phaseGrad){
+  float w = 2.0*PI/u_T;
+  float aheadM = max(u_T - ageS, 0.0) * w / max(phaseGrad, 1e-3);
+  return 1.0 - smoothstep(0.0, 0.12*LAM, aheadM);
+}
+
 // ---------- the crest clock, made continuous (2026-08-18) ----------
 // THE HARD FOAM EDGE. Every foam clock in this model is mod(phase, 2pi)/w:
 // a sawtooth that runs 0 -> T and then SNAPS back to 0 when the next crest
@@ -1125,10 +1157,10 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float structuralMound = u_H0*(0.62*impactBand + 0.27*boreBand)*moundNoise;
   h += mix(legacyMound, structuralMound, shape);
 
-  // ---- #splash=1: the crash — Peregrine splash-up (default OFF) ----------
+  // ---- the crash — Peregrine splash-up (#splash=0 reverts) ---------------
   // Live verdict 2026-08-25 on the lip bundle: "we're missing the crash of
-  // the wave." The lip bends over, the curtain closes the fall, and the
-  // landing raises only the structural mound above — 0.62*impactBand*u_H0,
+  // the wave." The lip bent over, the curtain closed the fall, and the
+  // landing raised only the structural mound above — 0.62*impactBand*u_H0,
   // ~1 m beside a 7.5 m crest, a swell in the bore rather than an event.
   // Real plunging impact ejects a mass comparable to the wave itself
   // (Peregrine 1983's splash-up), briefly, exactly at the landing.
@@ -1153,9 +1185,14 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float splashRag  = 0.45 + 0.55*(0.5*vnoise2(vec2(x*0.85, t*2.2))
                                 + 0.5*vnoise2(vec2(x*2.1 + 7.0, t*3.1)));
   float plgSplash  = smoothstep(0.45, 1.25, u_xi);
+  // The upward burst begins as the lip releases, not while it is still
+  // accelerating. Without this handoff splashUp merely made the held curl
+  // taller and more overturned (the opposite of a landing).
+  float crashRelease = smoothstep(CRASH_PEAK_S,
+                                  CRASH_PEAK_S + CRASH_SIGMA_S, life.x);
   float splashUp   = u_splash * 0.90*u_H0 * (0.25 + 0.75*plgSplash)
                    * env2 * reef * breakMask(x) * foamSizeAt(x)
-                   * impactAgeS * splashBand * splashRag;
+                   * impactAgeS * crashRelease * splashBand * splashRag;
   if (!(splashUp == splashUp)) splashUp = 0.0;   // NaN guard (house rule)
   h += splashUp;
 
@@ -1239,17 +1276,21 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // age wraps at T, so a tail can never reach past the previous head. The
   // dSdx floor makes alpha -> 0 a closeout (whole line breaks at once,
   // tail collapses), not a divide-by-zero. u_armRead=0 is the A/B revert.
-  // The lifecycle age wraps exactly as tSince does, but at the LINE, so its
-  // seam is a level set in x — a VERTICAL hard edge rather than a
-  // shore-parallel one. Neither tail decays to nothing by age = T on the
-  // slow-head arm (measured jump in cometFoam across 0.25 m: 0.85 with the
-  // metric tail, 0.78 with the legacy 2.5 s clock — the metric tail did not
-  // introduce this and is marginally the milder of the two), so the comet
-  // gets the same ramp as every other foam clock. Same #wrap A/B.
+  // CAUSAL CLOCK (2026-08-28, the "foam chases the wave" report). The
+  // carrier/residue clock above still needs crestClockS(): without its broad
+  // injection width #wrap=0 leaves the surface foam visibly detached from the
+  // breaking lip. The ZIPPER lifecycle is different. Its wrap is the moving
+  // breakpoint itself, so ramping ages T-wrapW..T back toward zero paints
+  // newborn comet foam on the not-yet-broken side of the head. In the Free
+  // camera that was the bright lobe ahead of the curl. Keep the line clock raw:
+  // age 0 is attached to the head, increasing age is the trailing wake, and
+  // age near T stays the previous/approaching side rather than being
+  // rejuvenated. The impact/bore terms already cover the causal head, so the
+  // vertical reset is anatomy, not the carrier's old detached hard edge.
   float eA = 2.0;
   float dSdxLine = abs(rayPhase(vec2(x + eA, breakLine(x + eA)))
                      - rayPhase(vec2(x - eA, breakLine(x - eA)))) / (2.0*eA);
-  float cometClk = crestClockS(life.x);
+  float cometClk = life.x;
   float behindM = cometClk * w / max(dSdxLine, 1e-3);
   float cometAge = mix(exp(-cometClk/2.5), exp(-behindM/55.0), u_armRead);
   // Attachment weight: brk's -6..14 m inside ramp is only 0.216 AT the line,
@@ -1353,7 +1394,14 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // small (crest 3.34 m vs January's 5.17) and correctly whiter than January.
   // foamSizeAt is exactly 1.0 at the 1.5 m card day, so the shipped card look
   // is unchanged by construction; only sub- and super-card days move.
-  float lipFoam = pocket * (0.45 + 0.75*smoothstep(0.3, 1.4, u_xi));
+  // pocket is a symmetric crest-locus bell. Keep the broad whitewater wake on
+  // the crossed side, then union only a compact metric edge immediately ahead
+  // of the curl. This leads the wave without reviving the whole approaching
+  // half of the carrier.
+  float pocketGate = max(breakerCausalGate(life.x),
+                         breakerLeadGate(life.x, dSdxLine));
+  float foamPocket = pocket * pocketGate;
+  float lipFoam = foamPocket * (0.45 + 0.75*smoothstep(0.3, 1.4, u_xi));
   foam += lipFoam*mix(1.0, 0.52, shape)*mix(1.0, sizeFoam, u_lipSize);
 
   // spilling crumb: low-xi waves dribble foam down the face before fully breaking

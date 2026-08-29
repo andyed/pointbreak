@@ -279,10 +279,10 @@ const uniforms = {
   // the "reference height, not a clamp" decision — see choppyPos). Ships ON as
   // part of the promoted bend; it becomes inert on the #curl=0 revert arm.
   u_earn:       { value: 1 },
-  // #splash=1: the crash — Peregrine splash-up at the landing, on the
-  // lifecycle impact bell. Default OFF pending a live verdict: it adds a
-  // travelling white burst to the default-path height field.
-  u_splash:     { value: 0 },
+  // The crash: curl accelerates into the shared impact clock, releases, then
+  // splash/spray take the landing. #splash=0 is the pre-crash A/B revert;
+  // positive values remain a gain on the calibrated 0.90*H0 burst.
+  u_splash:     { value: 1 },
   // #sapp= unbundles the approach-term strength from #look=full. 0.22 is now
   // the calibrated default: it halves the measured runaway-offset population
   // and removes the oversized head plate; #sapp=0.42 is the legacy A/B.
@@ -2153,11 +2153,11 @@ function applyHashParams() {
     if (Number.isFinite(v) && v > 0 && v <= 1) uniforms.u_sApp.value = v;
   }
   if (h.get('onset') === '0') uniforms.u_onset.value = 0;
-  // #splash= takes a gain: 1 = the calibrated 0.90*H0 burst, higher scales it
-  // (live-dialable like #sapp; the crash is a look calibration). 0/absent = off.
+  // #splash= takes a gain: 1 = the calibrated 0.90*H0 burst, higher scales it;
+  // 0 is the pre-crash revert. Absence keeps the shipped gain of 1.
   if (h.has('splash')) {
     const v = parseFloat(h.get('splash'));
-    if (Number.isFinite(v) && v > 0 && v <= 3) uniforms.u_splash.value = v;
+    if (Number.isFinite(v) && v >= 0 && v <= 3) uniforms.u_splash.value = v;
   }
   // #drop=legacy is a REVERT arm, not a feature flag: the re-scoped dropMag
   // ships on, and this restores the term that flattened the pocket so the two

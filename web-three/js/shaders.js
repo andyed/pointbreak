@@ -579,20 +579,19 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // TWO gates, not one — the first cut used one window for everything and
   // measured a regression: with the bend and earn floor suppressed at the
   // just-crossed head, the sim 39 block stood back up at fill 1.414 (the
-  // crest is TALLER when nothing folds it). The split: a breaking crest
-  // pitches from onset (aheadCut only, fast-ramped so the wrap prints no
-  // hard x-seam at the head), while the fold's horizontal REACH develops
-  // behind it (devRamp too).
+  // crest is TALLER when nothing folds it). The split: the fold's horizontal
+  // REACH develops behind the head (devRamp), while the visible bend is a
+  // short lifecycle event. breakerCurlCycle starts at zero, accelerates
+  // quadratically into CRASH_PEAK_S, then releases the bend over 1.5 sigmas
+  // so the impact mound, splash and spray take over instead of leaving a held
+  // curl. Both ends are zero, so the modulo crossing stays continuous.
   float aheadCut = 1.0, bendOnset = 1.0;
   if (u_onset > 0.5) {
     float wOn  = 2.0*PI/u_T;
     float ageB = mod(wOn*t - rayPhase(vec2(xz0.x, breakLine(xz0.x))), 2.0*PI)/wOn;
     aheadCut = 1.0 - smoothstep(0.72*u_T, 0.90*u_T, ageB);
     float devRamp = smoothstep(0.0, 0.20*u_T, ageB + 0.05*u_T);
-    // ageB wraps T -> 0 exactly at the head, where aheadCut jumps 0 -> 1;
-    // the short lead-in keeps that from printing a one-cell cliff in the
-    // bend while leaving the head's nascent lip ~fully active by ~0.4 s in.
-    bendOnset = aheadCut * smoothstep(0.0, 0.06*u_T, ageB + 0.03*u_T);
+    bendOnset = aheadCut * breakerCurlCycle(ageB);
     if (!(bendOnset == bendOnset)) { bendOnset = 1.0; aheadCut = 1.0; }
     Sover *= devRamp * aheadCut;
   }
@@ -875,9 +874,9 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     // sim 36/48: best station pocket 0.99, overturn 3.4 deg. Linear clamp
     // instead, the same idiom as sizeGate above.
     float overGate = mix(1.0, clamp(excessQ, 0.0, 1.5), u_depthMix);
-    // bendOnset: the bend obeys the zipper's causality (nothing overturns
-    // ahead of the head) but NOT the fold's development ramp — a breaking
-    // crest pitches from onset (#onset=1; 1.0 with the flag off).
+    // bendOnset: the bend obeys the zipper's causality and its impact cycle,
+    // while the fold reach keeps the slower development ramp above. With the
+    // #onset=0 revert this remains 1.0 (the old held-pose bend).
     float kEff = (mix(0.30, 2.60, plunge)/max(hCrest, 0.5))
                * overGate * pocket * bandZ * (0.80 + 0.30*lipJit) * bendOnset;
     float th   = clamp(dyB*kEff, 0.0, 2.30);   // 132 deg; the mesh backstop
@@ -1540,11 +1539,20 @@ void main() {
   // they ride their crests and are tSince-fresh by construction, which is
   // why an ageK carve alone measured near-null — see the comet carve below).
   foamM *= mix(1.0, mix(0.70, 0.50, u_headRead), ageK);
+  vec4 lifeC = breakerLifecycleAtX(sourceXZ.x, t);
+  float eC = 2.0;
+  float wC = 2.0*PI/u_T;
+  float dSdxC = abs(rayPhase(vec2(sourceXZ.x + eC, breakLine(sourceXZ.x + eC)))
+                  - rayPhase(vec2(sourceXZ.x - eC, breakLine(sourceXZ.x - eC)))) / (2.0*eC);
+  float pocketGateF = max(breakerCausalGate(lifeC.x),
+                          breakerLeadGate(lifeC.x, dSdxC));
+  float foamPocketF = vPocket * pocketGateF;
   // Track 5 attachment: the zipper's active break is ALWAYS whitewater — the
   // pocket gets a foam floor the erosion cannot carve away, so the head at
-  // the line never renders dimmer than its own trailing bore. vPocket is
-  // env^2-gated in the model, so lulls stay dark and this cannot paint a
-  // standing white stripe on the line.
+  // the line never renders dimmer than its own trailing bore. vPocket is a
+  // symmetric carrier bell, so foamPocketF keeps the crossed-side wake plus a
+  // narrow metric leading edge; farther-ahead water is suppressed. The
+  // model's env^2 gate still keeps lulls dark.
   //
   // SIZE-NORMALIZED 2026-08-19 (#lipn=0 reverts, same flag as the model's
   // lipFoam — one defect, two limbs). The claim this floor encodes is RELATIVE
@@ -1557,7 +1565,7 @@ void main() {
   // foamSizeAt is exactly 1.0 at the 1.5 m card day, so the floor is unchanged
   // there and the relative claim is now true at every size instead of one.
   foamM = max(foamM, u_crestRead * 0.72 * mix(1.0, foamSizeAt(sourceXZ.x), u_lipSize)
-                     * clamp(vPocket*1.5, 0.0, 1.0));
+                     * clamp(foamPocketF*1.5, 0.0, 1.0));
   // COMET CARVE (2026-08-14, #head=0 A/B): direction from altitude. The
   // line-attached stripe's whitewater encodes when the zipper passed each
   // station (age since this column's crest crossed the line), but the foam
@@ -1570,7 +1578,6 @@ void main() {
   // a comet, and the comet points the peel. Placed after the pocket floor:
   // at the live head lifeAge ~ 0 so the floor is never carved.
   float zbC = breakLine(sourceXZ.x);
-  vec4 lifeC = breakerLifecycleAtX(sourceXZ.x, t);
   // SEAM DIRECTION (Andy, 2026-08-14 night): the first carve was a moving
   // freshness window — its trailing edge chased the head at zipper speed, and
   // the mod() reset re-brightened foam under the old bore before the new bore
@@ -1580,9 +1587,11 @@ void main() {
   // PREVIOUS wave — age it one period older instead of letting the wrap
   // repaint it; (2) tau 4->9 s and floor 0.30->0.45, so the tail dissolves in
   // place instead of visibly translating.
-  // Same wrap ramp as the model comet (crestClockS): the carve is a 2x
-  // multiplier, so a snap in lifeC.x prints a vertical seam on the stripe.
-  float lifeClk = crestClockS(lifeC.x);
+  // Same causal lifecycle as the model comet. crestClockS belongs to the
+  // carrier/residue clock above; applying its pre-crest ramp here re-brightens
+  // the not-yet-broken side of the zipper and makes the foam chase the curl.
+  // lifeC.x = 0 is the attached head and increasing raw age is its wake.
+  float lifeClk = lifeC.x;
   float foamAge = mix(lifeClk + u_T, lifeClk,
                       smoothstep(sourceXZ.y - 3.0, sourceXZ.y + 3.0, lifeC.y));
   float onStripe = exp(-pow((sourceXZ.y - zbC)/25.0, 2.0));
@@ -1594,10 +1603,6 @@ void main() {
   // on a 110 m e-fold — gentler than the model tail's 55 m, so the carve
   // grades what the model term draws instead of re-eroding it. Legacy clock
   // under #arm=0 / #arm=anchor.
-  float eC = 2.0;
-  float wC = 2.0*PI/u_T;
-  float dSdxC = abs(rayPhase(vec2(sourceXZ.x + eC, breakLine(sourceXZ.x + eC)))
-                  - rayPhase(vec2(sourceXZ.x - eC, breakLine(sourceXZ.x - eC)))) / (2.0*eC);
   float behindC = foamAge * wC / max(dSdxC, 1e-3);
   float carveTail = mix(exp(-foamAge/9.0), exp(-behindC/110.0), u_armRead);
   foamM *= mix(1.0, 0.45 + 0.55*carveTail, onStripe*u_headRead);
@@ -1865,7 +1870,7 @@ void main() {
   // signal the inner field cannot fake.
   float nearLine = exp(-pow((sourceXZ.y - breakLine(sourceXZ.x))/25.0, 2.0));
   float freshCore = u_crestRead * (1.0 - ageK) * smoothstep(0.55, 0.90, foamM)
-                  * max(nearLine, clamp(vPocket*1.4, 0.0, 1.0));
+                  * max(nearLine, clamp(foamPocketF*1.4, 0.0, 1.0));
   foamCol = mix(foamCol, vec3(1.0), 0.6*freshCore);
   vec3 filmCol = mix(base, vec3(0.60, 0.68, 0.70), 0.6);
   // deeper film with #head: the aged tail grades toward water so the fresh
@@ -1975,7 +1980,11 @@ void main(){
   float h1 = hash21(vec2(x0*1.73, seedY*31.7));
   float h2 = hash21(vec2(seedZ*47.9, x0*0.61));
   float Tf    = 0.45 + 0.75*seedY;                  // flight time, s
-  float delay = CRASH_PEAK_S - 0.25 + 0.95*h1;      // staggered launches across the crash
+  // On the shipped crash path no droplet launches before impact. #splash=0
+  // preserves the older pre-impact scatter as part of the exact crash revert.
+  float delayLegacy = CRASH_PEAK_S - 0.25 + 0.95*h1;
+  float delayCrash  = CRASH_PEAK_S + 0.70*h1;
+  float delay = mix(delayLegacy, delayCrash, step(0.001, u_splash));
   float tf    = life.x - delay;                     // this droplet's own flight clock, s
   float u01   = clamp(tf/Tf, 0.0, 1.0);
   float airborne = (tf > 0.0 && tf < Tf) ? 1.0 : 0.0;

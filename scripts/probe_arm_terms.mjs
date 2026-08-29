@@ -311,7 +311,9 @@ async function probeInPage(step) {
     const eA = 2.0;
     const dSdxLine = Math.abs(rayPhase(x + eA, breakLine(x + eA))
       - rayPhase(x - eA, breakLine(x - eA))) / (2 * eA);
-    const cometClk = crestClockS(life.age);
+    // Model twin: the zipper/comet lifecycle stays causal and raw. Only the
+    // carrier/residue clock uses crestClockS's broad injection smoothing.
+    const cometClk = life.age;
     const behindM = cometClk * w / Math.max(dSdxLine, 1e-3);
     const cometAge = mix(Math.exp(-cometClk / 2.5), Math.exp(-behindM / 55.0),
       U.u_armRead ?? 0);
@@ -328,7 +330,12 @@ async function probeInPage(step) {
       * Math.exp(-tSince / (1.8 * tau)) * (0.55 + 0.45 * boreTex) * (1 - swashF);
     residue += areaBoost;
     let foam = mix(legacyFoam * sizeFoam, structuralFoam + residue * sizeFoam, shape);
-    const lipFoam = pocket * (0.45 + 0.75 * smoothstep(0.3, 1.4, U.u_xi));
+    const causalGate = 1 - smoothstep(0.72 * U.u_T, 0.90 * U.u_T, life.age);
+    const aheadM = Math.max(U.u_T - life.age, 0) * w / Math.max(dSdxLine, 1e-3);
+    const leadGate = 1 - smoothstep(0, 0.12 * LAM, aheadM);
+    const pocketGate = Math.max(causalGate, leadGate);
+    const foamPocket = pocket * pocketGate;
+    const lipFoam = foamPocket * (0.45 + 0.75 * smoothstep(0.3, 1.4, U.u_xi));
     foam += lipFoam * mix(1, 0.52, shape);
     const crumb = crestNear * (1 - brk) * env2
       * Math.exp(-Math.max(d, 0) / 28) * smoothstep(0.55, 0.2, U.u_xi);
@@ -348,9 +355,9 @@ async function probeInPage(step) {
     const hiEdge = mix(0.75, 1.10, ageK);
     foamM = smoothstep(0.15, hiEdge, foamM + (er - 0.5) * erAmp);
     foamM *= mix(1, mix(0.70, 0.50, U.u_headRead), ageK);
-    foamM = Math.max(foamM, U.u_crestRead * 0.72 * clamp(pocket * 1.5, 0, 1));
+    foamM = Math.max(foamM, U.u_crestRead * 0.72 * clamp(foamPocket * 1.5, 0, 1));
     const lifeC = life;
-    const lifeClk = crestClockS(lifeC.age);
+    const lifeClk = lifeC.age;
     const foamAge = mix(lifeClk + U.u_T, lifeClk,
       smoothstep(z - 3, z + 3, lifeC.frontZ));
     const onStripe = Math.exp(-Math.pow((z - zb) / 25, 2));
@@ -367,7 +374,8 @@ async function probeInPage(step) {
       age: life.age, frontZ: life.frontZ, frontWidth, impactAge: life.impactAge,
       boreWindow: life.boreWindow, activity: life.activity, sizeAmp: life.sizeAmp,
       impactBand, boreBand, trailBand, cometFoam, structuralFoam,
-      legacyFoam, residue, areaBoost, lipFoam, pocket, crumb,
+      legacyFoam, residue, areaBoost, lipFoam, pocket, foamPocket,
+      causalGate, aheadM, leadGate, pocketGate, crumb,
       foam, foamM, tSince, ageK, dep, lift, shelter: shelterAt(x),
     };
   }

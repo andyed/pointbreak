@@ -27,6 +27,12 @@ const rig = readFileSync(new URL('../scripts/build_qa_sheets.mjs', import.meta.u
 const site = readFileSync(new URL('../scripts/build_site.py', import.meta.url), 'utf8');
 const essay = readFileSync(new URL('../docs/figures/index.html', import.meta.url), 'utf8');
 
+test('the essay exposes a machine-readable last-updated date', () => {
+  assert.match(essay,
+    /<time datetime="\d{4}-\d{2}-\d{2}">Last updated [^<]+<\/time>/,
+    'the essay header has no visible, machine-readable last-updated date');
+});
+
 // Where build_site.py puts the QA set and where it puts the app. Read out of
 // the file rather than restated, so a test fails on the edit that breaks the
 // links rather than on a copy of it.

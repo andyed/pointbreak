@@ -30,6 +30,35 @@ test('breaker consequences share one canonical lifecycle clock', () => {
   assert.match(shaders, /breakerLifecycleAtX\(x0, u_time\)/);
 });
 
+test('crest smoothing cannot rejuvenate foam ahead of the zipper', () => {
+  // crestClockS deliberately broadens the carrier/residue injection so the
+  // surface foam stays attached. The along-line lifecycle is already the
+  // causal signed ordering: 0 at the head, increasing behind it, near T ahead
+  // of the next head. Wrapping that clock mapped near-T back toward zero and
+  // painted bright comet foam on the unbroken side (the chasing-foam defect).
+  assert.match(model, /float tSince = crestClockS\(mod\(thetaL, 2\.0\*PI\)\/w\);/);
+  assert.match(shaders, /float tSince = crestClockS\(mod\(wA\*t - rayPhase\(sourceXZ\), 2\.0\*PI\)\/wA\);/);
+  assert.match(model, /float cometClk = life\.x;/);
+  assert.match(shaders, /float lifeClk = lifeC\.x;/);
+  assert.doesNotMatch(model, /crestClockS\(life\.x\)/);
+  assert.doesNotMatch(shaders, /crestClockS\(lifeC\.x\)/);
+});
+
+test('the crest pocket keeps a compact metric leader without whitening the broad unbroken side', () => {
+  // pocket locates the carrier crest and is symmetric by construction. Its
+  // broad whitewater stays causal, while the pre-crossing side gets only a
+  // wave-scaled leading edge computed in metres from the local phase gradient.
+  assert.match(model, /float breakerCausalGate\(float ageS\)[\s\S]{0,180}?1\.0 - smoothstep\(0\.72\*u_T, 0\.90\*u_T, ageS\)/);
+  assert.match(model, /float breakerLeadGate\(float ageS, float phaseGrad\)[\s\S]{0,260}?max\(u_T - ageS, 0\.0\) \* w \/ max\(phaseGrad, 1e-3\)[\s\S]{0,120}?0\.12\*LAM/);
+  assert.match(model, /float pocketGate = max\(breakerCausalGate\(life\.x\),\s*breakerLeadGate\(life\.x, dSdxLine\)\);/);
+  assert.match(model, /float foamPocket = pocket \* pocketGate;/);
+  assert.match(model, /float lipFoam = foamPocket \*/);
+  assert.match(shaders, /float pocketGateF = max\(breakerCausalGate\(lifeC\.x\),\s*breakerLeadGate\(lifeC\.x, dSdxC\)\);/);
+  assert.match(shaders, /float foamPocketF = vPocket \* pocketGateF;/);
+  assert.match(shaders, /clamp\(foamPocketF\*1\.5, 0\.0, 1\.0\)/);
+  assert.match(shaders, /clamp\(foamPocketF\*1\.4, 0\.0, 1\.0\)/);
+});
+
 test('structural pocket is compact and legacy remains reversible', () => {
   // Structural pins, not literal ones: the bell must stay a compact Gaussian
   // whose footprint is scaled by pockS (H_eff coupling, 2026-08-14), and the
@@ -82,6 +111,23 @@ test('the judged breaker-anatomy bundle ships together and remains revertible', 
   assert.match(main, /h\.get\('curl'\) === '0'[\s\S]{0,80}?u_curl\.value = 0/);
   assert.match(main, /h\.get\('onset'\) === '0'[\s\S]{0,80}?u_onset\.value = 0/);
   assert.match(main, /h\.get\('curtain'\) === '0'[\s\S]{0,80}?curtainMesh\.visible = false/);
+});
+
+test('the curl accelerates into impact and releases into the shipped crash', () => {
+  // A curl is an event, not a held deformation: zero angular velocity at
+  // onset, convex growth into the shared impact time, then a rapid release.
+  assert.match(model, /float breakerCurlCycle\(float ageS\)[\s\S]{0,360}?float accelerate = u\*u;[\s\S]{0,220}?CRASH_PEAK_S \+ 1\.5\*CRASH_SIGMA_S[\s\S]{0,120}?return accelerate\*release;/);
+  assert.match(shaders, /bendOnset = aheadCut \* breakerCurlCycle\(ageB\);/);
+  assert.doesNotMatch(shaders, /bendOnset = aheadCut \* smoothstep/);
+
+  // Impact is a handoff: the burst begins while the bend releases, and the
+  // airborne pass no longer launches droplets before impact on the live arm.
+  assert.match(model, /float crashRelease = smoothstep\(CRASH_PEAK_S,\s*CRASH_PEAK_S \+ CRASH_SIGMA_S, life\.x\);/);
+  assert.match(model, /impactAgeS \* crashRelease \* splashBand/);
+  assert.match(shaders, /float delayCrash\s*= CRASH_PEAK_S \+ 0\.70\*h1;/);
+  assert.match(shaders, /mix\(delayLegacy, delayCrash, step\(0\.001, u_splash\)\)/);
+  assert.match(main, /u_splash:\s+\{ value: 1 \}/);
+  assert.match(main, /v >= 0 && v <= 3/);
 });
 
 test('airborne whitewater is a separate deterministic render pass', () => {

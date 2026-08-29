@@ -9,9 +9,9 @@ look.
 
 [![Pleasure Point — the measured coastline, the seabed under it, and the model built on both](docs/figures/og-card.png)](https://mindbendingpixels.com/pleasurepoint/)
 
-**Visual essay (live):** https://mindbendingpixels.com/pleasurepoint/ — the
-geography, the data behind it, and the model embedded and labelled work in
-progress.
+**[Visual essay (live)](https://mindbendingpixels.com/pleasurepoint/)** — last
+updated 28 August 2026; the geography, the data behind it, and the model
+embedded and labelled work in progress.
 
 ## The product definition
 

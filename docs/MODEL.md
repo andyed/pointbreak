@@ -405,6 +405,39 @@ fog and deliberately Eulerian fine detail. Before this split the fragment
 recomputed lifecycle and break attachment after offsets of up to 20 m (73.6 m
 raw), silently asking a displaced vertex about a neighbouring wave.
 
+#### 2.2b One breaker event: lead, curl, impact, wake (2026-08-28)
+
+The zipper gives every consequence of breaking one causal order. At a fixed
+station the raw lifecycle clock is zero when the breakpoint crosses, increases
+through the broken wake, and approaches `T` on the not-yet-crossed side before
+the next modulo reset. Geometry, impact, bore, spray and line-attached foam all
+read that same clock from `breakerLifecycleAtX`; none is allowed to invent a
+second moving head.
+
+That distinction matters because the carrier foam clock and the breaker clock
+have different jobs. `crestClockS` softens the carrier's modulo reset over the
+crest's finite injection width, preventing a shore-parallel hard seam. Applying
+that same pre-reset ramp to the zipper lifecycle is non-causal: it maps age near
+`T` back toward zero and paints newborn whitewater on the side the breakpoint
+has not reached. The line-attached wake therefore reads the **raw** lifecycle.
+The symmetric crest-pocket foam is gated to the crossed side, plus one compact
+leading edge immediately ahead of the curl. That edge is `0.12Λ` in metric
+distance, computed from time-to-crossing and the local phase gradient, so a
+change in peel speed does not stretch it into a detached lobe. The visual order
+is consequently a small aerated lip leading at the breakpoint, then the broad
+whitewater wake behind it.
+
+The curl is an event on the same clock, not a held deformation. Its bend angle
+starts with zero angular velocity, grows quadratically to the shared impact at
+`0.42 s`, and releases over `1.5` impact sigmas. As the bend releases, the
+Peregrine-style splash-up begins; airborne spray launches no earlier than
+impact on the shipped path. The handoff is therefore **accelerate → curl →
+release/crash → bore**, with foam carrying the aftermath. `#splash=0` restores
+the pre-crash timing, and `#onset=0&#splash=0` restores the old held bend with its
+legacy splash behavior. This is still a kinematic event layer rather than a
+fluid solve: it establishes ordering and attachment, not transported water
+mass or impact pressure.
+
 ### 2.3 The swell gets a direction (2026-08-10)
 
 §1.2 says crests refract and "the crest sweeps around the point." The runtime
