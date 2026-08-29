@@ -58,8 +58,8 @@ uniform sampler2D u_breakTex;
 uniform float u_breakMix;   // 1 = emergent line, 0 = authored tan(alpha) line
 uniform float u_gapMask;    // 1 = honor baked section gaps, 0 = #gap=0 A/B revert
 uniform float u_headRead;   // 1 = comet-head whitewater aging, 0 = #head=0 A/B revert
-uniform float u_splash;     // #splash=1: the crash — Peregrine splash-up at the
-                            // landing, on the lifecycle impact bell. Default 0.
+uniform float u_splash;     // #splash=1: impact foam + airborne spray on the
+                            // lifecycle bell. Never lifts the water surface.
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
 uniform float u_lipSize;    // 1 = the pocket->whitewater path carries foamSizeAt() like the
                             // rest of the foam field, 0 = #lipn=0 A/B revert (size-free lip)
@@ -1157,7 +1157,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float structuralMound = u_H0*(0.62*impactBand + 0.27*boreBand)*moundNoise;
   h += mix(legacyMound, structuralMound, shape);
 
-  // ---- the crash — Peregrine splash-up (#splash=0 reverts) ---------------
+  // ---- the crash — impact aeration + airborne spray (#splash=0 reverts) --
   // Live verdict 2026-08-25 on the lip bundle: "we're missing the crash of
   // the wave." The lip bent over, the curtain closed the fall, and the
   // landing raised only the structural mound above — 0.62*impactBand*u_H0,
@@ -1177,8 +1177,13 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // defect). Size enters once, through the house factor foamSizeAt; lulls
   // gate through env2 exactly like every lifecycle consumer. plunge floors
   // at 0.25 — a spiller's bore still collapses, at a quarter the violence.
-  // The JS twin deliberately omits this (like the structural mound): the
-  // burst is not standable water and the rider must not surf the crash.
+  // This is a rendering signal, not water height. The shipped first pass added
+  // it directly to h; once the curl released, the narrow raised strip remained
+  // and its born-white foam read as a detached triangular fountain. Geometry
+  // stays on the connected structural impact mound above. This signal supplies
+  // only the matching born-white surface aeration below, while SPRAY_VERT owns
+  // the genuinely airborne volume. The JS twin deliberately omits it for the
+  // same reason: it is not standable water and the rider must not surf it.
   float impactAgeS = exp(-0.5*pow((life.x - CRASH_PEAK_S)/CRASH_SIGMA_S, 2.0));
   float splashSig  = max(0.45*frontWidth, 2.2);
   float splashBand = exp(-0.5*pow((z - life.y)/splashSig, 2.0));
@@ -1186,15 +1191,14 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
                                 + 0.5*vnoise2(vec2(x*2.1 + 7.0, t*3.1)));
   float plgSplash  = smoothstep(0.45, 1.25, u_xi);
   // The upward burst begins as the lip releases, not while it is still
-  // accelerating. Without this handoff splashUp merely made the held curl
+  // accelerating. Without this handoff the burst merely made the held curl
   // taller and more overturned (the opposite of a landing).
   float crashRelease = smoothstep(CRASH_PEAK_S,
                                   CRASH_PEAK_S + CRASH_SIGMA_S, life.x);
-  float splashUp   = u_splash * 0.90*u_H0 * (0.25 + 0.75*plgSplash)
-                   * env2 * reef * breakMask(x) * foamSizeAt(x)
-                   * impactAgeS * crashRelease * splashBand * splashRag;
-  if (!(splashUp == splashUp)) splashUp = 0.0;   // NaN guard (house rule)
-  h += splashUp;
+  float splashBurst = u_splash * 0.90*u_H0 * (0.25 + 0.75*plgSplash)
+                    * env2 * reef * breakMask(x) * foamSizeAt(x)
+                    * impactAgeS * crashRelease * splashBand * splashRag;
+  if (!(splashBurst == splashBurst)) splashBurst = 0.0; // NaN guard (house rule)
 
   // SIZE_AUDIT open item 1: the whole foam block was H0-free, so whitewater
   // amount and brightness were identical at every size. This factor scales the
@@ -1302,12 +1306,11 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float cometW = mix(brk, smoothstep(-5.0, 1.0, z - zb)*brkW, u_armRead);
   float cometFoam = u_headRead * cometW * env2 * cometAge
                   * exp(-max(z - zb, 0.0)/22.0) * mask * sizeFoam;
-  // The splash mass is aerated ejecta, not glassy water — a burst without
-  // white is a glass spike (the alien-ship lesson, one strand earlier: bare
-  // fold geometry reads as a solid object). Normalized against a quarter of
-  // its own amplitude scale so it saturates to full white fast, then rides
-  // the same channel as every other structural band.
-  float splashFoamN = clamp(splashUp/(0.25*u_H0 + 1e-4), 0.0, 1.0);
+  // The crash signal marks born-white impact aeration on the connected surface.
+  // Normalized against a quarter of its amplitude scale so it saturates fast,
+  // then rides the same channel as every other structural band. Its airborne
+  // counterpart is the separate deterministic spray pass.
+  float splashFoamN = clamp(splashBurst/(0.25*u_H0 + 1e-4), 0.0, 1.0);
   float structuralFoam = 1.55*impactFoam + 0.84*boreFoam
                        + 0.66*trailFoam + 0.42*trailLace
                        + 0.90*cometFoam + 1.25*splashFoamN;

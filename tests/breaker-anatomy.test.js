@@ -130,6 +130,18 @@ test('the curl accelerates into impact and releases into the shipped crash', () 
   assert.match(main, /v >= 0 && v <= 3/);
 });
 
+test('the crash signal cannot lift a detached foam plate above the landing', () => {
+  // The crash is split by physical role: the connected height field already
+  // has structuralMound, splashBurst paints born-white impact aeration, and
+  // SPRAY_VERT supplies actual airborne volume. Adding the narrow burst to h
+  // leaves it aloft after breakerCurlCycle releases and recreates the floating
+  // triangular fountain seen in the oblique Sewers view.
+  assert.match(model, /h \+= mix\(legacyMound, structuralMound, shape\);/);
+  assert.match(model, /float splashBurst\s*= u_splash/);
+  assert.match(model, /float splashFoamN = clamp\(splashBurst\//);
+  assert.doesNotMatch(model, /h\s*\+=\s*splash(?:Up|Burst)\s*;/);
+});
+
 test('airborne whitewater is a separate deterministic render pass', () => {
   assert.match(main, /let seed = 0x51f15e/);
   assert.match(main, /new THREE\.Points\(makeSprayGeometry\(\), sprayMat\)/);
