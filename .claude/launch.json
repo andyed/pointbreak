@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pointbreak",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["scripts/serve.py", "8127"],
+      "port": 8127
+    }
+  ]
+}
