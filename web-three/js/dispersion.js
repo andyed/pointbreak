@@ -82,6 +82,23 @@ export function alongshoreKappa(omega, swellDeg) {
   return (omega * omega / G) * Math.sin(swellDeg * Math.PI / 180);
 }
 
+// Snell invariant from a stated reference contour. `alongshoreKappa` above is
+// the deep-water special case (k0 = omega^2/g). CDIP MOP waveDp is already a
+// nearshore direction at ~15 m, so feeding it through k0 would apply the wrong
+// reference frame before the measured-bed refraction bake even starts.
+export function referenceAlongshoreKappa(omega, incidentDeg, referenceDepthM = null) {
+  if (referenceDepthM === null) return alongshoreKappa(omega, incidentDeg);
+  const kRef = wavenumberAt(omega, referenceDepthM);
+  return kRef * Math.sin(incidentDeg * Math.PI / 180);
+}
+
+export function refractionCacheKey({
+  spotName, T, tide = 0, bedShape = 0, swellDeg = 50,
+  referenceDepthM = null, xRef = 0,
+} = {}) {
+  return [spotName, T, tide, bedShape, swellDeg, referenceDepthM, xRef].join('|');
+}
+
 // Local incidence from shore-normal, radians. sin(phi) = kappa/k, so the wave
 // straightens as k grows shoreward. Returns pi/2 at the caustic (k <= kappa).
 export function incidenceAt(omega, h, kappa, floorM = 0.05) {

@@ -38,6 +38,9 @@ import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook,
          writeHashParams, needsReloadForHash, ROUND_TRIP_PARAMS } from './url-params.js';
 import { create as createFisheyeMenu } from '../vendor/fisheye/fisheye-menu.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
+import {
+  directionPhaseForSpot, parseDirectionParam, refractionDirectionOptions,
+} from './incident-direction.js';
 
 // ---------- stage ----------
 // ~600x500 m world window, same coordinates as web/: x along the coast
@@ -929,6 +932,13 @@ function refreshHUD() {
   hudSurfer.textContent = state.surfer ? 'on' : 'off';
   if (hudAudio) hudAudio.textContent = isAudioEnabled() ? 'on' : 'off (M)';
   if (hudAlpha) {
+    const incident = directionPhaseForSpot({
+      psiEnabled, geoSpot: state.geoSpot, waveFromDeg: state.swellDp,
+      authoredAlphaDeg: state.alpha,
+    });
+    const directionTxt = incident
+      ? `Dₚ ${incident.waveFromDeg.toFixed(0)}° → ${incident.incidentDeg.toFixed(0)}° incidence · `
+      : '';
     if (uniforms.u_breakMix.value > 0.5) {
       const derived = derivedAlphaDeg(0, uniforms.u_breakX.value.x, uniforms.u_breakX.value.y);
       // M5: with the synthetic reef in the grid (bed mode 0), alpha returns as
@@ -953,8 +963,8 @@ function refreshHUD() {
           (sa.pinnedN ? ` (${sa.pinnedN}/${sa.stations} pinned excl)` : '')
         : '';
       hudAlpha.textContent = fit
-        ? `α ${fit.targetDeg}° target · ${derived.toFixed(0)}° at x0${stageTxt} · reef synthetic`
-        : `${derived.toFixed(0)}° at x0${stageTxt}`;
+        ? `${directionTxt}α ${fit.targetDeg}° target · ${derived.toFixed(0)}° at x0${stageTxt} · reef synthetic`
+        : `${directionTxt}${derived.toFixed(0)}° at x0${stageTxt}`;
     } else {
       // alpha is authored at the peak only. Down the point the contour swings
       // away from the swell and the realized peel angle rises on its own, so
@@ -1635,6 +1645,14 @@ function frame(now) {
   uniforms.u_time.value = simTime;
   uniforms.u_T.value = state.T;
   uniforms.u_H0.value = state.H0;
+  const incident = directionPhaseForSpot({
+    psiEnabled, geoSpot: state.geoSpot, waveFromDeg: state.swellDp,
+    authoredAlphaDeg: state.alpha,
+  });
+  const directionOptions = refractionDirectionOptions(incident);
+  // Alpha still owns reef character and the legacy metric envelope. Direction
+  // owns only the baked crest phase in this diagnostic; mixing the two here
+  // would refract a 15 m observation a second time inside swellPhi().
   uniforms.u_alpha.value = state.alpha * Math.PI / 180;
   uniforms.u_xi.value = state.xi;
   uniforms.u_sections.value = state.sections;
@@ -1674,10 +1692,15 @@ function frame(now) {
                  contourX2: state.contourX2, contourX3: state.contourX3,
                  stageStart: state.stageStart, stageEnd: state.stageEnd };
   const refr = (!psiEnabled || state.aframe || !state.geoSpot) ? null
-    : bakeRefraction(state.geoSpot, {
-        T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0,
-        swellDeg: state.alpha, xRef: 0,
-      });
+    : incident
+      ? bakeRefraction(state.geoSpot, {
+          T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0,
+          ...directionOptions, xRef: 0,
+        })
+      : bakeRefraction(state.geoSpot, {
+          T: state.T, tide: state.tide || 0, bedShape: state.bedShape || 0,
+          swellDeg: state.alpha, xRef: 0,
+        });
   uniforms.u_psiMix.value = refr ? 1 : 0;
   // MODEL-TWIN of the shader's rayPhase(): kappa*x + Psi(contourZ). Null off
   // the Psi path, which makes rayPhase() fall back to the frozen-LAM plane
@@ -2054,14 +2077,14 @@ function applyHashParams() {
   if (h.get('shape') === 'legacy') structuralBreaker = 0;
   if (h.get('shape') === 'structural') structuralBreaker = 1;
   uniforms.u_breakShape.value = structuralBreaker;
-  // #swell= REMOVED 2026-08-11. It wrote state.swellDeg, which nothing read:
-  // the refraction bake takes `swellDeg: state.alpha` (see the bakeRefraction
-  // call above), and alpha is authored per spot in params.js. The knob looked
-  // wired and was not. Do NOT re-add it as a bare hash param — alpha is
-  // semantically overloaded (site character AND incident swell direction), so
-  // a real direction knob needs the MODEL.md §2.4/§4.5 variable split first.
-  // See docs/research/EXTERNAL_VALIDITY_AUDIT_2026-08-11.md ("Direction in the
-  // code") and TODO.md Track 3a (doc) / 3c (wiring, gated on Track 1).
+  // Diagnostic geometry/refraction boundary. D_p is the nearshore true bearing
+  // the swell arrives FROM at the ~15 m SC116 reference contour. It is resolved
+  // against this spot's measured stage basis and drives the phase/refraction
+  // path; state.alpha remains the synthetic reef's character TARGET. Boot-only
+  // until the noisy break route can defend a stable B_spot (TODO Track 3).
+  if (h.has('direction')) {
+    state.swellDp = parseDirectionParam(h.get('direction'));
+  }
   // #fog= / #bank= / #burnoff= are ROUND-TRIP controls, parsed inside
   // applyLiveParams (after the day block, so an explicit value wins).
   // modeled-domain matte defaults ON; #matte=0 is the A/B revert

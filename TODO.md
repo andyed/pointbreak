@@ -1874,6 +1874,14 @@ No parity port. Consequences to carry honestly:
       (authorship) vs incident swell direction (ocean state); per-spot
       compass→contour constants from PP_MAP_GEOMETRY tangent tables.
       Direction MODULATES the peel; the reef owns spot identity.
+- [x] 3a diagnostic boundary LANDED 2026-08-28:
+      `#direction=188…216` resolves CDIP `D_p` against each mapped spot's
+      measured contour basis and drives Ψ from `k(15 m)·sin φ_ref`; authored α
+      remains the reef target. This is an instrument, not 3c promotion: the HUD
+      exposes the resulting target/derived disagreement while `B_spot` remains
+      blocked by the break route's 23–50 m perpendicular RMS. The direction
+      bounds also falsify one local frame: Shark's Cove at `D_p = 216°` resolves
+      to 91.2° (seaward), so the phase arm declines and retains authored fallback.
 - [ ] 3b. Mechanical hygiene (can land with the doc): bakeBreakLine cache key
       gains direction (latent stale-bake bug); #swell= dead knob wired or
       deleted; applyOcean carries `dp` into state (today the HUD announces a

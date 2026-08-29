@@ -755,14 +755,15 @@ set-to-set period, with the wave count inside each set unchanged. See
 > The synthetic reef is deliberately still calibrated against that legacy
 > bearing until the binary onset locus and limiter gaps are replaced by a
 > continuous break-activation field—retuning early makes Second Peak reverse
-> through a closeout. The larger authority split below is still not wired: one
-> authored per-spot `alpha` serves as swell incidence, no observed direction
-> reaches any uniform, and `applyOcean` carries CDIP's `waveDp` into an inert state field
+> through a closeout. The larger authority split below is still not promoted:
+> one authored per-spot `alpha` serves the default path, while the boot-only
+> `#direction=` instrument sends an explicit observed direction only to the Ψ
+> phase bake. `applyOcean` still carries CDIP's `waveDp` into an inert state field
 > (`state.swellDpObserved`, `shared/cdip.js:80`) that no consumer reads. **The gate is Track 1 — the
 > reef owning the break line.** Until the break line stops being DEM noise, a
 > 4–8° direction signal cannot be observed on screen, let alone validated; see
-> §2.6.5. Do not wire any of this early, and do not read the tables below as
-> descriptions of the build.
+> §2.6.5. Do not promote the instrument early, and do not read the tables below
+> as descriptions of the shipped default.
 
 §2.4 made α the deep-water swell direction. §4.5 made α authorship-owned. Both
 cannot hold. A swell direction is something the ocean does on a given morning,
@@ -1140,17 +1141,17 @@ The band is a single-partition peak. Real combo days superpose S and NW trains
 and one `D_p` cannot represent them; the model has one monochromatic carrier,
 so that limitation is structural and out of scope here.
 
-#### 2.6.6 Why this is not wired, and what has to be true first
+#### 2.6.6 Why this is not promoted, and what has to be true first
 
 **Preconditions.**
 
-1. **Track 1 complete: the reef owns the break line.** Non-negotiable, and the
-   reason this section is prose and not code. The rendered peel angle is
-   currently DEM noise — on a 1:75 bed the 0.31–0.93 m DEM residual displaces
-   the break crossing 22–70 m against a ~5 m peel signal. The whole signal
-   defined here is 4–8°. Wiring it into that channel writes a signal under
-   10× its own noise, and the wiring would read as a no-op — which is worse
-   than not wiring, because it gets recorded as "direction, landed".
+1. **Track 1 complete: the reef owns the break line.** Non-negotiable before
+   promotion into shipped or live-ocean behavior. The boot-only `#direction=`
+   instrument is code precisely so this noisy boundary can be falsified without
+   claiming promotion: on a 1:75 bed the 0.31–0.93 m DEM residual displaces the
+   break crossing 22–70 m against a ~5 m peel signal. The whole signal defined
+   here is 4–8°. Making that instrument the default would write a signal under
+   10× its own noise and record a no-op as "direction, landed".
 2. **`B_spot` from the reef contour, not the cliff** (§2.6.3). Six of seven
    spots currently carry as much or more uncertainty in `B_spot` than the whole
    signal, and one of them (Sewers) cannot even agree on its handedness.
@@ -1276,7 +1277,7 @@ Canonical parameter values (the reference instance):
 | parameter | symbol | value | note |
 |---|---|---|---|
 | deep-water swell direction | θ_s | 290–300° (NW) | winter/fall groundswell. **Not a model input**: §2.3 records that θ_s never reached a uniform, and §2.6 shows the deep angle is not recoverable at the break — so it should not become one. |
-| incident swell direction | D_p | 188–216°, median 194° | at the nearshore contour, CDIP MOP SC116. **Ocean state, not character** (§2.6). DOCUMENTED, NOT WIRED. |
+| incident swell direction | D_p | 188–216°, median 194° | at the nearshore contour, CDIP MOP SC116. **Ocean state, not character** (§2.6). Wired only as the boot-only `#direction=` instrument; not promoted into shipped or live-ocean behavior. |
 | break-line bearing | B_spot | provisional, ~25–80° per spot | **site character**, authored, one per spot (§2.6.3). Not yet defensible — gated on Track 1. |
 | peak period | T | 12–15 s | narrow-band |
 | deep-water height | H₀ | 1–2.5 m | head-high days |
@@ -1321,7 +1322,7 @@ all measured:
 | reef extent | hard-coded `(-110, -35, 215, 290)` | each spot's OSM bounds | one manufactured shelf edge at the same world x on all six spots |
 | peel direction | rider restricted to the `+x` branch | break field, no handedness | an A-frame at a point break; 8 of 18 preset × H₀ combos |
 | dispersion relation | "Guo (2002)" in the comment | a different formula in the code | 4.98% max error against a claimed ~1% |
-| **swell direction α** | site character, authored per spot (`params.js`) | ocean state, the deep-water direction (§2.4) | 38° at Sewers and 70° at Private's for spots facing the same physical swell; a live `waveDp` with nowhere to go. Split in §2.6 (documented, not wired). |
+| **swell direction α** | site character, authored per spot (`params.js`) | ocean state, the deep-water direction (§2.4) | 38° at Sewers and 70° at Private's for spots facing the same physical swell. Split in §2.6; `#direction=` now instruments the Ψ phase boundary, but the shipped default and live `waveDp` remain unwired. |
 
 A model may be a caricature. It may be a simulation. It may not be **both about
 the same quantity**, because then no disagreement is resolvable and every fix
@@ -1343,15 +1344,18 @@ declaration constrains the derivation — never the reverse.**
 | **peel angle α** | **physics, as a derived diagnostic** — the signed angle between the baked break route and Ψ crest; nobody authors the readout directly (§2.6.1) | `α_target` is the declaration it is measured against. Current migration limit: reef calibration still uses the named legacy line bearing and reports that fact; canonical refit waits for a continuous break field. |
 | **break-line bearing `B_spot`** | **authorship** — the reef's obliquity, one constant per spot (§2.6.1) | physics supplies the contour it is read off; provisional today, gated on Track 1 |
 | spot identity, stage extent | **authorship** — OSM canon | supplies the numbers, does not pick the spots |
-| swell conditions (H₀, T, tide, chop, incident direction `D_p`) | **authorship** — the bank, or CDIP live | `D_p` is observed ocean state and may never carry site character (§2.6.2 rule 1). Documented, not wired. |
+| swell conditions (H₀, T, tide, chop, incident direction `D_p`) | **authorship** — the bank, or CDIP live | `D_p` is observed ocean state and may never carry site character (§2.6.2 rule 1). Explicit `#direction=` is wired as an instrument; bank/live promotion is not. |
 | visual exaggeration `VIS` | **authorship** | must never enter a physical threshold |
 | **set-envelope floor** (modulation depth `m`) | **physics** — it *is* the beating components' amplitude ratio \|a₁−a₂\|/(a₁+a₂), measured from the SC116 spectra (§2.5.2) | nothing. A zero floor was authorship by omission, and it drew water flatter than the sea it models. |
 | set period Δf | **authorship** — the bank | the spectra may not retune it: `PP_SPECTRAL_SETS.md` §4 shows the only continuous bridge is set by the analyst's band cutoff (6.1× swing) |
 
-*Three of those rows (α, `B_spot`, `D_p`) describe the arbitration §2.6 settles
-on paper. **The runtime has not moved**: it still authors α per spot and reads
-no observed direction. The table is the declaration; closing the gap is Track 1
-then Track 3c.*
+*Three of those rows (α, `B_spot`, `D_p`) describe the arbitration §2.6 settles.
+The shipped default still authors α per spot and reads no observed direction.
+The boot-only `#direction=188…216` instrument now exercises the other side of
+the boundary: it resolves `D_p` in the measured local contour frame, evaluates
+Snell from the stated 15 m reference depth, and lets the baked route plus Ψ
+report α without overwriting `α_target`. It is not promoted while `B_spot`
+remains undefendable (23–50 m route RMS); closing that gap remains Track 3c.*
 
 ### What follows immediately
 

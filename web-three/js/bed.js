@@ -18,8 +18,9 @@ import { PP_DEPTH_DATA } from '../../data/model/pp_depth_patches.js';
 import { PRESETS, reefWindowKnots } from '../../shared/params.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 import {
-  alongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,
-  incidenceAt as dispIncidenceAt, GAMMA, G, shelterFactor, shoaledHeight,
+  referenceAlongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,
+  incidenceAt as dispIncidenceAt, refractionCacheKey,
+  GAMMA, G, shelterFactor, shoaledHeight,
 } from './dispersion.js';
 import { signedPeelGeometryAt } from './peel-geometry.js';
 
@@ -1357,15 +1358,19 @@ let refrKappa = 0, refrPsiMin = 0, refrPsiMax = 1;
 // Returns { texture, kappa, psiMin, psiMax } or null with no bathymetry.
 // The maths lives in dispersion.js (pure, THREE-free, node-testable); this
 // function owns only the bathymetry sampling and the texture packing.
-export function bakeRefraction(spotName, { T, tide = 0, bedShape = 0, swellDeg = 50, xRef = 0 } = {}) {
+export function bakeRefraction(spotName, {
+  T, tide = 0, bedShape = 0, swellDeg = 50, referenceDepthM = null, xRef = 0,
+} = {}) {
   if (!spotName) return null;
   refrSpotName = spotName;
-  const key = [spotName, T, tide, bedShape, swellDeg, xRef].join('|');
+  const key = refractionCacheKey({
+    spotName, T, tide, bedShape, swellDeg, referenceDepthM, xRef,
+  });
   if (refrTex && key === refrKey) {
     return { texture: refrTex, kappa: refrKappa, psiMin: refrPsiMin, psiMax: refrPsiMax };
   }
   const omega = 2 * Math.PI / T;
-  const kappa = alongshoreKappa(omega, swellDeg);
+  const kappa = referenceAlongshoreKappa(omega, swellDeg, referenceDepthM);
   const wl = MSL_ABOVE_NAVD88 + tide;
 
   const baked = integratePsi({
@@ -1407,10 +1412,13 @@ export function zcAtPsi(target) {
 
 // Local incidence from shore-normal, radians — the readout that says whether
 // the swell has actually straightened out by the time it breaks.
-export function incidenceAt(spotName, zc, { T, tide = 0, bedShape = 0, swellDeg = 50, xRef = 0 } = {}) {
+export function incidenceAt(spotName, zc, {
+  T, tide = 0, bedShape = 0, swellDeg = 50, referenceDepthM = null, xRef = 0,
+} = {}) {
   const omega = 2 * Math.PI / T;
   const depth = MSL_ABOVE_NAVD88 + tide - bedElevBlended(spotName, xRef, zc, bedShape);
-  return dispIncidenceAt(omega, depth, alongshoreKappa(omega, swellDeg));
+  return dispIncidenceAt(omega, depth,
+    referenceAlongshoreKappa(omega, swellDeg, referenceDepthM));
 }
 
 // Local wavelength at a station, metres — the HUD readout and the number the
