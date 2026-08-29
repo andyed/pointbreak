@@ -123,23 +123,36 @@ test('the curl accelerates into impact and releases into the shipped crash', () 
   // Impact is a handoff: the burst begins while the bend releases, and the
   // airborne pass no longer launches droplets before impact on the live arm.
   assert.match(model, /float crashRelease = smoothstep\(CRASH_PEAK_S,\s*CRASH_PEAK_S \+ CRASH_SIGMA_S, life\.x\);/);
-  assert.match(model, /impactAgeS \* crashRelease \* splashBand/);
-  assert.match(shaders, /float delayCrash\s*= CRASH_PEAK_S \+ 0\.70\*h1;/);
+  assert.match(model, /float crashAmp = u_splash[\s\S]{0,260}?impactAgeS \* crashRelease;/);
+  assert.match(shaders, /float delayCrash\s*= CRASH_PEAK_S \+ CRASH_SIGMA_S\*h1;/);
   assert.match(shaders, /mix\(delayLegacy, delayCrash, step\(0\.001, u_splash\)\)/);
   assert.match(main, /u_splash:\s+\{ value: 1 \}/);
   assert.match(main, /v >= 0 && v <= 3/);
 });
 
-test('the crash signal cannot lift a detached foam plate above the landing', () => {
-  // The crash is split by physical role: the connected height field already
-  // has structuralMound, splashBurst paints born-white impact aeration, and
-  // SPRAY_VERT supplies actual airborne volume. Adding the narrow burst to h
-  // leaves it aloft after breakerCurlCycle releases and recreates the floating
-  // triangular fountain seen in the oblique Sewers view.
+test('the visible crash is concentrated ballistic spray, never raised water geometry', () => {
+  // The crash is split by physical role: the water field retains its connected
+  // structural mound, splashBurst paints impact aeration, and SPRAY_VERT owns
+  // the vertical mass. Raising either crash signal in h recreates the detached
+  // triangular fountain; spreading spray over too long a launch window loses
+  // the crash by leaving too little airborne volume at any instant.
   assert.match(model, /h \+= mix\(legacyMound, structuralMound, shape\);/);
-  assert.match(model, /float splashBurst\s*= u_splash/);
+  assert.match(model, /float crashAmp\s*= u_splash/);
+  assert.match(model, /float splashBurst\s*= crashAmp \* splashBand \* splashRag/);
   assert.match(model, /float splashFoamN = clamp\(splashBurst\//);
-  assert.doesNotMatch(model, /h\s*\+=\s*splash(?:Up|Burst)\s*;/);
+  assert.doesNotMatch(model, /h\s*\+=\s*(?:splash|crash)(?:Up|Burst|Lift)\s*;/);
+
+  assert.match(shaders, /float crashMode = step\(0\.001, u_splash\);/);
+  assert.match(shaders, /float yLip = mix\(yLipLegacy, yLipCrash, crashMode\);/);
+  assert.match(shaders, /float crashGain = mix\(1\.0, 2\.40, crashMode\);/);
+  assert.match(shaders, /float crashPointGain = mix\(1\.0, 2\.80, crashMode\);/);
+  assert.match(shaders, /gl_PointSize = clamp\([\s\S]{0,180}?crashPointGain[\s\S]{0,120}?1\.0, 42\.0\);/);
+  assert.doesNotMatch(shaders, /vCurtCrash|zyCrash|crashBulge/);
+
+  const sigma = glslConstant('CRASH_SIGMA_S');
+  assert.ok(Math.abs(sigma - 0.20) < 1e-9,
+            'crash spray launch window drifted from 0.20 s');
+  assert.ok(sigma < 0.70, 'crash spray is still spread like the lost-crash build');
 });
 
 test('airborne whitewater is a separate deterministic render pass', () => {

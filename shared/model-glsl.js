@@ -58,8 +58,8 @@ uniform sampler2D u_breakTex;
 uniform float u_breakMix;   // 1 = emergent line, 0 = authored tan(alpha) line
 uniform float u_gapMask;    // 1 = honor baked section gaps, 0 = #gap=0 A/B revert
 uniform float u_headRead;   // 1 = comet-head whitewater aging, 0 = #head=0 A/B revert
-uniform float u_splash;     // #splash=1: impact foam + airborne spray on the
-                            // lifecycle bell. Never lifts the water surface.
+uniform float u_splash;     // #splash=1: concentrated impact spray + surface
+                            // aeration on the shared lifecycle bell.
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
 uniform float u_lipSize;    // 1 = the pocket->whitewater path carries foamSizeAt() like the
                             // rest of the foam field, 0 = #lipn=0 A/B revert (size-free lip)
@@ -1157,7 +1157,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float structuralMound = u_H0*(0.62*impactBand + 0.27*boreBand)*moundNoise;
   h += mix(legacyMound, structuralMound, shape);
 
-  // ---- the crash — impact aeration + airborne spray (#splash=0 reverts) --
+  // ---- the crash — impact aeration + ballistic spray (#splash=0 reverts) -
   // Live verdict 2026-08-25 on the lip bundle: "we're missing the crash of
   // the wave." The lip bent over, the curtain closed the fall, and the
   // landing raised only the structural mound above — 0.62*impactBand*u_H0,
@@ -1177,13 +1177,13 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // defect). Size enters once, through the house factor foamSizeAt; lulls
   // gate through env2 exactly like every lifecycle consumer. plunge floors
   // at 0.25 — a spiller's bore still collapses, at a quarter the violence.
-  // This is a rendering signal, not water height. The shipped first pass added
-  // it directly to h; once the curl released, the narrow raised strip remained
-  // and its born-white foam read as a detached triangular fountain. Geometry
-  // stays on the connected structural impact mound above. This signal supplies
-  // only the matching born-white surface aeration below, while SPRAY_VERT owns
-  // the genuinely airborne volume. The JS twin deliberately omits it for the
-  // same reason: it is not standable water and the rider must not surf it.
+  // The first pass added the NARROW splashBand directly to h and let it outlive
+  // the curl. Once the bend released, that raised white strip read as a
+  // detached triangular fountain. Removing all lift fixed the plate but also
+  // removed the crash. Split the roles instead: the surface signal paints the
+  // tight impact aeration while SPRAY_VERT concentrates genuinely airborne
+  // volume into the release window. The JS twin deliberately omits both render
+  // signals: neither is standable water and the rider must not surf them.
   float impactAgeS = exp(-0.5*pow((life.x - CRASH_PEAK_S)/CRASH_SIGMA_S, 2.0));
   float splashSig  = max(0.45*frontWidth, 2.2);
   float splashBand = exp(-0.5*pow((z - life.y)/splashSig, 2.0));
@@ -1195,9 +1195,14 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // taller and more overturned (the opposite of a landing).
   float crashRelease = smoothstep(CRASH_PEAK_S,
                                   CRASH_PEAK_S + CRASH_SIGMA_S, life.x);
-  float splashBurst = u_splash * 0.90*u_H0 * (0.25 + 0.75*plgSplash)
-                    * env2 * reef * breakMask(x) * foamSizeAt(x)
-                    * impactAgeS * crashRelease * splashBand * splashRag;
+  float crashAmp = u_splash * 0.90*u_H0 * (0.25 + 0.75*plgSplash)
+                 * env2 * reef * breakMask(x) * foamSizeAt(x)
+                 * impactAgeS * crashRelease;
+  if (!(crashAmp == crashAmp)) crashAmp = 0.0; // NaN guard (house rule)
+
+  // MATERIAL: the tight ragged burst can remain white after the lip releases;
+  // it is foam on the connected surface, not a second geometry owner.
+  float splashBurst = crashAmp * splashBand * splashRag;
   if (!(splashBurst == splashBurst)) splashBurst = 0.0; // NaN guard (house rule)
 
   // SIZE_AUDIT open item 1: the whole foam block was H0-free, so whitewater

@@ -1983,8 +1983,13 @@ void main(){
   // On the shipped crash path no droplet launches before impact. #splash=0
   // preserves the older pre-impact scatter as part of the exact crash revert.
   float delayLegacy = CRASH_PEAK_S - 0.25 + 0.95*h1;
-  float delayCrash  = CRASH_PEAK_S + 0.70*h1;
+  // A crash is a burst, not a one-second drizzle. The first shipped window
+  // spread launches over 0.70 s, so removing the invalid surface lift exposed
+  // how little airborne mass existed at any instant. Concentrate the same
+  // deterministic population into one sigma = 0.20 s after impact.
+  float delayCrash  = CRASH_PEAK_S + CRASH_SIGMA_S*h1;
   float delay = mix(delayLegacy, delayCrash, step(0.001, u_splash));
+  float crashMode = step(0.001, u_splash);
   float tf    = life.x - delay;                     // this droplet's own flight clock, s
   float u01   = clamp(tf/Tf, 0.0, 1.0);
   float airborne = (tf > 0.0 && tf < Tf) ? 1.0 : 0.0;
@@ -2000,8 +2005,11 @@ void main(){
   // vertical: lip height down to the foam, apex taxonomy- and size-gated.
   // Heights in metres of DISPLAYED face (u_H0*VIS): identity at the 1.5 m
   // calibration day like every size factor.
-  float yLip = 0.15 + u_H0*VIS*(0.50 + 0.30*seedZ);
+  float yLipLegacy = 0.15 + u_H0*VIS*(0.50 + 0.30*seedZ);
+  float yLipCrash  = 0.15 + u_H0*VIS*(0.72 + 0.25*seedZ);
+  float yLip = mix(yLipLegacy, yLipCrash, crashMode);
   float lift = u_H0*VIS*(0.22 + 0.70*seedY)*(0.30 + 0.70*plunge);
+  lift *= mix(1.0, 1.35, crashMode);
   float x = x0 + (seedZ - 0.5)*2.4 + (h2 - 0.5)*1.8*u01;   // randomized spacing + drift
   float z = zLaunch + vz*tf;
   float y = yLip*(1.0 - u01) + 4.0*lift*u01*(1.0 - u01);   // parabola: lip -> apex -> foam
@@ -2023,9 +2031,13 @@ void main(){
   // so every 1.5 m preset is unchanged); tighter clamp than the foam factor
   // because alpha saturates faster than surface whiteness.
   float sizeSpray = clamp(u_H0/1.5, 0.7, 1.4);
-  vSprayAlpha = live*(0.30 + 0.70*seedY)*ends*sizeSpray;
+  float crashGain = mix(1.0, 2.40, crashMode);
+  vSprayAlpha = clamp(live*(0.30 + 0.70*seedY)*ends*sizeSpray*crashGain,
+                      0.0, 1.0);
   vSprayShade = 0.72 + 0.28*seedZ;
-  gl_PointSize = clamp((2.5 + 6.5*seedY)*(1.0 - 0.30*u01)*310.0/max(-mv.z, 12.0), 1.0, 15.0);
+  float crashPointGain = mix(1.0, 2.80, crashMode);
+  gl_PointSize = clamp((2.5 + 6.5*seedY)*(1.0 - 0.30*u01)*crashPointGain
+                     * 310.0/max(-mv.z, 12.0), 1.0, 42.0);
   gl_Position = projectionMatrix*mv;
 }
 `;
