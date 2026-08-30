@@ -15,6 +15,7 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG, CURTAIN_VERT, CURTAIN_FRAG,
          SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
+import { makeSurfaceQuery } from './surface-query.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
          rayS, oceanH as oceanHJS, surferState as surferStateJS,
@@ -73,6 +74,18 @@ const DRONE_OFFSET_M = DRONE_ALT_M * Math.tan(DRONE_TILT_DEG * Math.PI / 180);
 const COVER_STANDOFF_M = 16;
 const COVER_EYE_M = 2.4;
 const COVER_AIM_Y_M = 3.2;
+// First-person surfer rig. Eye height is above the board (the rider is in a
+// compressed stance), not above still water; the authoritative surface query
+// supplies that moving datum. Wide enough to preserve peripheral wave motion
+// without a fisheye read. Structural roll is heavily attenuated and capped in
+// updatePovCam — the board follows the face, the viewer's vestibular system
+// does not.
+const POV_EYE_ABOVE_BOARD_M = 1.08;
+const POV_EYE_FORWARD_M = 0.18;
+const POV_FOV_DEG = 72;
+const POV_NEAR_M = 0.12;
+const POV_TAU_S = 0.10;
+const POV_MAX_ROLL_RAD = 8 * Math.PI / 180;
 // ---------- quality tiers ----------
 // MEASURED 2026-08-12 (GPU timer queries, not wall clock — wall clock is
 // rAF-capped on a fast machine and reports 8.3 ms for every configuration):
@@ -526,6 +539,15 @@ scene.add(skyMesh);
 const surferGroup = makeSurferMesh();
 scene.add(surferGroup);
 
+// Runtime surface authority for the rider and first-person camera. It evaluates
+// the shipped GPU surfacePos() at exactly three points (P, Px, Pz) in one tiny
+// pass. Default ON; #ridersurface=legacy is the explicit rollback. The query
+// runs only while the rider or a rider-tracking camera is active, so the
+// screensaver/default free view pays nothing.
+const surfaceQuery = makeSurfaceQuery(renderer, uniforms);
+let riderSurfaceAuthoritative = true;
+let lastRiderSurface = null;
+
 // snapshot of the model uniforms for the JS twin (alpha already in radians).
 // m4Ride is the frame's emergent-line rider solve (null off the M4 path): the
 // JS twin's surferState() returns it verbatim, exactly as the GLSL twin
@@ -633,6 +655,8 @@ const aimOn = () => aimEnabled && aimState.ok;
 // Follow = web/'s surfer-follow cliff shot: telephoto from the point, target
 // tracking surferState, zoom ∝ 1/distance (updated per-frame in the loop —
 // the pos/target here only seed the switch-in frame).
+// POV = rider-eye shot. Its seed is replaced on the first frame by the
+// authoritative surface query; unlike Follow it never stands on the cliff.
 // Cliff/Follow stand on the REAL cliff once bathymetry is loaded: 12 m inland
 // of the measured waterline at the camera's along-shore station, eye height
 // above the actual ground. Before the seabed existed these shots sat at a
@@ -733,6 +757,8 @@ const CAM_PRESETS = [
                           : [0, COVER_AIM_Y_M, breakLineJS(0)], fov: 28 },
   { name: 'Point',  pos: () => [0, 560, 200],                                 target: () => [0, 0, 140] },
   { name: 'Follow', pos: () => cliffStation(cliffStationX()),                 target: () => [0, 2, breakLineJS(0) - 11] },
+  { name: 'POV',    pos: () => [0, 2, breakLineJS(0) - 11],                   target: () => [30, 2, breakLineJS(30) - 11],
+    fov: POV_FOV_DEG, near: POV_NEAR_M },
   // Tour's own pos/target is only where it is parked before the first cut —
   // the legs resolve through CAM_PRESETS by name (TOUR_SHOTS). Kept in step
   // with Drone so the park frame and the first leg are the same shot.
@@ -749,6 +775,22 @@ const TOUR_SHOTS = ['Drone', 'Cliff', 'Follow'];
 const TOUR_CUT_S = 24;
 let tourLeg = -1;   // last leg applied; -1 forces a cut on the first frame
 
+const _worldUp = new THREE.Vector3(0, 1, 0);
+const _povDesiredEye = new THREE.Vector3();
+const _povDesiredForward = new THREE.Vector3(1, 0, 0);
+const _povDesiredUp = new THREE.Vector3(0, 1, 0);
+const _povNormalHorizontal = new THREE.Vector3();
+const _povTarget = new THREE.Vector3();
+const povState = {
+  ready: false,
+  eye: new THREE.Vector3(),
+  forward: new THREE.Vector3(1, 0, 0),
+  up: new THREE.Vector3(0, 1, 0),
+  surface: new THREE.Vector3(),
+  sourceX: null,
+  sourceZ: null,
+};
+
 // Aim tracking stops the moment the user grabs the orbit and stays off until
 // the next explicit camera choice: the reader's framing outranks the rig's.
 let userOrbited = false;
@@ -764,11 +806,16 @@ function applyCam(i) {
   const p = CAM_PRESETS[i];
   camera.position.set(...p.pos());
   controls.target.set(...p.target());
-  // Follow and Tour own the camera every frame; OrbitControls would fight the
+  // Follow, POV and Tour own the camera every frame; OrbitControls would fight the
   // track. Leaving them restores free orbiting and the wide field of view.
-  const scripted = p.name === 'Follow' || p.name === 'Tour';
+  const scripted = p.name === 'Follow' || p.name === 'POV' || p.name === 'Tour';
   controls.enabled = !scripted;
-  if (!scripted) { camera.fov = p.fov || BASE_FOV; camera.updateProjectionMatrix(); }
+  camera.near = p.near || 0.5;
+  if (!scripted || p.name === 'POV') {
+    camera.fov = p.fov || BASE_FOV;
+    camera.updateProjectionMatrix();
+  }
+  if (p.name === 'POV') povState.ready = false;
   if (p.name === 'Tour') tourLeg = -1;   // re-entering always cuts immediately
   controls.update();
   refreshHUD();
@@ -800,6 +847,57 @@ function updateFollowCam(sWorld) {
   camera.updateProjectionMatrix();
   controls.target.set(sWorld.x, 2.0, sWorld.z);   // web/ aims at (x, 2, z)
   camera.lookAt(controls.target);
+}
+
+// Rider-eye camera. Translation follows the authoritative displaced surface;
+// gaze follows the horizontal ride velocity so local chop and face pitch do
+// not become involuntary head snaps. A small, capped fraction of structural
+// surface tilt reaches camera.up to keep the board/face relationship legible
+// without rolling the horizon through the full board normal.
+function updatePovCam(sWorld, ride, surface, simDt) {
+  _povDesiredForward.set(ride.vx, 0, ride.vz);
+  if (_povDesiredForward.lengthSq() < 1e-8) _povDesiredForward.copy(povState.forward);
+  else _povDesiredForward.normalize();
+
+  _povDesiredEye.copy(sWorld)
+    .addScaledVector(_worldUp, POV_EYE_ABOVE_BOARD_M)
+    .addScaledVector(_povDesiredForward, POV_EYE_FORWARD_M);
+
+  _povNormalHorizontal.set(surface.normal.x, 0, surface.normal.z);
+  const horizontalLen = _povNormalHorizontal.length();
+  if (horizontalLen > 1e-8) _povNormalHorizontal.multiplyScalar(1 / horizontalLen);
+  const surfaceTilt = Math.atan2(horizontalLen, Math.max(Math.abs(surface.normal.y), 1e-3));
+  const cameraTilt = Math.min(surfaceTilt * 0.18, POV_MAX_ROLL_RAD);
+  _povDesiredUp.copy(_worldUp).multiplyScalar(Math.cos(cameraTilt))
+    .addScaledVector(_povNormalHorizontal, Math.sin(cameraTilt)).normalize();
+
+  // First frame and crest handoffs snap. Ordinary board motion is filtered in
+  // SIM seconds so slow motion slows the rig with the wave, and pause holds it.
+  const handoff = povState.ready && povState.eye.distanceTo(_povDesiredEye) > 25;
+  if (!povState.ready || handoff) {
+    povState.eye.copy(_povDesiredEye);
+    povState.forward.copy(_povDesiredForward);
+    povState.up.copy(_povDesiredUp);
+    povState.ready = true;
+  } else {
+    const k = 1 - Math.exp(-Math.max(simDt, 0) / POV_TAU_S);
+    povState.eye.lerp(_povDesiredEye, k);
+    povState.forward.lerp(_povDesiredForward, k).normalize();
+    povState.up.lerp(_povDesiredUp, k).normalize();
+  }
+
+  povState.surface.copy(surface.position);
+  povState.sourceX = ride.x;
+  povState.sourceZ = ride.z;
+  camera.position.copy(povState.eye);
+  camera.up.copy(povState.up);
+  camera.fov = POV_FOV_DEG;
+  camera.near = POV_NEAR_M;
+  camera.updateProjectionMatrix();
+  _povTarget.copy(camera.position).addScaledVector(povState.forward, 24)
+    .addScaledVector(povState.up, 0.25);
+  controls.target.copy(_povTarget);
+  camera.lookAt(_povTarget);
 }
 
 // ---------- HUD ----------
@@ -1800,8 +1898,6 @@ function frame(now) {
   // M4 made the break line itself emergent instead — the shim is history; see
   // WEB_THREE_SPEC.md "M4" for the measurements that closed it.
 
-  const camH = oceanHJS(camera.position.x, camera.position.z, simTime, modelP());
-  uniforms.u_camUnder.value = camera.position.y < camH ? 1 : 0;
   bedMesh.visible = uniforms.u_depthMix.value > 0.5;
   // The section is a chart, not an animation: it only depends on bed, swell
   // and tide, so redraw on change rather than every frame.
@@ -1811,19 +1907,66 @@ function frame(now) {
   // cuts, speed scales them) and hard-cut whenever it changes.
   const touring = CAM_PRESETS[camIdx].name === 'Tour';
   let following = CAM_PRESETS[camIdx].name === 'Follow';
+  let pov = CAM_PRESETS[camIdx].name === 'POV';
   if (touring) {
     const leg = Math.floor(simTime / TOUR_CUT_S) % TOUR_SHOTS.length;
     if (leg !== tourLeg) { tourLeg = leg; cutToShot(TOUR_SHOTS[leg]); }
     following = TOUR_SHOTS[leg] === 'Follow';
+    pov = false; // POV is deliberately not an unattended Tour leg.
   }
 
-  // surfer pose + Follow camera share one surferState/surfaceAt evaluation.
-  // The follow shot tracks the ride line even with the rider hidden (S off)
-  // so V-cycling never lands on a dead camera.
-  surferGroup.visible = state.surfer === 1;
-  if (surferGroup.visible || following) {
-    const sWorld = updateSurfer(surferGroup, simTime, modelP());
-    if (following) updateFollowCam(sWorld);
+  // Rider, Follow and POV share one ride solve. On the default path a batched
+  // three-pixel GPU query supplies the exact displaced P/Px/Pz that GRID_VERT
+  // draws; #ridersurface=legacy is the explicit CPU-twin rollback. POV hides
+  // the procedural body (the eye would sit inside its head) while keeping the
+  // model's surfer/wake channel under the existing S toggle.
+  const wantsRiderVisible = state.surfer === 1 && !pov;
+  const needsRider = wantsRiderVisible || following || pov;
+  if (needsRider) {
+    const riderP = modelP();
+    const currentRide = surferStateJS(simTime, riderP);
+    const surfaceKey = [state.preset, state.H0, state.T, state.tide || 0,
+                        state.bedShape || 0, uniforms.u_breakMix.value,
+                        uniforms.u_psiMix.value].join('|');
+    const queryMeta = {
+      key: surfaceKey,
+      time: simTime,
+      ride: { x: currentRide.x, z: currentRide.z, vx: currentRide.vx,
+              vz: currentRide.vz, pump: currentRide.pump,
+              waiting: currentRide.waiting },
+    };
+    const queried = riderSurfaceAuthoritative
+      ? surfaceQuery.sample(currentRide.x, currentRide.z, queryMeta) : null;
+    // Async query results are one completed GPU fence behind. Use only a
+    // result from this exact surface configuration and a nearby sim clock;
+    // preset/day/sim jumps fail closed until their own query completes.
+    const authoritative = queried?.valid
+      && queried.meta?.key === surfaceKey
+      && Math.abs(simTime - queried.meta.time) <= 0.5
+      ? queried : null;
+    lastRiderSurface = authoritative;
+    const canPlace = !riderSurfaceAuthoritative || authoritative;
+    surferGroup.visible = wantsRiderVisible && Boolean(canPlace);
+    if (canPlace) {
+      const poseRide = authoritative?.meta?.ride || currentRide;
+      const poseTime = authoritative?.meta?.time ?? simTime;
+      const sWorld = updateSurfer(surferGroup, poseTime, riderP,
+        { ride: poseRide, surface: authoritative });
+      if (following) updateFollowCam(sWorld);
+      if (pov && authoritative) {
+        updatePovCam(sWorld, poseRide, authoritative,
+          (!state.paused && Number.isFinite(dt)) ? dt * state.speed : 0);
+      }
+    }
+    if (pov && !authoritative) {
+      // Query failure is recoverable for the rider, not for first person: a
+      // legacy eye can be metres inside the wave. Hold the seed until the
+      // authoritative result arrives and expose the failure through povProbe.
+      povState.ready = false;
+    }
+  } else {
+    surferGroup.visible = false;
+    lastRiderSurface = null;
   }
 
   // ---------- aim tracking (see "camera aim" above) ----------
@@ -1833,7 +1976,7 @@ function frame(now) {
   // Stops for good once the user grabs the orbit; Follow frames are excluded
   // (the rider track owns them); with #aim=0 or no bake, aimOn() is false and
   // the rigs keep their set-once authored framing exactly as before.
-  if (!following && aimOn() && !userOrbited) {
+  if (!following && !pov && aimOn() && !userOrbited) {
     const shot = touring ? TOUR_SHOTS[tourLeg] : CAM_PRESETS[camIdx].name;
     if (AIM_SHOTS.has(shot)) {
       const p = CAM_PRESETS.find((c) => c.name === shot);
@@ -1847,7 +1990,7 @@ function frame(now) {
   // OrbitControls.update() re-derives position from its spherical state and
   // would undo the follow/tour track (enabled=false only blocks input, not
   // update)
-  if (!following && !touring) controls.update();
+  if (!following && !pov && !touring) controls.update();
   // ---------- world-collision clamp (#noclip=1 disables) ----------
   // Going under WATER is a feature (Snell's window pass); going under the BED
   // or out into the skirt void is not. Eased, not snapped, so a clamped drag
@@ -1889,8 +2032,15 @@ function frame(now) {
       if (v.y < floorY) v.y = floorY;
     };
     clampEye(camera.position, false);
-    if (!following && !touring) clampEye(controls.target, true);
+    if (!following && !pov && !touring) clampEye(controls.target, true);
   }
+  // Read submersion AFTER scripted cameras have moved. POV already owns an
+  // authoritative surface sample at its source; other cameras retain the
+  // existing cheap JS camera-height read.
+  const camSurfaceY = pov && lastRiderSurface?.valid
+    ? lastRiderSurface.position.y
+    : oceanHJS(camera.position.x, camera.position.z, simTime, modelP());
+  uniforms.u_camUnder.value = camera.position.y < camSurfaceY ? 1 : 0;
   skyMesh.position.copy(camera.position);   // keep the dome centered on the eye
   
   if (!state.paused) {
@@ -2058,6 +2208,10 @@ function applyHashParams() {
   if (h.has('m4')) m4Enabled = h.get('m4') !== '0';   // emergent break line (default on; #m4=0 = authored)
   // camera aim off the baked line (default on; #aim=0 = authored-line aim)
   if (h.has('aim')) aimEnabled = h.get('aim') !== '0';
+  // Rider/POV surface authority. Boot-only because it changes the placement
+  // architecture, not a reader-facing control. Default GPU; legacy is the
+  // measured-drift rollback and POV will fail closed rather than use it.
+  if (h.has('ridersurface')) riderSurfaceAuthoritative = h.get('ridersurface') !== 'legacy';
   if (h.has('psi')) psiEnabled = h.get('psi') === '1';
   if (h.has('peeldir')) peelDirEnabled = h.get('peeldir') === '1';
   if (h.has('smooth')) smoothEnabled = h.get('smooth') === '1';
@@ -2287,7 +2441,36 @@ requestAnimationFrame(frame);
 window.__pointbreak = {
   camera, controls, state, surferGroup, sprayPoints, uniforms,
   sim: () => simTime,
-  setSim: (t) => { if (Number.isFinite(t)) simTime = t; },
+  setSim: (t) => {
+    if (Number.isFinite(t)) { simTime = t; povState.ready = false; }
+  },
+  riderSurfaceMode: () => riderSurfaceAuthoritative ? 'gpu' : 'legacy',
+  setRiderSurfaceMode: (mode) => {
+    riderSurfaceAuthoritative = mode !== 'legacy';
+    povState.ready = false;
+  },
+  surfaceQueryStats: () => surfaceQuery.stats(),
+  povProbe: () => ({
+    active: CAM_PRESETS[camIdx]?.name === 'POV',
+    ready: povState.ready,
+    authority: surferGroup.userData.surfaceAuthority || null,
+    queryValid: lastRiderSurface?.valid === true,
+    source: Number.isFinite(povState.sourceX)
+      ? [povState.sourceX, povState.sourceZ] : null,
+    frontFaceOffsetM: lastBaked && Number.isFinite(povState.sourceX)
+      ? povState.sourceZ - breakZAt(povState.sourceX, lastBaked.x0, lastBaked.x1)
+      : null,
+    surface: povState.surface.toArray(),
+    board: surferGroup.position.toArray(),
+    clearance: surferGroup.userData.boardClearance ?? null,
+    eye: camera.position.toArray(),
+    eyeAboveSurface: camera.position.y - povState.surface.y,
+    forward: povState.forward.toArray(),
+    up: camera.up.toArray(),
+    upTiltDeg: camera.up.angleTo(_worldUp) * 180 / Math.PI,
+    cameraUnder: uniforms.u_camUnder.value > 0.5,
+    query: surfaceQuery.stats(),
+  }),
   day: () => activeDayKey,   // conditions-bank cursor (null = preset ocean)
   // The peel floor, read back so an audit can tell a clamped state from a
   // healthy one without parsing the HUD. null = nothing clamped.

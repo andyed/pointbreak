@@ -9,9 +9,9 @@
 // keep the factory signature and the 'rider' child name (lean is applied
 // there); see TODO.md M3+.
 //
-// Placement math comes from model-js.js (the JS twin of the shader model):
-// surferState() for where, surfaceAt() for the drawn water surface there
-// (height + M2 choppy offset + FD normal). No lights in the scene — all
+// Horizontal ride state comes from model-js.js. Surface placement normally
+// comes from main.js's authoritative GPU query of the shipped surfacePos();
+// surfaceAt() remains only as the #ridersurface=legacy A/B/fallback. No lights in the scene — all
 // water is ShaderMaterial — so the body uses MeshBasicMaterial flat colors;
 // silhouette against foam/sky is the entire read, matching web/'s SDF rider.
 
@@ -26,6 +26,7 @@ import { surferState, surfaceAt, PUMP_PERIOD } from './model-js.js';
 const BODY_COL  = 0x101317;
 const BOARD_COL = 0x4a5560;
 const WAKE_COL  = 0xffffff;
+export const BOARD_CLEARANCE_M = 0.35;
 
 // capsule limb from point a to b (radius r): the same primitive web/'s SDF
 // rider is built from, so the silhouette language carries over
@@ -127,25 +128,43 @@ const UPRIGHT = 0.6;
 // instead of flickering sign at wUpLocal.x ~ 0.
 const FACE_LEAN = 0.22;   // rad (~13 deg) max angulation into the face
 
-// Pose the rider for simulation time t and model params P. Returns the world
-// position so the Follow camera can reuse it without recomputing the model.
-export function updateSurfer(group, t, P) {
-  const s = surferState(t, P);
-  const surf = surfaceAt(s.x, s.z, t, P);
+// Pose the rider for simulation time t and model params P. `options.surface`
+// is the authoritative GPU result at the ride source point; omitting it is the
+// explicit legacy/fallback path. `options.ride` avoids solving the same crest a
+// second time when main.js already needed it to issue the query.
+export function updateSurfer(group, t, P, options = {}) {
+  const s = options.ride || surferState(t, P);
+  const authoritative = options.surface?.valid === true;
+  const surf = authoritative ? options.surface : surfaceAt(s.x, s.z, t, P);
+
+  // MODEL-TWIN of surfaceAt's breaker-character lift. This is rider clearance,
+  // not a substitute surface: the queried P below is still the exact displaced
+  // water. Keep it explicit so the clearance can be measured independently of
+  // query error.
+  const xiT = Math.min(Math.max((P.xi - 0.45) / (1.25 - 0.45), 0), 1);
+  const plunge = xiT * xiT * (3 - 2 * xiT);
+  const clearance = BOARD_CLEARANCE_M + 0.9 * plunge;
 
   // the drawn surface at model (x, z) sits at world (x+ox, h, z+oz) — ride
   // the water the renderer actually shows, not the undisplaced heightfield.
   // +0.35 board float matches web/'s SDF placement; the plunge term lifts
   // the board over the extra water the fold converges onto plunging crests
   // (see model-js surfaceAt — the standable twin can't see that convergence)
-  const wx = s.x + surf.ox, wy = surf.h + 0.35 + 0.9 * surf.plunge, wz = s.z + surf.oz;
+  const wx = authoritative ? surf.position.x : s.x + surf.ox;
+  const wy = (authoritative ? surf.position.y : surf.h) + clearance;
+  const wz = authoritative ? surf.position.z : s.z + surf.oz;
   if (Number.isFinite(wx) && Number.isFinite(wy) && Number.isFinite(wz)) {
     group.position.set(wx, wy, wz);
   }
 
   // board pitched by the local surface normal, nose along travel: build an
   // orthonormal basis (right, normal, forward-projected-onto-face)
-  _up.set(surf.nx, surf.ny, surf.nz);
+  if (authoritative) _up.copy(surf.normal);
+  else _up.set(surf.nx, surf.ny, surf.nz);
+  // The water is double-sided and a folded source cell can return the
+  // underside winding. A rider stands on the water-facing side; never let a
+  // transient fold invert the body/camera basis.
+  if (_up.y < 0) _up.multiplyScalar(-1);
   _fwd.set(s.vx, 0, s.vz);
   _fwd.addScaledVector(_up, -_fwd.dot(_up));   // project travel onto the face
   if (_fwd.lengthSq() < 1e-8) _fwd.set(0, 0, 1);   // degenerate: keep last heading shape
@@ -172,6 +191,14 @@ export function updateSurfer(group, t, P) {
     _qFace.setFromAxisAngle(_zAxis, -FACE_LEAN * Math.tanh(4 * _wUpLocal.x));
     rider.quaternion.copy(_qId).multiply(_qLean).multiply(_qFace);
   }
+
+  // Read-only runtime evidence for POV/capture probes. Scalars only: the GPU
+  // query reuses its vectors on the next frame.
+  group.userData.surfaceAuthority = authoritative ? 'gpu' : 'legacy';
+  group.userData.surfaceY = authoritative ? surf.position.y : surf.h;
+  group.userData.boardClearance = group.position.y - group.userData.surfaceY;
+  group.userData.sourceX = s.x;
+  group.userData.sourceZ = s.z;
 
   return group.position;
 }
