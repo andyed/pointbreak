@@ -2006,10 +2006,18 @@ void main(){
   // Heights in metres of DISPLAYED face (u_H0*VIS): identity at the 1.5 m
   // calibration day like every size factor.
   float yLipLegacy = 0.15 + u_H0*VIS*(0.50 + 0.30*seedZ);
-  float yLipCrash  = 0.15 + u_H0*VIS*(0.72 + 0.25*seedZ);
+  // AMPLIFIER BACKOFF 2026-08-30. The first crash pass raised this to
+  // (0.72 + 0.25*seedZ) and multiplied lift by 1.35, putting the apex at
+  // 8.8-12.3 m against a displayed crest of u_H0*VIS = 7.0 m. Droplets fly an
+  // arc that never samples the water (y is absolute, from the still-water
+  // datum), so height above the crest is exactly where that decoupling becomes
+  // visible: white sprites hanging in open sky. Kept slightly above legacy —
+  // a plunging crash does leave the lip harder — but no longer clearing the
+  // wave. The real repair is anchoring y to the surface; deferred deliberately.
+  float yLipCrash  = 0.15 + u_H0*VIS*(0.54 + 0.28*seedZ);
   float yLip = mix(yLipLegacy, yLipCrash, crashMode);
   float lift = u_H0*VIS*(0.22 + 0.70*seedY)*(0.30 + 0.70*plunge);
-  lift *= mix(1.0, 1.35, crashMode);
+  lift *= mix(1.0, 1.08, crashMode);
   float x = x0 + (seedZ - 0.5)*2.4 + (h2 - 0.5)*1.8*u01;   // randomized spacing + drift
   float z = zLaunch + vz*tf;
   float y = yLip*(1.0 - u01) + 4.0*lift*u01*(1.0 - u01);   // parabola: lip -> apex -> foam
@@ -2031,13 +2039,21 @@ void main(){
   // so every 1.5 m preset is unchanged); tighter clamp than the foam factor
   // because alpha saturates faster than surface whiteness.
   float sizeSpray = clamp(u_H0/1.5, 0.7, 1.4);
-  float crashGain = mix(1.0, 2.40, crashMode);
+  // 2.40 slammed alpha to a hard 1.0 for most of the population: an opaque
+  // white square is an OBJECT, and objects read as detached. Enough gain to
+  // carry the thinner instantaneous mass of a sigma = 0.20 s burst, not enough
+  // to saturate.
+  float crashGain = mix(1.0, 1.30, crashMode);
   vSprayAlpha = clamp(live*(0.30 + 0.70*seedY)*ends*sizeSpray*crashGain,
                       0.0, 1.0);
   vSprayShade = 0.72 + 0.28*seedZ;
-  float crashPointGain = mix(1.0, 2.80, crashMode);
+  // 2.80 with a 42 px ceiling is what turned droplets into blobs. The ceiling
+  // is the operative half: at 42 px a single sprite is a visible shape rather
+  // than a speck of spray. 18 px keeps headroom over the legacy 15 px cap for
+  // genuinely close droplets without ever drawing a plate.
+  float crashPointGain = mix(1.0, 1.35, crashMode);
   gl_PointSize = clamp((2.5 + 6.5*seedY)*(1.0 - 0.30*u01)*crashPointGain
-                     * 310.0/max(-mv.z, 12.0), 1.0, 42.0);
+                     * 310.0/max(-mv.z, 12.0), 1.0, 18.0);
   gl_Position = projectionMatrix*mv;
 }
 `;

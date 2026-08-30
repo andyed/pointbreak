@@ -144,9 +144,39 @@ test('the visible crash is concentrated ballistic spray, never raised water geom
 
   assert.match(shaders, /float crashMode = step\(0\.001, u_splash\);/);
   assert.match(shaders, /float yLip = mix\(yLipLegacy, yLipCrash, crashMode\);/);
-  assert.match(shaders, /float crashGain = mix\(1\.0, 2\.40, crashMode\);/);
-  assert.match(shaders, /float crashPointGain = mix\(1\.0, 2\.80, crashMode\);/);
-  assert.match(shaders, /gl_PointSize = clamp\([\s\S]{0,180}?crashPointGain[\s\S]{0,120}?1\.0, 42\.0\);/);
+  // The crash gains are TUNING and are pinned structurally, not by literal —
+  // except for their ceilings, which are not tuning but the lesson. SPRAY_VERT
+  // composes y from the still-water datum and never samples the surface, so an
+  // oversized or saturated droplet advertises that decoupling as a white plate
+  // hanging in the sky (reported 2026-08-30). Until y is anchored to the
+  // surface, a droplet must stay small enough and sheer enough to read as
+  // spray. Raise these only together with that anchor.
+  const gainOf = (name) => {
+    const m = new RegExp(`float ${name} = mix\\(1\\.0, ([\\d.]+), crashMode\\);`).exec(shaders);
+    assert.ok(m, `${name} must be a crashMode-gated mix so #splash=0 reverts exactly`);
+    return Number(m[1]);
+  };
+  const alphaGain = gainOf('crashGain');
+  const pointGain = gainOf('crashPointGain');
+  assert.ok(alphaGain >= 1.0 && alphaGain <= 1.6,
+            `crash alpha gain ${alphaGain} saturates droplets into opaque objects`);
+  assert.ok(pointGain >= 1.0 && pointGain <= 1.6,
+            `crash point gain ${pointGain} inflates droplets into visible plates`);
+
+  const capM = /gl_PointSize = clamp\([\s\S]{0,240}?crashPointGain[\s\S]{0,160}?1\.0, ([\d.]+)\);/.exec(shaders);
+  assert.ok(capM, 'the spray point size must stay clamped');
+  assert.ok(Number(capM[1]) <= 20.0,
+            `point-size ceiling ${capM[1]} px draws a plate, not a droplet`);
+
+  // The apex must not clear the drawn crest by a wide margin while the arc is
+  // still unanchored: that gap IS the floating artifact.
+  const lipCrash = /float yLipCrash\s*= 0\.15 \+ u_H0\*VIS\*\(([\d.]+) \+ ([\d.]+)\*seedZ\);/.exec(shaders);
+  assert.ok(lipCrash, 'yLipCrash must stay an explicit H0*VIS-scaled launch height');
+  assert.ok(Number(lipCrash[1]) <= 0.60,
+            `crash launch height ${lipCrash[1]}*H0*VIS throws droplets over the crest`);
+  const liftGain = /lift \*= mix\(1\.0, ([\d.]+), crashMode\);/.exec(shaders);
+  assert.ok(liftGain && Number(liftGain[1]) <= 1.15,
+            'crash lift multiplier re-inflates the apex above the crest');
   assert.doesNotMatch(shaders, /vCurtCrash|zyCrash|crashBulge/);
 
   const sigma = glslConstant('CRASH_SIGMA_S');
