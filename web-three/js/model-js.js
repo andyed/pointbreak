@@ -270,8 +270,8 @@ export function surfaceAt(x, z, t, P) {
 }
 
 // ---------- the surfer (MODEL-TWIN of surferState) ----------
-// Closed-form rider on the zipper: no state. Ride the face just seaward of
-// the break line, pumping between bottom turn and top turn on a 6 s cycle.
+// Closed-form rider on the zipper: no state. Ride the shoreward/front face of
+// the crest, pumping between bottom turn and top turn on a 6 s cycle.
 // Returns model-space position + ground velocity + the pump phase value.
 export const PUMP_PERIOD = 6.0;   // seconds, same cycle the wake/lean shaders use
 
@@ -303,16 +303,16 @@ export function surferState(t, P) {
   const xs = (w * t - 2 * PI * n) / (k * sp);
 
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
-  const faceOff = 11 + 5 * pump;              // metres seaward of the break line
+  const faceOff = 11 + 5 * pump;              // metres shoreward onto the front face
   const xfold   = mix(xs, Math.abs(xs), P.aframe);
   // crest snap in the CONTOUR frame — see model-glsl.js surferState for why a
   // bare z shift fails
   const zcTarget = -(P.rideOffset || 0);      // break line is contourZ = 0
   const nz       = Math.floor((w * t - k * (xfold * sp + zcTarget * cp)) / (2 * Math.PI) + 0.5);
   const zcCrest  = ((w * t - 2 * Math.PI * nz) / k - xfold * sp) / cp;
-  const zs       = zcCrest - faceOff - coastCurve(xs, P);
+  const zs       = zcCrest + faceOff - coastCurve(xs, P);
   const vz       = -coastCurveSlope(xs, P) * vx
-                 - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
+                 + 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
   return { x: xs, z: zs, vx, vz, pump };
 }
 
@@ -437,10 +437,10 @@ export function m4RideSolve(t, P, zbFn, st) {
   const dzbdx = (zbFn(xb) - zbFn(xa)) / Math.max(xb - xa, 1e-6);
 
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
-  const faceOff = 11 + 5 * pump;       // same face position the authored path uses
-  const z  = zb - faceOff;
+  const faceOff = 11 + 5 * pump;       // shoreward/front face; same as authored path
+  const z  = zb + faceOff;
   const vz = (waiting ? 0 : dzbdx * vx)
-           - 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
+           + 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
   if (!Number.isFinite(x) || !Number.isFinite(z)
       || !Number.isFinite(vx) || !Number.isFinite(vz)) return null;
   return { x, z, vx, vz, pump, waiting };

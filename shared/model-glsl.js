@@ -498,8 +498,8 @@ float modelDepthM(vec2 xz){
 
 // ---------- the surfer ----------
 // The zipper position is closed-form (theta = 2*pi*n at z = z_b), so the surfer
-// needs no state: ride the face just seaward of the break line, pumping between
-// bottom turn (far from the line) and top turn (near it). Returns (x, z, vx, vz).
+// needs no state: ride the shoreward/front face of the crest, pumping between
+// bottom turn and top turn. Returns (x, z, vx, vz).
 vec4 surferState(float t){
   // With an emergent break line the zipper position has no closed form; main.js
   // solves it against the same baked array and passes it in.
@@ -532,24 +532,24 @@ vec4 surferState(float t){
 
   // pumping: carve down (bottom turn) and back up the face, ~6 s cycle
   float pump    = sin(t*2.0*PI/6.0);
-  float faceOff = 11.0 + 5.0*pump;         // metres seaward of the break line
+  float faceOff = 11.0 + 5.0*pump;         // metres shoreward onto the front face
   float xfold   = mix(xs, abs(xs), u_aframe);
   // Target the depth-derived breaking locus, then SNAP TO THE NEAREST CREST.
   // Shifting z alone is wrong: the offset is not a multiple of the wavelength,
   // so it drops the rider between crests (measured -1.65 m — a trough — at
   // Sewers with a 133 m offset). Crests satisfy theta = 0 mod 2pi, so solve for
-  // the nearest n and sit faceOff seaward of that crest's line.
+  // the nearest n and sit faceOff shoreward of that crest's line.
   // With u_rideOffset = 0 the nearest crest IS the zipper crest by construction,
   // so this reduces exactly to the previous behaviour.
   // All of it in the CONTOUR frame now; convert to world z once, at the end.
   float zcTarget = -u_rideOffset;          // break line is contourZ = 0
   float nz       = floor((w*t - k*(xfold*sp + zcTarget*cp))/(2.0*PI) + 0.5);
   float zcCrest  = ((w*t - 2.0*PI*nz)/k - xfold*sp)/cp;
-  float zs       = zcCrest - faceOff - coastCurve(xs);
+  float zs       = zcCrest + faceOff - coastCurve(xs);
   // The rider tracks along its own crest, so contourZ is constant along the
   // ride and the only vertical motion is the pump plus the contour's own bow.
   float vz       = -coastCurveSlope(xs)*vx
-                 - 5.0*(2.0*PI/6.0)*cos(t*2.0*PI/6.0);
+                 + 5.0*(2.0*PI/6.0)*cos(t*2.0*PI/6.0);
   return vec4(xs, zs, vx, vz);
 }
 

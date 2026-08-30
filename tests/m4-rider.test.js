@@ -10,7 +10,11 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { coastCurve, m4RideSolve } from '../web-three/js/model-js.js';
+
+const modelJs = readFileSync(new URL('../web-three/js/model-js.js', import.meta.url), 'utf8');
+const modelGlsl = readFileSync(new URL('../shared/model-glsl.js', import.meta.url), 'utf8');
 
 // A Second-Peak-shaped parameter set with a smooth synthetic emergent line —
 // the solver only sees zbFn, so a synthetic line exercises the same math the
@@ -52,6 +56,40 @@ test('the rider follows one crest: in-bounds, monotone down-point, no teleports'
   }
   assert.ok(rides >= 2, `expected several rides in 60 s, saw ${rides}`);
   assert.ok(maxRideSpan > 40, `rides should cover the stage, longest was ${maxRideSpan.toFixed(1)} m`);
+});
+
+test('the rider occupies the shoreward front face and velocity follows the same signed pump', () => {
+  const st = { n: null, prevX: null };
+  const omega = 2 * Math.PI / 6;
+  const xLo = P.stageStart + 10;
+  const xHi = P.stageEnd - 10;
+
+  for (let i = 0; i <= 120; i++) {
+    const t = 30 + i / 20;
+    const s = m4RideSolve(t, P, zbFn, st);
+    assert.ok(s);
+
+    const faceOff = 11 + 5 * s.pump;
+    const signedOffset = s.z - zbFn(s.x);
+    assert.ok(signedOffset >= 6 - 1e-9 && signedOffset <= 16 + 1e-9,
+      `rider crossed behind the crest: z-zb=${signedOffset.toFixed(3)} m`);
+    assert.ok(Math.abs(signedOffset - faceOff) < 1e-9,
+      `front-face offset ${signedOffset} != authored ${faceOff}`);
+
+    const e = 1.5;
+    const xa = Math.max(s.x - e, xLo), xb = Math.min(s.x + e, xHi);
+    const dzbdx = (zbFn(xb) - zbFn(xa)) / Math.max(xb - xa, 1e-6);
+    const lineVelocity = s.waiting ? 0 : dzbdx * s.vx;
+    const pumpVelocity = 5 * omega * Math.cos(t * omega);
+    assert.ok(Math.abs(s.vz - lineVelocity - pumpVelocity) < 1e-9,
+      'vz must differentiate the shoreward +faceOff pump, not the old seaward arm');
+  }
+
+  // The authored fallback and shared GLSL wake path are twins of the M4 solve.
+  assert.match(modelJs, /zcCrest \+ faceOff - coastCurve\(xs, P\)/);
+  assert.match(modelJs, /const z\s*= zb \+ faceOff/);
+  assert.match(modelGlsl, /zcCrest \+ faceOff - coastCurve\(xs\)/);
+  assert.match(modelGlsl, /\+ 5\.0\*\(2\.0\*PI\/6\.0\)\*cos/);
 });
 
 test('a mid-stage S minimum (Sewer Peak shape) takes off AT the peak and rides the +x branch', () => {

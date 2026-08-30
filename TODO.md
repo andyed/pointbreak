@@ -2446,6 +2446,11 @@ precedent) — do not decide now.
       `faceOff` is a fixed 11+/-5 m, and the phase step that implies scales with
       cos(phi), so low-alpha presets sit lower on the face. Decide whether that
       is correct (you do ride lower on a steep wave) or wants phi-aware tuning.
+      **2026-08-28:** those measurements predate the POV audit's signed-side
+      correction. Both authored and M4 paths had subtracted the shoreward-
+      positive offset, placing the rider 6-16 m seaward/behind the wave; they
+      now add it and carry the same sign through `vz`. Re-measure this item
+      before doing any phi-aware stance work.
 - [x] **M5 synthetic reef — LANDED 2026-08-11, measured (spec section has the
       acceptance table).** Mead&Black wedge + ridge noise added to the decoded
       uint16 grid ONCE in bed.js (compositeU16, floor-quantized) — one

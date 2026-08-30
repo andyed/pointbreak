@@ -489,6 +489,14 @@ drives `window.__pointbreak` + the page's own bed.js CPU twins):
   crest, the further off-crest in phase that fixed offset lands. This is the
   φ-aware `faceOff` item already on TODO (rider stance), not a reef clamp
   issue. No teleports/out-of-stage regressions observed (riding share 1.0).
+
+  **2026-08-28 correction:** this paragraph records the then-shipped rider and
+  its historical measurements. A first-person camera audit exposed that its
+  sign was inverted: `z` is shoreward-positive, but both authored and M4 paths
+  subtracted `faceOff`, putting the rider 6–16 m seaward/behind the wave. The
+  paths now add `faceOff` and differentiate that same signed pump in `vz`, so
+  the rider occupies the shoreward/front face. The old p90 values above predate
+  that correction and must not be used to tune the current stance.
 - **Shoreline unmoved: PASS** — waterline march reef vs measured at 21
   stations: max shift 0 m; audit: 0 posts deepened, 0 above the −0.5 m
   ceiling, 0 dry posts touched (per spot, all six).
