@@ -13,6 +13,44 @@ garnish rather than transported impact mass, so it remains off. The next
 breaker tranche is still an advected roller/foam state plus curtain-contact
 deposit, not promotion of the existing height burst.
 
+## ▶ NEW (2026-08-30, live) — foam terminates on hard straight edges in plan view
+
+Live report from a `cam=drone` frame at `sewers`, pinned `sim=44` and `sim=52`
+(`#preset=sewers&cam=drone&h0=2.20&sim=44&speed=0`): whitewater ends on hard
+straight edges, including a vertical one at screen x ~ 430 at sim 52. The
+wedge SHAPE is not the complaint — a triangle with its apex at the travelling
+breakpoint is what a peel looks like from above. The complaint is that its
+boundaries are knife edges.
+
+Ruled out this session, both by A/B, so do not re-spend the time:
+
+- **Spray sprites.** `SPRAY_FRAG` rounds every point with
+  `smoothstep(0.16, 0.50, r)` and discards outside it. They are soft circles,
+  not squares. The speckled patch at the wedge apex is not the spray mesh.
+- **Section gaps — partially.** `#gap=0` fills the whitewater in and removes
+  much of the patchiness, so gaps own the DISCRETENESS. The hard edges survive
+  `#gap=0` and are a separate mechanism.
+
+Not the wave: the same clock from `cam=cliff` renders a clean, plausible point
+break. The artifact is specific to the plan view, which is consistent with a
+mechanism whose level set is a line in x-z but which is nearly edge-on from a
+shore-based camera.
+
+**Prime hypothesis, from this repo's own documentation.** `CONTROLS.md` on
+`#wrap` describes exactly this artifact — a clock snap landing on a level set
+of `rayPhase`, "a straight hard edge sweeping shoreward". `crestClockS` ramped
+the carrier clock to fix it, and the same entry records that **the breakpoint
+lifecycle is deliberately excluded** from that ramp, because ramping it
+brightened the not-yet-broken side and made foam chase the curl. So the
+lifecycle clock still snaps, and in plan view a snap IS a straight line.
+
+Untested, because there is no flag for it: the exclusion is hardcoded, so
+checking it needs a code experiment. Treat that exclusion as load-bearing — it
+was a considered decision that fixed a real artifact — and find a ramp that
+serves the plan view without re-brightening the approaching side, rather than
+simply removing it. Measure from `drone` AND `cliff`; a fix that only reads
+from one is how this got missed.
+
 ## ▶ NEW (2026-08-25, live) — the crash is missing
 
 Live verdict on the judged stack (below): "we're missing the crash of the
