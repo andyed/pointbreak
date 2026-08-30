@@ -25,11 +25,7 @@ import { surferState, surfaceAt, PUMP_PERIOD } from './model-js.js';
 // not a hue read.
 const BODY_COL  = 0x101317;
 const BOARD_COL = 0x4a5560;
-const WAKE_COL  = 0xffffff;
 export const BOARD_CLEARANCE_M = 0.35;
-// The wake quad is coplanar with the water; sink it slightly so the shared
-// plane cannot z-fight the displaced mesh at grazing camera angles.
-const WAKE_SINK_M = 0.04;
 
 // capsule limb from point a to b (radius r): the same primitive web/'s SDF
 // rider is built from, so the silhouette language carries over
@@ -62,24 +58,12 @@ export function makeSurferMesh() {
   board.scale.set(1.0, 0.18, 1.0);           // ~0.7 m wide, ~0.12 m thick
   group.add(board);
 
-  // wake: one white quad trailing the tail, riding the water plane (~0.35
-  // below board center, matching the float offset in updateSurfer). It is a
-  // child of the GROUP, not the rider — the board basis follows the face, so
-  // the quad stays on the water while the body leans. Semi-transparent, no
-  // depth write: it tints the water white without stencil-cutting the mesh.
-  const wakeGeo = new THREE.PlaneGeometry(0.6, 1.5);
-  wakeGeo.rotateX(-Math.PI / 2);             // lie flat, normal up
-  const wake = new THREE.Mesh(wakeGeo, new THREE.MeshBasicMaterial({
-    color: WAKE_COL, transparent: true, opacity: 0.55,
-    depthWrite: false, side: THREE.DoubleSide,
-  }));
-  wake.name = 'wake';
-  // z only: the y is re-seated every frame in updateSurfer against the live
-  // board clearance. A static y was authored against a 0.35 m float and never
-  // got the 0.9*plunge term the board carries, so on a plunging wave the quad
-  // hung ~0.9 m in the air and read as a white slab rather than a trail.
-  wake.position.set(0, -BOARD_CLEARANCE_M, -2.15);   // tail is at z ~ -1.4; trail behind
-  group.add(wake);
+  // No wake here. A 0.6 x 1.5 m opaque-white quad pinned behind the tail read
+  // as a slab attached to the board rather than as foam — it had no taper, no
+  // fade along its length, and no response to speed, and it banked with the
+  // board instead of lying in the water. Removed 2026-08-30 with its painted
+  // twin in model-glsl.js rather than tuned; see that comment for why the
+  // pair could not be salvaged.
 
   // rider sub-group: COMPRESSED surf stance — hips dropped to ~0.6 m, knees
   // clearly bent (knee forward of the foot-hip line), torso driving forward
@@ -179,12 +163,6 @@ export function updateSurfer(group, t, P, options = {}) {
   _right.crossVectors(_up, _fwd).normalize();
   _m.makeBasis(_right, _up, _fwd);
   group.quaternion.setFromRotationMatrix(_m);
-
-  // The wake lies ON the water, so its local drop must equal the board's live
-  // clearance — not the authored constant. WAKE_SINK_M keeps it just under the
-  // surface so a coincident quad cannot z-fight the water mesh.
-  const wake = group.getObjectByName('wake');
-  if (wake) wake.position.y = -(clearance - WAKE_SINK_M);
 
   const rider = group.getObjectByName('rider');
   if (rider) {

@@ -1422,18 +1422,16 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // along-crest texture so whitewater isn't a uniform bar
   foam *= 0.72 + 0.28*vnoise1(x*0.045 + 3.1);
 
-  // surfer's wake: a bright pencil line trailing along the face
-  if (u_surfer > 0.5) {
-    vec4 s = surferState(t);
-    float behind = smoothstep(s.x + 2.0, s.x - 6.0, x) * smoothstep(s.x - 80.0, s.x - 30.0, x);
-    // the ride line: 11 m seaward of whatever break line is LIVE. breakLine()
-    // already mixes authored vs baked-emergent by u_breakMix, so the wake
-    // follows the M4 line when it is on instead of the pre-M4 authored contour
-    // (which sat sideways of the actual peel at mapped spots).
-    float pathZ = breakLine(x) - 11.0;
-    float wake = behind * exp(-pow(z - pathZ, 2.0)/(2.0*3.0*3.0));
-    foam = clamp(foam + wake*0.75, 0.0, 1.0);
-  }
+  // REMOVED 2026-08-30: the surfer's foam wake. Two trails were drawn behind
+  // the rider — this painted foam line and a white quad in surfer.js — and
+  // neither survived review. This one hardcoded breakLine(x) - 11.0 as "the
+  // ride line", which the front-face sign correction (892231f) made wrong by
+  // construction: the rider now sits at breakLine + (11 + 5*pump), so the line
+  // was painted ~22 m away on the far side of the break. It also ignored the
+  // pump entirely, so it could not have tracked the ride even with the sign
+  // right. A real wake is a trail the board leaves in the water it passed
+  // through; that is a shape problem, not a Gaussian at a guessed offset.
+  // u_surfer is now read only by scripts/measure_rider_surface.mjs.
 
   h *= VIS;
   if (!(h == h)) h = 0.0;  // NaN guard
