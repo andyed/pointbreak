@@ -27,6 +27,9 @@ const BODY_COL  = 0x101317;
 const BOARD_COL = 0x4a5560;
 const WAKE_COL  = 0xffffff;
 export const BOARD_CLEARANCE_M = 0.35;
+// The wake quad is coplanar with the water; sink it slightly so the shared
+// plane cannot z-fight the displaced mesh at grazing camera angles.
+const WAKE_SINK_M = 0.04;
 
 // capsule limb from point a to b (radius r): the same primitive web/'s SDF
 // rider is built from, so the silhouette language carries over
@@ -71,7 +74,11 @@ export function makeSurferMesh() {
     depthWrite: false, side: THREE.DoubleSide,
   }));
   wake.name = 'wake';
-  wake.position.set(0, -0.30, -2.15);        // tail is at z ~ -1.4; trail behind
+  // z only: the y is re-seated every frame in updateSurfer against the live
+  // board clearance. A static y was authored against a 0.35 m float and never
+  // got the 0.9*plunge term the board carries, so on a plunging wave the quad
+  // hung ~0.9 m in the air and read as a white slab rather than a trail.
+  wake.position.set(0, -BOARD_CLEARANCE_M, -2.15);   // tail is at z ~ -1.4; trail behind
   group.add(wake);
 
   // rider sub-group: COMPRESSED surf stance — hips dropped to ~0.6 m, knees
@@ -172,6 +179,12 @@ export function updateSurfer(group, t, P, options = {}) {
   _right.crossVectors(_up, _fwd).normalize();
   _m.makeBasis(_right, _up, _fwd);
   group.quaternion.setFromRotationMatrix(_m);
+
+  // The wake lies ON the water, so its local drop must equal the board's live
+  // clearance — not the authored constant. WAKE_SINK_M keeps it just under the
+  // surface so a coincident quad cannot z-fight the water mesh.
+  const wake = group.getObjectByName('wake');
+  if (wake) wake.position.y = -(clearance - WAKE_SINK_M);
 
   const rider = group.getObjectByName('rider');
   if (rider) {
