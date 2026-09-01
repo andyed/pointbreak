@@ -175,7 +175,7 @@ function readMetrics() {
     rideSpan: { xLo: (st.stageStart ?? -110) + 10, xHi: (st.stageEnd ?? 290) - 10 },
     ride: ride ? { x: ride.x, z: ride.z, waiting: ride.waiting, n: ride.n } : null,
     aim: aim ? { raw: aim.raw, ok: aim.ok, cam: aim.cam } : null,
-    reefAudit: reef ? { withinTol: reef.withinTol, deepened: reef.deepened, aboveCeil: reef.aboveCeil, dryTouched: reef.dryTouched, postsTouched: reef.postsTouched, derivedAlpha: reef.derivedAlpha ?? reef.derived ?? null, residual: reef.residual ?? null } : null,
+    reefAudit: reef ? { withinTol: reef.withinTol, deepened: reef.deepened, aboveCeil: reef.aboveCeil, dryTouched: reef.dryTouched, postsTouched: reef.postsTouched, fitDerivedDeg: reef.fitDerivedDeg, residualDeg: reef.residualDeg, hbM: reef.hbM, maxRaiseM: reef.maxRaiseM } : null,
     peelClamp: pb.peelClamp ? pb.peelClamp() : null,
     stations,
   };

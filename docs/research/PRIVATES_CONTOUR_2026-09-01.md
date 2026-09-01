@@ -349,3 +349,133 @@ python3 data/model/experiments/contour_variants.py > sweep.md   # ~2 s, writes n
 python3 data/model/build_geo_profiles.py --truncate 0.5 --print | diff data/model/pp_geo_profiles.js -
 npm run check:geo && npm test                                    # default path, unchanged
 ```
+
+## Render evidence, 2026-09-01
+
+Branch `privates-mapped-bed` (worktree, not on main) enables the candidate:
+`build:geo`/`check:geo` carry `--truncate 0.5`, `pp_depth_patches.js` gains a
+seventh patch, `privates.geoSpot = "Private's"`, and the six tests that used
+Private's as the canonical *unmapped* example are re-derived onto non-spot
+names (`geo-model`, `camera-clamp` ×3, `incident-direction` ×2, `reef-audit`).
+Suite 154/154 both before and after. `PEEL_FLOOR.privates` stays `null`: the
+candidate gives Privates a bake, but its branch flip has not been run on the H0
+ladder, so nothing clamps a derived ocean there yet.
+
+**Frames.** `scripts/capture_privates_bed.mjs` serves BEFORE (`git archive
+main`, fc468fe) and AFTER (this branch) side by side and cold-loads the same
+hash on each. Cameras `drone`, `cliff`, `cover`; states site card
+(`#preset=privates`) and `#day=small`; clocks 45 s (set peak at the live break
+line, `u_setRef`) and 45 + 0.5/Δf (the lull: 128.3 s card, 78.3 s small).
+1280×720, `controls=0&q=high&speed=0`. 24 pair cells + 6 identity pairs =
+19.4 MB of PNG, so the set stays under the gitignored `qa/`:
+
+`qa/img/privates-bed/index.html` (before left, after right; metrics table and
+identity table at the foot; `metrics.json` beside it). Rebuild with
+`PLAYWRIGHT_DIR=… node scripts/capture_privates_bed.mjs --before=<main export>`.
+
+**Identity.** The six mapped presets at `cam=drone&sim=45`, card ocean: PNG
+byte-identical before vs after on all six (756 233 / 755 394 / 786 923 /
+816 949 / 776 305 / 806 385 bytes). The provenance block the flag adds to their
+profiles reaches no pixel.
+
+**Probe metrics at Privates** (`window.__pointbreak`, read at `cam=drone`,
+camera-independent; 41 stations across the ride span along the baked line, or
+along z = 0 with a doubled window where there is no bake):
+
+| | before, card | after, card | before, day=small | after, day=small |
+|---|---|---|---|---|
+| geoSpot / u_depthMix | null / 0 | Private's / 1 | null / 0 | Private's / 1 |
+| stage [start, end] m | [−110, 290] | [−189.7, 60] | [−110, 290] | [−189.7, 60] |
+| ride span [xLo, xHi] m | [−100, 280] | [−179.7, 50] | [−100, 280] | [−179.7, 50] |
+| baked line | no | yes | no | yes |
+| `bedBacked` stations | 0 / 41 | 41 / 41 | 0 / 41 | 41 / 41 |
+| depth at the line, m | 30.91 (RGBA8 floor, every station) | 1.41–1.58 | 31.25 (same) | 1.25–1.41 |
+| `crestCeilM`, stage max | null | 2.86 | null | 2.56 |
+| set-peak crest max, m (at x) | 3.13 (−14.5) | 3.57 (−179.7) | 3.50 (+137.5) | 3.40 (−128) |
+| ceiling at that crest | n/a | 2.79 | n/a | 2.51 |
+| fill at crest max | n/a | 1.28 | n/a | 1.36 |
+| fill at pocket stations (pocket ≥ 0.5), min / median / max | n/a | 0.94 / 1.17 / 1.25 (16 st.) | n/a | 1.11 / 1.20 / 1.36 (12 st.) |
+| lull crest max, m | 0.49 | 0.66 | 0.73 | 1.63 |
+| stage-median α, deg (clean; pinned) | n/a (no bake) | 15.7 (15.7; 0/115) | n/a | 30.5 (30.5; 0/115) |
+| HUD peel α | 31° deep → 5° at break | 31° target · 14° at x0 · 16° stage | 31° deep → 6° at break | 31° target · 43° at x0 · 30° stage |
+| break line at the OSM node (z at x = 0), m | n/a | −2.4 | n/a | +91.1 |
+| break line z across the stage, m | n/a | −28.6 (x −179.7) → +8.6 (x +50) | n/a | +42.6 → +131.4 |
+| DEM waterline at x = 0 (bed ≥ water), m | | +95.3 (tide 0) | | +104.0 (tide +0.35) |
+| takeoff x (stage fraction) / crests on the +x branch | n/a | −179.7 (0.00) / 1.65 | n/a | −179.7 (0.00) / 4.62 |
+| rider at sim 45 (x, z) | n/a | (−179.4, −17.5) | n/a | (−136.1, +67.7) |
+| reef fit: derived α in fit window / withinTol / hb / max raise | n/a | 7.6° / **false** / 1.40 m / 0.64 m | same | same |
+
+Same H0 0.7 m in all four columns; card T 12 s, tide 0, Δf 0.006; day=small
+T 9 s, tide +0.35, Δf 0.015.
+
+**What the numbers say.**
+
+1. *The TODO's open class closes at Privates.* `crestCeilM` is a depth at every
+   station (1.41–1.58 m under the line, not the 30.91 m storage constant), so
+   `crest / ceiling` is a real ratio here for the first time. The set-peak
+   pocket median is 1.17 (card) / 1.20 (small). The mapped six read 0.99–1.07
+   station-resolved (`measure_pocket_crest.mjs`) and 1.04–1.14 on the QA
+   sheet's transect max, so Privates sits at or just above the top of the
+   family, not the 2.2× the 2026-08-18 sheet reported off the degenerate
+   denominator. The 1.28–1.36 maxima are at the up-point stage edge
+   (x = −179.7 / −128), not at the pocket.
+
+2. *The M5 reef fit does not converge at Privates, and it is the only spot
+   where it does not.* On this build the other six land within ±0.9° of target
+   in 2–6 iterations (Sewers 37.7/38, First Peak 50.3/50, Second Peak 41.0/41,
+   38th 36.1/37, Hook 40.6/41, Sharks 36.8/36). Privates stops at 7.6° against
+   31° after 14 iterations, `withinTol: false`, and the HUD says "reef
+   synthetic" as designed. The cause is in the bed profile at x = 0: the node
+   sits at −0.53 m NAVD88 and the platform climbs only 0.5 m over the next
+   100 m to the waterline (depth 1.43 m → 0.91 m at MSL). The wedge's
+   `REEF_CEIL_EL` is −0.5 m, so it may lift the bed by at most 0.03 m at the
+   node and 0.64 m anywhere (the six get 1.68–3.55 m). h_b for the card ocean
+   is 1.40 m — the natural breaking depth *is* the node's depth — so the wave
+   breaks on the raw platform and the synthetic reef has nothing to shape. The
+   16° stage-median at the card is therefore the DEM's own peel on a flat
+   platform, not a tuned character. Whether 16° reads as "Privates" (soft,
+   small, down-point) or as a closeout is the second thing to look at.
+
+3. *Two states, two branches.* At the card ocean the baked line passes through
+   the OSM node (−2.4 m; DEM texel is 8–10 m) and runs −28.6 → +8.6 m across
+   the stage: a near-shore-parallel line in 1.4–1.6 m of water, 98 m off the
+   DEM waterline. At `day=small` (T 9, tide +0.35) the line is on an inshore
+   branch: +42.6 → +131.4 m, +91 m at the node, i.e. **13 m off the DEM
+   waterline** (+104 m at that tide), in 1.25–1.41 m of water. It carries a
+   30.5° stage-median α — close to the 31° target — but it is breaking on the
+   sand. This is the branch class `PEEL_FLOOR` was built for, and Privates has
+   no measured floor; `measure_branch_flip.mjs` has to be run before any
+   derived ocean at Privates can be clamped.
+
+4. *The span.* The ride now runs 229.7 m ([−179.7, 50]) instead of 380 m
+   ([−100, 280]); down-point of the node it ends at +50 m (rider edge) rather
+   than +280. The takeoff sits at the up-point stage edge (fraction 0.00, zero
+   crests on the left branch): a clean one-way peel, no geometric A-frame.
+   1.65 whole crests fit on the down-point branch at the card ocean, 4.62 at
+   `day=small`.
+
+5. *The "before" was never measuring anything.* At every BEFORE station the
+   depth reads 30.91 / 31.25 m, `bedBacked` is false and the ceiling is null,
+   as MEASUREMENT_LESSONS 13 says; the 3.13–3.50 m crests it drew came from
+   `growSyn`. The before/after crest heights are not the same quantity and
+   should not be read as a delta.
+
+**What has to be judged by eye** (the sheet, top to bottom):
+
+- Does the wave on the measured bed *look like Privates* — a small, soft
+  down-point wave running out into the cove — or like another copy of the
+  mapped spots? The 16° stage-median at the card ocean is the DEM's, not a
+  target; the sheet's cliff and cover frames are where that reads.
+- Is x = +60 m down-point of the OSM node where Privates stops? The DEM says
+  the −0.52 m contour turns 33–38° into the cove there. `VISUAL_GROUND_TRUTH.md`
+  and the visitors' notes are the only references, and neither is a survey.
+- The `day=small` frames: a 30° peel 13 m off the waterline. Whether a summer
+  windswell at Privates breaks on the inside like that, or whether this is the
+  peel-floor discontinuity arriving at a spot that has no floor yet.
+- The before frames are the synthetic stage inside its matte, with no land.
+  That is what ships today; the comparison is "this, or that", not "which is
+  more correct" — nothing on the before side is a measurement.
+
+Not decided here: flipping `--truncate 0.5` into `DEFAULT_OPTIONS`, retiring the
+n/a rows for Privates in `build_qa_sheets.mjs` (`PRESET_NOTE`) and the
+`qa-publish` test text, and measuring `PEEL_FLOOR.privates`.
