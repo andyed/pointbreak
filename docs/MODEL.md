@@ -1638,8 +1638,10 @@ Two things the re-measured floor still does not do, both recorded in
   band, inside which it binds and outside which it declines.
 * **It does not make Sewers or First Peak seasonal.** The wedge at Sewers
   activates at 1.24 m against an August p75 of 0.585 m; no selector on this
-  bed draws a Sewers peel in summer. That is a reef-extent fact, not a floor
-  fact.
+  bed draws a Sewers peel in summer. ~~That is a reef-extent fact, not a floor
+  fact.~~ *Superseded 2026-09-01, same day:* it is a **crest-depth fact** —
+  not a floor fact, and, measured, not a reef-extent one either. See
+  "Activation is a crest depth, not a reef extent" below.
 
 Pinning: each `PEEL_FLOOR` row carries a `bakeDigest` (sha1 of the shipped
 line, its gap flags and the canonical α along it at floorLo and floorHi), and
@@ -1693,9 +1695,11 @@ in the table is a tide at which no H₀ up to the card draws a peel on the
 reef: Sharks' card is off the wedge (0 % on-reef) from +0.33 m, Jack's from
 +0.51, Second Peak's reads 10.8° at 20 % from +0.63, The Hook's 6.5° at 22 %
 from +0.65, First Peak's 8.9° from +0.66. Only Sewers' card holds to MHHW.
-This is the reef-extent fact from the previous subsection on its second axis:
-at high water the synthetic wedge is too deep for the authored card, and no
-floor on H₀ can fix that.
+This is the ~~reef-extent~~ **crest-depth** fact from the previous subsection
+on its second axis (wording superseded 2026-09-01; the tide is a crest-depth
+knob the ocean turns, ~0.55 m of activation H₀ per metre of water): at high
+water the synthetic wedge is too deep for the authored card, and no floor on
+H₀ can fix that.
 
 **What ships: a tide band, not a tide-dependent floor.** Each `PEEL_FLOOR`
 row carries `tideBandM`, the contiguous interval of tide rungs around 0 on
@@ -1746,6 +1750,104 @@ sha1 of the bake at those states. `tests/peel-floor.test.js` re-bakes them
 on every run the way it re-bakes the H₀ edges, and `PEEL_FLOOR_BASIS`
 carries the tide step, range and criterion beside the H₀ ones (lesson 14b:
 every held-fixed parameter and its range).
+
+### Activation is a crest depth, not a reef extent (measured 2026-09-01)
+
+The two subsections above each ended on the same sentence — that Sewers and
+First Peak stay unseasonal because of "a reef-extent fact". That phrase was
+a guess about *which* authored quantity set the wedge's activation height, and
+`research/REEF_ACTIVATION_2026-09-01.md` measured it false. Recorded here so
+the next edit to the reef does not chase extent.
+
+**What sets activation.** Reef-activation H₀ is the depth of the wedge's
+shallowest cell, and nothing else. The break criterion F = H₀·shelter(x)·K_s(h)
+− γh is linear in H₀ cell by cell, so the first cell to reach zero is the one
+minimising γh/(shelter·K_s), and its value *is* the activation: the closed
+form reproduces the instrument's bisection to 1e-12 at all six mapped spots,
+and `bed.js` `reefActivationH0()` now derives it at runtime the same way
+(pinned against the instrument by `tests/reef-activation-runtime.test.js`).
+That depth is set by the authored crest-depth rule in `reefFitFor` —
+`crestDepth = clamp(0.75·h_b(card H₀, card T), 1.2, 3.0)`, then
+`targetEl = min(MSL − crestDepth, REEF_CEIL_EL − 0.2)` — plus the ridge
+overshoot (±15 % of the local lift) and the −0.5 m NAVD88 post ceiling. The
+DEM enters only through *where* the wedge exists (`bound`, the anchor); it
+does not set how deep the crest is. So the 0.31–0.93 m DEM residual is the
+error bar on the wedge's position, not on its activation, and the question
+"could a reef inside the residual activate at the August p75" assumed a
+coupling the code does not have.
+
+| spot | activation H₀ (tide 0, card T) | h_b (card) | crest target depth | shallowest wedge cell | Aug p75 / p90 at its own transect |
+|---|---:|---:|---:|---:|---|
+| Sewers | **1.239** | 3.90 | 2.925 | 2.633 m at x −111 | 0.633 / 0.749 (SC117) |
+| First Peak | **1.143** | 3.25 | 2.438 | 2.304 | 0.585 / 0.691 (SC116) |
+| Second Peak | **1.003** | 2.80 | 2.100 | 2.041 | 0.585 / 0.691 |
+| Jack's | **0.616** | 2.10 | **1.605 (ceiling)** | 1.405 (= MSL − REEF_CEIL_EL) | 0.571 / 0.673 (SC114) |
+| The Hook | **0.916** | 2.70 | 2.025 | 1.861 | 0.535 / 0.632 (SC112) |
+| Sharks | **0.726** | 1.95 | **1.605 (ceiling)** | 1.550 | 0.523 / 0.617 (SC111) |
+
+**Sensitivity, measured** (`scripts/measure_reef_activation_sensitivity.mjs`,
+the bake's own code with four constants parameterised; bit-identical to the
+bake at zero knobs, `tests/reef-activation-sweep.test.js`):
+
+* *Crest depth moves it*: ~0.5 m of activation H₀ per metre of crest in the
+  free range. To reach the August **p90** (0.691) Sewers needs a crest
+  **1.11 m** shallower than the rule gives it (1.82 m deep, activation 0.691,
+  fit still 38.6° against 38); that is 1.2–4× the DEM residual and 0.6–2.3 m
+  above either grid's node, so it is a sounding's claim to make, not a fit's.
+  The August **p75** (0.585) is unreachable at Sewers with the ceiling as
+  shipped (the reachable floor is 0.603) and needs −1.28 m *plus* a lifted
+  ceiling — a hypothetical that violates the shoreline invariant
+  `tests/reef-audit.test.js` pins.
+* *Tide moves it*: ~0.55 m of activation per metre of water, the whole
+  MLLW→MHHW excursion worth 0.94 m at Sewers (0.759 at MLLW, 1.698 at MHHW).
+  This is the mechanism behind the tide-band subsection above, and behind
+  "small swell only breaks there when the tide drops onto the shelf".
+* *Extent barely moves it*: across every window bound, feather cap and
+  amplitude the OSM bounds permit, Sewers stays in **1.11–1.43 m**, First
+  Peak in 0.98–1.19, and the other four move ≤ 0.13 m. The crest is an
+  absolute elevation, so widening the window adds cells at the *same* depth;
+  extent reaches activation only through the shelter factor at the new
+  cells. (One side finding, recorded not recommended: First Peak's window is
+  70 % feather; capping the feather at 0–25 m drops its activation 0.15 m,
+  still 0.29 m above its August p90.)
+* *The ceiling floors it*: the −0.5 m NAVD88 post ceiling and the −0.7 m
+  crest-target ceiling floor the reachable activation at **0.603 / 0.628 /
+  0.701 / 0.616 / 0.646 / 0.726 m** (Sewers → Sharks). All six sit above the
+  August p75. **No wedge inside the shipped invariants activates at the
+  August p75 anywhere on the point.**
+
+**Verdict, per spot.**
+
+| spot | verdict | why |
+|---|---|---|
+| Sewers | **honest boundary** (authored) | activation is the 2.9 m crest the 2.2 m card builds; no extent variant brings it below 1.11 m; SC117 puts Sewers' own August p75 at 0.633 m (1.08× the SC116 month table) and its 25-year August maximum near the 1.24 activation. Summer at Sewers is a lull |
+| First Peak | **honest boundary** (authored) | 1.143 against its transect's p90 0.691; reaching the p90 needs −0.70 m of crest and the fit falls to 33° against 50°; the only extent lever (its feather) is worth 0.16 m |
+| Second Peak | honest boundary | 1.003 against 0.691; the shipped-ceiling floor 0.701 is above the p90; at tide −0.73 m the wedge activates at the p75 (activation, not a peel — floor 1.11) |
+| Jack's | **ceiling-limited, undecidable** | crest 1.605 is the −0.7 m target ceiling and the activating cell 1.405 is the −0.5 m post ceiling: 0.616 is `REEF_CEIL_EL`'s number, not a reef's. The p75 is 0.03 m below it |
+| The Hook | honest boundary | 0.916 against 0.632; tide −0.56 m reaches the p75 |
+| Sharks | **ceiling-limited, undecidable** | crest 1.605 (ceiling); 0.726 against 0.617; tide −0.25 m reaches the p75 |
+
+"Undecidable" at Jack's and Sharks means the model knows only that a wedge
+clamped at −0.5 m NAVD88 under 0.905 m of MSL activates there; reporting
+that as site character overstates it. One ordering conflict is recorded and
+not resolved: the guides say down-point spots need *more* swell, while
+`0.75·h_b(card)` makes the wedge deepest where the card is biggest, so
+up-point spots need the most local H₀. MOP sees a 1.27× alongshore gradient
+at the 15 m contour where the card bank encodes 3.1×; whatever produces the
+guides' ordering happens inside 1 km of shore, on ground no source in this
+repo resolves.
+
+**What the product says (pattern step 7).** Where the floor binds, the HUD
+line now carries the stronger fact beside the weaker one: "…the reef itself
+is not in play below 1.24 m at this tide — 0.585 m is a lull, not a smaller
+wave on the reef" (or, when the asked height is on the reef but below the
+peel, "the reef is in play from 1.24 m … 1.245 m breaks on it — just not as
+a peel"). The activation is read at the state's own T and tide from the
+bake's wedge, not from a table. The QA season sheet's row headers print asked
+and drawn H₀ with the same verdict from the capture's own clamp readback
+(`scripts/build_qa_sheets.mjs` `h0HeaderHTML`); until the published set is
+rebuilt, its `sea-sewers-august` row still shows a 1.62 m wave under a
+0.585 m caption.
 
 ### The pattern, for the next one
 

@@ -23,7 +23,7 @@ import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contou
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, breakGapAt, BREAK_Z_MIN, BREAK_Z_MAX,
-         reefFitFor, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
+         reefFitFor, reefActivationH0, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
          setReefNose, REEF_NOSE_FRAC_TUNED,
          setReefAmp, setReefFlank, getReefShape, reefAudit,
@@ -1249,15 +1249,29 @@ function refreshHUD() {
       const measured = `measured ${c.flip.floorLo.toFixed(2)}→${c.flip.floorHi.toFixed(2)} m, `
         + `α ${c.flip.alphaBelow.toFixed(1)}°→${c.flip.alphaAbove.toFixed(1)}° `
         + `against a ${c.flip.alphaTarget}° target`;
+      // The floor is the weaker of two facts. The reef's own activation H0 —
+      // the depth of the wedge's shallowest cell, at this state's tide and
+      // period — says whether the requested height reaches the reef at all.
+      // Below it the season is a lull (an inshore bore), not a smaller wave on
+      // the reef, and the line must say so rather than let "clamped" imply a
+      // peel that was merely too small to draw.
+      const act = c.reefActivationH0;
+      const where = c.bound ? 'at this tide' : 'at this T and tide';   // a #day= moves both
+      const reef = !Number.isFinite(act) ? ''
+        : c.requested < act
+          ? `The reef itself is not in play below ${act.toFixed(2)} m ${where} — `
+            + `${c.requested.toFixed(3)} m is a lull, not a smaller wave on the reef. `
+          : `The reef is in play from ${act.toFixed(2)} m ${where}, so `
+            + `${c.requested.toFixed(3)} m breaks on it — just not as a peel. `;
       hudClamp.textContent = c.bound
         ? `drawing ${c.applied.toFixed(2)} m — ${c.source} asks for ${c.requested.toFixed(3)} m. `
-          + `${spot} loses its peel below ${c.applied.toFixed(2)} m (${measured}). `
+          + `${spot} loses its peel below ${c.applied.toFixed(2)} m (${measured}). ${reef}`
           + `Size is clamped here — this is not the season's height. #clamp=0 draws it raw.`
         : `NOT applied. The floor at ${spot} is ${c.flip.floorH0.toFixed(2)} m and `
           + `${c.source} asks for ${c.requested.toFixed(3)} m, but it was ${measured} `
           + `at T ${c.flip.basisT} s and holds for tide ${fmtTide(c.flip.tideBandM[0])}…${fmtTide(c.flip.tideBandM[1])} m `
           + `— this state is at T ${c.T} s, tide ${fmtTide(c.tideM)} m, so the number does not describe it. `
-          + `Drawing the requested height unclamped; the peel here is whatever the bed gives.`;
+          + `${reef}Drawing the requested height unclamped; the peel here is whatever the bed gives.`;
     }
   }
   // M6 part 3: report the wavelength the crests are actually drawn at. Off the
@@ -1357,10 +1371,22 @@ function setDerivedH0(requestedH0, sourceLabel, presetKey = state.preset) {
   // no account of it, which is the failure mode this row exists for.
   const offBasis = !bound && clampEnabled && spec !== null && floor === null
     && req < spec.floorH0;
+  // The stronger fact under the floor, for the HUD: below the reef's own
+  // activation H0 the wedge is not in play at all and the requested height is
+  // an inshore bore, not a smaller wave on the reef (MODEL.md 4.6, "Activation
+  // is a crest depth"). Read at THIS state's T and tide — activation moves
+  // ~0.55 m per metre of tide — from the bake's own wedge (bed.js
+  // reefActivationH0, pinned to the instrument in
+  // tests/reef-activation-runtime.test.js). Read-only: no uniform moves.
+  const act = (bound || offBasis)
+    ? reefActivationH0(PRESETS[presetKey]?.geoSpot, [-STAGE_W / 2, STAGE_W / 2],
+        { T: state.T, tide: state.tide || 0 })
+    : null;
   activeClamp = (bound || offBasis)
     ? { bound, offBasis, requested: req, applied: bound ? floor : req,
         source: sourceLabel, spot: presetKey, flip: spec,
-        T: state.T, tideM: state.tide || 0 }
+        T: state.T, tideM: state.tide || 0,
+        reefActivationH0: act ? act.H0 : null }
     : null;
   state.H0 = bound ? floor : req;
   if (uniforms?.u_H0) uniforms.u_H0.value = state.H0;

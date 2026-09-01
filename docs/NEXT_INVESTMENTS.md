@@ -23,7 +23,7 @@ bundle or compensate for bad state with another material pass.
 
 | rank | investment | leverage | principal risk | default sequencing |
 |---:|---|---|---|---|
-| 1 | ~~Continuous break activation and canonical reef fit~~ → **declared peel floor on the discrete selector** (verdict 2026-09-01, §1) | Very high: every breaker, peel and crash consumer depends on the break line | Was "very high"; measured. The residual risk is reef extent at Sewers / First Peak, and the card states going off the reef above +0.33…+0.66 m of tide | Slices 1–2 done, floor re-measured on the current bake, tide band measured and declared. Next: the reef-extent question. Slices 3–5 are not scheduled |
+| 1 | ~~Continuous break activation and canonical reef fit~~ → **declared peel floor on the discrete selector** (verdict 2026-09-01, §1) | Very high: every breaker, peel and crash consumer depends on the break line | Was "very high"; measured. The residual risk is reef extent at Sewers / First Peak, and the card states going off the reef above +0.33…+0.66 m of tide | Slices 1–2 done, floor re-measured on the current bake, tide band measured and declared. ~~Next: the reef-extent question.~~ Reef extent measured 2026-09-01 as a crest-depth fact (no wedge inside the invariants activates at the August p75); next is the signed-refit order in §1 item 3, gated on the Second Peak window decision. Slices 3–5 are not scheduled |
 | 2 | Transported crash and roller state | Highest immediate visual return | High: state can become garnish, non-deterministic particles or a second break authority | Prototype alongside rank 1; integrate after its field is stable |
 | 3 | Finite-depth set propagation | Medium-high systemic return | Medium-high: linear group speed near breaking may be a worse story than the current offshore approximation | Measure first; do after ranks 1–2 unless the probe shows a large visible phase error |
 | 4 | Narrow CPU/GPU surface unification | Medium visual return, high truthfulness return | High cost and sync risk if treated as a full parity port | Migrate only proven consumers, last |
@@ -79,6 +79,9 @@ The discrete regime change stays, and the model declares the floor.
 - Slice 4 (canonical refit) stays deferred, and its gate is no longer the
   selector: it is the **reef-extent question** — whether the wedge geometry
   can activate at climatological heights at Sewers and First Peak at all.
+  *(Answered 2026-09-01, "what is next" item 3: it cannot, inside the
+  shipped invariants, and the quantity is crest depth, not extent. The refit
+  is gated on the Second Peak window decision instead.)*
 - Slice 5 (promote as a pair) is moot without 3 and 4.
 
 **What is next, in order.**
@@ -102,10 +105,61 @@ The discrete regime change stays, and the model declares the floor.
    floor table was measured and not adopted: above +0.33…+0.66 m the card
    itself is off the reef and no floor exists. The seven `#day=` states are
    still off-basis (on T) and unchanged. `research/TIDE_FLOOR_2026-09-01.md`.
-3. **The reef-extent question** at Sewers and First Peak: what wedge geometry
+3. ~~**The reef-extent question** at Sewers and First Peak: what wedge geometry
    (extent, not amplitude — amplitude saturates, CONTROLS `reefamp`) would
    activate at the August p75, and whether that is still Pleasure Point.
-   This gates any refit.
+   This gates any refit.~~ *Superseded 2026-09-01 (third tranche, three
+   notes):* the question as posed is answered, and the thing it gates is
+   sharper than "extent".
+   - **It is a crest depth, not an extent**
+     (`research/REEF_ACTIVATION_2026-09-01.md`). Activation is the depth of
+     the wedge's shallowest cell, set by `clamp(0.75·h_b(card), 1.2, 3.0)`
+     and the −0.5 m ceiling; the closed form γh/(shelter·K_s) matches the
+     bisection to 1e-12. Extent moves Sewers only within 1.11–1.43 m across
+     every window/feather/amplitude variant; crest depth moves it 0.5 m/m and
+     tide 0.55 m/m. Reaching the August p90 at Sewers needs a crest 1.11 m
+     shallower than the rule gives (outside the DEM residual); the p75 is
+     unreachable inside the shipped invariants at every spot (ceiling floors
+     0.60–0.73 m). Verdicts: Sewers / First Peak / Second Peak / The Hook are
+     honest lulls in summer; Jack's and Sharks are ceiling-limited, so their
+     activation numbers describe `REEF_CEIL_EL`, not a reef. MODEL.md §4.6
+     "Activation is a crest depth".
+   - **The refit's blocker is one feather**
+     (`research/REEF_FIT_SIGNED_2026-09-01.md`). The unsigned fit certifies a
+     −41° window line at Second Peak as 40.96°; a signed refit on the shipped
+     geometry closes **five of six spots** today (β 38.0 / 40.5 / — / 41.5 /
+     52.25 / 46.5 for signed 37.9 / 49.8 / — / 36.9 / 40.7 / 31.8; activation
+     within 0.02 m, floors within 0.02 m). Second Peak cannot reach 41°
+     signed at any β (max 27.2°) because `reefWindowKnots`' up-point feather
+     (35 % of the stage, capped 75 m) sits under the fit window there. The
+     lever is that feather inside the stage — not amplitude (inert), not the
+     selector.
+   - **At high tide the cards themselves stop being peels**
+     (`research/TIDE_FLOOR_2026-09-01.md`). Above +0.33 (Sharks), +0.51
+     (Jack's), +0.63 (Second Peak), +0.65 (The Hook) and +0.66 m (First
+     Peak) the card state is off the reef or under 10°; only Sewers' card
+     holds to MHHW. Five of six cards fail high. No floor on H₀ fixes that;
+     it is the crest-depth fact on the tide axis.
+
+   **Proposed order** (REEF_FIT_SIGNED §6; none of it shipped, none of it
+   looked at — every number is headless):
+   1. **Keep the sign in the fit** (`Math.atan(meanSlope)`, target +α). No
+      converged β changes at the five positive-slope spots; Second Peak
+      reports no root and `withinTol: false` instead of certifying a
+      reversed line. Its HUD says "reef synthetic, fit missed" until 3.
+   2. **Ramp exclusion in the reversal gate** (`measure_break_activation.mjs`
+      and its tests): exclude slew-ramp stations from the clean set, report
+      the ramp count separately. Metric-domain fix, the line does not move;
+      with it the shipped line passes "no reversal" at all six spots.
+   3. **The Second Peak window is Andy's decision**, not the fit's: a plateau
+      covering the stage puts reef relief 75 m up-point of the OSM stage
+      start, toward First Peak (β 43 → 37.5° with zero reversals, 96 % on
+      reef; activation 1.000, floor 1.08, one new 87 m peel-to-peel flip at
+      1.16→1.17). The in-stage alternative (flank 120 at β 71) is not better
+      than shipped on any axis but the headline number. What either does to
+      the drone frame is not a headless question.
+   4. **Then the signed refit** at the five spots it closes, with
+      `--mode=floor` re-run afterwards and `PEEL_FLOOR` re-pinned.
 4. Rank 2 (transported crash) no longer waits for a continuous field. It
    rebases onto the discrete line plus the declared floor now.
 
@@ -118,12 +172,18 @@ both recorded in MODEL.md §4.6 as things the floor does not do):
   **0.616**, The Hook **0.916**, Sharks **0.726** m. Below these the only
   positive component is the inshore bore and *no* representation can draw a
   peel. Sewers never activates below 1.24 m against an August p75 of
-  0.585 m: no selector on this bed draws a Sewers peel in summer.
+  0.585 m: no selector on this bed draws a Sewers peel in summer. *(Acted on
+  2026-09-01: it is the depth of the wedge's shallowest cell — an authored
+  crest depth, item 3 — and the HUD's clamp line now names it beside the
+  floor; `bed.js` `reefActivationH0()`, pinned to the instrument by
+  `tests/reef-activation-runtime.test.js`.)*
 - **Tide-axis flips at five of six spots.** At the card H₀ the shipped line
   flips on a 0.04 m tide step (Jack's line moves 132 m; Second Peak 3 flips,
-  Jack's 3, The Hook 2, Sharks 2, First Peak 1). The floor is a point on the
+  Jack's 3, The Hook 2, Sharks 2, First Peak 1). ~~The floor is a point on the
   H₀ axis at tide 0 and does not guard this; it declines off-basis, which is
-  correct and leaves those states unguarded. Item 2 above.
+  correct and leaves those states unguarded. Item 2 above.~~ *Done 2026-09-01
+  by item 2:* the floor carries a measured tide band and declines outside
+  it; the 0.01 m tide sweep is `TIDE_FLOOR_2026-09-01.md` §2.1.
 
 ---
 
@@ -503,8 +563,11 @@ only then invest in a generalized interface.
    2026-09-01: there is no continuous activation to land (§1 Verdict). The
    break authority is the discrete line plus the declared, re-measured peel
    floor; rebase the crash source onto that, then run the combined all-preset
-   temporal matrix and live judgment. Rank 1's remaining work is the floor's
-   tide basis and the reef-extent question.
+   temporal matrix and live judgment. Rank 1's remaining work is ~~the floor's
+   tide basis and the reef-extent question~~ (tide basis done 2026-09-01;
+   reef extent measured as crest depth the same day) the four-step signed
+   refit order in §1 "what is next" item 3, starting from Andy's call on the
+   Second Peak window.
 4. Measure rank 3 before scheduling implementation. A small or validity-limited
    effect is a documented no-change result.
 5. Take rank 4 consumer by consumer. Full twin parity remains out of scope.

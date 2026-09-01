@@ -171,6 +171,12 @@ import { inflateSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
 
 import { setEnv, SET_ANCHOR_S } from '../web-three/js/model-js.js';
+// The season captions quote the floor and the climatology. Both are tables the
+// model owns and re-measures (PEEL_FLOOR moved 1.61 -> 1.62 and 1.08 -> 1.11 on
+// 2026-09-01 while the prose here still said the old numbers), so the page
+// reads them rather than carrying a copy.
+import { PEEL_FLOOR } from '../shared/params.js';
+import { getMonthlyOcean, MONTHLY_OCEAN_PCT } from '../data/climatology/pp_monthly_ocean.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -453,11 +459,21 @@ const PRESET_LABELS = {
 const PRESET_NOTE = { privates: 'synthetic stage — no measured bed' };
 const LOCATION_KEYS = ['sewers', 'firstpeak', 'secondpeak', 'jacks', 'thehook', 'sharks', 'privates'];
 const SEASON_PRESETS = ['sewers', 'secondpeak'];
+// The caption names the ASKED height and says so. The DRAWN height, and whether
+// the floor moved it, is printed by the row header from the capture's own clamp
+// readback (rowHTML h0HeaderHTML) — a 1.62 m frame under a bare "0.585 m"
+// caption was the honesty gap REEF_ACTIVATION_2026-09-01 §6.1 found on this
+// sheet.
 const SEASON_MONTHS = [
-  { key: 'january', label: 'January', note: 'the big month — H₀ p75 1.245 m' },
-  { key: 'october', label: 'October', note: 'autumn shoulder — H₀ p75 0.801 m' },
-  { key: 'august', label: 'August', note: 'the flat one — H₀ p75 0.585 m; ZERO hours ≥ 1.3 m in 25 years' },
-];
+  { key: 'january', tag: 'the big month' },
+  { key: 'october', tag: 'autumn shoulder' },
+  { key: 'august', tag: 'the flat one', extra: '; ZERO hours ≥ 1.3 m in 25 years' },
+].map((m) => {
+  const mo = getMonthlyOcean(m.key);
+  return { key: m.key, label: mo.label,
+    note: `${m.tag} — asked H₀ p${MONTHLY_OCEAN_PCT} ${mo.H0.toFixed(3)} m${m.extra || ''}; drawn H₀ in the header` };
+});
+const floorTxt = (k) => `${PEEL_FLOOR[k].floorH0.toFixed(2)} m`;
 
 // ---------------------------------------------------------------------------
 // WHAT THE PUBLISHED SET KEEPS, AND WHY
@@ -618,10 +634,11 @@ const SHEETS = [
       {
         id: 'seasons', label: 'Requested seasons — two presets × three months',
         pubLabel: 'Seasons — two presets × two months',
-        note: 'The requested season axis: January (peak), October (shoulder), August (flat). The shipped peel floor then governs the drawn H₀: Sewers collapses all three requests to 1.61 m; Second Peak keeps January at 1.245 m and raises October/August to 1.08 m. Row headers report the drawn state — see "What month actually does".',
-        pubNote: 'The season axis at its two extremes: January (the peak month, H₀ p75 1.245 m) against August '
-            + '(the flat request, 0.585 m). The shipped peel floor may raise the drawn H₀; Sewers collapses '
-            + 'both requests to 1.61 m, while Second Peak draws 1.245 m against 1.08 m. See "What month actually does".',
+        note: `The requested season axis: January (peak), October (shoulder), August (flat). The shipped peel floor then governs the drawn H₀: Sewers collapses all three requests to ${floorTxt('sewers')}; Second Peak keeps January at ${getMonthlyOcean('january').H0.toFixed(3)} m and raises October/August to ${floorTxt('secondpeak')}. Each row header prints asked and drawn H₀, whether the floor applied, and whether the asked height reaches the reef at all — see "What month actually does".`,
+        pubNote: `The season axis at its two extremes: January (the peak month, H₀ p75 ${getMonthlyOcean('january').H0.toFixed(3)} m) against August `
+            + `(the flat request, ${getMonthlyOcean('august').H0.toFixed(3)} m). The shipped peel floor may raise the drawn H₀; Sewers collapses `
+            + `both requests to ${floorTxt('sewers')}, while Second Peak draws ${getMonthlyOcean('january').H0.toFixed(3)} m against ${floorTxt('secondpeak')}. `
+            + 'Each row header prints asked and drawn H₀ and whether the asked height reaches the reef. See "What month actually does".',
         base: 'cam=drone',
         rows: SEASON_PRESETS.flatMap((p) => SEASON_MONTHS.map((m) => ({
           id: `sea-${p}-${m.key}`, label: `${PRESET_LABELS[p]} · ${m.label}`,
@@ -766,6 +783,17 @@ function readState(CORR) {
     target: pb.controls.target.toArray().map((v) => +v.toFixed(2)),
     aim: aim && aim.raw ? { x: +aim.raw.x.toFixed(1), z: +aim.raw.z.toFixed(1), errDeg: aim.errDeg } : null,
     hudGeo: hud('hudGeo'), hudAlpha: hud('hudAlpha'), hudSwell: hud('hudSwell'),
+    // The peel floor's own readback (main.js peelClamp): what was asked, what
+    // was drawn, whether the floor bound or declined off-basis, and the reef's
+    // activation H0 at this state. null when nothing was clamped. The row
+    // header prints it; the sidecar keeps it. Without this the sheet showed a
+    // floor-height wave under a caption quoting the asked height.
+    clamp: (() => {
+      const c = pb.peelClamp ? pb.peelClamp() : null;
+      return c ? { bound: c.bound, offBasis: c.offBasis, requested: c.requested, applied: c.applied,
+                   source: c.source, reefActivationH0: c.reefActivationH0 ?? null, T: c.T, tideM: c.tideM }
+               : null;
+    })(),
     stations,
   };
 }
@@ -1704,7 +1732,7 @@ async function captureSheet(page, base, sheet, encoder) {
         crop, peelM, markerOffMaxM, noRing, accept, event,
         crest, state: {
           preset: st.preset, day: st.day, H0: st.H0, T: st.T, dF: st.dF, tide: st.tide,
-          xi: st.xi, alpha: st.alpha, chop: st.chop,
+          xi: st.xi, alpha: st.alpha, chop: st.chop, clamp: st.clamp ?? null,
           hudGeo: st.hudGeo, hudAlpha: st.hudAlpha, hudSwell: st.hudSwell,
           camera: st.camera, target: st.target, setRef: +st.setRef.toFixed(2),
           setDepth: st.setDepth, probe: { x: +xProbe.toFixed(1), z: +zProbe.toFixed(1) },
@@ -2041,13 +2069,32 @@ function cellHTML(base, cell, row) {
 </div>`;
 }
 
+// The header's H0 cell. Where the peel floor touched the state, print BOTH
+// heights and the verdict, on the MODEL.md 4.6 pattern: "floor applied" when the
+// asked height is on the reef but below the peel, "reef inactive … n/a" when
+// it does not reach the reef at all — that is a lull, not a smaller wave, and
+// the frames above it are the floor's wave, not the season's. Off-basis
+// declines say so too. Plain states print the one height they have.
+function h0HeaderHTML(s) {
+  const c = s.clamp;
+  if (!c) return `${s.H0.toFixed(2)} m`;
+  const act = c.reefActivationH0;
+  const reef = !Number.isFinite(act) ? ''
+    : c.requested < act
+      ? `; reef inactive below ${act.toFixed(2)} m — <b>n/a as a season</b> (a lull, not a smaller wave)`
+      : `; reef in play from ${act.toFixed(2)} m`;
+  return c.bound
+    ? `<b>${c.applied.toFixed(2)} m drawn</b> · asked ${esc(c.source)} ${c.requested.toFixed(3)} m · <b>floor applied</b>${reef}`
+    : `<b>${c.applied.toFixed(2)} m drawn raw</b> · asked ${esc(c.source)} ${c.requested.toFixed(3)} m · floor NOT applied (off its basis)${reef}`;
+}
+
 function rowHTML(base, row) {
   const s = row.state;
   return `<div class="rowhead">
   <span class="title">${esc(row.label)}</span>
   <span class="sub">${esc(row.sub)}</span>
   <dl>
-    <dt>H₀</dt><dd>${s.H0.toFixed(2)} m</dd>
+    <dt>H₀</dt><dd>${h0HeaderHTML(s)}</dd>
     <dt>T</dt><dd>${s.T.toFixed(1)} s</dd>
     <dt>tide</dt><dd>${s.tide.toFixed(2)} m</dd>
     <dt>Δf</dt><dd>${s.dF} Hz</dd>
@@ -2256,7 +2303,7 @@ breaks at this site</b>: the model-card day (H₀ 1.50 m, T 14 s) against the bi
 The <code>h0=</code> rows separate height from period, which is a QA question rather than a reader's, and
 <code>day=overhead</code> sits between the two kept rows.</p>
 <p><b>Why the small end is not the smallest day.</b> <code>day=small</code> is H₀ 0.70 m, and Second Peak's
-<i>measured peel floor</i> is 1.08 m — below it the baked break line abandons the oblique reef branch and the
+<i>measured peel floor</i> is ${floorTxt('secondpeak')} — below it the baked break line abandons the oblique reef branch and the
 peel collapses (stage α 6.6° against a 41° target). Measured on the same instrument as every other row,
 whitewater at the tracked crest there peaks at <b>0.193</b>, against <b>0.858–0.890</b> for every row that
 breaks. It is not a small break; it is not a break. Publishing it under a header that says
@@ -2339,7 +2386,7 @@ column 1 is what <i>still unbroken</i> looks like, and it is the single clearest
 the right place.</p>
 <p><b>A row that does not break says so.</b> Acceptance is measured per row and printed on it: whitewater at the
 tracked crest must start pre-break and end broken. Two rows cannot pass, and both are H₀ 0.70 m at a site whose
-measured peel floor is 1.08 m — <code>day=small</code> peaks at 0.193 and <code>h0=0.7</code> at 0.341, against
+measured peel floor is ${floorTxt('secondpeak')} — <code>day=small</code> peaks at 0.193 and <code>h0=0.7</code> at 0.341, against
 0.858–0.890 for every row that breaks. Their headers say <i>crest intact → crest gone</i> instead of promising a
 break, their five clocks span the crest indicator's own collapse, and they are kept out of the published set.
 The gap between 0.35 and 0.85 is empty across the whole bank, which is why the 0.60 line sits in it.</p>
@@ -2359,10 +2406,17 @@ August is the flat one for a measured reason: across 2000–2024 there are <b>ze
 Hs 1.3 m in July or August. See <code>docs/research/PP_CDIP_CLIMATOLOGY.md</code>.</p>
 <p><b>The requested and drawn heights are not always the same.</b> Monthly p75 is routed through the shipped
 peel floor before rendering. In this sampled matrix Sewers raises January, October and August to the same
-1.61 m drawn H₀; Second Peak keeps January at 1.245 m and raises October/August to 1.08 m. Identical Sewers
-season rows are therefore a visible cost of the current model policy, not stale captures. Every row header
-prints the drawn state; the requested climatology remains in the row label and permalink. See
-<code>docs/MODEL.md</code> §4.6 and the <code>clamp</code> control.</p>
+${floorTxt('sewers')} drawn H₀; Second Peak keeps January at ${getMonthlyOcean('january').H0.toFixed(3)} m and raises
+October/August to ${floorTxt('secondpeak')}. Identical Sewers season rows are therefore a visible cost of the
+current model policy, not stale captures. Every row header prints <b>both</b> heights — <i>asked</i> (the
+climatology) and <i>drawn</i> (what the frames show) — with the verdict beside them: <b>floor applied</b>
+where the asked height reaches the reef but not a peel, or <b>reef inactive … n/a as a season</b> where it
+does not reach the reef at all. That second case is the summer at Sewers and Second Peak: the reef's own
+activation height (the depth of the wedge's shallowest cell — Sewers 1.24 m, Second Peak 1.00 m at tide 0)
+sits above the August p75, so the season there is a lull and the frames in that row are the floor's wave,
+not August's. The requested climatology also remains in the row label and permalink. See
+<code>docs/MODEL.md</code> §4.6, <code>docs/research/REEF_ACTIVATION_2026-09-01.md</code> and the
+<code>clamp</code> control.</p>
 <p><b>What is on this sheet.</b> The location axis is all seven presets at <code>month=january</code>
 (7 rows). The season axis is two presets × three months (6 rows): January the peak month, October the
 autumn shoulder, August the flat one. <code>privates</code> is the <b>synthetic-stage</b> site — it has
