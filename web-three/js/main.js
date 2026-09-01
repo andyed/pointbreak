@@ -262,6 +262,13 @@ const uniforms = {
   // snap lands on a crest line and drew a straight hard foam edge. Ramped by
   // default; #wrap=0 restores the raw mod() (see crestClockS in model-glsl).
   u_crestWrap:  { value: 1 },
+  // Birth ramp (EXPERIMENT 2026-09-01, #birth=): whitewater deposit develops
+  // over a fraction of LAM behind the zipper head, so the lifecycle clock's
+  // x = x_head snap stops printing a shore-normal straight edge in plan view.
+  // All three 0 = the shipped frame, bit-identical (see model-glsl birthWeight).
+  u_birthW:     { value: 0 },
+  u_birthLead:  { value: 0 },
+  u_birthRag:   { value: 0 },
   // Marine-layer fog dial (shaders.js FOG_GLSL/SKY_GLSL): u_fogAmt scales the
   // shipped density (1 = the pre-knob image, exactly — x1.0 is exact in IEEE),
   // u_fogBank arms drifting density banks (0 = uniform layer). state.fog /
@@ -2285,6 +2292,23 @@ function applyHashParams() {
   // Crest-clock ramp defaults ON (defect fix, 2026-08-18); #wrap=0 restores
   // the raw mod() sawtooth and its hard crest-line foam edge, bit-identical.
   if (h.get('wrap') === '0') uniforms.u_crestWrap.value = 0;
+  // Birth ramp (EXPERIMENT 2026-09-01): #birth=<0..1> is the deposit ramp
+  // width as a fraction of LAM behind the head; #birthlead=<0..1> places that
+  // fraction of the ramp AHEAD of the head (centred blend variant);
+  // #birthrag=<0..1> jitters the ramp position with world noise. Absent, 0,
+  // or non-finite = shipped. Boot-only, like every other A/B flag here.
+  const birthV = parseFloat(h.get('birth'));
+  if (h.has('birth') && Number.isFinite(birthV) && birthV > 0) {
+    uniforms.u_birthW.value = Math.min(birthV, 1);
+  }
+  const birthLeadV = parseFloat(h.get('birthlead'));
+  if (h.has('birthlead') && Number.isFinite(birthLeadV)) {
+    uniforms.u_birthLead.value = Math.min(Math.max(birthLeadV, 0), 1);
+  }
+  const birthRagV = parseFloat(h.get('birthrag'));
+  if (h.has('birthrag') && Number.isFinite(birthRagV)) {
+    uniforms.u_birthRag.value = Math.min(Math.max(birthRagV, 0), 1);
+  }
   // Set-envelope floor defaults ON (defect fix, 2026-08-18): the envelope was
   // 100% modulated and zero-floored, and the dipstick measured the render
   // drawing water FLATTER than the physical sea through the lull. #env=0
@@ -2492,6 +2516,15 @@ window.__pointbreak = {
   setLandSkip: (m) => { uniforms.u_landSkipM.value = m; },
   setFidelityLook: (look) => { uniforms.u_fidelityLook.value = parseFidelityLook(look); },
   setCurl: (on) => { uniforms.u_curl.value = on ? 1 : 0; },
+  // Birth ramp, for in-session A/B (MEASUREMENT_LESSONS 2): width fraction of
+  // LAM, lead fraction, rag amplitude. Non-finite / negative inputs are ignored.
+  setBirth: (w = 0, lead = 0, rag = 0) => {
+    if (Number.isFinite(w) && w >= 0) uniforms.u_birthW.value = Math.min(w, 1);
+    if (Number.isFinite(lead) && lead >= 0) uniforms.u_birthLead.value = Math.min(lead, 1);
+    if (Number.isFinite(rag) && rag >= 0) uniforms.u_birthRag.value = Math.min(rag, 1);
+  },
+  birth: () => ({ w: uniforms.u_birthW.value, lead: uniforms.u_birthLead.value,
+                  rag: uniforms.u_birthRag.value }),
   setLegacyDrop: (on) => { uniforms.u_legacyDrop.value = on ? 1 : 0; },
   // Offset-bound knee in metres, for sweeps and for the raw-distribution read
   // (>= OFF_MAX_M = 20 removes the bound; instrument only). 0 = hard clamp.
