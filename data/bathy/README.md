@@ -47,6 +47,15 @@ Candidates (2026-09-01, same schema, `elev` may contain `null`):
 | `pp_bathy_cudem19.json` | `candidates/ncei_cudem19/` | 3 m, x −300…3201, y −1500…2100 | full coverage incl. land; the only grid with data under the surf zone that is not the 2012 DEM |
 | `pp_bathy_csmp_aptos.json` | `candidates/csmp_aptos/` (README only) | 3 m, same window | **not committed** (gitignored, with its clip): null at every canon spot — the swath survey starts 325–565 m seaward of them. `build_candidate_grids.py csmp` regenerates it after the README's refetch |
 
+What the wave model does on each candidate (contour fits, depth patches, reef
+fits, activation, flips, peel) is measured in
+`../../docs/research/CUDEM_BED_2026-09-01.md`; both model builders take
+`--bathy <file>` and the headless instrument takes `--bed=<tag>` (see
+`../model/README.md`). Note that `x0`/`y0` are rounded to 0.1 m per file, so
+the wide grid's lattice sits 0.208 m east of the shipped grid's: same posts,
+different sample points, and that is the noise floor of any cross-grid
+comparison (CUDEM_BED §2).
+
 - `build_candidate_grids.py` — builds the candidate JSONs — `ncei`, `cudem` by default, `csmp` opt-in (needs the
   rasterio venv below). `compare_candidates.py` — the comparison tables in the
   BATHY_SOURCES doc (stdlib + numpy). `candidates/*/README.md` — provenance,

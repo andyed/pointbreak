@@ -45,16 +45,35 @@
 //   node scripts/measure_break_activation.mjs --preset=secondpeak --h0=0.7   # one field
 //   node scripts/measure_break_activation.mjs --mode=sweep --preset=sewers
 //   node scripts/measure_break_activation.mjs --mode=floor      # re-measure PEEL_FLOOR (MODEL.md 4.6)
-//   --mode=field|sweep|f0|triage|floor|all   --out=qa/break-field   --step=0.005   --lo=0.4 --hi=3.0
+//   --mode=field|sweep|f0|triage|floor|card|all   --out=qa/break-field   --step=0.005   --lo=0.4 --hi=3.0
 //   A partial run merges into the standing qa/break-field/summary.json.
+//
+//   --bed=<tag>       run the whole model on an alternate bathymetry source:
+//                     data/model/pp_geo_profiles.<tag>.js + pp_depth_patches.<tag>.js
+//                     (built by the two builders' --bathy flag). A node:module
+//                     resolve hook redirects every consumer, shipped code
+//                     included (scripts/lib/bed-source.mjs); nothing is edited
+//                     and no hook is installed without the flag. Output goes to
+//                     qa/break-field-<tag>/ so the committed summary is untouched.
+//   --map-privates    give the `privates` preset geoSpot "Private's" for this
+//                     run, so a bed on which its contour fit is usable can be
+//                     measured. The shipped preset keeps geoSpot null.
+//   --mode=card       one table per spot at the card state: contour fit, plane
+//                     residual, reef fit, activation H0, signed alpha, where the
+//                     shipped line sits relative to the OSM node.
 import { registerHooks } from 'node:module';
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, isAbsolute } from 'node:path';
+import { bedSourceTag, registerBedSource } from './lib/bed-source.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
+
+// The bed source must be chosen before the first import that reaches bed.js.
+export const BED_SOURCE = registerBedSource(bedSourceTag());
+const MAP_PRIVATES = process.argv.includes('--map-privates');
 
 // bed.js imports the bare specifier 'three'; the browser resolves it through
 // the import map in web-three/index.html. Same shim as reef-audit.test.js.
@@ -74,6 +93,7 @@ const { PP_DEPTH_DATA } = await import('../data/model/pp_depth_patches.js');
 const D = await import('../web-three/js/dispersion.js');
 const { signedPeelGeometryAt } = await import('../web-three/js/peel-geometry.js');
 const { MONTHLY_OCEAN } = await import('../data/climatology/pp_monthly_ocean.js');
+if (MAP_PRIVATES) PRESETS.privates.geoSpot = "Private's";   // this process only
 
 // ---------- constants mirrored from bed.js / main.js ----------
 // Not exported there; tests/break-field-gate.test.js reads bed.js's source to
@@ -760,6 +780,56 @@ export function monthCost(key, floorH0, { handSign = 1, prevFloorH0 = null } = {
            alphaDrawnMin: Math.min(...months.map((m) => m.alphaDrawn)), alphaDrawnMax: Math.max(...months.map((m) => m.alphaDrawn)) };
 }
 
+// ---------- the card-state summary (bed-source comparison) ----------
+// One row per spot, all from the bake's own code at the card ocean (tide 0,
+// card T, card H0): the contour fit and depth patch it read, the reef fit's
+// convergence, where the field first goes positive on the reef, the shipped
+// line's signed alpha and where it sits relative to the OSM node (the stage
+// origin, x = 0). Selector-free facts and selector facts side by side so a
+// cross-grid table can say which moved.
+export function cardSummary(key) {
+  const spot = spotOf(key);
+  const pr = PP_GEO_DATA.profiles[spot];
+  const patch = PP_DEPTH_DATA.patches[spot];
+  const card = cardOf(key);
+  const inst = instrumentState(key, card);
+  const st = stageStats(inst.real.z, inst.real.alpha, inst.xs);
+  const rs = repSummary(inst, Math.sign(st.medianClean || 1)).shipped;
+  const act = reefActivationH0(key, { T: card.T, tide: 0 });
+  const fit = inst.fit;
+  // where the shipped line sits: at the node (x = 0) and as a stage median,
+  // metres shore-normal from the node (negative = seaward), plus the depth there
+  const zAtNode = lineAt(inst.sel.z, 0);
+  const zMed = median(Array.from(inst.real.z));
+  const depthAt = (x, z) => {
+    const i = Math.round(((x - X0) / (X1 - X0)) * (BREAK_N - 1));
+    const s = inst.basis.stations[i];
+    const j = Math.min(Math.max(Math.round((z - s.zs[0]) / MARCH_DZ), 0), s.zs.length - 1);
+    return s.depth[j];
+  };
+  const depthMed = median(inst.xs.map((x, k) => depthAt(x, inst.real.z[k])));
+  // the wedge crest line at the node, for "line minus crest" (the 2026-08-13 metric)
+  const crestAtNode = fit.zRef + Math.tan(fit.betaDeg * Math.PI / 180) * (0 - REEF_ANCHOR_X);
+  return {
+    key, spot, bedSource: BED_SOURCE || 'shipped', card,
+    contour: { rmseM: pr.contourFit.rmseM, samples: pr.contourFit.samples, usable: pr.contourFit.usable,
+               tangentDeg: pr.bathyContourTangentDeg, osmTangentDeg: pr.osmCoastTangentDeg,
+               reefElevM: pr.reefElevationNavd88M, shoreSlope: pr.shoreSlope, stage: pr.stageBoundsM },
+    patch: { planeResidualRmsM: patch?.planeResidualRmsM ?? null, planeSlopeDeg: bed.planeSlopeDeg(spot),
+             landFractionAtMsl: patch?.landFractionAtMsl ?? null, outOfGridCells: patch?.outOfGridCells ?? 0 },
+    reefFit: { targetDeg: fit.targetDeg, betaDeg: fit.betaDeg, fitDerivedDeg: fit.fitDerivedDeg,
+               residualDeg: fit.residualDeg, withinTol: fit.withinTol, iterations: fit.iterations,
+               signViolations: fit.signViolations, hbM: fit.hbM, zRef: fit.zRef, targetEl: fit.targetEl },
+    activationH0: act.H0, fMaxReefAtCard: act.fMaxReefAtCard,
+    alpha: { medianClean: st.medianClean, median: st.median, pinnedN: st.pinnedN, stations: inst.xs.length,
+             onReefFrac: rs.onReefFrac, reversals: rs.reversals },
+    line: { zAtNodeM: zAtNode, zMedianM: zMed, depthMedianM: depthMed, depthAtNodeM: depthAt(0, zAtNode),
+            crestAtNodeM: crestAtNode, lineMinusCrestAtNodeM: zAtNode - crestAtNode },
+    gate: inst.gate,
+    peelFloor: PEEL_FLOOR[key]?.floorH0 ?? null,
+  };
+}
+
 // ---------- field export ----------
 export function fieldDump(inst) {
   const { key, spot, state, basis, field, sel, reps, gate, fit } = inst;
@@ -807,11 +877,15 @@ async function main() {
     .map((a) => { const t = a.replace(/^--/, ''); const i = t.indexOf('='); return i < 0 ? [t, '1'] : [t.slice(0, i), t.slice(i + 1)]; }));
   const presets = flags.preset && flags.preset !== 'all' ? flags.preset.split(',') : MAPPED;
   const mode = flags.mode || 'all';
-  const outDir = join(ROOT, flags.out || 'qa/break-field');
+  // An alternate bed writes beside, never into, the committed break-field dir.
+  const outRel = flags.out || (BED_SOURCE ? `qa/break-field-${BED_SOURCE}` : 'qa/break-field');
+  const outDir = isAbsolute(outRel) ? outRel : join(ROOT, outRel);
   mkdirSync(outDir, { recursive: true });
   const LO = Number(flags.lo ?? 0.4), HI = Number(flags.hi ?? 3.0), STEP = Number(flags.step ?? 0.005);
   const log = (m) => process.stderr.write(m + '\n');
+  if (BED_SOURCE) log(`bed source: ${BED_SOURCE} (${PP_GEO_DATA.generatedFrom.bathy}); mapped: ${MAPPED.join(', ')}`);
   let summary = { generated: new Date().toISOString(), X_RANGE, READBACK_DX, F0_M, FLIP_M, REVERSAL_DEG,
+                  bedSource: BED_SOURCE || 'shipped', bathy: PP_GEO_DATA.generatedFrom.bathy,
                   ladder: { lo: LO, hi: HI, step: STEP }, presets: {} };
   // A partial run (one mode, one preset) updates the standing summary rather
   // than replacing a full sweep's tables with a fragment.
@@ -834,6 +908,13 @@ async function main() {
   for (const key of presets) {
     const P = { ...(summary.presets[key] || {}), key, spot: spotOf(key), card: cardOf(key), handSign: handSigns[key] };
     summary.presets[key] = P;
+
+    // ---- card-state summary for the bed-source comparison ----
+    if (mode === 'card') {
+      P.card = cardSummary(key);
+      log(`${key} card: gate maxDz ${P.card.gate.maxDzM.toExponential(2)} m; activation ${fmt(P.card.activationH0, 3)}; `
+        + `alpha ${fmt(P.card.alpha.medianClean)}; reef fit ${fmt(P.card.reefFit.fitDerivedDeg)} vs ${P.card.reefFit.targetDeg}`);
+    }
 
     // ---- slice 1: the card-state field, dumped ----
     if (mode === 'all' || mode === 'field') {
@@ -979,6 +1060,20 @@ async function main() {
       console.log(`  ${k}: {\n    flipLo: ${f.largestFlip.from.toFixed(2)}, flipHi: ${f.largestFlip.to.toFixed(2)}, floorLo: ${f.floorLo.toFixed(2)}, floorHi: ${f.floorHi.toFixed(2)}, floorH0: ${f.floorH0.toFixed(2)},\n`
         + `    alphaBelow: ${f.alphaBelow.toFixed(1)}, alphaAbove: ${f.alphaAbove.toFixed(1)}, onReefBelow: ${f.onReefBelow.toFixed(2)}, onReefAbove: ${f.onReefAbove.toFixed(2)},\n`
         + `    alphaTarget: ${f.alphaTarget}, basisT: ${f.basisT}, basisTideM: 0, bakeDigest: '${f.bakeDigest}' },`); }
+  }
+  if (mode === 'card') {
+    const bedLabel = BED_SOURCE || 'shipped';
+    console.log(`\n## Card-state summary, bed source: ${bedLabel} (${summary.bathy})\n`);
+    console.log(mdTable(['spot', 'contour RMS m', 'tangent °', 'plane resid m', 'reef fit β°', 'fit α° / target', 'resid °', 'iters', 'sign viol', 'h_b m', 'activation H0', 'card α (clean)', 'pinned', 'on-reef', 'rev', 'line z@node m', 'line z med m', 'depth med m', 'line−crest @node m', 'gate |dz|'],
+      presets.filter((k) => summary.presets[k].card).map((k) => {
+        const c = summary.presets[k].card;
+        return [PRESETS[k].label, fmt(c.contour.rmseM, 2), fmt(c.contour.tangentDeg), fmt(c.patch.planeResidualRmsM, 2),
+                fmt(c.reefFit.betaDeg), `${fmt(c.reefFit.fitDerivedDeg)} / ${c.reefFit.targetDeg}`, fmt(c.reefFit.residualDeg),
+                c.reefFit.iterations, c.reefFit.signViolations, fmt(c.reefFit.hbM, 2), fmt(c.activationH0, 3),
+                fmt(c.alpha.medianClean), c.alpha.pinnedN, fmt(c.alpha.onReefFrac, 2), c.alpha.reversals,
+                fmt(c.line.zAtNodeM), fmt(c.line.zMedianM), fmt(c.line.depthMedianM, 2), fmt(c.line.lineMinusCrestAtNodeM),
+                c.gate.maxDzM.toExponential(1)];
+      })));
   }
   if (summary.triage) {
     const t = summary.triage;

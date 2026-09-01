@@ -27,8 +27,42 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 OSM_PATH = ROOT / "data" / "osm" / "pp_geometry.json"
-BATHY_PATH = ROOT / "data" / "bathy" / "pp_bathy.json"
+BATHY_DIR = ROOT / "data" / "bathy"
+BATHY_PATH = BATHY_DIR / "pp_bathy.json"
 OUT_PATH = HERE / "pp_geo_profiles.js"
+
+# Alternative bathymetry sources (data/bathy/README.md "Candidates") share the
+# pp_bathy.json schema but may carry `null` cells and cover a different window.
+# A non-default source writes to a sibling module named after the grid, e.g.
+# pp_geo_profiles.cudem19.js, never to the shipped file.
+NULL_TOUCHED_KEY = "__nullTouched"
+ALLOW_FAIL_CLOSED_KEY = "__allowFailClosed"
+
+
+def resolve_bathy(name: str | None) -> Path:
+    if not name:
+        return BATHY_PATH
+    p = Path(name)
+    return p if p.is_absolute() or p.exists() else BATHY_DIR / name
+
+
+def bathy_tag(bathy_path: Path) -> str:
+    """'pp_bathy_cudem19.json' -> 'cudem19'; the shipped grid -> ''."""
+    if bathy_path.resolve() == BATHY_PATH.resolve():
+        return ""
+    stem = bathy_path.stem
+    return stem[len("pp_bathy_"):] if stem.startswith("pp_bathy_") else stem
+
+
+def derive_out_path(bathy_path: Path, truncate: float | None) -> Path:
+    """Shipped grid -> the shipped module (with or without --truncate, as
+    before). Any other grid -> pp_geo_profiles.<tag>[-t<slope>].js."""
+    tag = bathy_tag(bathy_path)
+    if not tag:
+        return OUT_PATH
+    if truncate is not None:
+        tag += "-t" + f"{truncate:g}".replace(".", "")
+    return HERE / f"pp_geo_profiles.{tag}.js"
 
 CANON = [
     "Sewer Peak",
@@ -54,11 +88,17 @@ def _sample_bathy(bathy: dict, x: float, y: float) -> float | None:
         return None
     fx, fy = col - c0, row - r0
     elev = bathy["elev"]
+    q00, q10, q01, q11 = elev[r0][c0], elev[r0][c0 + 1], elev[r0 + 1][c0], elev[r0 + 1][c0 + 1]
+    if q00 is None or q10 is None or q01 is None or q11 is None:
+        # A null post is a data gap in the source, not an edge. Record the
+        # touch so the spot can fail closed, and return None like off-grid.
+        bathy.setdefault(NULL_TOUCHED_KEY, []).append((x, y))
+        return None
     return (
-        (1 - fx) * (1 - fy) * elev[r0][c0]
-        + fx * (1 - fy) * elev[r0][c0 + 1]
-        + (1 - fx) * fy * elev[r0 + 1][c0]
-        + fx * fy * elev[r0 + 1][c0 + 1]
+        (1 - fx) * (1 - fy) * q00
+        + fx * (1 - fy) * q10
+        + (1 - fx) * fy * q01
+        + fx * fy * q11
     )
 
 
@@ -254,6 +294,7 @@ def _measure(name: str, spots: dict, canon_u: list[float], index: int, bathy: di
     opts = {**DEFAULT_OPTIONS, **(options or {})}
     spot = spots[name]
     stage_start, stage_end = _stage_window(spots, canon_u, index, opts["window"])
+    bathy[NULL_TOUCHED_KEY] = []
 
     ox, oy = spot["x"], spot["y"]
     elev0, shore, along = _frame_at(name, bathy, ox, oy, spot["coast_tangent_deg"])
@@ -307,11 +348,35 @@ def _measure(name: str, spots: dict, canon_u: list[float], index: int, bathy: di
         "c3": c3,
         "rmse": rmse,
         "options": opts,
+        # every scan sample that landed on a null post (data gap); the shipped
+        # grid has none, so this is [] there
+        "null_touched": list(bathy.get(NULL_TOUCHED_KEY, [])),
+    }
+
+
+def _failed_closed(name: str, spots: dict, canon_u: list[float], index: int, options: dict | None, reason: str) -> dict:
+    """A profile with no bed: the runtime reads `usable: false` and falls back
+    to the synthetic stage, exactly as it does for a >5 m RMS fit. Only reached
+    on a non-default grid (the shipped grid raises, as it always has)."""
+    opts = {**DEFAULT_OPTIONS, **(options or {})}
+    spot = spots[name]
+    stage_start, stage_end = _stage_window(spots, canon_u, index, opts["window"])
+    return {
+        "uM": round(spot["u"], 1),
+        "stageOriginENU": [round(spot["x"], 1), round(spot["y"], 1)],
+        "osmCoastTangentDeg": round(spot["coast_tangent_deg"], 1),
+        "stageBoundsM": [round(stage_start, 1), round(stage_end, 1)],
+        "contourFit": {"usable": False, "failReason": reason},
     }
 
 
 def _profile_for(name: str, spots: dict, canon_u: list[float], index: int, bathy: dict, options: dict | None = None) -> dict:
-    m = _measure(name, spots, canon_u, index, bathy, options)
+    try:
+        m = _measure(name, spots, canon_u, index, bathy, options)
+    except ValueError as err:
+        if not bathy.get(ALLOW_FAIL_CLOSED_KEY):
+            raise
+        return _failed_closed(name, spots, canon_u, index, options, str(err))
     profile = {
         "uM": round(m["u"], 1),
         "stageOriginENU": [round(m["origin"][0], 1), round(m["origin"][1], 1)],
@@ -330,6 +395,13 @@ def _profile_for(name: str, spots: dict, canon_u: list[float], index: int, bathy
             "usable": m["rmse"] <= 5.0,
         },
     }
+    if m["null_touched"]:
+        # FAIL CLOSED: a contour scan that crossed a data gap fitted a curve to
+        # an incomplete contour. The spot keeps its numbers for the record and
+        # loses its bed, the same way a >5 m RMS does. Never emitted on the
+        # shipped grid (no nulls), so the default module is unchanged.
+        profile["contourFit"]["usable"] = False
+        profile["contourFit"]["nullCellsTouched"] = len(m["null_touched"])
     if m["options"] != DEFAULT_OPTIONS:
         # Non-default fits carry their provenance. The default output is
         # unchanged so `--check` stays byte-stable.
@@ -344,9 +416,14 @@ def _profile_for(name: str, spots: dict, canon_u: list[float], index: int, bathy
     return profile
 
 
-def build(options: dict | None = None) -> str:
+def build(options: dict | None = None, bathy_path: Path = BATHY_PATH) -> str:
     osm = json.loads(OSM_PATH.read_text())
-    bathy = json.loads(BATHY_PATH.read_text())
+    bathy = json.loads(bathy_path.read_text())
+    tag = bathy_tag(bathy_path)
+    # A candidate grid may be unable to frame a spot (null under the stencil,
+    # a flat at the storage quantum). Fail that spot closed and keep building;
+    # the shipped grid keeps raising, so a regression there is still loud.
+    bathy[ALLOW_FAIL_CLOSED_KEY] = bool(tag)
     spots = {spot["name"]: spot for spot in osm["spots"]}
     canon_u = [spots[name]["u"] for name in CANON]
     profiles = {
@@ -358,12 +435,21 @@ def build(options: dict | None = None) -> str:
         "generatedFrom": {
             "osm": "data/osm/pp_geometry.json",
             "osmSha256": _sha256(OSM_PATH),
-            "bathy": "data/bathy/pp_bathy.json",
-            "bathySha256": _sha256(BATHY_PATH),
+            "bathy": bathy_path.resolve().relative_to(ROOT).as_posix() if bathy_path.resolve().is_relative_to(ROOT) else str(bathy_path),
+            "bathySha256": _sha256(bathy_path),
             "bathyDatum": "NAVD88",
         },
         "profiles": profiles,
     }
+    if tag:
+        payload["generatedFrom"]["bathySource"] = tag
+        failed = {
+            n: p["contourFit"].get("failReason") or f"{p['contourFit']['nullCellsTouched']} scan samples on null cells"
+            for n, p in profiles.items()
+            if p["contourFit"].get("nullCellsTouched") or p["contourFit"].get("failReason")
+        }
+        if failed:
+            payload["generatedFrom"]["failedClosed"] = failed
     encoded = json.dumps(payload, indent=2, ensure_ascii=False)
     return (
         "// GENERATED by data/model/build_geo_profiles.py; do not edit by hand.\n"
@@ -376,6 +462,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="fail if the generated module is stale")
     parser.add_argument(
+        "--bathy", default=None, metavar="FILE",
+        help=(
+            "bathymetry grid in the pp_bathy.json schema (a name under data/bathy/ or a path). "
+            "Default: the shipped pp_bathy.json. Any other grid writes to "
+            "pp_geo_profiles.<tag>.js (tag = the file's pp_bathy_<tag> suffix) unless --out is given; "
+            "a spot whose contour scan touches a null cell fails closed (usable false, nullCellsTouched)."
+        ),
+    )
+    parser.add_argument("--out", default=None, metavar="PATH", help="override the output module path")
+    parser.add_argument(
         "--truncate", type=float, default=None, metavar="SLOPE",
         help=(
             "end each stage where the contour turns more than atan(SLOPE) from the "
@@ -387,18 +483,25 @@ def main() -> int:
     parser.add_argument("--print", action="store_true", help="write the module to stdout instead of the file")
     args = parser.parse_args()
     options = {"truncate": args.truncate} if args.truncate is not None else None
-    output = build(options)
+    bathy_path = resolve_bathy(args.bathy)
+    if not bathy_path.exists():
+        print(f"no such bathymetry grid: {bathy_path}")
+        return 2
+    out_path = Path(args.out).resolve() if args.out else derive_out_path(bathy_path, args.truncate)
+    output = build(options, bathy_path)
     if args.print:
         print(output, end="")
         return 0
     if args.check:
-        if not OUT_PATH.exists() or OUT_PATH.read_text() != output:
-            print(f"stale: {OUT_PATH}")
+        if not out_path.exists() or out_path.read_text() != output:
+            print(f"stale: {out_path}")
             return 1
-        print(f"current: {OUT_PATH}")
+        print(f"current: {out_path}")
         return 0
-    OUT_PATH.write_text(output)
-    print(f"wrote {OUT_PATH}")
+    out_path.write_text(output)
+    print(f"wrote {out_path}")
+    if '"failedClosed"' in output:
+        print("  some spots failed closed; see generatedFrom.failedClosed in the module")
     return 0
 
 
