@@ -15,7 +15,11 @@ import { SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
 
 const QUERY_W = 3;
 
-export function makeSurfaceQuery(renderer, sharedUniforms) {
+// `defines` mirrors the water material's compile-time flags (main.js passes its
+// ROLLER_BUILD define): the query must compile the SAME text as the mesh it
+// stands in for, or a flag-gated displacement (the #roller mound) would move
+// the drawn water and not the rider on it.
+export function makeSurfaceQuery(renderer, sharedUniforms, defines = {}) {
   const queryUniform = { value: new THREE.Vector4() }; // source x, z, dx, dz
   const target = new THREE.WebGLRenderTarget(QUERY_W, 1, {
     type: THREE.FloatType,
@@ -25,6 +29,7 @@ export function makeSurfaceQuery(renderer, sharedUniforms) {
   });
   const material = new THREE.ShaderMaterial({
     uniforms: Object.assign({ u_query: queryUniform }, sharedUniforms),
+    defines,
     vertexShader: 'void main(){ gl_Position = vec4(position.xy*2.0, 0.0, 1.0); }',
     fragmentShader: `${SURFACE_PRELUDE}\n${SURFACE_GLSL}\n` +
       'uniform vec4 u_query; // source x, z, dx, dz\n' +

@@ -110,6 +110,63 @@ landing are two loci — the note's "two of those as separate phases" question,
 now measurable; (b) size 0.16·H₀ mound and the foam coefficients are untuned;
 (c) `cam=cover` aim.
 
+**Second pass (2026-09-01, later) — legibility, still flag-gated, still not
+promoted.** The five gates passed on a roller nobody could see, so the second
+pass changed what the event is made of, not where or when it happens. The
+landing is now one function, `impactLandingAt(x, t)` → (landing z, ceiling,
+seconds since landing, strength), and four consumers read it: the **deposit**
+(material only, unchanged rule); the **roller**, whose mound is now
+`ROLLER_MOUND_FRAC` = 0.35 of the *emitter's* physical ceiling (breaking scale,
+not 0.16·H₀) and which gets its own material in `GRID_FRAG` — fine boil advected
+WITH the mass at the lifecycle's front speed (the first cut's `er`/`clumps`
+textures stood still or drifted seaward, which is why it read as the same lace),
+a bright leading-edge rim on the shoreward flank, a denser floor (0.80 vs the
+pocket's 0.55) and shading placed after the film mix so it never ages into film;
+the **splash-up sheet** (`SPLASHUP_VERT/FRAG`, a strip mesh like the curtain,
+built only for a `#roller` boot) — the thrown mass with vertical extent, foot on
+`surfacePos` at the landing, height a ballistic in physical metres under G
+peaking at `SPLASHUP_FRAC` = 0.70 of the ceiling (life ≈ 1.1 s at Sewers, set by
+the height, no duration knob), leaning shoreward onto the roller it becomes; and
+the **spray**, which under the flag launches from the same landing line on the
+same clock, anchored to the drawn surface (the repair 1b0c80e deferred) — one
+source, two materials, resolving open item (a)'s second locus *for the roller
+build only*; the shipped spray text is untouched. Spray, sheet and the rider's
+surface query take the same build define. Default re-proved byte-identical
+against the pristine tree at two clocks in all eight cells (same-tree control
+byte-identical); seek-safe; Sharks and Privates still exactly zero.
+
+**Measured**, both arms with the same rig, same stations, same clocks
+(`qa/crash-transport/landed/` vs `legible/`, `compare.html` side by side):
+
+    cell              peak coverage      window mask   contrast vs foam   texture ratio
+    sewers-cliff      0.319 → 0.661 %    3 → 6 %       −12.1 → −5.2       1.62 → 1.42
+    sewers-drone      0.219 → 0.350 %    4 → 7 %       −50.3 → −25.4      0.88 → 0.83
+    sewers-lineup     0.103 → 0.596 %    2 → 8 %       −25.4 → −13.8      5.50 → 4.35
+    sewers-cover      0.071 → 0.142 %    (landing off-frame — the aim defect; not a read)
+    firstpeak-cliff   0.001 → 0.186 %    0 → 2 %       +3.7 → −1.6        4.69 → 2.41
+    firstpeak-lineup  0.014 → 0.456 %    0 → 0 %       +8.9 → +4.8        10.0 → 7.97
+    firstpeak-drone   0.001 → 0.047 %    0 → 1 %       −6.7 → −0.4        2.16 → 1.73
+
+All five transport gates hold in every cell, unchanged to the metre (origin
+7.5/9.5/7.75 m ahead of the bend, 3.9 m/s, spread ≤ 0.14). Coverage doubled
+to sextupled; the window mask doubled to quadrupled. The *contrast-vs-foam*
+number is negative in both arms and less negative after: the roller's pixels
+include its shaded back face and its rim against dark water, and "surrounding
+foam" is the ≥140-luma lace, which sits at the tonal ceiling — this instrument
+says the roller is a shaded body in a field of flat white, not that it is
+dimmer. The texture ratio fell slightly (the boil is finer than the diff-edge
+speckle the first cut's mask was mostly made of). **First Peak now shows an
+event at all** — 0.19–0.46 % — through the splash-up sheet and the spray
+relocation, not through the contact gate (still ≈0.01–0.07 there): worth a look,
+because the curtain barely draws at First Peak and a sheet under no curtain may
+be wrong. Two instrument notes: the fixed window moved 1–3 px between arms
+because the roller's own mound lifted the projected landing point (lesson 11,
+caught by the compare sheet's offset column; the rig now places the window off
+the gain-0 surface so the next pair is identical by construction); and
+`cam=cover` at both sites frames no crashing station, so its rows are not
+evidence. Whether any of this reads as a crash is the eye's call — frames in
+sequence, `after` and `alone` (`splash=0`) rows, in `compare.html`.
+
 ## ▶ NEW (2026-08-30, live) — foam terminates on hard straight edges in plan view
 
 Live report from a `cam=drone` frame at `sewers`, pinned `sim=44` and `sim=52`

@@ -36,19 +36,41 @@
 //     xi 0.35) are probed once each; their max field over the transect and
 //     their on/off pixel diff must both read ~0.
 //
-// OUTPUT. Frames under qa/crash-transport/<preset>-<cam>/ — before_kk.png
-// (gain 0), after_kk.png (gain 1), alone_kk.png (gain 1 and #splash=0, so two
-// effects cannot impersonate one event — NEXT_INVESTMENTS 2 "Rollback"), plus a
-// 2.5x crop of each around the projected landing for the two stage-scale
-// cameras — and one index.html contact sheet per run. measure.json carries
-// every number printed. qa/ is gitignored: the generator is the artifact.
+// LEGIBILITY (2026-09-01, second pass). The five transport gates passed on a
+// roller whose peak screen coverage was 0.32%: the landing zone is already
+// whitewater, so a material floor there changes few pixels. Coverage alone
+// therefore cannot say whether the event is LEGIBLE. Two more numbers, read in
+// a FIXED WINDOW on the landing line (lesson 11: the window is placed once per
+// cell, at the projected deposit on the first post-impact clock, and never
+// moves with the signal; it is printed so the two arms of an A/B can be
+// diffed):
+//   * coverage of the roller/deposit MATERIAL — the on/off diff mask — as a
+//     fraction of the frame and of the window;
+//   * luma contrast of that material against the SURROUNDING FOAM (window
+//     pixels outside the mask with luma > FOAM_LUMA) and against everything
+//     else in the window, plus a texture measure (mean |luma - 3x3 mean|,
+//     i.e. high-pass energy) inside versus outside, as a ratio. A roller that
+//     is only a brighter patch of the same lace reads ~0 contrast and a
+//     texture ratio ~1; a distinct material moves both.
+// The window's own crop is written (win_before/after_kk.png, 2x) so the eye
+// can check what the numbers were read from.
+//
+// OUTPUT. Frames under <out>/<preset>-<cam>/ — before_kk.png (gain 0),
+// after_kk.png (gain 1), alone_kk.png (gain 1 and #splash=0, so two effects
+// cannot impersonate one event — NEXT_INVESTMENTS 2 "Rollback"), plus a 2.5x
+// crop of each around the projected landing for the stage-scale cameras and
+// the fixed legibility window — and one index.html contact sheet per run.
+// measure.json carries every number printed. qa/ is gitignored: the generator
+// is the artifact. Two runs (e.g. --out=qa/crash-transport/landed against a
+// pristine --base, then --out=qa/crash-transport/legible) are laid side by
+// side by scripts/build_crash_compare_sheet.mjs.
 //
 // Usage:
 //   node scripts/measure_crash_transport.mjs                         # all cells
 //   node scripts/measure_crash_transport.mjs --presets=sewers --cams=cover
 //   node scripts/measure_crash_transport.mjs --baseline=/path/to/pristine/tree
 //   node scripts/measure_crash_transport.mjs --no-frames               # numbers only
-//   node scripts/measure_crash_transport.mjs --port=8243 --out=qa/crash-transport
+//   node scripts/measure_crash_transport.mjs --port=8243 --out=qa/crash-transport --label=legible
 // Serves the repo on its own port (scripts/serve.py) unless --base is given.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -90,9 +112,13 @@ const FRAMES = flags['no-frames'] !== 'true';
 const VIEW = { width: 1000, height: 625 };
 const COMMON = 'controls=0&q=high&speed=0';
 const SET_ANCHOR_S = 45;
-const PRESETS = (flags.presets || 'sewers,secondpeak').split(',').filter(Boolean);
-const CAMS = (flags.cams || 'cover,drone,cliff').split(',').filter(Boolean);
+const PRESETS = (flags.presets || 'sewers,firstpeak').split(',').filter(Boolean);
+const CAMS = (flags.cams || 'cover,drone,cliff,lineup').split(',').filter(Boolean);
 const GAIN = Number(flags.gain || 1);
+const LABEL = flags.label || 'roller';
+// The fixed legibility window, px, centred once per cell (see the header).
+const WIN = { w: 200, h: 125, zoom: 2 };
+const FOAM_LUMA = 140;   // "surrounding foam" = window pixels brighter than this, outside the mask
 // Seconds after impact at which the sequence is read. Three or more distinct
 // separations (the linearity check, lesson 3), one inside the deposit's life,
 // several across the roller's, one PAST its end (must read zero).
@@ -148,6 +174,8 @@ function setup() {
         camPos: pb.camera.position.toArray() };
     },
     project: (x, y, z) => project(x, y, z),
+    // The drawn world point of one source coordinate (for the fixed window).
+    worldAt: (x, z0) => { const r = pb.curlProbe(x, z0, z0 + 1, 2)[0]; return { y: r.y, z: r.z }; },
     // The break-line station whose displaced surface point projects nearest
     // the frame centre: the crest THIS camera frames. The camera is fixed by
     // its preset and does not move for the measurement (lesson 11); choosing
@@ -273,6 +301,72 @@ function diffPng(a, b, gain = 4) {
 }
 const bytesEqual = (a, b) => a.length === b.length && a.equals(b);
 
+// The fixed legibility window: clamp a WIN-sized rectangle around (cx, cy)
+// into the frame. Placed ONCE per cell and reused at every clock.
+function makeWindow(cx, cy, W, H) {
+  const x0 = Math.max(0, Math.min(W - WIN.w, Math.round(cx - WIN.w / 2)));
+  const y0 = Math.max(0, Math.min(H - WIN.h, Math.round(cy - WIN.h / 2)));
+  // A landing that projects OUTSIDE the frame (the Sewers cover aim defect)
+  // still gets a window — clamped to the frame edge — so the run is uniform,
+  // but it is flagged: numbers read there are not about the landing.
+  const inFrame = cx >= 0 && cx <= W && cy >= 0 && cy <= H;
+  return { x0, y0, w: WIN.w, h: WIN.h, cx: Math.round(cx), cy: Math.round(cy), inFrame };
+}
+const lumaOf = (d, i) => 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+// Luma and texture of the roller material (the on/off mask) against its
+// surroundings, inside the fixed window. `tex` is the mean absolute deviation
+// of luma from its 3x3 box mean — high-pass energy, a scale-free roughness
+// read that does not care how bright the patch is.
+function windowStats(onBuf, offBuf, win, tol = 4) {
+  const A = decode(onBuf), B = decode(offBuf);
+  const W = A.width, H = A.height, da = A.data, db = B.data;
+  const L = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) L[i] = lumaOf(da, i * 4);
+  const hp = (x, y) => {
+    let s = 0, n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+      s += L[yy * W + xx]; n++;
+    }
+    return Math.abs(L[y * W + x] - s / n);
+  };
+  const acc = { in: [0, 0, 0, 0], out: [0, 0, 0, 0], foam: [0, 0, 0, 0] };   // n, sumLuma, sumTex, sumLumaBefore
+  for (let y = win.y0; y < win.y0 + win.h; y++) for (let x = win.x0; x < win.x0 + win.w; x++) {
+    const i = (y * W + x) * 4;
+    const d = Math.max(Math.abs(da[i] - db[i]), Math.abs(da[i + 1] - db[i + 1]), Math.abs(da[i + 2] - db[i + 2]));
+    const l = L[y * W + x], t = hp(x, y), lb = lumaOf(db, i);
+    const put = (k) => { acc[k][0]++; acc[k][1] += l; acc[k][2] += t; acc[k][3] += lb; };
+    if (d > tol) put('in');
+    else { put('out'); if (l > FOAM_LUMA) put('foam'); }
+  }
+  const mean = (k, j) => (acc[k][0] ? acc[k][j] / acc[k][0] : null);
+  const r = (v, p = 1) => (v === null || !Number.isFinite(v) ? null : +v.toFixed(p));
+  const lumaIn = mean('in', 1), lumaOut = mean('out', 1), lumaFoam = mean('foam', 1);
+  const texIn = mean('in', 2), texOut = mean('out', 2), texFoam = mean('foam', 2);
+  return {
+    maskPx: acc.in[0], maskFrac: r(acc.in[0] / (win.w * win.h), 4), foamPx: acc.foam[0],
+    lumaIn: r(lumaIn), lumaOut: r(lumaOut), lumaFoam: r(lumaFoam), lumaInBefore: r(mean('in', 3)),
+    contrastAll: lumaIn !== null && lumaOut !== null ? r(lumaIn - lumaOut) : null,
+    contrastFoam: lumaIn !== null && lumaFoam !== null ? r(lumaIn - lumaFoam) : null,
+    texIn: r(texIn, 2), texOut: r(texOut, 2), texFoam: r(texFoam, 2),
+    texRatioAll: texIn !== null && texOut ? r(texIn / texOut, 2) : null,
+    texRatioFoam: texIn !== null && texFoam ? r(texIn / texFoam, 2) : null,
+  };
+}
+// The window itself, zoomed: what the numbers were read from.
+function windowPng(buf, win) {
+  const src = decode(buf), z = WIN.zoom;
+  const out = new PNG({ width: win.w * z, height: win.h * z });
+  for (let y = 0; y < win.h * z; y++) for (let x = 0; x < win.w * z; x++) {
+    const sx = win.x0 + Math.floor(x / z), sy = win.y0 + Math.floor(y / z);
+    const si = (sy * src.width + sx) * 4, di = (y * win.w * z + x) * 4;
+    out.data[di] = src.data[si]; out.data[di + 1] = src.data[si + 1];
+    out.data[di + 2] = src.data[si + 2]; out.data[di + 3] = 255;
+  }
+  return PNG.sync.write(out);
+}
+
 // ---------------------------------------------------------------------------
 // servers
 // ---------------------------------------------------------------------------
@@ -305,7 +399,7 @@ page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 if (FRAMES && !existsSync(OUT)) mkdirSync(OUT, { recursive: true });
-const out = { generated: new Date().toISOString(), gain: GAIN, taus: TAUS, view: VIEW,
+const out = { generated: new Date().toISOString(), label: LABEL, gain: GAIN, taus: TAUS, view: VIEW, window: WIN, foamLuma: FOAM_LUMA,
   base, baseline: flags.baseline || null, cells: {}, nearZero: {}, seek: {}, bitIdentity: {} };
 const f1 = (v) => (Number.isFinite(v) ? v.toFixed(1) : '   —');
 const f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : '   —');
@@ -414,6 +508,22 @@ try {
           const worldZ = tr.rol.z, worldY = tr.rol.y;
           rec.screen = await page.evaluate((a) => window.__ct.project(a.x, a.y, a.z), { x: xStar, y: worldY, z: worldZ });
         }
+        // The legibility window is placed ONCE, at the projected DEPOSIT on the
+        // first post-impact clock, and never moves again (lesson 11).
+        // The landing's SOURCE z comes from the roller-on transect (the deposit
+        // is where it is), but the world point that is projected is read with
+        // the gain at 0: the roller's own mound lifts the surface there by
+        // ~1-2 m, which moved the window 1-3 px between the first two arms
+        // (the instrument framing itself on the signal, lesson 11). Read off the
+        // gain-0 surface, the window is identical across arms by construction.
+        if (!cell.window && c.tau > 0 && tr.dep && tr.dep.deposit > 1e-4) {
+          await setGain(page, 0);
+          const w0 = await page.evaluate((a) => window.__ct.worldAt(a.x, a.z0), { x: xStar, z0: tr.dep.z0 });
+          await setGain(page, GAIN);
+          const sc = await page.evaluate((a) => window.__ct.project(a.x, a.y, a.z), { x: xStar, y: w0.y, z: w0.z });
+          if (sc.inFront) cell.window = makeWindow(sc.px, sc.py, VIEW.width, VIEW.height);
+        }
+        rec._shots = { on: shotOn, off: shotOff };
         if (FRAMES) {
           const kk = String(k).padStart(2, '0');
           const stem = `${kk}_${c.id}`;
@@ -452,6 +562,28 @@ try {
           delete f.shots;
         }
       }
+      // ---- legibility in the fixed window, every clock ----
+      if (cell.window) {
+        console.log(`  window ${cell.window.w}x${cell.window.h} px at (${cell.window.x0}, ${cell.window.y0}) [centre (${cell.window.cx}, ${cell.window.cy})]`);
+        console.log('  clock        mask%win  lumaIn  lumaFoam  lumaOut  contrast(foam)  contrast(all)  texIn  texFoam  texRatio(foam)');
+        cell.clocks.forEach((rec, i) => {
+          if (!rec._shots) return;
+          rec.win = windowStats(rec._shots.on, rec._shots.off, cell.window);
+          if (FRAMES) {
+            const stem = `${String(i).padStart(2, '0')}_${rec.id}`;
+            writeFileSync(join(dir, `win_after_${stem}.png`), windowPng(rec._shots.on, cell.window));
+            writeFileSync(join(dir, `win_before_${stem}.png`), windowPng(rec._shots.off, cell.window));
+            const fr = cell.frames.find((f) => f.k === i);
+            if (fr) { fr.winAfter = `win_after_${stem}.png`; fr.winBefore = `win_before_${stem}.png`; }
+          }
+          const w = rec.win;
+          console.log(`  ${rec.id.padEnd(11)} ${(100 * (w.maskFrac || 0)).toFixed(2).padStart(8)}  ${String(w.lumaIn ?? '—').padStart(6)}  ${String(w.lumaFoam ?? '—').padStart(8)}  ${String(w.lumaOut ?? '—').padStart(7)}`
+            + `  ${String(w.contrastFoam ?? '—').padStart(14)}  ${String(w.contrastAll ?? '—').padStart(13)}  ${String(w.texIn ?? '—').padStart(5)}  ${String(w.texFoam ?? '—').padStart(7)}  ${String(w.texRatioFoam ?? '—').padStart(14)}`);
+        });
+      } else {
+        console.log('  legibility window: not placed (deposit never projected in front of the camera)');
+      }
+      for (const rec of cell.clocks) delete rec._shots;
 
       // ---- gates ----
       const pre = cell.clocks.filter((c) => c.tau < 0);
@@ -507,7 +639,24 @@ try {
         || Math.abs(c.rollerZ - centres[i - 1].rollerZ) <= 1.5 * Math.abs(gates.rateMean || 4.1) * (c.tau - centres[i - 1].tau) + 0.5);
       gates.coverageMaxFrac = Math.max(...cell.clocks.map((c) => c.frac ?? 0));
       gates.coverageMaxPx = Math.max(...cell.clocks.map((c) => c.px ?? 0));
+      // Legibility summary: the window numbers at the peak-coverage clock and
+      // averaged over the roller's live clocks (0 < tau <= 3 s). Reported, not
+      // gated — whether it reads as a crash is the eye's call.
+      const live = cell.clocks.filter((c) => c.tau > 0 && c.tau <= 3 && c.win && c.win.maskPx > 0);
+      const avg = (k) => { const v = live.map((c) => c.win[k]).filter((x) => Number.isFinite(x)); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : null; };
+      const peakC = cell.clocks.reduce((b, c) => (c.win && (!b || (c.frac ?? 0) > (b.frac ?? 0)) ? c : b), null);
+      gates.legibility = {
+        window: cell.window || null,
+        peak: peakC && peakC.win ? { tau: peakC.tau, maskFracWin: peakC.win.maskFrac, contrastFoam: peakC.win.contrastFoam,
+          contrastAll: peakC.win.contrastAll, texRatioFoam: peakC.win.texRatioFoam, texRatioAll: peakC.win.texRatioAll } : null,
+        liveMean: { maskFracWin: avg('maskFrac'), contrastFoam: avg('contrastFoam'), contrastAll: avg('contrastAll'),
+          texRatioFoam: avg('texRatioFoam'), texRatioAll: avg('texRatioAll'), lumaIn: avg('lumaIn'), lumaFoam: avg('lumaFoam') },
+      };
       cell.gates = gates;
+      const lg = gates.legibility;
+      console.log(`  legibility (live mean, tau 0-3 s): window mask ${lg.liveMean.maskFracWin === null ? '—' : (100 * lg.liveMean.maskFracWin).toFixed(1) + '%'},`
+        + ` luma ${lg.liveMean.lumaIn} vs foam ${lg.liveMean.lumaFoam} -> contrast ${lg.liveMean.contrastFoam} levels (all ${lg.liveMean.contrastAll}),`
+        + ` texture ratio vs foam ${lg.liveMean.texRatioFoam} (all ${lg.liveMean.texRatioAll})`);
       console.log(`  gates: pre-break field absent ${gates.absentPreBreak} (up-line events in frame: ${gates.prePx.join('/')} px), begins at landing ${gates.beginsAtLanding}`
         + ` (deposit ${gates.originAheadOfBendM} m ahead of the bend centre [curl ${gates.bendCurlTurns} turns], ${gates.originAheadOfApexM} m ahead of the height apex; 0.9*ceil = ${gates.expectedReachM} m, tol +${gates.originTolM}),`
         + ` monotonic ${gates.monotonic}, rate ${gates.rateMean} m/s spread ${gates.rateSpread} -> scales ${gates.scalesWithTime},`
@@ -590,17 +739,24 @@ if (FRAMES) {
       ? `<tr><th>${label}<br><small>${CROP.zoom}× crop</small></th>${cell.frames.map((f) => `<td><img class="crop" src="${id}/crop_${key}_${f.after.replace(/^after_/, '').replace(/\.png$/, '')}.png" loading="lazy"></td>`).join('')}</tr>`
       : '');
     const nums = `<tr><th>field</th>${cell.clocks.map((c) => `<td class="num">dep ${c.deposit.toFixed(2)} · roll ${c.roller.toFixed(2)}<br>centre ${c.rollerZ === null ? '—' : c.rollerZ.toFixed(1) + ' m'}${c.dz !== null ? ` · Δz ${c.dz.toFixed(1)}` : ''}<br>on/off ${c.px} px (${(100 * (c.frac || 0)).toFixed(2)}%) · mean Δ ${c.meanDelta} max ${c.maxDelta}</td>`).join('')}</tr>`;
+    const winRow = (label, key) => (cell.window
+      ? `<tr><th>${label}<br><small>fixed window ${cell.window.w}×${cell.window.h} @ (${cell.window.x0}, ${cell.window.y0}), ${WIN.zoom}×</small></th>${cell.frames.map((f) => (f[key] ? `<td><img class="win" src="${id}/${f[key]}" loading="lazy"></td>` : '<td></td>')).join('')}</tr>`
+      : '');
+    const legib = cell.window
+      ? `<tr><th>legibility<br><small>in the window</small></th>${cell.clocks.map((c) => (c.win ? `<td class="num">mask ${(100 * (c.win.maskFrac || 0)).toFixed(1)}% of window<br>luma in ${c.win.lumaIn ?? '—'} · foam ${c.win.lumaFoam ?? '—'} · other ${c.win.lumaOut ?? '—'}<br>contrast vs foam ${c.win.contrastFoam ?? '—'} · vs all ${c.win.contrastAll ?? '—'}<br>texture in ${c.win.texIn ?? '—'} · foam ${c.win.texFoam ?? '—'} · ratio ${c.win.texRatioFoam ?? '—'}</td>` : '<td></td>')).join('')}</tr>`
+      : '';
+    const lg = g.legibility && g.legibility.liveMean;
     rows.push(`<section><h2>${esc(id)} <small>H₀ ${cell.meta.H0} m · T ${cell.meta.T} s · ξ ${cell.meta.xi} · station x* ${cell.xStar} m · impact t ${cell.tImp} s</small></h2>
-<p class="gates">pre-break field absent <b>${g.absentPreBreak}</b> (up-line events in frame at the pre clocks: ${(g.prePx || []).join('/')} px) · begins at landing <b>${g.beginsAtLanding}</b> (deposit ${g.originAheadOfBendM} m ahead of the bend centre, ${g.originAheadOfApexM} m ahead of the height apex; 0.9·ceil = ${g.expectedReachM} m) · monotonic <b>${g.monotonic}</b> · rate ${g.rateMean} m/s (spread ${g.rateSpread}) → scales with time <b>${g.scalesWithTime}</b> · decays <b>${g.decays}</b> · zero at τ 5.2 <b>${g.zeroAtEnd}</b> · no teleport <b>${g.noTeleport}</b> · peak coverage ${(100 * (g.coverageMaxFrac || 0)).toFixed(3)}%</p>
-<div class="scroll"><table><tr><th></th>${head}</tr>${line('before<br><small>roller=0</small>', 'before')}${line('after<br><small>roller=' + GAIN + '</small>', 'after')}${line('alone<br><small>roller=' + GAIN + ' splash=0</small>', 'alone')}${line('|after − before| × 4<br><small>instrument</small>', 'diff')}${crop('before', 'before')}${crop('after', 'after')}${crop('alone', 'alone')}${nums}</table></div></section>`);
+<p class="gates">pre-break field absent <b>${g.absentPreBreak}</b> (up-line events in frame at the pre clocks: ${(g.prePx || []).join('/')} px) · begins at landing <b>${g.beginsAtLanding}</b> (deposit ${g.originAheadOfBendM} m ahead of the bend centre, ${g.originAheadOfApexM} m ahead of the height apex; 0.9·ceil = ${g.expectedReachM} m) · monotonic <b>${g.monotonic}</b> · rate ${g.rateMean} m/s (spread ${g.rateSpread}) → scales with time <b>${g.scalesWithTime}</b> · decays <b>${g.decays}</b> · zero at τ 5.2 <b>${g.zeroAtEnd}</b> · no teleport <b>${g.noTeleport}</b> · peak coverage ${(100 * (g.coverageMaxFrac || 0)).toFixed(3)}%${lg ? ` · <b>legibility</b> (live mean τ 0–3 s): window mask ${lg.maskFracWin === null ? '—' : (100 * lg.maskFracWin).toFixed(1) + '%'}, contrast vs foam ${lg.contrastFoam ?? '—'} levels, texture ratio vs foam ${lg.texRatioFoam ?? '—'}` : ''}</p>
+<div class="scroll"><table><tr><th></th>${head}</tr>${line('before<br><small>roller=0</small>', 'before')}${line('after<br><small>roller=' + GAIN + '</small>', 'after')}${line('alone<br><small>roller=' + GAIN + ' splash=0</small>', 'alone')}${line('|after − before| × 4<br><small>instrument</small>', 'diff')}${crop('before', 'before')}${crop('after', 'after')}${crop('alone', 'alone')}${winRow('window before', 'winBefore')}${winRow('window after', 'winAfter')}${nums}${legib}</table></div></section>`);
   }
-  const html = `<!doctype html><meta charset="utf-8"><title>crash transport — tracked sequences</title>
+  const html = `<!doctype html><meta charset="utf-8"><title>crash transport — tracked sequences (${esc(LABEL)})</title>
 <style>body{font:14px system-ui;margin:20px;background:#111;color:#ddd}h1{font-size:20px}h2{font-size:16px;margin:28px 0 6px}small{color:#999;font-weight:normal}
 .scroll{overflow-x:auto}table{border-collapse:collapse}th{font-weight:normal;text-align:left;padding:4px 6px;color:#bbb;vertical-align:top;white-space:nowrap}td{padding:2px}
-img{width:250px;display:block}img.crop{width:250px}td.num{font:12px ui-monospace,monospace;color:#aaa;vertical-align:top;white-space:nowrap;padding:6px}
+img{width:250px;display:block}img.crop{width:250px}img.win{width:250px}td.num{font:12px ui-monospace,monospace;color:#aaa;vertical-align:top;white-space:nowrap;padding:6px}
 .gates{color:#bbb;max-width:120ch}b{color:#fff}p.note{max-width:100ch;color:#aaa}</style>
-<h1>Transported crash (#roller=${GAIN}) — one tracked crest, ${TAUS.length} clocks after impact plus two before</h1>
-<p class="note">Each column is ONE clock; the three frame rows are the same page at that clock with the roller gain at 0, at ${GAIN}, and at ${GAIN} with #splash=0 so the shipped spray cannot stand in for the transported mass. Nothing else in the frame differs between rows. Generated ${out.generated} by scripts/measure_crash_transport.mjs; numbers in measure.json. Not promoted — judge by eye, in sequence, not from one column.</p>
+<h1>Transported crash (#roller=${GAIN}, ${esc(LABEL)}) — one tracked crest, ${TAUS.length} clocks after impact plus two before</h1>
+<p class="note">Each column is ONE clock; the three frame rows are the same page at that clock with the roller gain at 0, at ${GAIN}, and at ${GAIN} with #splash=0 so the shipped spray cannot stand in for the transported mass. Nothing else in the frame differs between rows. The window rows are a FIXED ${WIN.w}×${WIN.h} px rectangle placed once per cell at the projected deposit on the first post-impact clock; the legibility numbers are read inside it. Generated ${out.generated} by scripts/measure_crash_transport.mjs; numbers in measure.json. Not promoted — judge by eye, in sequence, not from one column.</p>
 ${rows.join('\n')}`;
   writeFileSync(join(OUT, 'index.html'), html);
   writeFileSync(join(OUT, 'measure.json'), JSON.stringify(out, null, 2));

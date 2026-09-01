@@ -12,7 +12,7 @@ import { OrbitControls } from '../vendor/OrbitControls.js';
 import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS,
          reefWindowKnots, PEEL_FLOOR, peelFloorH0 } from '../../shared/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
-         SPRAY_VERT, SPRAY_FRAG, CURTAIN_VERT, CURTAIN_FRAG,
+         SPRAY_VERT, SPRAY_FRAG, CURTAIN_VERT, CURTAIN_FRAG, SPLASHUP_VERT, SPLASHUP_FRAG,
          SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { makeSurfaceQuery } from './surface-query.js';
@@ -489,6 +489,10 @@ const sprayMat = new THREE.ShaderMaterial({
   vertexShader: SPRAY_VERT,
   fragmentShader: SPRAY_FRAG,
   uniforms,
+  // Same build flag as the water: under #roller the spray launches from the
+  // roller's landing line (one source, two materials); without it the shipped
+  // spray text compiles unchanged.
+  defines: ROLLER_BUILD ? { ROLLER: 1 } : {},
   transparent: true,
   depthWrite: false,
   blending: THREE.NormalBlending,
@@ -517,6 +521,30 @@ const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 12), cur
 curtainMesh.frustumCulled = false;  // positions are shader-authored
 curtainMesh.visible = true;
 scene.add(curtainMesh);
+
+// ---------- the splash-up sheet (#roller= builds only) ----------
+// The transported crash's thrown mass: a strip like the curtain, its foot on
+// the shipped surface at impactLandingAt's landing, its height the model's
+// ballistic splashUpHeight on the same clock (shaders.js SPLASHUP_VERT). Built
+// ONLY when the page booted with #roller — a default boot has no mesh, no
+// material and no draw call, so the default frame is unchanged by
+// construction. Its alpha is the landing's own strength, so setRoller(0) at
+// runtime draws nothing without touching visibility.
+let splashUpMesh = null;
+if (ROLLER_BUILD) {
+  const splashUpMat = new THREE.ShaderMaterial({
+    vertexShader: SPLASHUP_VERT,
+    fragmentShader: SPLASHUP_FRAG,
+    uniforms,
+    defines: { ROLLER: 1 },
+    transparent: true,
+    depthWrite: true,            // thrown water occludes the face behind it
+    side: THREE.DoubleSide,
+  });
+  splashUpMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 10), splashUpMat);
+  splashUpMesh.frustumCulled = false;  // positions are shader-authored
+  scene.add(splashUpMesh);
+}
 
 // ---------- the seabed ----------
 // Its own surface so the free camera can dive and watch the floor descend.
@@ -571,7 +599,9 @@ scene.add(surferGroup);
 // pass. Default ON; #ridersurface=legacy is the explicit rollback. The query
 // runs only while the rider or a rider-tracking camera is active, so the
 // screensaver/default free view pays nothing.
-const surfaceQuery = makeSurfaceQuery(renderer, uniforms);
+// Same compile-time flags as the water material: the query stands in for the
+// mesh, so a #roller boot's mound must displace both or the rider floats.
+const surfaceQuery = makeSurfaceQuery(renderer, uniforms, ROLLER_BUILD ? { ROLLER: 1 } : {});
 let riderSurfaceAuthoritative = true;
 let lastRiderSurface = null;
 
