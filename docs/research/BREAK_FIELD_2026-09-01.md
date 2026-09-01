@@ -175,6 +175,14 @@ against constants copied from the 08-19 sweep, so it will not notice. The
 instrument's ladder is the re-measurement; what is missing is the decision to
 adopt it.
 
+**Adopted 2026-09-01** (follow-up commit, same day): `PEEL_FLOOR` re-measured
+with `--mode=floor` — the ladder above plus a majority-on-reef condition,
+which is what settles Jack's "marginal" 0.72→0.73 (the line is 0.6% on the
+reef there; the reef branch is acquired by 0.78). Floors are now
+1.62 / 1.38 / 1.11 / 0.78 / 1.09 / 0.81 (Sewers→Sharks), each with a
+`bakeDigest`; `tests/peel-floor.test.js` re-bakes the floor rungs. Table and
+on-screen changes in MODEL.md §4.6.
+
 ## 5. Continuous representations on the same field
 
 All representations are lines z(x) on the 128 stations, read back on the 2 m

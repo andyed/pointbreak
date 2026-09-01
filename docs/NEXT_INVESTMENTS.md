@@ -23,7 +23,7 @@ bundle or compensate for bad state with another material pass.
 
 | rank | investment | leverage | principal risk | default sequencing |
 |---:|---|---|---|---|
-| 1 | Continuous break activation and canonical reef fit | Very high: every breaker, peel and crash consumer depends on it | Very high: a plausible direct refit already reversed Second Peak through a closeout | Foundation; land before final crash promotion |
+| 1 | ~~Continuous break activation and canonical reef fit~~ → **declared peel floor on the discrete selector** (verdict 2026-09-01, §1) | Very high: every breaker, peel and crash consumer depends on the break line | Was "very high"; measured. The residual risk is the tide axis, which the floor does not guard, and reef extent at Sewers / First Peak | Slices 1–2 done, floor re-measured on the current bake. Next: the floor's tide basis, then the reef-extent question. Slices 3–5 are not scheduled |
 | 2 | Transported crash and roller state | Highest immediate visual return | High: state can become garnish, non-deterministic particles or a second break authority | Prototype alongside rank 1; integrate after its field is stable |
 | 3 | Finite-depth set propagation | Medium-high systemic return | Medium-high: linear group speed near breaking may be a worse story than the current offshore approximation | Measure first; do after ranks 1–2 unless the probe shows a large visible phase error |
 | 4 | Narrow CPU/GPU surface unification | Medium visual return, high truthfulness return | High cost and sync risk if treated as a full parity port | Migrate only proven consumers, last |
@@ -34,6 +34,92 @@ The break-field and crash probes may be explored in parallel, but one owner
 must integrate the shared authority and run the combined matrix.
 
 ## 1. Continuous break activation and canonical reef fit
+
+> **Status 2026-09-01 — the "Decision to earn" below is superseded.** Slices
+> 1 and 2 ran and the second guess held. The original reasoning is kept
+> below as the position that was tested; the verdict, what it does to slices
+> 3–5, and the next work are in this block.
+
+### Verdict (2026-09-01)
+
+**Done.** Slice 1, the instrument: `scripts/measure_break_activation.mjs`
+exports `F(x,z) = H₀·shelter·K_s − γh`, every onset and the shipped branch on
+the bake's own lattice, and reproduces `bakeBreakLine` bit-for-bit through
+`breakZAt` at every rung of every sweep (3,618 bakes, max |Δz| 0; pinned by
+`tests/break-field-gate.test.js`). Slice 2, the comparison: activation-
+weighted centroid, onset-weighted ridge, finite-width band, seaward-most and
+shoreward-most against the shipped selector, on the H₀ ladder at three step
+sizes, on T and tide ladders, and across the one free scale F0. Full report:
+`research/BREAK_FIELD_2026-09-01.md`.
+
+**The second guess holds.** The centroid and ridge forms are continuous
+(step-halving ratios 0.50–0.64, zero flips) but sit **38–222 m inside the
+first crossing**, in already-broken water, off the synthetic reef (0–29%
+coverage for the centroid), with α 5–43° low or reversed at four of six
+spots; the ridge is a **left at Sewers** (−7.0°, 39 reversed stations), which
+the acceptance gate below rejects on its own. The band keeps the onset and
+**flips more than the shipped selector** (15–57 flips against 1–4 at five
+spots). Sweeping F0 trades the two properties monotonically; no value does
+both. The reason is structural, not a selector defect: the field has two
+positive components (the wedge and the inshore bore) separated by a trough
+0.002–0.144 m deep on a bed with a 0.31–0.93 m residual, and any 1-D line on
+it either picks a component (discretely) or averages them (late, off-reef).
+The discrete regime change stays, and the model declares the floor.
+
+**What this does to slices 3–5.** They are not the next work.
+
+- Slice 3 (wire a continuous *line* as the one authority) is dropped in its
+  written form; there is no continuous line that keeps the onset. If the
+  activation field is ever to own breaking, it is a **2-D consumer**
+  (permission, lifecycle seeding, foam read the field directly) with the
+  **peel route taken from the reef component's own geometry** — the wedge
+  crest line the fit already knows — not from a crossing. That is a
+  different investment, unscoped, and it does not remove the regime change:
+  the wedge still switches on at 0.6–1.24 m.
+- Slice 4 (canonical refit) stays deferred, and its gate is no longer the
+  selector: it is the **reef-extent question** — whether the wedge geometry
+  can activate at climatological heights at Sewers and First Peak at all.
+- Slice 5 (promote as a pair) is moot without 3 and 4.
+
+**What is next, in order.**
+
+1. *Done 2026-09-01 (this tranche):* `PEEL_FLOOR` re-measured on the current
+   bake with `--mode=floor`, a majority-on-reef condition added to the peel
+   criterion, basis and a per-spot bake digest stamped in `PEEL_FLOOR_BASIS`,
+   `tests/peel-floor.test.js` re-bakes the floor rungs and every month.
+   Floors 1.61/1.26/1.08/0.85/1.05/0.81 → **1.62/1.38/1.11/0.78/1.09/0.81**
+   (Sewers→Sharks); 48 of 72 `#month=` states move. MODEL.md §4.6.
+2. **Extend the floor's basis to the tide axis.** Measure the (H₀, tide)
+   surface at card T with the same instrument and decide, per spot, whether
+   to declare a floor there or keep declining. The twelve collapsed `#day=`
+   states are the unguarded set.
+3. **The reef-extent question** at Sewers and First Peak: what wedge geometry
+   (extent, not amplitude — amplitude saturates, CONTROLS `reefamp`) would
+   activate at the August p75, and whether that is still Pleasure Point.
+   This gates any refit.
+4. Rank 2 (transported crash) no longer waits for a continuous field. It
+   rebases onto the discrete line plus the declared floor now.
+
+**Two side findings that need acting on regardless** (both in the report,
+both recorded in MODEL.md §4.6 as things the floor does not do):
+
+- **Reef activation H₀ per spot** — the lowest H₀ at which the criterion is
+  met anywhere on the wedge footprint, selector-free, at tide 0 and card T:
+  Sewers **1.239**, First Peak **1.143**, Second Peak **1.003**, Jack's
+  **0.616**, The Hook **0.916**, Sharks **0.726** m. Below these the only
+  positive component is the inshore bore and *no* representation can draw a
+  peel. Sewers never activates below 1.24 m against an August p75 of
+  0.585 m: no selector on this bed draws a Sewers peel in summer.
+- **Tide-axis flips at five of six spots.** At the card H₀ the shipped line
+  flips on a 0.04 m tide step (Jack's line moves 132 m; Second Peak 3 flips,
+  Jack's 3, The Hook 2, Sharks 2, First Peak 1). The floor is a point on the
+  H₀ axis at tide 0 and does not guard this; it declines off-basis, which is
+  correct and leaves those states unguarded. Item 2 above.
+
+---
+
+*Original section, written 2026-08-26, superseded 2026-09-01 by the verdict
+above. Kept as the position that was tested.*
 
 ### Decision to earn
 
@@ -129,6 +215,8 @@ declared peel floor, and no claim that every authored alpha is physically
 reachable before the fit says so.
 
 ### Second guess before committing
+
+*(This is the guess that held — see Verdict above.)*
 
 The alternative may be to **accept** the discrete regime change and strengthen
 the declared operating floor, rather than invent a continuous line where the
@@ -396,11 +484,15 @@ only then invest in a generalized interface.
 1. Freeze a clean baseline capture manifest and app digest after the current
    tranche is committed. The existing refreshed sheets are useful evidence but
    correctly declare a dirty build.
-2. Run rank 1's field instrument and rank 2's deterministic crash spike in
-   parallel. Do not allow the crash spike to invent its own break line.
-3. Land continuous activation plus canonical fit first. Rebase the crash source
-   onto that authority, then run the combined all-preset temporal matrix and
-   live judgment.
+2. ~~Run rank 1's field instrument~~ (done 2026-09-01) and rank 2's
+   deterministic crash spike in parallel. Do not allow the crash spike to
+   invent its own break line.
+3. ~~Land continuous activation plus canonical fit first.~~ Superseded
+   2026-09-01: there is no continuous activation to land (§1 Verdict). The
+   break authority is the discrete line plus the declared, re-measured peel
+   floor; rebase the crash source onto that, then run the combined all-preset
+   temporal matrix and live judgment. Rank 1's remaining work is the floor's
+   tide basis and the reef-extent question.
 4. Measure rank 3 before scheduling implementation. A small or validity-limited
    effect is a documented no-change result.
 5. Take rank 4 consumer by consumer. Full twin parity remains out of scope.

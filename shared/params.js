@@ -100,26 +100,48 @@ export const DEFAULT_PRESET = 'secondpeak';
 //
 // So the numbers below are not a tuning knob. They are the measured boundary
 // of the regime where this model draws a peel, and a DERIVED ocean is held to
-// the healthy side of it (MODEL.md 4.6 "The peel floor"). Measured on the
-// 0.40-3.00 m ladder refined to 0.01 m with `scripts/measure_branch_flip.mjs`,
-// and hysteresis-free (up- and down-sweeps bit-identical at 211 paired steps
-// bank-wide, and at 21 more for Second Peak's refinement), which is what makes
-// a clamp stable rather than a latch.
+// the healthy side of it (MODEL.md 4.6 "The peel floor"). Measured with
+// `scripts/measure_break_activation.mjs --mode=floor` on the 0.40 m -> card
+// H0 ladder at 0.01 m, tide 0, card T (PEEL_FLOOR_BASIS below), through a
+// selector the instrument reproduces from the bake bit-for-bit at every rung
+// (LESSONS 4). The selection is hysteresis-free (up- and down-sweeps
+// bit-identical, 2026-08-19), which is what makes a clamp stable rather than
+// a latch.
 //
-//   flipLo / flipHi        the 1c'-d branch flip, the mechanism
+//   flipLo / flipHi        the largest branch flip on the ladder, the mechanism
 //   floorLo / floorHi      the 0.01 m step at which the PEEL returns
 //   floorH0                floorHi — the lowest H0 a derived ocean may draw at
-//   alphaBelow / Above     stage-median alpha (deg) either side of floorLo/Hi
+//   alphaBelow / Above     stage-median clean SIGNED alpha (deg) at floorLo/Hi
+//   onReefBelow / Above    fraction of stage stations on the wedge at floorLo/Hi
 //   basisT, basisTideM     THE OCEAN THESE WERE MEASURED AT (see below)
+//   bakeDigest             fingerprint of the bake at floorLo/Hi (see below)
 //
-// THE FLIP IS NOT ALWAYS THE FLOOR, and Second Peak is why this table carries
-// both. At five spots the branch flip IS the peel returning: cross it and
-// alpha goes 1.4-9.1 -> 12.1-35.0. At Second Peak the tabulated 1.02->1.03
-// flip moves alpha 2.6 -> 3.7 — a real branch change between two CLOSED-OUT
-// branches, against a 41 deg target. Clamping there would have cost two thirds
-// of that spot's seasonal range and bought nothing. Its peel actually returns
-// at 1.07->1.08 (9.1 -> 14.4), measured on the same ladder. A floor is defined
-// by the quantity it is a floor ON, which is the peel, not the branch id.
+// THE FLIP IS NOT THE FLOOR. "The peel returns" means: at every 0.01 m rung
+// from the floor up to the card H0, stage-median clean signed alpha is at
+// least PEEL_FLOOR_BASIS.alphaFloorDeg with the authored handedness AND at
+// least onReefMin of the stage stations sit on the reef footprint. The reef
+// condition is what stops First Peak's inshore bore (10-12 deg at 0% on the
+// reef, 0.60-1.25 m) and Jack's at 0.73-0.77 (10 deg, 1-38% on the reef)
+// from counting as a peel. Against that definition the branch flips fall
+// where they fall: at Second Peak the largest flip (1.04->1.05) moves alpha
+// 6.2 -> 4.1, two closeouts, and the peel returns at 1.10->1.11; at First
+// Peak the flip is 1.27->1.28 and the peel does not return until 1.37->1.38
+// (the line dips to 6-8 deg in between); at Jack's the peel is present from
+// 0.78 and the flips above it (0.78->0.79, 0.79->0.80, 0.83->0.84) are
+// changes between two PEELS (11-12 deg -> 24). A floor is defined by the
+// quantity it is a floor ON, which is the peel, not the branch id.
+//
+// THE MODEL VERSION IS PART OF THE BASIS (research/BREAK_FIELD_2026-09-01 §4).
+// The first table (2026-08-20, commit 533aef6, measure_branch_flip.mjs) was
+// read off a bake with deep-water shoaling and an unsigned |atan(dz/dx)|
+// alpha. Commit 09c7f4a (2026-08-26, finite-depth group velocity) moved every
+// threshold 1-2 rungs, and the signed metric makes the collapsed inshore
+// branch read NEGATIVE at Sewers and The Hook. On today's bake the old 1.61
+// floor at Sewers drew -8.3 deg — a left-handed closeout at all twelve
+// months — and the old 1.08 at Second Peak drew 5.8. `bakeDigest` is a sha1
+// of the shipped line, its gap flags and the canonical alpha along it at
+// floorLo and floorHi; tests/peel-floor.test.js recomputes it headlessly and
+// fails when the bake moves, naming this table as the thing to re-derive.
 //
 // THE BASIS IS PART OF THE NUMBER. These were measured at tide 0 and the site
 // card's own T, and the flip threshold is a surface in (H0, T, tide), not a
@@ -131,25 +153,46 @@ export const DEFAULT_PRESET = 'secondpeak';
 // are checked before the floor is allowed to bind.
 //
 // Privates has no measured bed, so no bake, no break-line branch, no flip.
+//
+// Everything below was read off ONE run of the instrument; every field is
+// checked against a fresh headless measurement by tests/peel-floor.test.js.
+export const PEEL_FLOOR_BASIS = {
+  measured: '2026-09-01',
+  modelCommit: 'c85bf62',   // the tree the floors were read off (bake inputs last moved 1a0b17e, thresholds 09c7f4a)
+  instrument: 'scripts/measure_break_activation.mjs --mode=floor',
+  tideM: 0,                 // every spot: tide 0
+  periodS: 'card',          // every spot: the site card's own T (basisT per row)
+  gamma: 0.78,              // dispersion.js GAMMA, the breaker index in F = H0*shelter*Ks - gamma*h
+  stepM: 0.01, ladderLoM: 0.4,
+  alphaMetric: 'stage-median clean signed crest-relative alpha (derivedAlphaDeg on the 2 m stage grid, limiter-pinned stations excluded)',
+  alphaFloorDeg: 10, onReefMin: 0.5,
+  criterion: 'lowest H0 from which every 0.01 m rung up to the card H0 reads alpha >= alphaFloorDeg with the authored handedness and >= onReefMin of stage stations on the reef footprint',
+};
 export const PEEL_FLOOR = {
   sewers: {
-    flipLo: 1.60, flipHi: 1.61, floorLo: 1.60, floorHi: 1.61, floorH0: 1.61,
-    alphaBelow: 9.1, alphaAbove: 35.0, alphaTarget: 38, basisT: 15, basisTideM: 0 },
+    flipLo: 1.61, flipHi: 1.62, floorLo: 1.61, floorHi: 1.62, floorH0: 1.62,
+    alphaBelow: -8.3, alphaAbove: 34.8, onReefBelow: 0.33, onReefAbove: 0.65,
+    alphaTarget: 38, basisT: 15, basisTideM: 0, bakeDigest: '747a005bb046e8c7' },
   firstpeak: {
-    flipLo: 1.25, flipHi: 1.26, floorLo: 1.25, floorHi: 1.26, floorH0: 1.26,
-    alphaBelow: 1.4, alphaAbove: 12.1, alphaTarget: 50, basisT: 14, basisTideM: 0 },
+    flipLo: 1.27, flipHi: 1.28, floorLo: 1.37, floorHi: 1.38, floorH0: 1.38,
+    alphaBelow: 5.9, alphaAbove: 22.1, onReefBelow: 0.88, onReefAbove: 0.88,
+    alphaTarget: 50, basisT: 14, basisTideM: 0, bakeDigest: 'a586daac7d4ad798' },
   secondpeak: {
-    flipLo: 1.02, flipHi: 1.03, floorLo: 1.07, floorHi: 1.08, floorH0: 1.08,
-    alphaBelow: 9.1, alphaAbove: 14.4, alphaTarget: 41, basisT: 14, basisTideM: 0 },
+    flipLo: 1.04, flipHi: 1.05, floorLo: 1.10, floorHi: 1.11, floorH0: 1.11,
+    alphaBelow: 9.4, alphaAbove: 10.6, onReefBelow: 0.70, onReefAbove: 0.75,
+    alphaTarget: 41, basisT: 14, basisTideM: 0, bakeDigest: '58148fabc1138cb5' },
   jacks: {
-    flipLo: 0.84, flipHi: 0.85, floorLo: 0.84, floorHi: 0.85, floorH0: 0.85,
-    alphaBelow: 7.2, alphaAbove: 21.3, alphaTarget: 37, basisT: 13, basisTideM: 0 },
+    flipLo: 0.83, flipHi: 0.84, floorLo: 0.77, floorHi: 0.78, floorH0: 0.78,
+    alphaBelow: 10.6, alphaAbove: 11.1, onReefBelow: 0.38, onReefAbove: 0.56,
+    alphaTarget: 37, basisT: 13, basisTideM: 0, bakeDigest: '618f85df8f158b0e' },
   thehook: {
-    flipLo: 1.04, flipHi: 1.05, floorLo: 1.04, floorHi: 1.05, floorH0: 1.05,
-    alphaBelow: 6.2, alphaAbove: 17.1, alphaTarget: 41, basisT: 13, basisTideM: 0 },
+    flipLo: 1.03, flipHi: 1.04, floorLo: 1.08, floorHi: 1.09, floorH0: 1.09,
+    alphaBelow: -5.3, alphaAbove: 12.3, onReefBelow: 0.50, onReefAbove: 0.54,
+    alphaTarget: 41, basisT: 13, basisTideM: 0, bakeDigest: 'bf59838b525da980' },
   sharks: {
-    flipLo: 0.80, flipHi: 0.81, floorLo: 0.80, floorHi: 0.81, floorH0: 0.81,
-    alphaBelow: 7.5, alphaAbove: 16.4, alphaTarget: 36, basisT: 13, basisTideM: 0 },
+    flipLo: 0.79, flipHi: 0.80, floorLo: 0.80, floorHi: 0.81, floorH0: 0.81,
+    alphaBelow: 15.0, alphaAbove: 16.4, onReefBelow: 0.49, onReefAbove: 0.54,
+    alphaTarget: 36, basisT: 13, basisTideM: 0, bakeDigest: '01d723cefb316822' },
   privates: null,
 };
 
