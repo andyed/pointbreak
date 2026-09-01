@@ -32,3 +32,15 @@ The current preset bank truthfully maps Jack's to OSM's `38th`, plus Second
 Peak, First Peak, The Hook and Sharks. Only Privates is synthetic: its
 coastline defeats the cubic contour fit (16.5 m RMS), so it fails closed to the
 synthetic stage rather than borrowing a neighbour's bathymetry.
+
+Why it fails is measured in `docs/research/PRIVATES_CONTOUR_2026-09-01.md`: the
+contour is smooth but turns 33–38° shoreward from ~70 m down-point of the node
+(the platform edge receding into the cove toward Trees), and the origin-
+constrained cubic cannot follow it over the 250 m OSM-midpoint window. The
+reference elevation and the branch selection were tested and are not the cause.
+`build_geo_profiles.py --truncate 0.5` ends each stage where its contour turns
+more than 27° off the frame; that gives Privates a [-189.7, 60] m window at
+1.87 m RMS and leaves the six mapped profiles byte-identical (passing band
+0.4–0.7). It is off by default; enabling it also needs the `privates` preset's
+`geoSpot` and the geo-model test expectations changed. The sweep itself is
+`data/model/experiments/contour_variants.py` (read-only, ~2 s).
