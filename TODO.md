@@ -79,8 +79,13 @@ what hides a Sewers summer. Verdict: Sewers, First Peak, Second Peak, The Hook
 honest lulls; Jack's and Sharks ceiling-limited (their number is
 `REEF_CEIL_EL`'s). One ordering conflict recorded, not resolved: the guide says
 down-point needs *more* swell, the crest rule makes up-point need more local
-H0. Honesty gap to close: the QA season sheet's `sea-sewers-august` row renders
-the 1.62 m clamp under a "0.585 m" caption and does not read the clamp.
+H0. ~~Honesty gap to close: the QA season sheet's `sea-sewers-august` row renders
+the 1.62 m clamp under a "0.585 m" caption and does not read the clamp.~~
+Closed in the builder the same day: `build_qa_sheets.mjs` reads the capture's
+own clamp readback and prints asked and drawn H₀ with the verdict ("floor
+applied" / "reef inactive below 1.24 m — n/a as a season"); the HUD clamp
+line names the activation too. The published sheet under `qa/published/`
+still shows the old caption until it is next rebuilt.
 
 ## ✔ 2026-08-26 — anatomy core promoted; transported crash remains next
 
