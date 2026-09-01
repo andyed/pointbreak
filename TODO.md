@@ -51,6 +51,107 @@ serves the plan view without re-brightening the approaching side, rather than
 simply removing it. Measure from `drone` AND `cliff`; a fix that only reads
 from one is how this got missed.
 
+### ▶ MEASURED 2026-09-01 — `#birth`: the lifecycle snap is real, and a minority owner
+
+Built, flag-gated, measured from both cameras, **not promoted**. Verdict is
+Andy's: sheets at `qa/img/birth/sheet_<rig>_<sim>.png` (gitignored — rebuild
+with the three commands at the end).
+
+**What was built.** `#birth=<0..1>` ramps the whitewater *deposit* behind the
+zipper head over `birth·Λ` metres instead of ramping the clock (`birthWeight()`
+/ `birthAge()` in `shared/model-glsl.js`): until the deposit has developed, a
+station shows the previous wave's residual (its age + one along-line period),
+so both sides of the T→0 snap evaluate to the same value. Applied to the two
+lifecycle consumers that actually snap — the model's metric comet (`cometAge`)
+and GRID_FRAG's comet carve (`carveTail`, seaward of the bore front only; the
+shoreward branch already reads the previous wave and is continuous). Variants:
+`#birthlead` puts a fraction of the ramp ahead of the head (the centred
+world-x blend, design B), `#birthrag` jitters the ramp with world noise
+(design C). Default is the shipped frame: **0 differing pixels** vs `#birth=0`
+in all 8 (rig, clock) frames. Rigs: `scripts/capture_birth_ab.mjs` (own
+server, per-frame camera + projected line/head so windows are fixed on the
+default arm — lesson 11), `scripts/probe_birth_field.mjs` (model foam/pocket/
+brk on a source-frame grid across the head, through `curlProbe`),
+`scripts/measure_foam_edge.py`, `scripts/build_birth_sheets.py`.
+
+**Owner bisection first, and the hypothesis is only partly right.** At sewers
+drone sim 52 the whitewater block behind the head keeps its hard right edge at
+the head under EVERY one-mechanism-off arm: `head=0` (no comet, no carve),
+`shape=legacy`, `crest=0`, `lip=0`, `curl=0`, `onset=0`, `wwarea=0`,
+`splash=0`, `gap=0`. The source-frame probe says why. Across the head
+(x = −27, band-mean model foam over −6..+18 m from the line, 4 m stations):
+
+    arm        -36   -32   -28(head)  -24   -20   -16     max adjacent step
+    default   0.79  0.82  0.81       0.47  0.26  0.21     0.34  (at the head)
+    A  birth=0.12        0.75  0.63  0.47  0.26  0.21     0.21
+    A2 birth=0.25        0.71  0.63  0.47  0.26  0.21     0.21
+    B  +lead=0.5         0.82  0.76  0.54  0.26  0.21     0.28
+    C  +rag=0.6          0.78  0.71  0.51  0.26  0.21     0.24
+    head=0               0.67  0.60  0.40  0.18  0.12     0.22
+
+`brk` is flat (0.57) through the head and `pocket` is smooth (0.54 → 0.07 over
+20 m), so the 0.81 → 0.26 drop over 8 m is the SUM of three x-only ramps: the
+lifecycle comet snap (0 m — the thing `#birth` ramps), the pocket **lead
+gate** `breakerLeadGate` (0.12Λ = 10.8 m ahead) and the residue's own
+`crestClockS` ramp (2.4 s ≈ 14 m along the ray, ~18 m in x at this α). Design
+A removes exactly the comet's share — the residual 0.21 step equals `head=0`'s
+0.22 — and the other two ramps stay. None of these is a snap any more; they
+are 10–18 m ramps that the fragment's soft-knee + `smoothstep(0.15, hiEdge)`
+threshold then contracts to a ~33 px (10–90 %) step on screen.
+
+**Screen metrics** (`measure_foam_edge.py`; windows fixed on the default arm;
+camera identical across arms in every row). Drone, sewers, sim 52: head-step
+peak |dL/dx| 8.15 (default) → 8.22 (A) / 7.87 (A2) / 8.35 (B) / 8.25 (C);
+10–90 % width 33 px in all arms; boundary-gradient p99 32.6 → 32.4 / 30.9 /
+32.5 / 32.7; Hough fraction of boundary on the best shore-normal line 0.01 in
+all arms; windowed line-fit residual 5.5 → 5.5 / 5.4 / 5.4 / 5.4 px. Second
+Peak drone sim 52: p99 28.8 → 28.5 (A) / **25.4 (A2)**, head step 3.70
+unchanged. **Cliff, not-yet-broken side** (fixed region 10–45 m ahead of the
+head at the line, mean luma): sewers 44: 127.2 → 126.3 (A) / 125.8 (A2) /
+127.3 (B) / 126.8 (C); sewers 52: 145.1 in every arm; Second Peak 44/52:
+119.9 / 135.4, movements ≤ 0.3. So no design re-brightens the approaching
+side — including B, whose 5.4 m lead is inside noise — and no design moves the
+plan-view edge metrics by more than the A2 p99 dip. Visually (sheets), A/A2
+soften the head end of the block; the block's other two knife edges are
+untouched.
+
+**Where the reported knives actually are** (same frame, x = 650 column):
+
+- The **horizontal** bottom edge of the block (luma 218 → 72 over ~8 px at
+  constant screen y) is the **crest of the current wave** — the probe's foam
+  edge sits 8–12 m shoreward of argmax(y) at every x behind the head, i.e. it
+  is the carrier-clock wrap locus, the `#wrap` mechanism. `#wrap=0` sharpens
+  it to ~4 px (211 → 124 → 62), so `crestClockS` IS working; its 14 m ramp
+  lands as 8 px because the fragment threshold re-sharpens it and the fold
+  compresses the face in plan. A breaking face seen from above is a line —
+  whether this one is *too* clean is Andy's call, not a clock defect.
+- The **diagonal** upper-left edge is the break line itself (`brk`'s `inside`
+  ramp, −6..14 m).
+- The **head** edge is the three-ramp superposition above. Note the vertical
+  line reported at screen x ≈ 430 was read in a live window of unknown size;
+  at 1440 × 900 the head is at x = 770 and the previous head at 968.
+
+**Dead ends, so nobody re-spends them.** (1) Widening `birth` (A2, 22.5 m)
+buys the Second Peak p99 dip and nothing else; the head step is the lead gate
+and residue, not the comet. (2) `birthlead` (B) is the only knob that would
+touch the ahead side and it measured neutral at 0.5 — larger values are the
+2026-08-28 chasing-foam defect by construction. (3) `birthrag` (C): ±6.5 m of
+jitter on one of three ramps leaves the Hough/window straightness metrics
+unchanged. (4) Removing the comet (`head=0`) changes 320–349 k pixels — the
+carve grades the whole stripe band — so that is not a fix either. (5) A ramp
+on the pocket→whitewater limb was considered and rejected on paper: that limb
+has no snap (1 at the head from both sides, lead-gated ahead), so a behind-side
+ramp would make the head dimmer than both neighbours.
+
+**If this is picked up:** the remaining plan-view levers are the fragment
+threshold's re-sharpening (a model ramp of 14–18 m should not print as 8 px),
+the `0.12Λ` lead-gate width (widening it is foam ahead of the head — measure
+from the cliff), and whether the crest-face line is a defect at all.
+
+Rebuild: `BIRTH_ARMS=default,birth0,A,A2,B,C node scripts/capture_birth_ab.mjs`
+· `python3 scripts/measure_foam_edge.py qa/img/birth --debug`
+· `python3 scripts/build_birth_sheets.py qa/img/birth`.
+
 ## ▶ NEW (2026-08-25, live) — the crash is missing
 
 Live verdict on the judged stack (below): "we're missing the crash of the

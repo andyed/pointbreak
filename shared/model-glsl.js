@@ -161,6 +161,13 @@ uniform float u_setDepth;
 // sawtooth (#wrap=0 A/B revert, bit-identical to the pre-fix build).
 // See crestClockS() for the measurement.
 uniform float u_crestWrap;
+// ---- the birth ramp (#birth=, EXPERIMENT 2026-09-01; all three default 0 =
+// the shipped frame, bit-identical). Whitewater deposit develops over a finite
+// distance behind the zipper head instead of appearing at full strength on
+// the line x = x_head. See birthWeight() / birthAge() below.
+uniform float u_birthW;     // ramp width as a fraction of LAM; 0 = off
+uniform float u_birthLead;  // fraction of the ramp placed AHEAD of the head (0 = one-sided)
+uniform float u_birthRag;   // noise jitter of the ramp position, in ramp widths
 
 // ---------- constants ----------
 // GPU SOURCE OF TRUTH for the shared physics constants. GLSL cannot import, so
@@ -860,6 +867,48 @@ float crestClockS(float ageS){
   return ageS * (1.0 - smoothstep(Tp - wrapW, Tp, ageS)*u_crestWrap);
 }
 
+// ---------- the birth ramp (#birth=, EXPERIMENT 2026-09-01) ----------
+// THE OTHER HARD FOAM EDGE. The zipper lifecycle clock (breakerLifecycleAtX)
+// is evaluated at the break line, so it is a function of x alone, and its
+// snap T -> 0 at the head is a line of CONSTANT x: a shore-normal straight
+// edge in plan view (the drone's vertical line, TODO 2026-08-30). It is
+// nearly edge-on from a shore camera, which is why the cliff never showed it.
+// crestClockS() must not touch this clock: ramping ages near T back toward
+// zero rejuvenates the approaching side (the 2026-08-28 chasing-foam defect,
+// see the comet block). So ramp the DEPOSIT, not the clock: foam at a station
+// develops over u_birthW*LAM metres behind the head, and until it has
+// developed the station shows the PREVIOUS wave's residual (its age plus one
+// along-line period). Both sides of the snap then evaluate to that same
+// previous-wave value, so the edge dissolves without brightening anything
+// ahead of the head. Metric, not temporal, for the #arm reason (the head's
+// along-line speed varies ~13x). Seconds stay seconds; the conversion to
+// metres is the same behindM geometry the comet already uses.
+//   lamLine = 2pi/|dS/dx|, metres per along-line period (head spacing).
+//   snapM   = signed metres from the nearest head (negative = ahead of it).
+// u_birthLead > 0 places part of the ramp ahead of the head (the centred
+// world-x blend variant: it DOES pull head foam ahead, by design, so the
+// cliff measurement can price that). u_birthRag jitters the ramp position
+// with a static world-space noise so the edge is not a level set of x.
+float birthWeight(float behindM, float lamLine, vec2 xz){
+  float W = max(u_birthW*LAM, 1e-3);
+  float snapM = behindM - lamLine*step(0.5*lamLine, behindM);
+  float jit = u_birthRag*W*(2.0*vnoise2(xz*0.13 + vec2(3.7, 1.3)) - 1.0);
+  float wgt = smoothstep(-u_birthLead*W, (1.0 - u_birthLead)*W, snapM + jit);
+  if (!(wgt == wgt)) wgt = 1.0;   // NaN guard (house rule): fall back to shipped
+  return wgt;
+}
+// The metric comet age under the ramp: previous wave's residual vs the head's
+// own, blended by birthWeight. Reduces exactly to exp(-behindM/L) when
+// wgt = 1 behind the head and wgt = 0 ahead of it (the shipped reading).
+float birthAge(float behindM, float lamLine, float L, float wgt){
+  float snapM = behindM - lamLine*step(0.5*lamLine, behindM);
+  float prev = exp(-(snapM + lamLine)/max(L, 1e-3));
+  float own  = exp(-max(snapM, 0.0)/max(L, 1e-3));
+  float a = mix(prev, own, wgt);
+  if (!(a == a)) a = exp(-behindM/max(L, 1e-3));
+  return a;
+}
+
 // ---------- the per-stripe lifecycle clock (#slife, hero read item (a)) ----
 // WHEN DID THIS COLUMN'S WAVE FIRST BREAK? The inner re-breaking stripes band
 // uniformly because every clock they run on is flat ALONG the stripe: tSince
@@ -1301,7 +1350,15 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
                      - rayPhase(vec2(x - eA, breakLine(x - eA)))) / (2.0*eA);
   float cometClk = life.x;
   float behindM = cometClk * w / max(dSdxLine, 1e-3);
-  float cometAge = mix(exp(-cometClk/2.5), exp(-behindM/55.0), u_armRead);
+  float cometMetric = exp(-behindM/55.0);
+  // #birth (EXPERIMENT, default off): the metric comet develops over
+  // u_birthW*LAM behind the head; see birthWeight(). Uniform branch so the
+  // shipped path evaluates the identical expression.
+  if (u_birthW > 0.0) {
+    float lamLine = 2.0*PI / max(dSdxLine, 1e-3);
+    cometMetric = birthAge(behindM, lamLine, 55.0, birthWeight(behindM, lamLine, xz));
+  }
+  float cometAge = mix(exp(-cometClk/2.5), cometMetric, u_armRead);
   // Attachment weight: brk's -6..14 m inside ramp is only 0.216 AT the line,
   // which shaved the head's seaward half — the one part of the band that
   // touches the line the term exists to mark (measured: line-station comet

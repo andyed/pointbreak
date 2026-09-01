@@ -1592,8 +1592,8 @@ void main() {
   // the not-yet-broken side of the zipper and makes the foam chase the curl.
   // lifeC.x = 0 is the attached head and increasing raw age is its wake.
   float lifeClk = lifeC.x;
-  float foamAge = mix(lifeClk + u_T, lifeClk,
-                      smoothstep(sourceXZ.y - 3.0, sourceXZ.y + 3.0, lifeC.y));
+  float frontS = smoothstep(sourceXZ.y - 3.0, sourceXZ.y + 3.0, lifeC.y);
+  float foamAge = mix(lifeClk + u_T, lifeClk, frontS);
   float onStripe = exp(-pow((sourceXZ.y - zbC)/25.0, 2.0));
   // #arm (2026-08-18): the 9 s carve clock has the same defect the model's
   // comet tail had — the head's along-line speed varies ~13x, so a temporal
@@ -1604,7 +1604,20 @@ void main() {
   // grades what the model term draws instead of re-eroding it. Legacy clock
   // under #arm=0 / #arm=anchor.
   float behindC = foamAge * wC / max(dSdxC, 1e-3);
-  float carveTail = mix(exp(-foamAge/9.0), exp(-behindC/110.0), u_armRead);
+  float carveMetric = exp(-behindC/110.0);
+  // #birth (EXPERIMENT, default off): the carve's head end develops over
+  // u_birthW*LAM behind the head (model-glsl birthWeight). Applied only
+  // SEAWARD of the bore front (frontS = 1), where foamAge is the head's own
+  // clock and the snap lives; shoreward of the front foamAge already reads
+  // the previous wave and is continuous across the head, so ramping it there
+  // would print a new seam rather than remove one.
+  if (u_birthW > 0.0) {
+    float lamLineC = 2.0*PI / max(dSdxC, 1e-3);
+    float behindRaw = lifeClk * wC / max(dSdxC, 1e-3);
+    float wgtC = birthWeight(behindRaw, lamLineC, sourceXZ);
+    carveMetric = mix(carveMetric, birthAge(behindRaw, lamLineC, 110.0, wgtC), frontS);
+  }
+  float carveTail = mix(exp(-foamAge/9.0), carveMetric, u_armRead);
   foamM *= mix(1.0, 0.45 + 0.55*carveTail, onStripe*u_headRead);
   // PER-STRIPE CARVE (#slife=1, default OFF — hero read open item (a)). The
   // comet carve above exists because the foam threshold re-saturates dense
