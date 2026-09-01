@@ -100,6 +100,17 @@ then the acceptance row should say n/a, the §4.6 pattern) or the small-day
 foam family again. Un-triaged; do not tune anything to make the row pass
 before deciding which.
 
+**Triaged 2026-09-01 from the break-activation field, not a tune**
+(`docs/research/BREAK_FIELD_2026-09-01.md` §7, `scripts/measure_break_activation.mjs`):
+0.70 m is below Second Peak's reef activation threshold on this bed
+(1.003 m at T 14, tide 0 — the lowest H₀ at which `H₀Kₛ − γh` reaches zero
+anywhere on the synthetic wedge). At 0.70 the excess on the reef peaks at
+−0.49 m stage-wide, the shipped line is the inshore bore in 1.5 m of water
+with 0% of stage stations on the reef, and the QA watch station lands in the
+reef window's feather (envelope 0.05). The acceptance row should read **n/a**
+(the §4.6 pattern); the foam-family question does not arise because there is
+no reef break to under-paint.
+
 ## ▶ PARKED, TOP OF THE LIST (2026-08-22) — the lip is a detached white shelf over open water
 
 Live report, close camera: "floating foam?" — a white sheet hanging in the air

@@ -52,4 +52,13 @@ docs/drafts/
 # `node scripts/build_qa_sheets.mjs`. The generator is the artifact; the frames
 # are not (commit b013197 removed 6.7 MB of unreferenced screenshots, and this
 # is exactly the class of thing it removed).
-qa/
+# `qa/*` rather than `qa/` so ONE subdirectory can be re-included below (git
+# cannot re-include a file whose parent directory is excluded).
+qa/*
+# Break-field instrument (scripts/measure_break_activation.mjs). The raw
+# F(x,z) dumps (*.field.json, ~250 KB each) and run logs are regenerable in
+# under a minute and stay ignored; the summary tables are the measurement the
+# research note cites, so they are committed.
+!qa/break-field/
+qa/break-field/*
+!qa/break-field/summary.json
