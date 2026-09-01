@@ -28,9 +28,14 @@ in every mapped drone comparison; Privates remained visually neutral. The old
 paths remain available as `#curl=0&lip=0&curtain=0&onset=0&sapp=0.42`.
 
 This does **not** close the section below. `#splash` was re-measured as a tiny
-garnish rather than transported impact mass, so it remains off. The next
-breaker tranche is still an advected roller/foam state plus curtain-contact
-deposit, not promotion of the existing height burst.
+garnish rather than transported impact mass (~0.1 % of drone pixels). It was
+nevertheless promoted two days later, in `3f05530` (2026-08-28, "stage causal
+curl and foam"): the bend now accelerates into the shared impact clock and
+releases into the splash/spray burst, so `u_splash` ships at **1** and
+`#splash=0` is the A/B revert (CONTROLS.md has said so since that commit; this
+paragraph said "remains off" until 2026-09-01 and was the stale one — see the
+reconciliation note below). The next breaker tranche is still an advected
+roller/foam state plus curtain-contact deposit, not a bigger height burst.
 
 ## ▶ PROTOTYPE, NOT PROMOTED (2026-09-01) — the transported crash, `#roller=`
 
