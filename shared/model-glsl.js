@@ -172,6 +172,12 @@ uniform float u_setDepth;
 // sawtooth (#wrap=0 A/B revert, bit-identical to the pre-fix build).
 // See crestClockS() for the measurement.
 uniform float u_crestWrap;
+// Wrap-ramp WIDTH override, seconds (#wrapw= metres / #wrapl= fraction of LAM,
+// EXPERIMENT 2026-09-01, plan-view hard edge). 0 = the shipped CREST_WRAP_S
+// expression, bit-identical; > 0 replaces the width and lifts the quarter-
+// period clamp to 0.75 T so a sweep can reach ~0.6 LAM. Always seconds here:
+// the metres -> seconds conversion (at c = LAM/T) lives in the JS flag parser.
+uniform float u_wrapS;
 // ---- the birth ramp (#birth=, EXPERIMENT 2026-09-01; all three default 0 =
 // the shipped frame, bit-identical). Whitewater deposit develops over a finite
 // distance behind the zipper head instead of appearing at full strength on
@@ -1060,9 +1066,15 @@ float breakerLeadGate(float ageS, float phaseGrad){
 // which is what the approaching bore does to the foam in front of it.
 // Clamped to a quarter period so a short-period preset cannot ramp for most
 // of its own cycle. u_crestWrap = 0 (#wrap=0) is the bit-identical revert.
+// u_wrapS > 0 (#wrapw / #wrapl) swaps the width for an explicit one; the
+// uniform branch leaves the shipped path evaluating the identical expression.
+// The clamp lifts to 0.75 T on that path: a ramp longer than the period would
+// be a clock that never reaches its own age, and 0.75 T is already ~0.6 LAM,
+// past anything the sweep asks for. Finite by construction (u_wrapS is
+// parsed with an isFinite guard; Tp is floored).
 float crestClockS(float ageS){
   float Tp = max(u_T, 1e-3);
-  float wrapW = min(CREST_WRAP_S, 0.25*Tp);
+  float wrapW = (u_wrapS > 0.0) ? min(u_wrapS, 0.75*Tp) : min(CREST_WRAP_S, 0.25*Tp);
   return ageS * (1.0 - smoothstep(Tp - wrapW, Tp, ageS)*u_crestWrap);
 }
 

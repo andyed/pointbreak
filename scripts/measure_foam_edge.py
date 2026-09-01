@@ -19,7 +19,21 @@ Per frame:
               line (the not-yet-broken side); ahead_bright = fraction > 170
   behind_L    the same region 10-45 m behind the head, for reference
 
-    python3 scripts/measure_foam_edge.py qa/img/birth [--debug]
+Crest-locus metrics (wrap-ramp width sweep, 2026-09-01). The manifest's
+stations carry `crestLoc`, the model's own crest (argmax surface height on a
+shore-normal transect) projected to screen. Profiles run along screen y
+through those points, in windows fixed on the DEFAULT arm's crest:
+  cb_grad / cb_w1090   peak |dL/dy| and 10-90% width (px) of the luma step
+                       across the crest BEHIND the head (stations k -70..-20;
+                       medians). From the drone this is the horizontal knife.
+  cb_hough_horiz       fraction of foam-boundary pixels in the behind-crest box
+                       on the best screen-horizontal (shore-parallel) line
+  cb_hough_best        same, any orientation
+  ch_grad / ch_w1090   the same step at the HEAD (stations k -10..+10) - from
+                       the cliff and lineup this is the visible crest of the
+                       breaking wave, i.e. what a wider ramp costs
+
+    python3 scripts/measure_foam_edge.py qa/img/birth [--debug] [--crest]
 """
 import json, os, sys
 import numpy as np
@@ -143,6 +157,8 @@ def head_step(l, head, half_w=60, half_h=20):
     hx, hy = int(head[0]), int(head[1])
     y0, y1 = max(0, hy - half_h), min(l.shape[0], hy + half_h)
     x0, x1 = max(0, hx - half_w), min(l.shape[1], hx + half_w)
+    if x1 <= x0 or y1 <= y0:      # head projects outside the frame (lineup at sewers)
+        return dict(grad=None, w1090=None)
     band = gauss1d(l[y0:y1, x0:x1], 2.0, 1).mean(axis=0)     # row-averaged, 2 px smoothed
     d = np.abs(np.diff(band))
     if len(d) == 0:
@@ -159,9 +175,70 @@ def head_step(l, head, half_w=60, half_h=20):
     w = float(inside.max() - inside.min() + 1) if len(inside) else 1.0
     return dict(grad=float(d.max()), w1090=w, step=float(hi - lo))
 
+def step_profile(prof):
+    """Peak |d/di| and 10-90% width of the largest monotone excursion of a 1-D
+    luma profile (already smoothed). Same rule as head_step, on any axis."""
+    d = np.abs(np.diff(prof))
+    if len(d) == 0:
+        return dict(grad=None, w1090=None, step=None)
+    lo, hi = prof.min(), prof.max()
+    if hi - lo < 10:
+        return dict(grad=float(d.max()), w1090=None, step=float(hi - lo))
+    i_hi, i_lo = int(prof.argmax()), int(prof.argmin())
+    a, b = sorted((i_hi, i_lo))
+    seg = prof[a:b + 1]
+    t10, t90 = lo + 0.1 * (hi - lo), lo + 0.9 * (hi - lo)
+    inside = np.nonzero((seg > t10) & (seg < t90))[0]
+    w = float(inside.max() - inside.min() + 1) if len(inside) else 1.0
+    return dict(grad=float(d.max()), w1090=w, step=float(hi - lo))
+
+def crest_steps(l, pts, half_h=40, half_w=3):
+    """Median peak |dL/dy| and 10-90% width across the crest at the given
+    projected crest points (screen-vertical profiles, 7 px column average,
+    2 px smoothing). pts = [(x, y, vis), ...]; only vis == 1 are used."""
+    grads, widths = [], []
+    for p in pts:
+        if p is None or p[2] != 1:
+            continue
+        hx, hy = int(round(p[0])), int(round(p[1]))
+        y0, y1 = hy - half_h, hy + half_h
+        x0, x1 = hx - half_w, hx + half_w + 1
+        if y0 < 0 or y1 > l.shape[0] or x0 < 0 or x1 > l.shape[1]:
+            continue
+        prof = gauss1d(l[y0:y1, x0:x1], 2.0, 0).mean(axis=1)
+        st = step_profile(prof)
+        if st['grad'] is not None:
+            grads.append(st['grad'])
+        if st['w1090'] is not None:
+            widths.append(st['w1090'])
+    return dict(grad=float(np.median(grads)) if grads else None,
+                w1090=float(np.median(widths)) if widths else None,
+                n=len(widths))
+
+def crest_pts(ref, k0, k1, shoreward_min=None):
+    """Projected crest points for stations k0..k1. With shoreward_min set, keep
+    only stations whose crest sits at least that many metres SHOREWARD of the
+    break line: behind the head the current (broken) wave has crossed the line,
+    so an argmax on the seaward side is the next, approaching crest, not this
+    one (seen at sewers sim 52, k -70/-65 and -20..-10)."""
+    out = []
+    for s in ref['stations']:
+        if not (k0 <= s['k'] <= k1) or not s.get('crestLoc'):
+            continue
+        if shoreward_min is not None:
+            if s.get('crestZ') is None or (s['crestZ'] - s['zLine']) < shoreward_min:
+                continue
+        out.append(s['crestLoc'])
+    return out
+
+def crest_ks(ref, k0, k1, shoreward_min=None):
+    return [s['k'] for s in ref['stations'] if k0 <= s['k'] <= k1 and s.get('crestLoc')
+            and (shoreward_min is None or (s.get('crestZ') is not None and (s['crestZ'] - s['zLine']) >= shoreward_min))]
+
 def main():
     root = sys.argv[1] if len(sys.argv) > 1 else 'qa/img/birth'
     debug = '--debug' in sys.argv
+    crest_table = '--crest' in sys.argv
     man = json.load(open(os.path.join(root, 'manifest.json')))
     frames = man['frames']
     by = {}
@@ -182,6 +259,11 @@ def main():
         ahead = bbox_of(ahead_pts, 12, shape)
         behind = bbox_of(behind_pts, 12, shape)
         head = ref['headScreen']
+        # Crest-locus windows, fixed on the default arm's model crest.
+        cb_pts = crest_pts(ref, -70, -20, shoreward_min=5.0)
+        cb_ks = crest_ks(ref, -70, -20, shoreward_min=5.0)
+        ch_pts = crest_pts(ref, -10, 10)
+        cb_box = bbox_of(cb_pts, 40, shape) if cb_pts else None
         for arm, f in sorted(arms.items(), key=lambda kv: (kv[0] != 'default', kv[0])):
             rgb = load(os.path.join(root, f['png']))
             l = luma(rgb)
@@ -216,6 +298,29 @@ def main():
                     Image.fromarray(dbg.astype(np.uint8)).save(os.path.join(root, 'debug', 'dbg_' + f['png']))
             hs = head_step(l, head)
             r.update(head_grad=hs['grad'], head_w1090=hs['w1090'], head_step=hs.get('step'))
+            cb = crest_steps(l, cb_pts); ch = crest_steps(l, ch_pts)
+            r.update(cb_grad=cb['grad'], cb_w1090=cb['w1090'], cb_n=cb['n'], cb_ks=cb_ks,
+                     ch_grad=ch['grad'], ch_w1090=ch['w1090'], ch_n=ch['n'],
+                     cb_hough_horiz=None, cb_hough_best=None, cb_bnd_p99=None)
+            if cb_box is not None:
+                x0, y0, x1, y1 = cb_box
+                mb = foam_mask(rgb)[y0:y1, x0:x1]
+                bb = boundary(mb)
+                bys, bxs = np.nonzero(bb)
+                hb = hough(bys, bxs, bb.shape)
+                _, _, gmb = gradient(l[y0:y1, x0:x1])
+                gbb = gmb[bb] if bb.any() else np.array([0.0])
+                r.update(cb_hough_horiz=hb['horiz'], cb_hough_best=hb['best'],
+                         cb_bnd_p99=float(np.percentile(gbb, 99)), cb_bnd_px=int(bb.sum()))
+                if debug:
+                    dbg = rgb[y0:y1, x0:x1].copy()
+                    dbg[bb] = [255, 0, 0]
+                    for p in cb_pts:
+                        px_, py_ = int(round(p[0])) - x0, int(round(p[1])) - y0
+                        if 0 <= px_ < dbg.shape[1] and 0 <= py_ < dbg.shape[0]:
+                            dbg[max(0, py_ - 40):py_ + 40, max(0, px_ - 3):px_ + 4, 1] = 255
+                    os.makedirs(os.path.join(root, 'debug'), exist_ok=True)
+                    Image.fromarray(dbg.astype(np.uint8)).save(os.path.join(root, 'debug', 'crest_' + f['png']))
             a = region_stats(l, ahead); bh = region_stats(l, behind)
             r.update(ahead_L=a['L'], ahead_bright=a['bright'], behind_L=bh['L'], behind_bright=bh['bright'])
             rows.append(r)
@@ -223,6 +328,9 @@ def main():
     fmt = lambda v, p=2: ('-' if v is None else (f'{v:.{p}f}' if isinstance(v, float) else str(v)))
     cols = ['rig', 'sim', 'arm', 'diff_px', 'bnd_p90', 'bnd_p99', 'hough_best', 'hough_vert', 'win_res', 'win_straight',
             'head_grad', 'head_w1090', 'ahead_L', 'ahead_bright', 'behind_L']
+    if crest_table:
+        cols = ['rig', 'sim', 'arm', 'diff_px', 'cb_n', 'cb_w1090', 'cb_grad', 'cb_hough_horiz', 'cb_hough_best', 'cb_bnd_p99',
+                'ch_n', 'ch_w1090', 'ch_grad', 'ahead_L', 'bnd_p99', 'hough_horiz']
     print('| ' + ' | '.join(cols) + ' |')
     print('|' + '---|' * len(cols))
     for r in rows:

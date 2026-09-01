@@ -19,7 +19,7 @@ import { makeSurfaceQuery } from './surface-query.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
          rayS, oceanH as oceanHJS, surferState as surferStateJS,
-         SET_DEPTH, SET_DEPTH_LEGACY } from './model-js.js';
+         SET_DEPTH, SET_DEPTH_LEGACY, LAM } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, breakGapAt, BREAK_Z_MIN, BREAK_Z_MAX,
@@ -36,7 +36,8 @@ import { burnoffFog } from './fog.js';
 import { MONTHLY_OCEAN, MONTHLY_OCEAN_PCT, getMonthlyOcean } from '../../data/climatology/pp_monthly_ocean.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../shared/cdip.js';
 import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook,
-         writeHashParams, needsReloadForHash, ROUND_TRIP_PARAMS } from './url-params.js';
+         writeHashParams, needsReloadForHash, ROUND_TRIP_PARAMS,
+         parseWrapWidth, wrapWidthSeconds } from './url-params.js';
 import { create as createFisheyeMenu } from '../vendor/fisheye/fisheye-menu.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
 import {
@@ -274,6 +275,11 @@ const uniforms = {
   // snap lands on a crest line and drew a straight hard foam edge. Ramped by
   // default; #wrap=0 restores the raw mod() (see crestClockS in model-glsl).
   u_crestWrap:  { value: 1 },
+  // Wrap-ramp width override, seconds (EXPERIMENT 2026-09-01, #wrapw=<m> /
+  // #wrapl=<fraction of LAM>). 0 = the shipped CREST_WRAP_S path, bit-identical.
+  // Re-derived from state.T every frame (see the u_T sync) so a live-ocean T
+  // change keeps the width the flag asked for; see parseWrapWidth.
+  u_wrapS:      { value: 0 },
   // Birth ramp (EXPERIMENT 2026-09-01, #birth=): whitewater deposit develops
   // over a fraction of LAM behind the zipper head, so the lifecycle clock's
   // x = x_head snap stops printing a shore-normal straight edge in plan view.
@@ -409,6 +415,8 @@ const uniforms = {
 };
 applyBed(uniforms, state.geoSpot, state.tide || 0, state.bedShape || 0);
 
+// Wrap-ramp width spec from the hash (#wrapw / #wrapl); null = shipped width.
+let wrapWidthSpec = null;
 // curlProbe scratch (see __pointbreak.curlProbe). Built lazily: a headless
 // measurement pays for it, a normal page load never allocates the target.
 let curlProbeRT = null, curlProbeMat = null, curlProbeQuad = null,
@@ -1769,6 +1777,7 @@ function frame(now) {
   resize();
   uniforms.u_time.value = simTime;
   uniforms.u_T.value = state.T;
+  uniforms.u_wrapS.value = wrapWidthSeconds(wrapWidthSpec, state.T, LAM);
   uniforms.u_H0.value = state.H0;
   const incident = directionPhaseForSpot({
     psiEnabled, geoSpot: state.geoSpot, waveFromDeg: state.swellDp,
@@ -2312,6 +2321,13 @@ function applyHashParams() {
   // Crest-clock ramp defaults ON (defect fix, 2026-08-18); #wrap=0 restores
   // the raw mod() sawtooth and its hard crest-line foam edge, bit-identical.
   if (h.get('wrap') === '0') uniforms.u_crestWrap.value = 0;
+  // Wrap-ramp WIDTH (EXPERIMENT 2026-09-01, TODO "foam terminates on hard
+  // straight edges in plan view"): #wrapw=<metres> (nominal at c = LAM/T, the
+  // units the shipped 14 m was quoted in) or #wrapl=<fraction of LAM> (= that
+  // fraction of T in seconds, so it scales with the site's period). Kept as a
+  // spec, converted to seconds at the u_T sync each frame. Absent, 0, or
+  // non-finite = shipped. Boot-only, like every other A/B flag here.
+  wrapWidthSpec = parseWrapWidth(h.get('wrapw'), h.get('wrapl'));
   // Birth ramp (EXPERIMENT 2026-09-01): #birth=<0..1> is the deposit ramp
   // width as a fraction of LAM behind the head; #birthlead=<0..1> places that
   // fraction of the ramp AHEAD of the head (centred blend variant);
@@ -2552,6 +2568,11 @@ window.__pointbreak = {
   },
   birth: () => ({ w: uniforms.u_birthW.value, lead: uniforms.u_birthLead.value,
                   rag: uniforms.u_birthRag.value }),
+  // Crest-clock wrap ramp as the shader sees it: on/off and the width in
+  // seconds (0 = the CREST_WRAP_S path), plus that width in metres at c = LAM/T.
+  wrap: () => ({ on: uniforms.u_crestWrap.value, s: uniforms.u_wrapS.value,
+                 m: uniforms.u_wrapS.value > 0 ? uniforms.u_wrapS.value * LAM / state.T
+                                                : 2.4 * LAM / state.T }),
   setLegacyDrop: (on) => { uniforms.u_legacyDrop.value = on ? 1 : 0; },
   // Offset-bound knee in metres, for sweeps and for the raw-distribution read
   // (>= OFF_MAX_M = 20 removes the bound; instrument only). 0 = hard clamp.

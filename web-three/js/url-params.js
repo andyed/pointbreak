@@ -22,6 +22,27 @@ export function parseSpeedParam(value, fallback = 1) {
   return Math.min(Math.max(parsed, 0), 4);
 }
 
+// Crest-clock wrap ramp width (#wrapw / #wrapl, EXPERIMENT 2026-09-01). The
+// shader ramps in seconds (crestClockS); these two flags name the width in
+// the units the artifact is judged in. `wrapw` = metres, nominal at c = LAM/T
+// (the shipped 2.4 s was quoted as ~14 m that way); `wrapl` = a fraction of
+// LAM, which at c = LAM/T is the same fraction of T in seconds and so scales
+// with the site's period. `wrapl` wins if both are present. Absent, zero,
+// negative or non-finite -> null, the shipped width.
+export function parseWrapWidth(wrapw, wrapl) {
+  const lam = Number.parseFloat(wrapl);
+  if (wrapl !== null && wrapl !== undefined && Number.isFinite(lam) && lam > 0) return { lam };
+  const metres = Number.parseFloat(wrapw);
+  if (wrapw !== null && wrapw !== undefined && Number.isFinite(metres) && metres > 0) return { metres };
+  return null;
+}
+// The spec in seconds for the current period. 0 = shipped (u_wrapS off).
+export function wrapWidthSeconds(spec, T, LAM) {
+  if (!spec || !Number.isFinite(T) || !(T > 0) || !Number.isFinite(LAM) || !(LAM > 0)) return 0;
+  const s = Number.isFinite(spec.lam) ? spec.lam * T : spec.metres * T / LAM;
+  return Number.isFinite(s) && s > 0 ? s : 0;
+}
+
 // ---------------------------------------------------------------------------
 // Writing the permalink back
 // ---------------------------------------------------------------------------

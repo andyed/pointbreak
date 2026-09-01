@@ -19,6 +19,14 @@
 //   node scripts/capture_birth_ab.mjs [outdir]
 //   BIRTH_ARMS=default,birth0,A   BIRTH_RIGS=sewers_drone   BIRTH_TIMES=52
 //
+// Wrap-ramp width sweep (#wrapw / #wrapl, 2026-09-01) reuses the rig: arms
+// wid/w21/w28/w42/w56/l50 and the lineup rigs. `wid` is the bit-identity arm,
+// the shipped 2.4 s written in metres at the PRESET's c = LAM/T, so it is a
+// function of the rig. Every frame also records the model's own crest locus
+// (argmax surface height per station, through curlProbe) projected to screen,
+// so the horizontal plan-view edge can be measured in windows fixed on the
+// default arm's crest rather than on the pixels being measured.
+//
 // Playwright is resolved from a sibling repo, like every other rig here.
 
 const PW_CANDIDATES = [
@@ -54,7 +62,14 @@ const ALL_RIGS = {
   // One other mapped preset, card H0 (what ships).
   secondpeak_drone: 'preset=secondpeak&cam=drone',
   secondpeak_cliff: 'preset=secondpeak&cam=cliff',
+  // The lineup camera is where the #wrap ramp was first measured (CONTROLS.md).
+  sewers_lineup:     'preset=sewers&cam=lineup&h0=2.20',
+  secondpeak_lineup: 'preset=secondpeak&cam=lineup',
 };
+// Preset periods, for arms whose hash depends on the site (shared/params.js).
+const PRESET_T = { sewers: 15, secondpeak: 14 };
+const LAM = 90;
+const presetOf = (rig) => rig.split('_')[0];
 const ALL_ARMS = {
   default: '',
   birth0:  '&birth=0',                          // bit-identity proof arm
@@ -74,7 +89,16 @@ const ALL_ARMS = {
   splash0: '&splash=0',                         // no crash burst
   gap0:    '&gap=0',                            // no section-gap masking (Andy's A/B)
   wrap0:   '&wrap=0',                           // raw carrier clock (reference)
+  // Wrap-ramp width sweep (crestClockS width; shipped = 2.4 s = 14.4 m at sewers,
+  // 15.4 m at secondpeak). Metres are nominal at c = LAM/T.
+  wid:     (rig) => `&wrapw=${2.4 * LAM / PRESET_T[presetOf(rig)]}`,   // identity arm
+  w21:     '&wrapw=21',
+  w28:     '&wrapw=28',
+  w42:     '&wrapw=42',
+  w56:     '&wrapw=56',
+  l50:     '&wrapl=0.5',                        // 0.5 LAM = 45 m; 0.5 T in seconds
 };
+const armHashFor = (arm, rig) => (typeof ALL_ARMS[arm] === 'function' ? ALL_ARMS[arm](rig) : ALL_ARMS[arm]);
 const pick = (env, all) => (process.env[env] ? process.env[env].split(',') : Object.keys(all))
   .filter((k) => { if (!(k in all)) throw new Error(`unknown ${env} entry ${k}`); return true; });
 const RIGS = pick('BIRTH_RIGS', ALL_RIGS);
@@ -115,7 +139,7 @@ const manifest = existsSync(MANIFEST)
   ? JSON.parse(readFileSync(MANIFEST, 'utf8'))
   : { root: ROOT, baseUrl: BASE_URL, viewport: [1440, 900], times: TIMES, rigs: {}, arms: {}, frames: [] };
 for (const r of RIGS) manifest.rigs[r] = ALL_RIGS[r];
-for (const a of ARMS) manifest.arms[a] = ALL_ARMS[a];
+for (const a of ARMS) manifest.arms[a] = typeof ALL_ARMS[a] === 'function' ? '(per preset; see frame.armHash)' : ALL_ARMS[a];
 const upsert = (frame) => {
   const i = manifest.frames.findIndex((f) => f.png === frame.png);
   if (i >= 0) manifest.frames[i] = frame; else manifest.frames.push(frame);
@@ -125,7 +149,8 @@ const upsert = (frame) => {
 for (const rig of RIGS) {
   for (const arm of ARMS) {
     for (const sim of TIMES) {
-      const hash = `${ALL_RIGS[rig]}&${BASE}&sim=${sim}${ALL_ARMS[arm]}`;
+      const armHash = armHashFor(arm, rig);
+      const hash = `${ALL_RIGS[rig]}&${BASE}&sim=${sim}${armHash}`;
       await ensureServer();
       await page.goto('about:blank');
       try {
@@ -160,20 +185,39 @@ for (const rig of RIGS) {
         // at water level and 6 m up (a crest's worth), plus 30 m shoreward, so
         // the analysis can build screen windows from the MODEL's geometry
         // rather than from the pixels it is about to measure.
+        // The crest LOCUS at each station: argmax of the displaced surface
+        // height over a shore-normal transect through the shipped shader
+        // (curlProbe), -30..+60 m of the line at 0.9 m steps. The window stops
+        // 30 m seaward so the next (approaching) crest, ~LAM further out,
+        // cannot be picked. Land samples are excluded.
+        const crestAt = (x, zl) => {
+          if (!pb.curlProbe) return null;
+          const s = pb.curlProbe(x, zl - 30, zl + 60, 101) || [];
+          let best = null;
+          for (const r of s) {
+            if (!(r.land < 0.5) || !Number.isFinite(r.y) || !Number.isFinite(r.z)) continue;
+            if (!best || r.y > best.y) best = r;
+          }
+          return best ? { y: Math.round(best.y * 100) / 100, z: Math.round(best.z * 100) / 100 } : null;
+        };
         const stations = [];
         if (headX !== null) {
           for (let k = -90; k <= 90; k += 5) {
             const x = headX + k;
             const zl = zAt(x);
             if (zl === null) continue;
+            const cr = crestAt(x, zl);
             stations.push({ k, x: Math.round(x * 100) / 100, zLine: Math.round(zl * 100) / 100,
                             sea: proj(x, 0.0, zl), crest: proj(x, 6.0, zl),
-                            shore: proj(x, 0.0, zl + 30) });
+                            shore: proj(x, 0.0, zl + 30),
+                            crestY: cr ? cr.y : null, crestZ: cr ? cr.z : null,
+                            crestLoc: cr ? proj(x, cr.y, cr.z) : null });
           }
         }
         return {
           sim: pb.sim(),
           birth: pb.birth ? pb.birth() : null,
+          wrap: pb.wrap ? pb.wrap() : null,
           headRead: pb.uniforms.u_headRead.value, armRead: pb.uniforms.u_armRead.value,
           xi: pb.state.xi, h0: pb.state.H0, T: pb.state.T,
           camera: cam.position.toArray().map((v) => Math.round(v * 100) / 100),
@@ -187,8 +231,8 @@ for (const rig of RIGS) {
       if (probe.sim !== sim) throw new Error(`clock mismatch: wanted ${sim}, got ${probe.sim}`);
       const png = `${rig}_${arm}_${String(sim).padStart(3, '0')}.png`;
       await page.screenshot({ path: join(OUT, png) });
-      upsert({ rig, arm, sim, hash, png, ...probe });
-      console.log(`captured ${png}  head x=${probe.headX} screen=${JSON.stringify(probe.headScreen)} birth=${JSON.stringify(probe.birth)}`);
+      upsert({ rig, arm, sim, hash, armHash, png, ...probe });
+      console.log(`captured ${png}  head x=${probe.headX} screen=${JSON.stringify(probe.headScreen)} birth=${JSON.stringify(probe.birth)} wrap=${JSON.stringify(probe.wrap)}`);
     }
   }
 }
