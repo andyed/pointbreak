@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook,
-         writeHashParams, needsReloadForHash, bootOnlyParams } from '../web-three/js/url-params.js';
+         writeHashParams, needsReloadForHash, bootOnlyParams,
+         parseWrapWidth, wrapWidthSeconds } from '../web-three/js/url-params.js';
 
 test('permalink state is read from the hash payload', () => {
   const params = readHashParams('#preset=firstpeak&controls=1&section=1');
@@ -163,5 +164,29 @@ test('headless rigs are not pinned to a basis the app does not ship', () => {
       `${rig} pins month=card. That is how the 2026-08-16 default-ocean `
       + 'regression passed a green suite — every rig read the card basis while '
       + 'the app booted January. Measure what ships.');
+  }
+});
+
+test('wrap ramp width: metres and LAM-fraction forms convert to seconds, default is off', () => {
+  const p = (h) => { const q = readHashParams(h); return parseWrapWidth(q.get('wrapw'), q.get('wrapl')); };
+  assert.equal(p('#preset=sewers'), null);
+  assert.equal(p('#wrapw=0'), null);
+  assert.equal(p('#wrapw=nan'), null);
+  assert.equal(p('#wrapw=-3'), null);
+  assert.deepEqual(p('#wrapw=28'), { metres: 28 });
+  assert.deepEqual(p('#wrapl=0.5'), { lam: 0.5 });
+  assert.deepEqual(p('#wrapw=28&wrapl=0.5'), { lam: 0.5 });
+  // Off -> 0 seconds (the shader's CREST_WRAP_S path).
+  assert.equal(wrapWidthSeconds(null, 15, 90), 0);
+  assert.equal(wrapWidthSeconds({ metres: 28 }, NaN, 90), 0);
+  assert.equal(wrapWidthSeconds({ metres: 28 }, 15, 0), 0);
+  // 28 m at c = LAM/T = 6 m/s is 4.667 s; a LAM fraction is the same fraction of T.
+  assert.ok(Math.abs(wrapWidthSeconds({ metres: 28 }, 15, 90) - 28 / 6) < 1e-12);
+  assert.equal(wrapWidthSeconds({ lam: 0.5 }, 14, 90), 7);
+  // The identity arm: the shipped 2.4 s expressed in metres round-trips to the
+  // same float32 the shader's CREST_WRAP_S literal holds, for both sweep sites.
+  for (const T of [15, 14]) {
+    const s = wrapWidthSeconds({ metres: 2.4 * 90 / T }, T, 90);
+    assert.equal(Math.fround(s), Math.fround(2.4));
   }
 });
