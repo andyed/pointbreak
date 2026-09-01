@@ -1,5 +1,30 @@
 # TODO
 
+## ▶ MEASURED, NOT WIRED (2026-09-01) — the reef fit's two metrics
+
+`docs/research/REEF_FIT_SIGNED_2026-09-01.md`, instrument
+`scripts/measure_reef_fit_signed.mjs` (exposes `bed.js` internals through a
+load hook; the shipped file and fit are untouched and re-derived bit-for-bit
+after every section). Three findings. (1) At Second Peak the shipped legacy
+fit is satisfied by a **negative** mean slope (−41.0°; `Math.abs` reports
+40.96 against 41, `signViolations: 2` non-blocking): the five-station fit
+window straddles the reef window's up-point feather (−57 … 18 m), where the
+line hands off from the natural bed to the wedge in a 38 m seaward teleport.
+(2) At every β in 3–80° at all six spots, **every on-reef reversal is a slew-
+ramp shoulder**; off the ramps the shipped line has zero on-reef reversals
+everywhere, so the "no clean/on-reef station reverses" gate is unsatisfiable
+as written and needs the ramp exclusion. (3) A β-only signed refit closes
+five of six spots within 0.3° (β 38.0 / 40.5 / — / 41.5 / 52.25 / 46.5) with
+activation moving ≤ 0.04 m and floors ≤ 0.05 m; Second Peak cannot reach 41°
+at any β (max 27.2°) on the shipped window, and can (41.5° at β 49 with zero
+ramp stations; 37.5° at β 43 with zero reversals of any kind) when the
+window's feathers are moved outside the stage — reef
+extent confirmed as the gate, sharpened to the window feather, with amplitude
+inert and flank alone not enough. Next, in order: keep the sign in the fit
+(O5, fails honestly at Second Peak), fix the reversal gate's domain, decide
+the Second Peak window (75 m of reef up-point of the OSM stage), then the
+signed refit at the five spots with `--mode=floor` re-run. Nothing rendered.
+
 ## ▶ MEASURED, NOT WIRED (2026-09-01) — the model on the CUDEM 1/9" bed
 
 `docs/research/CUDEM_BED_2026-09-01.md`. Both builders now take `--bathy` and
