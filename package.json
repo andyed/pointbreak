@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:geo": "python3 data/model/build_geo_profiles.py",
-    "check:geo": "python3 data/model/build_geo_profiles.py --check",
+    "build:geo": "python3 data/model/build_geo_profiles.py --truncate 0.5",
+    "check:geo": "python3 data/model/build_geo_profiles.py --check --truncate 0.5",
     "test": "node scripts/check-shader-literals.mjs && node --test tests/*.test.js",
     "build:depth": "python3 data/model/build_depth_patches.py",
     "check:depth": "python3 data/model/build_depth_patches.py --check",

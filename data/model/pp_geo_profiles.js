@@ -37,7 +37,21 @@ export const PP_GEO_DATA = Object.freeze({
         "x3": 5.905726e-06,
         "rmseM": 1.0,
         "samples": 28,
-        "usable": true
+        "usable": true,
+        "variant": {
+          "ref": [
+            "node",
+            0.0
+          ],
+          "window": [
+            "neighbors",
+            250.0
+          ],
+          "branch": "nearest",
+          "truncate": 0.5,
+          "refElevationNavd88M": -1.53,
+          "refOffsetShoreM": 0.0
+        }
       }
     },
     "First Peak": {
@@ -67,7 +81,21 @@ export const PP_GEO_DATA = Object.freeze({
         "x3": -5.681012e-06,
         "rmseM": 0.27,
         "samples": 13,
-        "usable": true
+        "usable": true,
+        "variant": {
+          "ref": [
+            "node",
+            0.0
+          ],
+          "window": [
+            "neighbors",
+            250.0
+          ],
+          "branch": "nearest",
+          "truncate": 0.5,
+          "refElevationNavd88M": -1.65,
+          "refOffsetShoreM": 0.0
+        }
       }
     },
     "Second Peak": {
@@ -97,7 +125,21 @@ export const PP_GEO_DATA = Object.freeze({
         "x3": -1.024511e-06,
         "rmseM": 0.22,
         "samples": 21,
-        "usable": true
+        "usable": true,
+        "variant": {
+          "ref": [
+            "node",
+            0.0
+          ],
+          "window": [
+            "neighbors",
+            250.0
+          ],
+          "branch": "nearest",
+          "truncate": 0.5,
+          "refElevationNavd88M": -1.3,
+          "refOffsetShoreM": 0.0
+        }
       }
     },
     "38th": {
@@ -127,7 +169,21 @@ export const PP_GEO_DATA = Object.freeze({
         "x3": 3.96073e-07,
         "rmseM": 1.53,
         "samples": 33,
-        "usable": true
+        "usable": true,
+        "variant": {
+          "ref": [
+            "node",
+            0.0
+          ],
+          "window": [
+            "neighbors",
+            250.0
+          ],
+          "branch": "nearest",
+          "truncate": 0.5,
+          "refElevationNavd88M": -0.91,
+          "refOffsetShoreM": 0.0
+        }
       }
     },
     "The Hook": {
@@ -157,7 +213,21 @@ export const PP_GEO_DATA = Object.freeze({
         "x3": -3.750839e-06,
         "rmseM": 1.16,
         "samples": 31,
-        "usable": true
+        "usable": true,
+        "variant": {
+          "ref": [
+            "node",
+            0.0
+          ],
+          "window": [
+            "neighbors",
+            250.0
+          ],
+          "branch": "nearest",
+          "truncate": 0.5,
+          "refElevationNavd88M": -0.74,
+          "refOffsetShoreM": 0.0
+        }
       }
     },
     "Shark's Cove": {
@@ -187,7 +257,21 @@ export const PP_GEO_DATA = Object.freeze({
         "x3": -2.513464e-06,
         "rmseM": 1.22,
         "samples": 32,
-        "usable": true
+        "usable": true,
+        "variant": {
+          "ref": [
+            "node",
+            0.0
+          ],
+          "window": [
+            "neighbors",
+            250.0
+          ],
+          "branch": "nearest",
+          "truncate": 0.5,
+          "refElevationNavd88M": -0.69,
+          "refOffsetShoreM": 0.0
+        }
       }
     },
     "Private's": {
@@ -210,14 +294,28 @@ export const PP_GEO_DATA = Object.freeze({
       "shoreSlope": 0.011025,
       "stageBoundsM": [
         -189.7,
-        250.0
+        60.0
       ],
       "contourFit": {
-        "x2": 0.000800333,
-        "x3": 4.786653e-06,
-        "rmseM": 16.62,
-        "samples": 44,
-        "usable": false
+        "x2": 0.0005000004,
+        "x3": 5.097868e-06,
+        "rmseM": 1.87,
+        "samples": 25,
+        "usable": true,
+        "variant": {
+          "ref": [
+            "node",
+            0.0
+          ],
+          "window": [
+            "neighbors",
+            250.0
+          ],
+          "branch": "nearest",
+          "truncate": 0.5,
+          "refElevationNavd88M": -0.52,
+          "refOffsetShoreM": 0.0
+        }
       }
     }
   }

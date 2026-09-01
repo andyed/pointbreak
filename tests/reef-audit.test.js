@@ -23,7 +23,9 @@ const { reefAudit } = await import('../web-three/js/bed.js');
 // these were only checked by hand through Playwright via window.__pointbreak.
 test('M5 clamp invariants hold on every mapped spot', () => {
   const spots = [...new Set(Object.values(PRESETS).map((p) => p.geoSpot).filter(Boolean))];
-  assert.equal(spots.length, 6, 'six mapped spots (Privates is unmapped on purpose)');
+  // Seven since the 2026-09-01 Private's mapped-bed candidate; the M5 invariants
+  // below must hold on its wedge like any other.
+  assert.equal(spots.length, 7, 'seven mapped spots');
   for (const spot of spots) {
     const a = reefAudit(spot);
     assert.ok(a, `${spot}: reef fit exists`);

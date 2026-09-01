@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 
 import { PP_GEO_DATA } from '../data/model/pp_geo_profiles.js';
-import { PRESETS, applyPreset, makeState } from '../shared/params.js';
+import { PRESETS, applyGeoProfile, applyPreset, makeState } from '../shared/params.js';
 import { coastCurve, reefWindow, surferState } from '../web-three/js/model-js.js';
 
 
@@ -27,7 +27,9 @@ function modelP(state) {
 
 
 test('generated geo module is current with its OSM/NCEI sources', () => {
-  execFileSync('python3', ['data/model/build_geo_profiles.py', '--check'], {
+  // The bank is built with the stage-departure truncation (package.json
+  // build:geo/check:geo carry the same flag), so --check must too.
+  execFileSync('python3', ['data/model/build_geo_profiles.py', '--check', '--truncate', '0.5'], {
     cwd: new URL('..', import.meta.url),
     stdio: 'pipe',
   });
@@ -39,8 +41,10 @@ test('generated geo module is current with its OSM/NCEI sources', () => {
 
 test('only truthfully mapped presets opt into Pleasure Point geo profiles', () => {
   // Every preset is now a real Pleasure Point site (the west-side names are
-  // gone). Private's is the sole synthetic: its coastline defeats the cubic
-  // contour fit, so it must NOT quietly inherit a neighbour's bathymetry.
+  // gone), and since the 2026-09-01 candidate every one maps to its OWN OSM
+  // node: Private's fits once the stage ends where its contour leaves the
+  // frame (--truncate 0.5), so it no longer falls closed to the synthetic
+  // stage — and it still must not inherit a neighbour's bathymetry.
   const expected = {
     sewers: 'Sewer Peak',
     firstpeak: 'First Peak',
@@ -48,7 +52,7 @@ test('only truthfully mapped presets opt into Pleasure Point geo profiles', () =
     jacks: '38th',
     thehook: 'The Hook',
     sharks: "Shark's Cove",
-    privates: null,
+    privates: "Private's",
   };
   for (const [key, spot] of Object.entries(expected)) assert.equal(PRESETS[key].geoSpot, spot);
 
@@ -56,8 +60,12 @@ test('only truthfully mapped presets opt into Pleasure Point geo profiles', () =
   assert.equal(state.geoMix, 1);
   assert.equal(state.geoSpot, 'Second Peak');
   applyPreset(state, 'privates');
-  assert.equal(state.geoMix, 0);
-  assert.equal(state.geoSpot, null);
+  assert.equal(state.geoMix, 1);
+  assert.equal(state.geoSpot, "Private's");
+  // The truncated window and its fit, as the research doc records them.
+  assert.deepEqual([state.stageStart, state.stageEnd], [-189.7, 60.0]);
+  assert.ok(state.geoFitRmse <= 5, `Private's RMS ${state.geoFitRmse} must clear the usable floor`);
+  assert.equal(PP_GEO_DATA.profiles["Private's"].contourFit.variant.truncate, 0.5);
   applyPreset(state, 'jacks');
   assert.equal(state.geoMix, 1);
   assert.equal(state.geoSpot, '38th');
@@ -65,7 +73,7 @@ test('only truthfully mapped presets opt into Pleasure Point geo profiles', () =
 
 
 test('mapped profiles use measured curvature and OSM validity bounds', () => {
-  for (const key of ['jacks', 'secondpeak', 'firstpeak', 'thehook']) {
+  for (const key of ['jacks', 'secondpeak', 'firstpeak', 'thehook', 'privates']) {
     const state = makeState();
     applyPreset(state, key);
     const P = modelP(state);
@@ -80,9 +88,13 @@ test('mapped profiles use measured curvature and OSM validity bounds', () => {
 });
 
 
-test('the synthetic site keeps the original quadratic, and A-frame stays a parameter', () => {
+test('the synthetic stage keeps the original quadratic, and A-frame stays a parameter', () => {
+  // No shipped preset is synthetic any more, but the fallback path still is:
+  // an unmapped request must land on the original quadratic, unchanged.
   const state = makeState();
-  applyPreset(state, 'privates');
+  applyGeoProfile(state, null);
+  assert.equal(state.geoMix, 0);
+  assert.equal(state.geoSpot, null);
   let P = modelP(state);
   assert.equal(coastCurve(100, P), 2);
 

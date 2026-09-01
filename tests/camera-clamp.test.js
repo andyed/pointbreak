@@ -50,14 +50,19 @@ for (const fx of [0, 0.27, 0.5, 0.73, 1]) for (const fz of [0, 0.31, 0.5, 0.69, 
 // ...and stations well OUTSIDE it, out to the clamp's own x/z bounds.
 const OUTSIDE = [[-1200, -1000], [1200, 1000], [0, 1000], [-1200, 0], [900, -800]];
 
-test('the unmapped site is still unmapped (the case that produced the sentinel)', () => {
-  assert.equal(PRESETS.privates.geoSpot, null,
-    'Privates carries no OSM surf node; if that changes, re-derive this test');
-  assert.ok(!MAPPED.includes("Private's"));
+// Re-derived 2026-09-01: Privates was the shipped case that produced the
+// sentinel (geoSpot null), and the mapped-bed candidate gives it a patch. The
+// unmapped path still has to exist and still has to fail closed, so the tests
+// below exercise it with names that have no patch rather than with a preset.
+test('every shipped preset now has a patch; the sentinel path is exercised by non-spots', () => {
+  for (const [key, p] of Object.entries(PRESETS)) {
+    assert.ok(p.geoSpot && MAPPED.includes(p.geoSpot), `${key} maps to a depth patch`);
+  }
+  assert.ok(!MAPPED.includes('Not A Spot'));
 });
 
 test('no grid means hasBedGrid is false and the read is the NAMED sentinel', () => {
-  for (const spot of [null, undefined, '', "Private's", 'Not A Spot']) {
+  for (const spot of [null, undefined, '', 'Not A Spot']) {
     for (const shape of SHAPES) {
       assert.equal(hasBedGrid(spot, shape), false, `hasBedGrid(${spot}, ${shape})`);
       assert.equal(bedElevBlended(spot, 0, 0, shape), BED_UNKNOWN);
@@ -68,7 +73,7 @@ test('no grid means hasBedGrid is false and the read is the NAMED sentinel', () 
 
 // THE PIN. A missing grid must not become a permissive floor.
 test('cameraFloorY is null wherever the bed is unknown — never a number', () => {
-  for (const spot of [null, undefined, '', "Private's", 'Not A Spot']) {
+  for (const spot of [null, undefined, '', 'Not A Spot']) {
     for (const shape of SHAPES) {
       for (const [x, z] of [...STATIONS, ...OUTSIDE]) {
         const f = cameraFloorY(spot, x, z, shape, MSL_ABOVE_NAVD88);

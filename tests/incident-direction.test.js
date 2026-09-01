@@ -52,7 +52,7 @@ test('the same observed direction resolves against each spot geometry', () => {
 
 test('invalid or unmapped geometry declines instead of inventing an incidence', () => {
   assert.equal(incidentDirectionForSpot(null, 194), null);
-  assert.equal(incidentDirectionForSpot('Private\'s', 194), null);
+  assert.equal(incidentDirectionForSpot('Not A Spot', 194), null);
   assert.equal(incidentDirectionForSpot('First Peak', Number.NaN), null);
 });
 
@@ -89,7 +89,8 @@ test('every mapped spot resolves both observed direction bounds', () => {
   const mapped = Object.entries(PP_GEO_DATA.profiles)
     .filter(([, profile]) => profile.contourFit.usable)
     .map(([name]) => name);
-  assert.equal(mapped.length, 6);
+  // Seven since the 2026-09-01 Private's candidate (docs/research/PRIVATES_CONTOUR_2026-09-01.md).
+  assert.equal(mapped.length, 7);
   for (const spot of mapped) {
     for (const direction of [188, 216]) {
       const resolved = incidentDirectionForSpot(spot, direction);
