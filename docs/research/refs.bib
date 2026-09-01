@@ -817,6 +817,50 @@
   note    = {VERIFIED CrossRef 2026-09-01. The methods paper for the CUDEM tiles:
              telescoping 1/9--1/3--3 arc-second tiling, source hierarchy, the
              topobathymetric-lidar and NOS-survey shallow sources. Programme-level;
-             it does not list per-tile sources, so what fed the surf zone of
-             n37x00\_w122x00 is not stated anywhere this repo could find.}
+             it does not list per-tile sources itself, but sections 2.4 / 3.4 describe
+             the per-tile SPATIAL METADATA product (source footprints, 1/3 arc-second,
+             vectorised) that does -- found 2026-09-01 in ninth\_spatial\_meta.zip on the
+             bulk page; the per-tile-set report lim2023santacruzdem lists the sources.
+             At Pleasure Point no footprint reaches any canon spot: the surf zone is
+             GMT-surface interpolation (BATHY\_SOURCES\_2026-09-01.md section 7). Also
+             the authority for ``no per-cell uncertainty raster exists'' -- listed there
+             as future work with USGS.}
+}
+
+% 8. CUDEM provenance, second pass 2026-09-01 (BATHY_SOURCES_2026-09-01.md section 7,
+%    data/bathy/candidates/ncei_cudem19/README.md)
+
+@techreport{lim2023santacruzdem,
+  author      = {Lim, Elliot and Love, Matthew R. and Amante, Christopher J. and Carignan, Kelly S. and MacFerrin, Michael},
+  title       = {Digital Elevation Models of {Santa Cruz}: Procedures, Data Sources, and Analysis},
+  institution = {NOAA National Centers for Environmental Information and Cooperative Institute for Research in Environmental Sciences (CIRES), University of Colorado Boulder},
+  address     = {Boulder, Colorado},
+  year        = {2023},
+  month       = {July},
+  pages       = {9},
+  url         = {https://www.ngdc.noaa.gov/mgg/dat/dems/tiled_tr/santa_cruz_ca_tiled_navd88_2023.pdf},
+  note        = {NOT IN CROSSREF -- NCEI grey report, no DOI; fetched 2026-09-01 from the
+             ``DEM Development Reports'' directory the CUDEM ISO record points to
+             (file dated 2024-06-28, 486 KB). The per-tile-set source documentation for
+             the twelve 1/9 arc-second Santa Cruz CUDEM tiles, including
+             ncei19\_n37x00\_w122x00\_2023v1. Table 5 is the gridding-weight hierarchy
+             (Santa Cruz Harbor soundings 1.0 down to the bathymetric pre-surface 0.1);
+             the final grid is GMT ``surface''. Prepared for the COASTAL Act.}
+}
+
+@article{wessel2019gmt6,
+  author  = {Wessel, Paul and Luis, Joaquim F. and Uieda, Leonardo and Scharroo, Remko and Wobbe, Florian and Smith, Walter H. F. and Tian, Dongdong},
+  title   = {The {Generic Mapping Tools} Version 6},
+  journal = {Geochemistry, Geophysics, Geosystems},
+  volume  = {20},
+  number  = {11},
+  pages   = {5556--5564},
+  year    = {2019},
+  doi     = {10.1029/2019GC008515},
+  note    = {VERIFIED CrossRef 2026-09-01 (title, journal, vol. 20, pp. 5556--5564, 2019,
+             Wessel/Luis/Uieda). Cited because GMT ``surface'' -- a tension-spline
+             interpolator -- is the gridder that produced every surf-zone cell of the
+             CUDEM tile at Pleasure Point (lim2023santacruzdem Table 5; amante2023cudem
+             section 2.3). The -0.10 m sheet under The Hook and Shark's Cove is its output
+             between the coastline mask and soundings 300--500 m out, not a measurement.}
 }
