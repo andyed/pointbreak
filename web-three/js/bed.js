@@ -154,6 +154,7 @@ export function setReefNose(frac) {
 // sweeps the nose in one process hits it immediately.
 function invalidateReef() {
   fitCache.clear();
+  actCache.clear();   // activation is a property of the wedge; a new wedge, a new number
   breakKey = '';
   for (const c of [u16Cache, texCache, cpuCache]) {
     for (const k of [...c.keys()]) if (k.endsWith('|reef')) c.delete(k);
@@ -587,6 +588,63 @@ export function reefAudit(name) {
     withinTol: fit.withinTol, iterations: fit.iterations, hbM: fit.hbM,
     maxRaiseM: maxRaise, postsTouched, deepened, aboveCeil, dryTouched, checksum,
   };
+}
+
+// ---------- reef activation: the depth of the shallowest wedge cell ----------
+// The lowest H0 at which the break criterion F = H_eff*Ks(h) - gamma*h is met
+// ANYWHERE on the synthetic wedge's footprint inside the stage. Selector-free:
+// a fact about the field, not about which branch the bake picks. F is linear
+// in H0 cell by cell, so the first cell to reach zero is the one minimising
+// gamma*h / (shelter*Ks), and its value IS the activation — the closed form
+// that research/REEF_ACTIVATION_2026-09-01.md §1 measured against the
+// instrument's bisection (scripts/measure_break_activation.mjs
+// reefActivationH0) to 1e-12 at all six mapped spots. Same lattice as that
+// instrument: BREAK_N stations across xRange, the march's MARCH_DZ rows from
+// the grid's seaward edge to the beach cutoff, stage-restricted the way the
+// floor is (stage bounds inset 10 m). Ks comes from the same shoaledHeight the
+// march calls, so the number is the bake's, not a twin's.
+//
+// What it is FOR: the HUD. When the peel floor clamps a month, "drawing 1.62 m,
+// asked for 0.585" names the floor but not the stronger fact underneath it —
+// below this H0 the reef is not in play at all and the season's height is an
+// inshore bore, not a smaller wave on the reef. Read-only; touches no uniform,
+// no cache the bake reads, and nothing rendered.
+//
+// Depends on tide and T the way the march does (more water over the wedge
+// needs a bigger wave: ~0.55 m of H0 per metre of tide), so callers pass the
+// state they are describing. Returns null for a spot with no reef fit.
+const actCache = new Map();
+export function reefActivationH0(name, xRange, { T, tide = 0 } = {}) {
+  if (!name || !Number.isFinite(T) || T <= 0) return null;
+  const key = `${name}|${T}|${tide}|${xRange[0]}|${xRange[1]}|${SHELTER_ON ? 1 : 0}`;
+  if (actCache.has(key)) return actCache.get(key);
+  const fit = reefFitFor(name);
+  const pr = PP_GEO_DATA.profiles[name];
+  if (!fit || !pr?.contourFit?.usable || !hasBedGrid(name, 0)) { actCache.set(key, null); return null; }
+  const xLo = pr.stageBoundsM[0] + 10, xHi = pr.stageBoundsM[1] - 10;
+  const wl = MSL_ABOVE_NAVD88 + tide;
+  const { z0, z1 } = PP_DEPTH_DATA.grid;
+  let best = null, minDepth = Infinity, cells = 0;
+  for (let i = 0; i < BREAK_N; i++) {
+    const x = xRange[0] + (xRange[1] - xRange[0]) * (i / (BREAK_N - 1));
+    if (x < xLo || x > xHi) continue;
+    const shelter = SHELTER_ON ? shelterFactor(x) : 1;
+    for (let z = z0; z <= z1; z += MARCH_DZ) {
+      const eb = bedElevBlended(name, x, z, 0);
+      const d = wl - eb;
+      if (d <= 0.35) break;                                  // beach: the march stops here too
+      if (eb - bedElevAt(name, x, z) <= 0.005) continue;     // not on the wedge footprint
+      cells++;
+      if (d < minDepth) minDepth = d;
+      const h0 = GAMMA * d / (shelter * shoaledHeight(1, T, d));   // Ks = shoaledHeight(1, T, d)
+      if (best === null || h0 < best.H0) best = { H0: h0, x, z, depthM: d, shelter };
+    }
+  }
+  const out = best === null ? null
+    : { H0: best.H0, cell: { x: best.x, z: best.z, depthM: best.depthM, shelter: best.shelter },
+        minReefDepthM: minDepth, reefCells: cells, T, tide };
+  actCache.set(key, out);
+  return out;
 }
 
 // ---------- GPU texture / CPU grid, both from the composite ----------
