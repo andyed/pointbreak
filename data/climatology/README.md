@@ -8,14 +8,32 @@ Four files, and they are not peers.
 | `pp_monthly_ocean.js` | derived from the above | the `#month=` data module web-three imports |
 | `pp_spectral_sets.json` | CDIP MOP SC116 directional spectra | set-structure analysis — **a negative result** |
 | `pp_surfforecast_climatology.json` | surf-forecast.com break stats, NWW3 node 48 km offshore | provenance + wind only |
+| `pp_mop_alongshore.json` | CDIP MOP SC109–SC118, the ten transects spanning Private's → west of Sewers | the **alongshore gradient** at the 15 m contour (2026-09-01) |
 
-Two builders. `build_cdip_climatology.py` needs only stdlib + numpy and emits the
+Three builders. `build_alongshore_gradient.py` pulls the ten neighbouring
+transects (Hs + QC flag only, ~2 min) and writes the fifth file; see
+`../../docs/research/REEF_ACTIVATION_2026-09-01.md` §5 for what it says.
+The other two: `build_cdip_climatology.py` needs only stdlib + numpy and emits the
 first two files; `build_spectral_sets.py` needs netCDF4 and a 148 MB local copy
 of the hindcast (both scripts document their own recipe in `--help`).
 
 Analyses: `../../docs/research/PP_CDIP_CLIMATOLOGY.md`,
 `../../docs/research/PP_SPECTRAL_SETS.md`, and for the older source and why it
 fails, `../../docs/research/PP_SWELL_CLIMATOLOGY.md`.
+
+## pp_mop_alongshore.json — one transect is not the whole point (2026-09-01)
+
+SC116's backbeach point lands between First Peak and Second Peak
+(`CA_v1.1_transect_definitions.txt`, columns 3–4). A `#month=` state applies
+its p75 at every spot's reef anchor. This file measures what MOP says the other
+spots see: per transect, monthly Hs percentiles 2000–2024 and the hour-matched
+ratio to SC116. Headline: **Sewers' transect (SC117) runs 1.08× SC116 in August
+and 1.04× in January; Private's (SC109) 0.85× and 1.00×.** The whole canon spans
+1.27× in August at the 15 m contour, against the 3.1× (2.2 → 0.7 m) the card
+bank authors. MOP stops at the 15 m contour, ~1 km off these spots, so it
+carries the apex/refraction gradient there and nothing shoreward of it.
+SC109/SC110 and SC114/SC115 share a prediction site and return identical
+series.
 
 ## pp_spectral_sets.json — read the verdict before using it
 

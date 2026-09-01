@@ -864,3 +864,35 @@
              section 2.3). The -0.10 m sheet under The Hook and Shark's Cove is its output
              between the coastline mask and soundings 300--500 m out, not a measurement.}
 }
+
+@misc{cdip2016moptransects,
+  author       = {{Coastal Data Information Program (CDIP), Scripps Institution of Oceanography}},
+  title        = {{MOP} v1.1 {California} transect definitions ({CA\_v1.1\_transect\_definitions.txt})},
+  year         = {2016},
+  month        = apr,
+  url          = {http://cdip.ucsd.edu/MOP_v1.1/CA_v1.1_transect_definitions.txt},
+  note         = {VERIFIED by fetch 2026-09-01 (11,624 lines; header dated April 2016).
+             Tab-delimited: sequence, label, backbeach lon/lat, prediction-site
+             lon/lat, site depth, shore normal, shore type. Places the shipped
+             climatology's transect: SC116's backbeach point (-121.97150, 36.95560)
+             is 114 m from the Second Peak OSM node and 120 m from First Peak's;
+             SC117 is Sewer Peak's transect (120 m), SC114 38th's (79 m), SC112 The
+             Hook's (72 m), SC111 Shark's Cove's (59 m), SC109 Private's (87 m).
+             Read by data/climatology/build\_alongshore\_gradient.py.}
+}
+
+@misc{cdip2025mopalongshore,
+  author       = {{Coastal Data Information Program (CDIP), Scripps Institution of Oceanography}},
+  title        = {{MOP} v1.1 alongshore hindcast, transects {SC109}--{SC118} ({MOPv1.1\_SC1xx\_2000010100-2025033123})},
+  year         = {2025},
+  url          = {https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/MOP_alongshore/},
+  note         = {VERIFIED by OPeNDAP pull 2026-09-01: ten hourly files, 221,328 records
+             each, 2000-01-01 to 2025-03-31, waveHs + waveFlagPrimary. The same
+             product as the SC116 file behind pp\_cdip\_climatology.json
+             (oreilly2016cdip is the method). SC109/SC110 and SC114/SC115 share a
+             prediction site and return identical series. Reduced to monthly
+             percentiles and hour-matched ratios to SC116 by
+             data/climatology/build\_alongshore\_gradient.py into
+             pp\_mop\_alongshore.json. A linear refraction model on the 10--15 m
+             contour, not a measurement at the break.}
+}

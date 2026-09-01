@@ -58,6 +58,30 @@ and Jack's, the depth at the drawn line, h_b. DEM-specific: contour tangents
 not become the shipped bed until the two flats are explained, the reef fit
 uses the signed metric, and either surface has a sounding under the break.
 
+## ▶ MEASURED, NOT WIRED (2026-09-01) — reef activation at Sewers / First Peak: honest, and authored
+
+`docs/research/REEF_ACTIVATION_2026-09-01.md`, instrument
+`scripts/measure_reef_activation_sensitivity.mjs` (bed.js served with four
+constants parameterised in memory; bit-identical to the shipped bake at zero
+knobs, `tests/reef-activation-sweep.test.js`). Activation H0 is the depth of the
+shallowest wedge cell and nothing else (closed form to 1e-12): crest =
+`0.75·h_b(card)`, an authored quantity, not a DEM one — the 0.31–0.93 m
+residual does not apply to it. Reef extent, feather and amplitude move
+activation by ≤ 0.16 m at First Peak and ≤ 0.09 m elsewhere (Sewers never below
+1.15 m across every window variant). The −0.5 m NAVD88 ceiling floors
+activation at 0.60–0.73 m at every spot, all above the August p75 (0.585): **no
+wedge inside the shipped invariants activates at the August p75 anywhere.**
+Sewers needs a 1.11 m shallower crest to reach the August p90, 1.28 m plus a
+lifted ceiling for the p75. New external evidence: MOP transects SC109–SC118
+(`data/climatology/pp_mop_alongshore.json`) put Sewers' own August p75 at
+0.633 m deep-water (1.08× SC116), so the single-transect month table is not
+what hides a Sewers summer. Verdict: Sewers, First Peak, Second Peak, The Hook
+honest lulls; Jack's and Sharks ceiling-limited (their number is
+`REEF_CEIL_EL`'s). One ordering conflict recorded, not resolved: the guide says
+down-point needs *more* swell, the crest rule makes up-point need more local
+H0. Honesty gap to close: the QA season sheet's `sea-sewers-august` row renders
+the 1.62 m clamp under a "0.585 m" caption and does not read the clamp.
+
 ## ✔ 2026-08-26 — anatomy core promoted; transported crash remains next
 
 The judged anti-saucer mechanisms now ship together: curl, aerated lip,

@@ -85,3 +85,9 @@ data/bathy/candidates/*/raw/
 # out of history. candidates/csmp_aptos/README.md holds the recipe and the numbers.
 data/bathy/candidates/csmp_aptos/*.tif
 data/bathy/pp_bathy_csmp_aptos.json
+# Reef-activation sensitivity (scripts/measure_reef_activation_sensitivity.mjs):
+# same discipline as break-field — the summary is the measurement the research
+# note cites and is committed; anything else the run drops there is not.
+!qa/reef-activation/
+qa/reef-activation/*
+!qa/reef-activation/summary.json
