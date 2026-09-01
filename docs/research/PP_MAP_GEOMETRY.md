@@ -94,6 +94,16 @@ Two findings:
 Bombora at −5.4 m, 309 m offshore, is the outer-reef big-swell wave — a
 natural "XL day" preset.
 
+*Update 2026-09-01.* A 1/9 arc-second NOAA CUDEM tile does cover the point
+(contrary to the 2026-08-09 note in `data/bathy/README.md`). On it the
+spot-node elevations move by 0.4–1.3 m in both directions (Sewers −2.86,
+First Peak −0.47, Second Peak −0.40, 38th −0.53, Hook −0.10, Shark's −0.10,
+Private's −1.69 m NAVD88), so finding 1's monotonic shallowing does not hold
+on the finer grid, and Sewer Peak's 0–400 m slope reads 1:51 rather than
+1:72. Neither grid is validated under the surf zone. Full comparison and
+provenance: `BATHY_SOURCES_2026-09-01.md`. The shipped `pp_bathy.json` is
+unchanged.
+
 ## Provenance note
 
 The stylized shop map prompted this; OSM supersedes it for geometry (the map's

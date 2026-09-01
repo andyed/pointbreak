@@ -738,3 +738,85 @@
              disagreeing by 4.98 percent. Verify the citation before it carries
              any published claim.}
 }
+
+% 5. Bathymetry sources evaluated 2026-09-01 (docs/research/BATHY_SOURCES_2026-09-01.md)
+
+@misc{dartnell2015aptosbathy,
+  author       = {Dartnell, Peter and Ritchie, Andrew C. and Finlayson, David P.},
+  title        = {Bathymetry [{USGS}]--Offshore {Aptos}, {California}},
+  howpublished = {in Golden, N.E., compiler, 2013, California State Waters Map Series Data Catalog: U.S. Geological Survey Data Series 781},
+  year         = {2015},
+  doi          = {10.5066/F7K35RQB},
+  url          = {https://cmgds.marine.usgs.gov/data/csmp/OffshoreAptos/data_catalog_OffshoreAptos.html},
+  note         = {VERIFIED DataCite 2026-09-01 (10.5066/F7K35RQB resolves to ``California
+             State Waters Map Series Data Catalog--Offshore of Aptos, California'', USGS 2015;
+             not in CrossRef -- USGS data DOIs are DataCite). Parent DS 781 VERIFIED CrossRef
+             (10.3133/ds781). The 2 m SEA SWATHplus grid, NAD83/UTM 10N, NAVD88, CC0.
+             Pleasure Point is in THIS block, not Offshore of Santa Cruz. The survey
+             starts near the 10 m isobath: the nearest valid cell is 325--565 m seaward
+             of every canon spot, so it does not see the reef at breaking depth.}
+}
+
+@techreport{cochrane2016aptos,
+  author      = {Cochrane, Guy R. and Johnson, Samuel Y. and Dartnell, Peter and Greene, H. Gary and Erdey, Mercedes D. and Dieter, Bryan E. and Golden, Nadine E. and Hartwell, Stephen R. and Ritchie, Andrew C. and Kvitek, Rikk G. and Maier, Katherine L. and Endris, Charles A. and Davenport, Clifton W. and Watt, Janet T. and Sliter, Ray W. and Finlayson, David P. and Krigsman, Lisa M.},
+  title       = {California State Waters Map Series---Offshore of Aptos, California},
+  institution = {U.S. Geological Survey},
+  number      = {Open-File Report 2016-1025},
+  year        = {2016},
+  doi         = {10.3133/ofr20161025},
+  note        = {VERIFIED CrossRef 2026-09-01. The map-sheet companion to the Aptos
+             data release; pamphlet 43 p., 10 sheets, 1:24,000.}
+}
+
+@techreport{cochrane2016santacruz,
+  author      = {Cochrane, Guy R. and Dartnell, Peter and Johnson, Samuel Y. and Erdey, Mercedes D. and Golden, Nadine E. and Greene, H. Gary and Dieter, Bryan E. and Hartwell, Stephen R. and Ritchie, Andrew C. and Finlayson, David P. and Endris, Charles A. and Watt, Janet T. and Davenport, Clifton W. and Sliter, Ray W. and Maier, Katherine L. and Krigsman, Lisa M.},
+  title       = {California State Waters Map Series---Offshore of Santa Cruz, California},
+  institution = {U.S. Geological Survey},
+  number      = {Open-File Report 2016-1024},
+  year        = {2016},
+  doi         = {10.3133/ofr20161024},
+  note        = {VERIFIED CrossRef 2026-09-01. Its bathymetry block ends at -122.00 E,
+             2.1 km WEST of the Pleasure Point apex (Bathymetry\_OffshoreSantaCruz
+             metadata, East\_Bounding\_Coordinate). Cited so nobody re-fetches it for
+             this reef; the data release is 10.5066/F7TM785G (DataCite).}
+}
+
+@misc{ritchie2010ds514,
+  author       = {Ritchie, Andrew C. and Finlayson, David P. and Logan, Joshua B.},
+  title        = {Swath Bathymetry Surveys of the {Monterey Bay} Area from {Point A\~{n}o Nuevo} to {Moss Landing}, {San Mateo}, {Santa Cruz}, and {Monterey} Counties, {California}},
+  howpublished = {U.S. Geological Survey Data Series 514},
+  year         = {2010},
+  doi          = {10.3133/ds514},
+  note         = {VERIFIED CrossRef 2026-09-01. The 2009 SWATHplus field campaign the
+             CSMP Aptos and Santa Cruz 2 m grids were gridded from (their metadata
+             Source\_Citation).}
+}
+
+@misc{cires2014cudem,
+  author       = {{Cooperative Institute for Research in Environmental Sciences (CIRES) at the University of Colorado, Boulder}},
+  title        = {Continuously Updated Digital Elevation Model ({CUDEM}) -- 1/9 Arc-Second Resolution Bathymetric-Topographic Tiles},
+  publisher    = {NOAA National Centers for Environmental Information},
+  year         = {2014},
+  doi          = {10.25921/ds9v-ky35},
+  url          = {https://chs.coast.noaa.gov/htdata/raster2/elevation/NCEI_ninth_Topobathy_2014_8483/},
+  note         = {VERIFIED DataCite 2026-09-01. Tile used: CA/ncei19\_n37x00\_w122x00\_2023v1.tif,
+             NAD83 + NAVD88 (EPSG:5498), 202 MB, Last-Modified 2024-01-10. Corrects
+             data/bathy/README.md's 2026-08-09 statement that no 1/9 arc-second tile
+             covered this corner. Public domain (US Government).}
+}
+
+@article{amante2023cudem,
+  author  = {Amante, Christopher J. and Love, Matthew and Carignan, Kelly and Sutherland, Michael G. and MacFerrin, Michael and Lim, Elliot},
+  title   = {Continuously Updated Digital Elevation Models ({CUDEMs}) to Support Coastal Inundation Modeling},
+  journal = {Remote Sensing},
+  volume  = {15},
+  number  = {6},
+  pages   = {1702},
+  year    = {2023},
+  doi     = {10.3390/rs15061702},
+  note    = {VERIFIED CrossRef 2026-09-01. The methods paper for the CUDEM tiles:
+             telescoping 1/9--1/3--3 arc-second tiling, source hierarchy, the
+             topobathymetric-lidar and NOS-survey shallow sources. Programme-level;
+             it does not list per-tile sources, so what fed the surf zone of
+             n37x00\_w122x00 is not stated anywhere this repo could find.}
+}
