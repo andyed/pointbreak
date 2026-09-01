@@ -17,14 +17,31 @@ magic number.
 Usage:
   python3 data/model/build_depth_patches.py           # write the module
   python3 data/model/build_depth_patches.py --check   # verify it is current
+  python3 data/model/build_depth_patches.py --bathy pp_bathy_cudem19.json
+      # a candidate grid (data/bathy/README.md): reads pp_geo_profiles.<tag>.js
+      # and writes pp_depth_patches.<tag>.js; a patch that samples a null cell
+      # fails closed and is reported. --geo / --out override the derived paths.
 """
-import base64, hashlib, json, math, struct, sys
+import argparse, base64, hashlib, json, math, struct, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-BATHY = ROOT / 'data/bathy/pp_bathy.json'
+BATHY_DIR = ROOT / 'data/bathy'
+BATHY = BATHY_DIR / 'pp_bathy.json'
 GEO = ROOT / 'data/model/pp_geo_profiles.js'
 OUT = ROOT / 'data/model/pp_depth_patches.js'
+
+
+def bathy_tag(path):
+    """'pp_bathy_cudem19.json' -> 'cudem19'; the shipped grid -> ''."""
+    if path.resolve() == BATHY.resolve():
+        return ''
+    stem = path.stem
+    return stem[len('pp_bathy_'):] if stem.startswith('pp_bathy_') else stem
+
+
+def sibling(base, tag):
+    return base if not tag else base.with_name(f'{base.stem}.{tag}{base.suffix}')
 
 # NOAA CO-OPS 9413450 (Monterey), metric datums, pulled 2026-08-10:
 # MSL 1.893 m, NAVD88 0.988 m on the station's own staff.
@@ -54,39 +71,53 @@ NX, NZ = 180, 148        # ~7.2 x 7.0 m posts; the DEM itself is ~10 m, so this
 E_MIN, E_MAX = -30.0, 30.0
 
 
-def load_geo_profiles():
+def load_geo_profiles(geo_path=GEO):
     """Parse the generated JS module's JSON payload."""
-    txt = GEO.read_text()
+    txt = geo_path.read_text()
     start = txt.index('Object.freeze(') + len('Object.freeze(')
     end = txt.rindex(');')
     return json.loads(txt[start:end])
 
 
 class Bed:
-    """Bilinear sampler over the NCEI grid in local ENU metres."""
+    """Bilinear sampler over the NCEI grid in local ENU metres.
+
+    Off-grid samples clamp to the edge post (the shipped grid is far larger
+    than any patch, so this never fires there; a candidate grid's far corner
+    can, and the count is reported). A null post is a data gap, not an edge:
+    the sample is None and the caller fails the patch closed."""
 
     def __init__(self, b):
         self.x0, self.y0 = b['x0'], b['y0']
         self.dx, self.dy = b['dx'], b['dy']
         self.nc, self.nr = b['ncols'], b['nrows']
         self.e = b['elev']
+        self.out_of_grid = 0
+        self.nulls = 0
 
     def at(self, x, y):
         fc = (x - self.x0) / self.dx
         fr = (y - self.y0) / self.dy
         c = min(max(int(math.floor(fc)), 0), self.nc - 2)
         r = min(max(int(math.floor(fr)), 0), self.nr - 2)
+        if fc < 0 or fr < 0 or fc > self.nc - 1 or fr > self.nr - 1:
+            self.out_of_grid += 1
         tc = min(max(fc - c, 0.0), 1.0)
         tr = min(max(fr - r, 0.0), 1.0)
         e = self.e
-        return (e[r][c] * (1 - tc) * (1 - tr) + e[r][c + 1] * tc * (1 - tr)
-                + e[r + 1][c] * (1 - tc) * tr + e[r + 1][c + 1] * tc * tr)
+        q00, q10, q01, q11 = e[r][c], e[r][c + 1], e[r + 1][c], e[r + 1][c + 1]
+        if q00 is None or q10 is None or q01 is None or q11 is None:
+            self.nulls += 1
+            return None
+        return (q00 * (1 - tc) * (1 - tr) + q10 * tc * (1 - tr)
+                + q01 * (1 - tc) * tr + q11 * tc * tr)
 
 
-def build():
-    bathy = json.loads(BATHY.read_text())
-    geo = load_geo_profiles()
-    bed = Bed(bathy)
+def build(bathy_path=BATHY, geo_path=GEO):
+    bathy = json.loads(bathy_path.read_text())
+    geo = load_geo_profiles(geo_path)
+    tag = bathy_tag(bathy_path)
+    failed = {}
 
     patches = {}
     for name, p in geo['profiles'].items():
@@ -95,6 +126,7 @@ def build():
         ox, oy = p['stageOriginENU']
         ax, ay = p['stageAlongENU']
         sx, sy = p['stageShoreENU']
+        bed = Bed(bathy)   # per patch, so the out-of-grid / null counts are per spot
 
         vals, lo, hi = [], 1e9, -1e9
         for j in range(NZ):
@@ -104,10 +136,18 @@ def build():
                 ex = ox + x * ax + z * sx
                 ey = oy + x * ay + z * sy
                 v = bed.at(ex, ey)
+                if v is None:
+                    break
                 lo, hi = min(lo, v), max(hi, v)
                 q = int(round((min(max(v, E_MIN), E_MAX) - E_MIN)
                               / (E_MAX - E_MIN) * 65535))
                 vals.append(min(max(q, 0), 65535))
+        if bed.nulls:
+            # FAIL CLOSED. A patch with a hole in it would ship as a bed with a
+            # -30 m pit (the quantization floor) where the source had no data.
+            # The spot keeps the synthetic stage, and the reason is recorded.
+            failed[name] = f'{bed.nulls} patch cells sample null posts'
+            continue
 
         # Least-squares plane through the real bed: elev = a + b*x + c*z.
         # This is the A/B counterfactual — the same overall depth scale, slope
@@ -192,16 +232,28 @@ def build():
                 / len(vals), 4),
             'u16': base64.b64encode(raw).decode('ascii'),
         }
+        if bed.out_of_grid:
+            # Far-corner cells clamped to the grid edge (scene context beyond the
+            # fog, never inside the wave model's fit window on any grid built so
+            # far). Reported so nobody mistakes the clamp for terrain. Absent on
+            # the shipped grid, so the default module is unchanged.
+            patches[name]['outOfGridCells'] = bed.out_of_grid
 
-    return {
+    def repo_rel(p):
+        p = p.resolve()
+        return p.relative_to(ROOT).as_posix() if p.is_relative_to(ROOT) else str(p)
+    generated_from = {
+        'bathy': repo_rel(bathy_path),
+        'bathySha256': hashlib.sha256(bathy_path.read_bytes()).hexdigest(),
+        'geoProfiles': repo_rel(geo_path),
+        'geoSha256': hashlib.sha256(geo_path.read_bytes()).hexdigest(),
+        'datum': 'NAVD88',
+    }
+    if tag:
+        generated_from['bathySource'] = tag
+    out = {
         'version': 1,
-        'generatedFrom': {
-            'bathy': 'data/bathy/pp_bathy.json',
-            'bathySha256': hashlib.sha256(BATHY.read_bytes()).hexdigest(),
-            'geoProfiles': 'data/model/pp_geo_profiles.js',
-            'geoSha256': hashlib.sha256(GEO.read_bytes()).hexdigest(),
-            'datum': 'NAVD88',
-        },
+        'generatedFrom': generated_from,
         'mslAboveNavd88M': MSL_ABOVE_NAVD88,
         'tideRangeM': [TIDE_MIN_M, TIDE_MAX_M],
         'mllwAboveNavd88M': MLLW_ABOVE_NAVD88,
@@ -212,6 +264,9 @@ def build():
                  'elevMinM': E_MIN, 'elevMaxM': E_MAX},
         'patches': patches,
     }
+    if failed:
+        out['failedClosed'] = failed
+    return out
 
 
 def render(data):
@@ -225,20 +280,43 @@ def render(data):
 
 
 def main():
-    data = build()
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--check', action='store_true', help='fail if the module is stale')
+    ap.add_argument('--bathy', default=None, metavar='FILE',
+                    help='grid in the pp_bathy.json schema (name under data/bathy/ or a path); '
+                         'default the shipped pp_bathy.json. A non-default grid reads '
+                         'pp_geo_profiles.<tag>.js and writes pp_depth_patches.<tag>.js.')
+    ap.add_argument('--geo', default=None, metavar='PATH', help='override the geo-profiles module to read')
+    ap.add_argument('--out', default=None, metavar='PATH', help='override the output module path')
+    args = ap.parse_args()
+    bathy_path = BATHY if not args.bathy else (
+        Path(args.bathy) if Path(args.bathy).exists() else BATHY_DIR / args.bathy)
+    if not bathy_path.exists():
+        print('no such bathymetry grid: %s' % bathy_path)
+        return 2
+    tag = bathy_tag(bathy_path)
+    geo_path = Path(args.geo) if args.geo else sibling(GEO, tag)
+    out_path = Path(args.out) if args.out else sibling(OUT, tag)
+    if not geo_path.exists():
+        print('no geo profiles for this grid: %s (run build_geo_profiles.py --bathy first)' % geo_path)
+        return 2
+    data = build(bathy_path, geo_path)
     text = render(data)
-    if '--check' in sys.argv:
-        if not OUT.exists() or OUT.read_text() != text:
-            print('STALE: %s does not match its sources' % OUT.name)
+    if args.check:
+        if not out_path.exists() or out_path.read_text() != text:
+            print('STALE: %s does not match its sources' % out_path.name)
             return 1
-        print('current: %s' % OUT)
+        print('current: %s' % out_path)
         return 0
-    OUT.write_text(text)
-    print('wrote %s (%d patches, %d KB)' % (OUT.name, len(data['patches']),
+    out_path.write_text(text)
+    print('wrote %s (%d patches, %d KB)' % (out_path.name, len(data['patches']),
                                             len(text) // 1024))
     for n, p in data['patches'].items():
-        print('  %-14s elev %6.2f..%6.2f m  land@MSL %5.1f%%'
-              % (n, p['elevMinM'], p['elevMaxM'], 100 * p['landFractionAtMsl']))
+        print('  %-14s elev %6.2f..%6.2f m  land@MSL %5.1f%%%s'
+              % (n, p['elevMinM'], p['elevMaxM'], 100 * p['landFractionAtMsl'],
+                 ('  out-of-grid %d' % p['outOfGridCells']) if p.get('outOfGridCells') else ''))
+    for n, why in data.get('failedClosed', {}).items():
+        print('  %-14s FAILED CLOSED: %s' % (n, why))
     return 0
 
 

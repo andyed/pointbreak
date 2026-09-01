@@ -23,6 +23,37 @@ Those OSM midpoint bounds constrain contour sampling and the surfer's local
 ride span; they are not presented as measured reef edges. The authored reef
 envelope therefore remains separate.
 
+## Alternate bathymetry sources (2026-09-01)
+
+Both builders take `--bathy FILE` (a name under `data/bathy/` or a path) and,
+for any grid other than the shipped `pp_bathy.json`, write sibling modules
+named after the grid instead of the shipped ones:
+
+```bash
+python3 data/model/build_geo_profiles.py  --bathy pp_bathy_cudem19.json   # -> pp_geo_profiles.cudem19.js
+python3 data/model/build_depth_patches.py --bathy pp_bathy_cudem19.json   # -> pp_depth_patches.cudem19.js
+python3 data/model/build_geo_profiles.py  --bathy pp_bathy_cudem19.json --truncate 0.5   # -> pp_geo_profiles.cudem19-t05.js
+node scripts/measure_break_activation.mjs --mode=card --bed=cudem19        # the whole headless model on that bed
+python3 data/model/experiments/bed_source_compare.py                        # the cross-grid tables
+```
+
+The default invocations are unchanged and `--check` on them is still
+byte-stable. A candidate grid may carry `null` cells; a spot whose contour scan
+or depth patch touches one **fails closed** (`usable: false`, reason in
+`generatedFrom.failedClosed`), as does a spot the grid cannot frame (a flat at
+the storage quantum gives a zero gradient — The Hook and Shark's Cove on the
+CUDEM grid). `--geo` / `--out` override the derived paths.
+
+The headless switch is `scripts/lib/bed-source.mjs`: `--bed=<tag>` (or
+`POINTBREAK_BED=<tag>`) installs a `node:module` resolve hook that redirects the
+two module specifiers to the tagged siblings for every consumer, shipped code
+included; nothing is edited and no hook exists without the flag. Instrument
+output for a tagged bed goes to `qa/break-field-<tag>/` (ignored), never into
+the committed `qa/break-field/summary.json`. What the model does on the finer
+bed is measured in `docs/research/CUDEM_BED_2026-09-01.md`. The tagged modules
+(`*.ncei13_wide.js`, `*.cudem19.js`, `*.cudem19-t05.js`) are committed so those
+numbers are reproducible without rebuilding; nothing imports them by default.
+
 The contour fit uses elevation differences, so it does not require the still
 unresolved NAVD88-to-MSL offset. Absolute elevation is not used as water depth.
 Profiles with more than 5 m RMS contour-fit error fail closed to the synthetic
