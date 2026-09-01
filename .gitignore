@@ -53,3 +53,14 @@ docs/drafts/
 # are not (commit b013197 removed 6.7 MB of unreferenced screenshots, and this
 # is exactly the class of thing it removed).
 qa/
+
+# Raw bathymetry pulls behind data/bathy/candidates/*/ — full CSMP zips and
+# extracted 100-300 MB GeoTIFFs. Each candidate README records the URL, and the
+# committed *_pp_clip.tif files are the spatial subsets the analysis reads.
+data/bathy/candidates/*/raw/
+
+# CSMP Aptos 2 m grid: null at every canon spot (the swath survey starts 325-565 m
+# seaward of them), so the clip and its stage-frame JSON are a negative result kept
+# out of history. candidates/csmp_aptos/README.md holds the recipe and the numbers.
+data/bathy/candidates/csmp_aptos/*.tif
+data/bathy/pp_bathy_csmp_aptos.json
