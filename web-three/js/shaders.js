@@ -1656,12 +1656,35 @@ void main() {
   // (the ownership rule at the top of main). Uniform branch: no cost and a
   // bit-identical frame at the default.
 #ifdef ROLLER
-  float rollerM = 0.0;
+  float rollerM = 0.0, rollerRim = 0.0, rollerTex = 0.5, rollerW = 0.0;
   if (u_roller > 0.0) {
-    vec4 impF = impactSourceAt(sourceXZ, t);
-    rollerM = clamp(1.4*impF.x + 1.0*impF.y, 0.0, 1.0);
-    // lightly perforated by the same erosion lattice so it is whitewater
-    foamM = max(foamM, rollerM*(0.55 + 0.45*er));
+    vec4 geoF;
+    vec4 impF = impactSourceAt(sourceXZ, t, geoF);
+    // ITS OWN TEXTURE (second pass, 2026-09-01). The first cut perforated the
+    // roller with the erosion lattice er (which sits still) and textured it
+    // in the model with clumps (which drifts SEAWARD at ~3.5 m/s) — so a
+    // mass travelling shoreward at ~4 m/s wore a texture that stood still or
+    // crawled the wrong way, and read as a brighter patch of the same lace.
+    // A roller is a tumbling bore: fine boil, advected WITH the mass at its
+    // own z-speed (geoF.w, the lifecycle's frontSpeed along the ray), rolling
+    // over in place (the t*0.9 term) — finer than the lace, moving with the
+    // roller. Sampled in source coordinates like everything else here.
+    vec2  rq = vec2(sourceXZ.x, sourceXZ.y - geoF.w*t);
+    rollerTex = vnoise2(rq*0.85 + vec2(0.0, t*0.9))*0.55
+              + vnoise2(rq*2.10 - vec2(t*0.4, 0.0))*0.45;
+    // LEADING EDGE: the shoreward face of the roller is where it tumbles over
+    // green water — the brightest, roughest part of a real bore. A rim on the
+    // shoreward flank, half a sigma past the centre to ~1.5 sigma, keyed to
+    // the field so it dies with the roller. u is metres ahead of the centre in
+    // sigmas (geoF.y).
+    float uR = (sourceXZ.y - impF.z)/max(geoF.y, 1.0);
+    rollerRim = impF.y * smoothstep(0.15, 0.75, uR) * (1.0 - smoothstep(1.05, 1.60, uR));
+    rollerM = clamp(1.4*impF.x + 1.0*impF.y + 0.9*rollerRim, 0.0, 1.0);
+    rollerW = clamp(1.6*rollerM, 0.0, 1.0);
+    // DENSER than the lace it rides over: the erosion lattice barely
+    // perforates it (0.80 floor against the pocket's 0.55); its own boil does
+    // the texturing in the colour pass below.
+    foamM = max(foamM, rollerM*(0.80 + 0.20*er));
   }
 #endif
   // Probe 1 changes only the material response. Probe 2 additionally spends
@@ -1915,6 +1938,21 @@ void main() {
   // deeper film with #head: the aged tail grades toward water so the fresh
   // head owns the stripe's brightness (comet read, same A/B as the tail carve)
   foamCol = mix(foamCol, filmCol, (0.55 + 0.13*u_headRead)*ageK);
+  // ---- roller shading (#roller=, default OFF) ----
+  // Placed AFTER the film mix on purpose: the roller is fresh aerated mass
+  // wherever it is and never films with tSince (the lace around it does, which
+  // is half the contrast). Distinct from the lace three ways: its own fine
+  // boil texture (rollerTex, advected with the mass), a stronger Lambert term
+  // than foam's 0.14 so the mound's front and back faces read as a body with
+  // volume, and a bright rim on the leading edge. Inside the uniform branch
+  // so the default path compiles the shipped text unchanged.
+#ifdef ROLLER
+  if (u_roller > 0.0) {
+    vec3 rollCol = vec3(0.985, 0.99, 1.0) * (0.78 + 0.22*rollerTex) * (0.72 + 0.28*lamF);
+    rollCol = mix(rollCol, vec3(1.0), 0.65*clamp(rollerRim*1.5, 0.0, 1.0));
+    foamCol = mix(foamCol, rollCol, rollerW);
+  }
+#endif
   col = mix(col, foamCol, clamp(foamM*mix(1.15, 0.90, ageK), 0.0, 0.97));
 
   // ---- 4.7 aerated lip (#lip=1, default OFF) ----
@@ -2060,6 +2098,29 @@ void main(){
   float x = x0 + (seedZ - 0.5)*2.4 + (h2 - 0.5)*1.8*u01;   // randomized spacing + drift
   float z = zLaunch + vz*tf;
   float y = yLip*(1.0 - u01) + 4.0*lift*u01*(1.0 - u01);   // parabola: lip -> apex -> foam
+  // ---- one landing line, two materials (#roller=, default OFF) ----
+  // With the transported crash armed the spray is the EJECTA of the same
+  // landing the deposit and the splash-up sheet come from — not a second
+  // plume launched from the bore front ~8 m up-face of it (the two-loci defect
+  // TODO item (a) named). Same clock (tf is already this station's age past
+  // CRASH_PEAK_S); the locus moves to impactLandingAt's zL and the arc is
+  // anchored to the DRAWN surface there (ocean() at the source point, the
+  // repair 1b0c80e deferred) instead of the still-water datum, thrown UP to
+  // the splash-up's own ballistic peak and back to the water. The spray
+  // decides nothing: it reads the landing. Compiled only under ROLLER, so the
+  // default build is the shipped text.
+#ifdef ROLLER
+  if (u_roller > 0.0) {
+    vec4 landS = impactLandingAt(x0, u_time);
+    if (landS.w > 0.0) {
+      float fS, pS, bS, cS, aS;
+      float y0 = ocean(vec2(x0, landS.x), u_time, fS, pS, bS, cS, aS);
+      float peakS = splashUpPeakM(landS.y)*(0.35 + 0.65*seedY);
+      z = landS.x + vz*tf;
+      y = y0 + 4.0*peakS*u01*(1.0 - u01);
+    }
+  }
+#endif
   vec3 world = vec3(x, y, z);
   vec4 mv = modelViewMatrix*vec4(world, 1.0);
 
@@ -2233,6 +2294,95 @@ void main(){
   vec3 foamCol = mix(vec3(0.76, 0.80, 0.79), vec3(0.97), 0.35 + 0.65*streak);
   foamCol *= 1.0 - 0.18*vCurtUV.y;   // entrains darker toward the landing
   gl_FragColor = vec4(foamCol, alpha);
+}
+`;
+
+// ---------- the splash-up sheet (#roller=, 2026-09-01, default OFF) ----------
+// THE THROWN MASS. The first roller pass left a material floor at the landing:
+// a brighter patch of foam that was already there, 0.3% of the frame. A
+// plunging jet landing on the face throws a sheet UP (Peregrine 1983's
+// splash-up), of the order of the breaking height — vertical extent the grid
+// cannot carry without recreating the detached plate 1fa3f84 removed. So, like
+// the curtain, it is a strip mesh authored from the shipped surface: position.x
+// is alongshore world metres, position.y the rise parameter v in [0,1]. Its
+// foot is surfacePos at the station's landing (impactLandingAt, the same point
+// the deposit is seeded at and the curtain lands on), its height is
+// splashUpHeight — a ballistic in physical metres under G, so a bigger wave
+// throws higher and longer with no duration knob — leaning shoreward with the
+// jet's momentum. It is gated by the landing's own strength (zero before
+// contact, zero when u_roller = 0, zero at spilling sites through the same
+// contact ramp), so it is a consumer of impactLandingAt, never an authority.
+// Compiled only under ROLLER (main.js builds the mesh only for a #roller boot).
+export const SPLASHUP_VERT = `
+${SURFACE_PRELUDE}
+${SURFACE_GLSL}
+varying float vSplA;     // sheet alpha
+varying vec2  vSplUV;    // (alongshore metres, rise parameter v)
+varying float vSplLife;  // 0 rising -> 1 fallen
+
+void main(){
+#ifdef ROLLER
+  float x0 = position.x;
+  float v  = position.y + 0.5;
+  vec4  land = impactLandingAt(x0, u_time);        // zL, hC, tauD, strength
+  float tauD = land.z;
+  float Tf   = splashUpFlightS(land.y);
+  float f1, p1, b1, c1, l1, a1, k1;
+  vec3  Pb = surfacePos(vec2(x0, land.x), u_time, f1, p1, b1, c1, l1, a1, k1);
+  // Ragged top: the sheet is not one height along the line. Two octaves in x,
+  // rolling on the simulation clock (seconds).
+  float rag = 0.62 + 0.38*(0.6*vnoise2(vec2(x0*0.45, u_time*1.7))
+                         + 0.4*vnoise2(vec2(x0*1.30 + 3.0, u_time*2.6)));
+  float hUp = splashUpHeight(tauD, land.y)*rag;
+  float life = (tauD > 0.0 && tauD < Tf) ? clamp(tauD/Tf, 0.0, 1.0) : 1.0;
+  // The jet's forward momentum: the sheet leans shoreward as it rises and
+  // collapses forward onto the roller it becomes.
+  float lean = (0.35 + 0.55*life)*hUp;
+  vec3 P = Pb + vec3(0.0, hUp*v, lean*v);
+  if (!(P.x == P.x && P.y == P.y && P.z == P.z)) P = Pb;   // NaN guard (house rule)
+  float gate = clamp(land.w, 0.0, 1.0) * (1.0 - l1) * farFadeAt(vec2(x0, land.x));
+  gate *= (tauD > 0.0 && tauD < Tf) ? 1.0 : 0.0;
+  // Solid on the way up, thinning as it falls and disperses.
+  gate *= smoothstep(0.0, 0.05, tauD) * (1.0 - smoothstep(0.55, 1.0, life));
+  vSplA    = gate;
+  vSplUV   = vec2(x0, v);
+  vSplLife = life;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
+#else
+  vSplA = 0.0; vSplUV = vec2(0.0); vSplLife = 0.0;
+  gl_Position = vec4(0.0, 0.0, 2.0, 1.0);   // off-screen: no ROLLER build draws nothing
+#endif
+}
+`;
+
+// Thrown aerated water: streaked vertically (it is water in flight), whitest at
+// the base where the mass is, thinning to a ragged top. Streaks run UP the
+// sheet while it rises and down as it falls, on the simulation clock.
+export const SPLASHUP_FRAG = `
+varying float vSplA;
+varying vec2  vSplUV;
+varying float vSplLife;
+uniform float u_time;
+
+float shash21(vec2 p){ vec3 q = fract(vec3(p.xyx)*0.1031); q += dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+float snoise2(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f*f*(3.0 - 2.0*f);
+  return mix(mix(shash21(i), shash21(i + vec2(1.0, 0.0)), u.x),
+             mix(shash21(i + vec2(0.0, 1.0)), shash21(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+void main(){
+  float dirS   = vSplLife < 0.5 ? -1.0 : 1.0;
+  float streak = snoise2(vec2(vSplUV.x*1.1, vSplUV.y*3.5 + dirS*u_time*1.6));
+  float grain  = snoise2(vec2(vSplUV.x*4.0, vSplUV.y*9.0 - u_time*2.2));
+  // ragged top edge: the sheet frays into spray over its upper half
+  float top = 1.0 - smoothstep(0.45, 1.0, vSplUV.y*(0.85 + 0.30*streak));
+  float alpha = vSplA * top * (0.70 + 0.30*grain);
+  if (alpha < 0.02) discard;
+  vec3 foamCol = mix(vec3(0.80, 0.84, 0.84), vec3(0.985), 0.45 + 0.55*streak);
+  foamCol *= 1.0 - 0.10*(1.0 - vSplUV.y);   // entrains a touch darker at the foot
+  gl_FragColor = vec4(foamCol, clamp(alpha, 0.0, 0.96));
 }
 `;
 

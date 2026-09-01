@@ -225,6 +225,18 @@ const float CURT_REACH = 0.9;
 const float DEPOSIT_TAU_S = 0.55;   // impact deposit e-fold at the landing
 const float ROLLER_TAU_S = 1.60;   // roller mass e-fold while it travels
 const float ROLLER_END_S = 5.00;   // smooth hard end of the roller's life
+// The SPLASH-UP (Peregrine 1983): the jet's landing throws a sheet of water
+// UP, of the order of the breaking height. Its peak is this fraction of the
+// depth-limited ceiling (breakerCeilM, the number the bend and the curtain
+// size off); its LIFE is not a constant — the sheet is a ballistic in physical
+// metres under G, so a bigger wave throws higher AND longer without a second
+// duration knob. Dimensionless fraction, in the wave's own length.
+const float SPLASHUP_FRAC = 0.70;
+// The roller is a bore with volume: its mound is this fraction of the
+// EMITTER's physical ceiling (breakerCeilM/VIS). Replaces the first cut's
+// 0.16*u_H0, which sized the mound off the deep-water swell instead of the
+// breaking scale at the station that threw it.
+const float ROLLER_MOUND_FRAC = 0.35;
 #endif
 
 // The pitching lip is a short event, not a held pose. Its arc angle grows
@@ -932,9 +944,15 @@ float breakerImpactPeakAtX(float x, float tEmit){
 // Returns vec4(deposit, roller, rollerCenterZ, tauSinceImpact). Amplitudes are
 // gain-scaled by u_roller and dimensionless (~[0, 1.5]); consumers size the
 // foam and the mound from them. Zero everywhere when u_roller = 0.
-vec4 impactSourceAt(vec2 sourceXZ, float t){
-  float x = sourceXZ.x;
-  float w = 2.0*PI/u_T;
+//
+// THE LANDING, ONCE (2026-09-01, second pass). Four consumers now read the
+// same station-level event — the deposit here, the roller's emitter here, the
+// splash-up sheet (shaders.js SPLASHUP_VERT) and the relocated spray
+// (SPRAY_VERT) — so the landing is one function: impactLandingAt(x, t) returns
+// (zL landing z, hC ceiling, tauD seconds since THIS station's landing,
+// strength = gain*contact*impact peak at emission, or 0 outside the life
+// window). Nothing downstream re-derives where or when the crest lands.
+float rollerContactGain(){
   float plunge  = smoothstep(0.45, 1.25, u_xi);
   // CALIBRATED TO THE CURTAIN'S OWN GATE, measured (measure_crash_transport,
   // max overturn along the transect over 40 s, curtain gate = smoothstep(0.30,
@@ -945,7 +963,51 @@ vec4 impactSourceAt(vec2 sourceXZ, float t){
   // a deposit under a curtain that barely draws; this ramp reproduces the
   // measured gates at all three sites.
   float contact = smoothstep(0.48, 0.90, plunge);
-  float gain    = u_roller * clamp(u_breakShape, 0.0, 1.0) * contact;
+  return u_roller * clamp(u_breakShape, 0.0, 1.0) * contact;
+}
+vec4 impactLandingAt(float x, float t){
+  float w    = 2.0*PI/u_T;
+  float phi  = swellPhi();
+  float zb   = breakLine(x);
+  float kk   = kLocalAt(vec2(x, zb));
+  float kz   = max(kk*cos(phi), 0.25*kk);
+  float zc   = zb + (w/kz)*CRASH_PEAK_S;            // crest source at impact
+  float hC   = breakerCeilM(vec2(x, zc));
+  float zL   = zc + CURT_REACH*hC;                   // the curtain's landing
+  // This station's own clock: the breakerLifecycleAtX idiom, impact at CRASH_PEAK_S.
+  float ageHere = mod(w*t - rayPhase(vec2(x, breakLine(x))), 2.0*PI)/w;
+  float tauD = ageHere - CRASH_PEAK_S;
+  float gain = rollerContactGain();
+  float strength = 0.0;
+  if (gain > 0.0 && tauD > 0.0 && tauD < ROLLER_END_S) strength = gain * breakerImpactPeakAtX(x, t - tauD);
+  vec4 o = vec4(zL, hC, tauD, strength);
+  if (!(o.x == o.x)) o.x = zb;              // NaN guards (house rule)
+  if (!(o.y == o.y)) o.y = 0.5;
+  if (!(o.z == o.z)) o.z = -1.0;
+  if (!(o.w == o.w)) o.w = 0.0;
+  return o;
+}
+// Splash-up kinematics, PHYSICAL metres under G, displayed through VIS like
+// every h term (ocean() applies VIS after the physical sum). Peak height is
+// SPLASHUP_FRAC of the ceiling; v0 and the flight time follow from it — no
+// duration constant, so a bigger day throws higher and longer on its own.
+// Both are pure functions of (tauD, hC): seek-safe by construction.
+float splashUpPeakM(float hC){ return SPLASHUP_FRAC*hC; }              // displayed
+float splashUpFlightS(float hC){ return 2.0*sqrt(2.0*splashUpPeakM(hC)/VIS/G); }
+float splashUpHeight(float tauD, float hC){                             // displayed
+  float hs = splashUpPeakM(hC)/VIS;                                      // physical peak
+  float v0 = sqrt(2.0*G*hs);
+  float y  = v0*tauD - 0.5*G*tauD*tauD;
+  return max(y, 0.0)*VIS;
+}
+// geo = (emitter ceiling hC0 [displayed m], roller sigma [m], this station's
+// landing z [m], roller z-speed vel.y [m/s]) — what the consumers that shape
+// the roller (mound, texture advection, leading edge) need beyond the field.
+vec4 impactSourceAt(vec2 sourceXZ, float t, out vec4 geo){
+  geo = vec4(0.0);
+  float x = sourceXZ.x;
+  float plunge  = smoothstep(0.45, 1.25, u_xi);
+  float gain    = rollerContactGain();
   if (gain <= 0.0) return vec4(0.0);
 
   // The water's propagation ray and the bore's speed along it — both owned
@@ -956,19 +1018,16 @@ vec4 impactSourceAt(vec2 sourceXZ, float t){
   vec2  vel = dir*frontSpeed;
 
   // ---- deposit: this station's own landing, this station's own clock ----
-  float ageHere = mod(w*t - rayPhase(vec2(x, breakLine(x))), 2.0*PI)/w;
-  float tauD = ageHere - CRASH_PEAK_S;
+  vec4  landHere = impactLandingAt(x, t);
+  float tauD = landHere.z;
+  geo.z = landHere.x;
+  geo.w = vel.y;
   float deposit = 0.0;
   if (tauD > 0.0 && tauD < ROLLER_END_S) {
-    float zbD = breakLine(x);
-    float kkD = kLocalAt(vec2(x, zbD));
-    float kzD = max(kkD*cos(phi), 0.25*kkD);
-    float zcD = zbD + (w/kzD)*CRASH_PEAK_S;          // crest source at impact
-    float hCD = breakerCeilM(vec2(x, zcD));
-    float zLD = zcD + CURT_REACH*hCD;                 // the curtain's landing
+    float hCD  = landHere.y;
     float sigD = max(0.30*hCD, 1.5);                  // >~1.5 cells or it aliases
-    float dzD  = sourceXZ.y - zLD;
-    deposit = gain * breakerImpactPeakAtX(x, t - tauD)
+    float dzD  = sourceXZ.y - landHere.x;
+    deposit = landHere.w
             * smoothstep(0.0, 0.08, tauD) * exp(-tauD/DEPOSIT_TAU_S)
             * exp(-0.5*dzD*dzD/(sigD*sigD));
   }
@@ -983,23 +1042,20 @@ vec4 impactSourceAt(vec2 sourceXZ, float t){
   float roller = 0.0, zr = 0.0, tau = 0.0;
   if (tauD > 0.0 && tauD < ROLLER_END_S) {
     float x0   = x - vel.x*tauD;
-    float age0 = mod(w*t - rayPhase(vec2(x0, breakLine(x0))), 2.0*PI)/w;
-    tau = age0 - CRASH_PEAK_S;
+    tau = impactLandingAt(x0, t).z;
     if (tau > 0.0 && tau < ROLLER_END_S) {
       x0 = x - vel.x*tau;
-      float zb0 = breakLine(x0);
-      float kk0 = kLocalAt(vec2(x0, zb0));
-      float kz0 = max(kk0*cos(phi), 0.25*kk0);
-      float zc0 = zb0 + (w/kz0)*CRASH_PEAK_S;
-      float hC0 = breakerCeilM(vec2(x0, zc0));
-      float zL0 = zc0 + CURT_REACH*hC0;
-      zr = zL0 + vel.y*tau;                            // where the mass is now
+      vec4  land0 = impactLandingAt(x0, t);            // the emitter's landing
+      float hC0 = land0.y;
+      zr = land0.x + vel.y*tau;                          // where the mass is now
       float sigR = max(0.55*hC0, 2.5) * sqrt(1.0 + tau/1.5);
       float dzr  = sourceXZ.y - zr;
       float endFade = 1.0 - smoothstep(0.70*ROLLER_END_S, ROLLER_END_S, tau);
-      roller = gain * breakerImpactPeakAtX(x0, t - tau)
+      roller = land0.w
              * smoothstep(0.0, 0.25, tau) * exp(-tau/ROLLER_TAU_S) * endFade
              * exp(-0.5*dzr*dzr/(sigR*sigR));
+      geo.x = hC0;
+      geo.y = sigR;
     } else {
       tau = 0.0;
     }
@@ -1010,7 +1066,17 @@ vec4 impactSourceAt(vec2 sourceXZ, float t){
   if (!(outv.y == outv.y)) outv.y = 0.0;
   if (!(outv.z == outv.z)) outv.z = 0.0;
   if (!(outv.w == outv.w)) outv.w = 0.0;
+  if (!(geo.x == geo.x)) geo.x = 0.0;
+  if (!(geo.y == geo.y)) geo.y = 2.5;
+  if (!(geo.z == geo.z)) geo.z = 0.0;
+  if (!(geo.w == geo.w)) geo.w = 0.0;
   return outv;
+}
+// The field alone — the probe (main.js curlProbe row 3) and any consumer that
+// does not shape the roller read this one.
+vec4 impactSourceAt(vec2 sourceXZ, float t){
+  vec4 geo;
+  return impactSourceAt(sourceXZ, t, geo);
 }
 #endif
 
@@ -1475,15 +1541,20 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
 #ifdef ROLLER
   float rollDeposit = 0.0, rollMass = 0.0;
   if (u_roller > 0.0) {
-    vec4 imp = impactSourceAt(xz, t);
+    vec4 impGeo;
+    vec4 imp = impactSourceAt(xz, t, impGeo);
     rollDeposit = imp.x;
     rollMass    = imp.y;
     // HEIGHT, roller only. A roller is a rolling mass of aerated water WITH
     // volume — the structural bore mound already says so at 0.27*u_H0 — so it
-    // gets a low, wide mound that travels with it. Physical metres like every
-    // h term here (VIS applies at the end). The deposit adds none: a narrow
-    // raised strip at the landing is exactly the detached plate 1fa3f84 removed.
-    h += 0.16*u_H0*rollMass*moundNoise;
+    // gets a mound that travels with it, sized off the EMITTER's ceiling
+    // (impGeo.x, displayed; /VIS makes it physical like every h term here,
+    // VIS applies at the end) — the breaking scale at the station that threw
+    // it, not the deep-water swell. The deposit adds none: a narrow raised
+    // strip at the landing is exactly the detached plate 1fa3f84 removed; its
+    // vertical extent is the splash-up SHEET (shaders.js SPLASHUP_VERT), a
+    // ballistic on the same clock, not water height.
+    h += ROLLER_MOUND_FRAC*(impGeo.x/VIS)*rollMass*moundNoise;
   }
 #endif
 

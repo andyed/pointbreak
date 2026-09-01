@@ -342,21 +342,78 @@ test('the transported crash is OFF by default and reverts through one gain', () 
   assert.match(main, /curlProbeMat = new THREE\.ShaderMaterial\(\{[\s\S]{0,600}?defines: \{ ROLLER: 1 \}/,
     'the instrument must always compile the roller symbols so probe row 3 exists');
   assert.match(model, /#ifdef ROLLER\s*float rollDeposit = 0\.0, rollMass = 0\.0;/);
-  assert.match(shaders, /#ifdef ROLLER\s*float rollerM = 0\.0;/);
+  assert.match(shaders, /#ifdef ROLLER\s*float rollerM = 0\.0, rollerRim = 0\.0, rollerTex = 0\.5, rollerW = 0\.0;/);
   assert.match(shaders, /#ifdef ROLLER\s*if \(u_roller > 0\.0\) freshCore/);
   assert.match(controls, /^\| `roller` \|/m);
   // Every consumer sits behind the uniform gate and every accumulator is
   // initialised to zero outside it, so the default frame is the shipped frame
   // bit-for-bit (measured against the pristine tree by
   // scripts/measure_crash_transport.mjs --baseline).
-  assert.match(model, /float rollDeposit = 0\.0, rollMass = 0\.0;\s*if \(u_roller > 0\.0\) \{\s*vec4 imp = impactSourceAt\(xz, t\);/);
-  assert.match(shaders, /float rollerM = 0\.0;\s*if \(u_roller > 0\.0\) \{\s*vec4 impF = impactSourceAt\(sourceXZ, t\);/);
+  assert.match(model, /float rollDeposit = 0\.0, rollMass = 0\.0;\s*if \(u_roller > 0\.0\) \{\s*vec4 impGeo;\s*vec4 imp = impactSourceAt\(xz, t, impGeo\);/);
+  assert.match(shaders, /float rollerM = 0\.0, rollerRim = 0\.0, rollerTex = 0\.5, rollerW = 0\.0;\s*if \(u_roller > 0\.0\) \{\s*vec4 geoF;\s*vec4 impF = impactSourceAt\(sourceXZ, t, geoF\);/);
   assert.match(model, /if \(gain <= 0\.0\) return vec4\(0\.0\);/);
   // The DEPOSIT may not lift the water: a narrow raised strip at the landing
   // outlived the curl as a detached plate once already (1fa3f84). Only the
-  // roller — a mass with volume, moving with the bore — carries a mound.
-  assert.match(model, /h \+= [\d.]+\*u_H0\*rollMass\*moundNoise;/);
+  // roller — a mass with volume, moving with the bore — carries a mound, and
+  // (second pass) it is sized off the EMITTER's ceiling, not the deep-water
+  // swell: breaking scale, not a bank.
+  assert.match(model, /h \+= ROLLER_MOUND_FRAC\*\(impGeo\.x\/VIS\)\*rollMass\*moundNoise;/);
   assert.doesNotMatch(model, /h\s*\+=[^;\n]*rollDeposit/);
+  assert.doesNotMatch(model, /h \+= [\d.]+\*u_H0\*rollMass/);
+});
+
+test('the splash-up sheet and the relocated spray are consumers of one landing, built only for a #roller boot', () => {
+  // ONE landing function feeds the deposit, the roller's emitter, the sheet
+  // and the spray. Nothing downstream re-derives the curtain landing.
+  assert.match(model, /vec4 impactLandingAt\(float x, float t\)\{/);
+  assert.match(model, /float zL   = zc \+ CURT_REACH\*hC;/);
+  assert.equal((model.match(/\+ CURT_REACH\*/g) || []).length, 1, 'the landing is derived in exactly one place in the model');
+  assert.match(model, /vec4  landHere = impactLandingAt\(x, t\);/);
+  assert.match(model, /vec4  land0 = impactLandingAt\(x0, t\);/);
+  assert.match(shaders, /vec4  land = impactLandingAt\(x0, u_time\);/);
+  assert.match(shaders, /vec4 landS = impactLandingAt\(x0, u_time\);/);
+  // The sheet's vertical extent is a BALLISTIC in physical metres under G,
+  // displayed through VIS: no duration constant, so its life is set by the
+  // breaking height. Rate independence: tauD is seconds off the lifecycle.
+  assert.match(model, /const float SPLASHUP_FRAC = [\d.]+;/);
+  assert.match(model, /float splashUpFlightS\(float hC\)\{ return 2\.0\*sqrt\(2\.0\*splashUpPeakM\(hC\)\/VIS\/G\); \}/);
+  assert.match(model, /float v0 = sqrt\(2\.0\*G\*hs\);\s*float y  = v0\*tauD - 0\.5\*G\*tauD\*tauD;\s*return max\(y, 0\.0\)\*VIS;/);
+  assert.doesNotMatch(model, /const float SPLASHUP_(?:TAU|LIFE|END)_S/);
+  // The sheet is a mesh like the curtain, with its foot ON the shipped surface
+  // at the landing; it never lifts the water grid (1fa3f84).
+  assert.match(shaders, /export const SPLASHUP_VERT/);
+  assert.match(shaders, /export const SPLASHUP_FRAG/);
+  assert.match(shaders, /vec3  Pb = surfacePos\(vec2\(x0, land\.x\), u_time/);
+  assert.match(shaders, /float hUp = splashUpHeight\(tauD, land\.y\)\*rag;/);
+  assert.doesNotMatch(model, /h\s*\+=[^;\n]*splashUp/);
+  // Built only for a #roller boot: a default page has no mesh, no material,
+  // no draw call. Alpha is the landing's own strength, so setRoller(0) at
+  // runtime draws nothing too (the rig's on/off diff depends on that).
+  assert.match(main, /let splashUpMesh = null;\s*if \(ROLLER_BUILD\) \{/);
+  assert.match(main, /vertexShader: SPLASHUP_VERT,\s*fragmentShader: SPLASHUP_FRAG,\s*uniforms,\s*defines: \{ ROLLER: 1 \}/);
+  assert.match(shaders, /float gate = clamp\(land\.w, 0\.0, 1\.0\)/);
+  // The spray, the curtain-adjacent point pass and the rider's surface query
+  // all compile the same flag as the water, so a #roller boot moves one
+  // world, not three.
+  assert.match(main, /fragmentShader: SPRAY_FRAG,\s*uniforms,[\s\S]{0,400}?defines: ROLLER_BUILD \? \{ ROLLER: 1 \} : \{\}/);
+  assert.match(main, /makeSurfaceQuery\(renderer, uniforms, ROLLER_BUILD \? \{ ROLLER: 1 \} : \{\}\)/);
+  assert.match(readFileSync(new URL('../web-three/js/surface-query.js', import.meta.url), 'utf8'), /defines,\s*vertexShader/);
+  // Spray relocation: under the flag the droplets launch from the landing on
+  // the same clock and are anchored to the drawn surface there, not the datum;
+  // and it is compiled under ROLLER so the default spray text is untouched.
+  assert.match(shaders, /#ifdef ROLLER\s*if \(u_roller > 0\.0\) \{\s*vec4 landS = impactLandingAt\(x0, u_time\);[\s\S]{0,700}?float y0 = ocean\(vec2\(x0, landS\.x\), u_time,[\s\S]{0,300}?z = landS\.x \+ vz\*tf;\s*y = y0 \+ 4\.0\*peakS\*u01\*\(1\.0 - u01\);/);
+  assert.match(shaders, /float peakS = splashUpPeakM\(landS\.y\)\*\(0\.35 \+ 0\.65\*seedY\);/);
+  // The roller's material is its own: texture advected with the mass at the
+  // lifecycle's own front speed (geoF.w), a leading-edge rim keyed to the
+  // field, a denser floor than the pocket's, and shading applied AFTER the
+  // film mix so it never ages into lace.
+  assert.match(shaders, /vec2  rq = vec2\(sourceXZ\.x, sourceXZ\.y - geoF\.w\*t\);/);
+  assert.match(shaders, /rollerRim = impF\.y \* smoothstep\(/);
+  assert.match(shaders, /foamM = max\(foamM, rollerM\*\(0\.80 \+ 0\.20\*er\)\);/);
+  assert.ok(shaders.indexOf('foamCol = mix(foamCol, filmCol,') < shaders.indexOf('foamCol = mix(foamCol, rollCol, rollerW);'),
+    'roller shading must come after the film mix');
+  // The probe still reads the two-argument field so the rig is unchanged.
+  assert.match(model, /vec4 impactSourceAt\(vec2 sourceXZ, float t\)\{\s*vec4 geo;\s*return impactSourceAt\(sourceXZ, t, geo\);\s*\}/);
 });
 
 test('impactSourceAt reads the lifecycle clock and the curtain landing, not a second break authority', () => {
@@ -372,8 +429,9 @@ test('impactSourceAt reads the lifecycle clock and the curtain landing, not a se
   assert.match(model, /const float CURT_REACH = 0\.9;/);
   assert.doesNotMatch(shaders, /const float CURT_REACH/);
   assert.match(shaders, /Pland = surfacePos\(vec2\(x0, zc \+ CURT_REACH\*hC\)/);
-  assert.match(model, /float zLD = zcD \+ CURT_REACH\*hCD;/);
-  assert.match(model, /float zL0 = zc0 \+ CURT_REACH\*hC0;/);
+  assert.match(model, /float zL   = zc \+ CURT_REACH\*hC;/);
+  assert.match(model, /geo\.z = landHere\.x;/);
+  assert.match(model, /zr = land0\.x \+ vel\.y\*tau;/);
   // One ceiling. crestCeilM keeps its name for the bend, the curtain and the
   // instruments, but its body is the model's breakerCeilM.
   assert.match(model, /float breakerCeilM\(float dep, float Ks\)\{\s*return clamp\(0\.8\*VIS\*min\(u_H0\*Ks, GAMMA\*dep\), 0\.5, 14\.0\);/);
@@ -383,8 +441,9 @@ test('impactSourceAt reads the lifecycle clock and the curtain landing, not a se
   // life.z multiplies — read at emission time, not a new strength bank.
   assert.match(model, /float breakerImpactPeakAtX\(float x, float tEmit\)[\s\S]{0,400}?return activity\*\(0\.18 \+ 0\.82\*plunge\)\*foamSizeAt\(x\);/);
   assert.match(model, /float impact = activity\*impactAge\*\(0\.18 \+ 0\.82\*plunge\)\*sizeAmp;/);
-  assert.match(model, /breakerImpactPeakAtX\(x, t - tauD\)/);
-  assert.match(model, /breakerImpactPeakAtX\(x0, t - tau\)/);
+  assert.match(model, /strength = gain \* breakerImpactPeakAtX\(x, t - tauD\);/);
+  assert.match(model, /deposit = landHere\.w/);
+  assert.match(model, /roller = land0\.w/);
   // Transport is the bore's own speed along the wave's own ray — no velocity
   // constant is introduced (the NEXT_INVESTMENTS "unowned quantity" caveat).
   assert.match(model, /float frontSpeed = mix\(2\.4, 4\.1, plunge\);\s*vec2\s+vel = dir\*frontSpeed;/);
@@ -419,8 +478,8 @@ test('the roller dies before the lifecycle clock can hand it to the next carrier
 
 test('the transported crash is read at the source coordinate, never the displaced world position', () => {
   // ocean()'s xz IS the source coordinate; the fragment reads sourceXZ.
-  assert.match(model, /vec4 imp = impactSourceAt\(xz, t\);/);
-  assert.match(shaders, /vec4 impF = impactSourceAt\(sourceXZ, t\);/);
+  assert.match(model, /vec4 imp = impactSourceAt\(xz, t, impGeo\);/);
+  assert.match(shaders, /vec4 impF = impactSourceAt\(sourceXZ, t, geoF\);/);
   assert.doesNotMatch(shaders, /impactSourceAt\(worldXZ/);
   assert.doesNotMatch(shaders, /impactSourceAt\(vWorldPos/);
   // The material floor sits AFTER the comet/stripe carves: those dissolve
