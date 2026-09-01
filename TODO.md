@@ -249,6 +249,95 @@ Rebuild: `BIRTH_ARMS=default,birth0,A,A2,B,C node scripts/capture_birth_ab.mjs`
 · `python3 scripts/measure_foam_edge.py qa/img/birth --debug`
 · `python3 scripts/build_birth_sheets.py qa/img/birth`.
 
+### ▶ MEASURED 2026-09-01 — wrap ramp width (`#wrapw` / `#wrapl`): it softens the knife, it does not straighten it, and the cliff pays
+
+Built, flag-gated, measured from three cameras, **not promoted**. Sheets at
+`qa/img/wrapw/sheet_<rig>_<sim>.png` (gitignored — rebuild with the three
+commands at the end); the full 96-row table is `qa/img/wrapw/table.md`.
+
+**What was built.** The finding above says the block's horizontal knife is the
+carrier-clock wrap locus and `crestClockS`'s 14 m ramp prints as 8 px. The ramp
+width was the constant `CREST_WRAP_S` = 2.4 s, clamped to 0.25 T (= 0.25 Λ =
+22.5 m at every preset). `#wrapw=<metres>` (nominal at c = Λ/T, the units the
+14 m was quoted in) and `#wrapl=<fraction of Λ>` (= that fraction of T in
+seconds, so it scales with the site's period) feed `u_wrapS`; the shader still
+ramps in seconds, the conversion is `parseWrapWidth`/`wrapWidthSeconds` in
+`url-params.js`, re-derived from `state.T` each frame. Off = the shipped
+expression (uniform branch). On, the clamp lifts to 0.75 T so 56 m is
+reachable. **Identity proof**: `wrapw = 2.4·Λ/T` (14.4 m Sewers, 15.43 m
+Second Peak) gives **0 differing pixels vs default in all 12 (rig, clock)
+frames**, and the unit test pins `fround(m·T/Λ) == fround(2.4)` for both T.
+
+**Instrument.** `capture_birth_ab.mjs` now records the model's own crest locus
+per station (argmax surface height on a shore-normal transect through
+`curlProbe`, projected), so `measure_foam_edge.py --crest` measures the
+horizontal edge in windows fixed on the DEFAULT arm's crest (lesson 11), not on
+the pixels it measures. Behind the head only stations whose crest sits ≥ 5 m
+shoreward of the line count — the argmax otherwise flips to the approaching
+crest (sewers 52, k −70/−65 and −20..−10). `cb_*` = crest behind the head
+(k −70..−20, medians), `ch_*` = crest at the head (k −10..+10); `ahead_L` = the
+existing not-yet-broken-side luma (10–45 m ahead of the head at the line).
+
+**Drone, the horizontal knife** (10–90 % width px / peak |dL/dy| / Hough
+shore-parallel fraction of the foam boundary in the crest box):
+
+    arm (m)        sewers 44          sewers 52          secondpeak 44      secondpeak 52
+    wrap0          6 / 29.6 / 0.35    6 / 29.8 / 0.15    14 / 14.1 / 0.08   16 / 17.3 / 0.07
+    default 14.4  10 / 20.3 / 0.33   11 / 17.4 / 0.12     7 / 12.7 / 0.09   13 / 13.1 / 0.08
+    w21           16 / 12.1 / 0.31   17 / 14.2 / 0.13    10 / 13.4 / 0.08   38 / 13.1 / 0.07
+    w28           17 /  9.9 / 0.29   22 / 11.4 / 0.09    13.5 / 11.2 / 0.08 40 / 13.1 / 0.06
+    w42           30 /  5.3 / 0.23   25 / 13.5 / 0.08    27 / 11.0 / 0.09   40 / 13.1 / 0.05
+    l50 (45 m)    31 /  5.6 / 0.24   25 / 13.9 / 0.10    27 / 11.0 / 0.08   40 / 13.1 / 0.05
+    w56           45 /  3.7 / 0.29   25 / 12.9 / 0.16    30.5 / 11.0 / 0.06 49 / 13.1 / 0.06
+    stations n     5                  7                   4                  3
+
+Sewers is the clean reading: the knife widens monotonically (10 → 45 px at
+sim 44) and its gradient falls 20 → 3.7. From 28 m up at sim 52 the peak
+gradient sits at ~13 because another edge inside the ±40 px window (the
+comet/lace texture) now owns the maximum — read the width there, not the
+gradient. **The Hough shore-parallel fraction does not fall** (0.33 → 0.23–0.31;
+0.12 → 0.08–0.16). That is the result: the ramp is a function of `rayPhase`,
+so any width is still a level set of the carrier — a wider ramp is a SOFTER
+straight line, not a less straight one. Second Peak sim 52 (n = 3, stations
+scattered across the reef corner, gradient pinned at 13.1 in every arm) is not
+a reading of the same edge; sim 44 (n = 4) tracks Sewers.
+
+**What it costs, from the cliff.** `ahead_L`, mean luma of the not-yet-broken
+side (the 2026-08-28 chasing-foam locus; `#birth` moved it ≤ 0.3):
+
+    arm       sewers 44   sewers 52   secondpeak 44   secondpeak 52
+    wrap0      118.5       139.5       115.5           129.6
+    default    127.2       145.1       119.9           135.4
+    w21        134.2       151.5       121.7           139.8
+    w28        141.3       157.9       123.5           145.3
+    w42        150.4       166.3       124.6           150.7
+    l50        152.1       167.0       124.6           151.4
+    w56        156.5       168.2       124.8           152.6
+
++7 luma at 21 m, +14 at 28 m, +23 at 42 m (Sewers 44). The sheets show what
+that is: at 42–56 m the trough ahead of the wave fills with foam texture
+(`sheet_sewers_cliff_052.png`, rows w42/w56/l50). The crest step AT the head
+does not soften — `ch_w1090`/`ch_grad` from the cliff: Sewers 44 21 px/15.6 in
+default, 25–28 px/15.6 through 42 m; Second Peak 7 px/19.3 (44) and 5 px/22.4
+(52) identical in every arm. So the trade is not "a softer crest", it is
+"foam ahead of the crest" — the same axis `#birthlead` was rejected on, priced
+here at 7 levels per 7 m of ramp. The drone sees it too: sewers 52 `ahead_L`
+63 → 65 (28 m) → 71 (42) → 82 (56). Lineup: the Sewers head is off-frame at
+both clocks (camera sits at the aim point, head behind it) so only whole-frame
+diffs are available there (sewers 52: 7.7 k px at 21 m, 109 k at 28, 407 k at
+42, 604 k at 56 — the visible sea turns to foam); Second Peak lineup 44 has the
+head in frame and its crest step (20 px/5.7) is unchanged in every arm.
+
+**Where this leaves the plan-view knife.** 21 m is the only width that moves
+the drone edge (10 → 16 px, gradient 20 → 12) for a cliff cost inside what the
+`#wrap` fix itself already spent (default is +9 over `wrap0`; 21 m is +7 more).
+Everything wider buys softness at a price the cliff shows plainly, and none of
+it changes the edge's straightness. Andy's call; nothing promoted.
+
+Rebuild: `BIRTH_PORT=8251 BIRTH_ARMS=default,wid,w21,w28,w42,w56,l50,wrap0 BIRTH_RIGS=sewers_drone,secondpeak_drone,sewers_cliff,secondpeak_cliff,sewers_lineup,secondpeak_lineup node scripts/capture_birth_ab.mjs qa/img/wrapw`
+· `python3 scripts/measure_foam_edge.py qa/img/wrapw --crest --debug`
+· `SHEET_CROP=crest SHEET_ARMS=default,wid,w21,w28,w42,w56,l50,wrap0 python3 scripts/build_birth_sheets.py qa/img/wrapw`.
+
 ## ▶ NEW (2026-08-25, live) — the crash is missing
 
 Live verdict on the judged stack (below): "we're missing the crash of the
