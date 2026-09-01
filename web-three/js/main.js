@@ -110,6 +110,18 @@ let SEG_X = QUALITY_TIERS[0].segX, SEG_Z = QUALITY_TIERS[0].segZ;
     if (i >= 0) { qualityIdx = i; qualityLocked = true; SEG_X = QUALITY_TIERS[i].segX; SEG_Z = QUALITY_TIERS[i].segZ; }
   }
 }
+// #roller= is a BUILD decision as well as a gain (same early read as #q=, for
+// the same reason: the material is compiled before the full hash parse). The
+// transported-crash GLSL is under #ifdef ROLLER in model-glsl/shaders, so a
+// page booted without the flag compiles the pristine shader text — a uniform
+// branch alone was measured to move 1-3 default pixels by 1-12 levels against
+// the pristine tree (compiler contraction around the inserted blocks). The
+// gain itself (u_roller) is applied in applyHashParams and can be toggled live
+// through __pointbreak.setRoller, but only a ROLLER build reads it.
+const ROLLER_BUILD = (() => {
+  const v = parseFloat(readHashParams().get('roller'));
+  return Number.isFinite(v) && v > 0;
+})();
 
 const canvas = document.getElementById('gl');
 let renderer;
@@ -303,6 +315,13 @@ const uniforms = {
   // splash/spray take the landing. #splash=0 is the pre-crash A/B revert;
   // positive values remain a gain on the calibrated 0.90*H0 burst.
   u_splash:     { value: 1 },
+  // The TRANSPORTED crash (NEXT_INVESTMENTS 2, prototype 2026-09-01): an
+  // impact deposit at the curtain landing plus a roller carried down-face and
+  // down-line with the bore, both from model-glsl impactSourceAt() on the
+  // shared lifecycle clock. #roller= is a gain; 0 (default) is the shipped
+  // frame, bit-identical. Feature flag, OFF pending a live verdict — the
+  // measurement rig is scripts/measure_crash_transport.mjs.
+  u_roller:     { value: 0 },
   // #sapp= unbundles the approach-term strength from #look=full. 0.22 is now
   // the calibrated default: it halves the measured runaway-offset population
   // and removes the oversized head plate; #sapp=0.42 is the legacy A/B.
@@ -399,6 +418,7 @@ const mat = new THREE.ShaderMaterial({
   vertexShader: GRID_VERT,
   fragmentShader: GRID_FRAG,
   uniforms,
+  defines: ROLLER_BUILD ? { ROLLER: 1 } : {},   // see ROLLER_BUILD
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
 const waterMesh = new THREE.Mesh(geo, mat);
@@ -2337,6 +2357,13 @@ function applyHashParams() {
     const v = parseFloat(h.get('splash'));
     if (Number.isFinite(v) && v >= 0 && v <= 3) uniforms.u_splash.value = v;
   }
+  // #roller= arms the transported crash (deposit + bore-carried roller) as a
+  // gain in [0, 3]; 1 is the calibrated prototype. Absence keeps 0 — the
+  // shipped frame. Unparseable values keep 0 rather than sending NaN in.
+  if (h.has('roller')) {
+    const v = parseFloat(h.get('roller'));
+    if (Number.isFinite(v) && v >= 0 && v <= 3) uniforms.u_roller.value = v;
+  }
   // #drop=legacy is a REVERT arm, not a feature flag: the re-scoped dropMag
   // ships on, and this restores the term that flattened the pocket so the two
   // silhouettes can be captured from one build.
@@ -2535,6 +2562,9 @@ window.__pointbreak = {
   setSScale: (v) => { if (Number.isFinite(v) && v > 0) uniforms.u_sScale.value = v; },
   setThrowLen: (on) => { uniforms.u_throwLen.value = on ? 1 : 0; },
   setCurtain: (on) => { curtainMesh.visible = !!on; },
+  // Transported-crash gain (mirrors #roller=); 0 = the shipped frame.
+  setRoller: (g) => { if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_roller.value = g; },
+  roller: () => uniforms.u_roller.value,
   setSGrow: (on) => { uniforms.u_sGrow.value = on ? 1 : 0; },
   // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
   setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },
@@ -2577,7 +2607,15 @@ window.__pointbreak = {
       // `depth` stays raw (it is what the shader computes, and it is the
       // evidence); `bedBacked` tells a consumer which regime it is reading.
       // The shader term itself is untouched — this is the instrument channel.
-      curlProbeRT = new THREE.WebGLRenderTarget(n, 3, {
+      // Row 3 (2026-09-01) is the TRANSPORTED CRASH at the same source point:
+      // impactSourceAt() = (deposit, roller, roller centre z, seconds since
+      // impact) — the field scripts/measure_crash_transport.mjs tracks. All
+      // zero when #roller is off, so the row costs the reader nothing to ignore.
+      // Row 4 is what DECIDES whether a crash exists at the station, so the rig
+      // can tell "no event" apart from "no station": the lifecycle's impact gain
+      // at its peak, the section mask, the reef window, and the far fade — the
+      // last three being the factors CURTAIN_VERT multiplies into its own gate.
+      curlProbeRT = new THREE.WebGLRenderTarget(n, 5, {
         type: THREE.FloatType, minFilter: THREE.NearestFilter,
         magFilter: THREE.NearestFilter, depthBuffer: false,
       });
@@ -2585,6 +2623,10 @@ window.__pointbreak = {
     if (!curlProbeMat) {
       curlProbeMat = new THREE.ShaderMaterial({
         uniforms: Object.assign({ u_probe: { value: new THREE.Vector4() } }, uniforms),
+        // The instrument always compiles the roller symbols so row 3 exists;
+        // with u_roller = 0 the row reads zero. The SHIPPED grid material only
+        // defines ROLLER when the page booted with #roller (see ROLLER_BUILD).
+        defines: { ROLLER: 1 },
         vertexShader: 'void main(){ gl_Position = vec4(position.xy*2.0, 0.0, 1.0); }',
         fragmentShader: `${SURFACE_PRELUDE}\n${SURFACE_GLSL}\n` +
           'uniform vec4 u_probe;   // x, z0, z1, n\n' +
@@ -2596,8 +2638,11 @@ window.__pointbreak = {
           '  vec3 P = surfacePos(xz, u_time, f, p, b, c, l, a, k);\n' +
           '  if (gl_FragCoord.y < 1.0)      gl_FragColor = vec4(P.y, P.z, l, k);\n' +
           '  else if (gl_FragCoord.y < 2.0) gl_FragColor = vec4(p, b, f, a);\n' +
-          '  else gl_FragColor = vec4(u_depthMix > 0.5 ? crestCeilM(xz) : -1.0,\n' +
+          '  else if (gl_FragCoord.y < 3.0) gl_FragColor = vec4(u_depthMix > 0.5 ? crestCeilM(xz) : -1.0,\n' +
           '                           modelDepthM(xz), c, breakLine(xz.x));\n' +
+          '  else if (gl_FragCoord.y < 4.0) gl_FragColor = impactSourceAt(xz, u_time);\n' +
+          '  else gl_FragColor = vec4(breakerImpactPeakAtX(xz.x, u_time), breakMask(xz.x),\n' +
+          '                           reefWindow(xz.x), farFadeAt(xz));\n' +
           '}',
       });
       curlProbeQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), curlProbeMat);
@@ -2608,17 +2653,19 @@ window.__pointbreak = {
     const prev = renderer.getRenderTarget();
     renderer.setRenderTarget(curlProbeRT);
     renderer.render(curlProbeScene, curlProbeCam);
-    const buf = new Float32Array(n * 3 * 4);
-    renderer.readRenderTargetPixels(curlProbeRT, 0, 0, n, 3, buf);
+    const buf = new Float32Array(n * 5 * 4);
+    renderer.readRenderTargetPixels(curlProbeRT, 0, 0, n, 5, buf);
     renderer.setRenderTarget(prev);
     const out = [];
     for (let i = 0; i < n; i++) {
-      const g = i * 4, m = (n + i) * 4, c = (2 * n + i) * 4;
+      const g = i * 4, m = (n + i) * 4, c = (2 * n + i) * 4, r = (3 * n + i) * 4, q = (4 * n + i) * 4;
       out.push({ z0: z0 + (z1 - z0) * i / (n - 1), y: buf[g],
                  z: buf[g + 1], land: buf[g + 2], curl: buf[g + 3],
                  pocket: buf[m], brk: buf[m + 1], foam: buf[m + 2], aer: buf[m + 3],
                  ceil: buf[c] < 0 ? null : buf[c], bedBacked: buf[c] >= 0,
-                 depth: buf[c + 1], crest: buf[c + 2], bLine: buf[c + 3] });
+                 depth: buf[c + 1], crest: buf[c + 2], bLine: buf[c + 3],
+                 deposit: buf[r], roller: buf[r + 1], rollerZ: buf[r + 2], rollerTau: buf[r + 3],
+                 impactPeak: buf[q], breakMask: buf[q + 1], reefWin: buf[q + 2], farFade: buf[q + 3] });
     }
     return out;
   },
