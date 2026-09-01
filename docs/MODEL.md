@@ -1442,7 +1442,7 @@ number, and it is not in dispute.
 **Why they conflict here.** Below a spot-specific H₀ the baked break line
 abandons the oblique reef branch for a near-shore-parallel inshore one and
 stage-median α collapses to 1.0–6.2° against 36–50° targets. Sewers' boundary
-is 1.61 m, so *every month of the year* falls under it: the honest height and
+is 1.62 m (1.61 on the 2026-08-20 bake), so *every month of the year* falls under it: the honest height and
 the legible wave are on opposite sides of a discontinuity.
 
 **And why the discontinuity is not fixable.** `markBreakCrossings` returns
@@ -1489,8 +1489,10 @@ the live nowcast — is held to the healthy side of that boundary. An authored
 card H₀, a typed `#h0=` and the `-`/`+` keys are not derived and pass through
 untouched. Flag: `#clamp=0` (CONTROLS.md).
 
-The floors are measured, not chosen: `scripts/measure_branch_flip.mjs` at 0.01 m
-resolution, hysteresis-free, tabulated in `shared/params.js` `PEEL_FLOOR`. Two
+The floors are measured, not chosen: first with `scripts/measure_branch_flip.mjs`
+(2026-08-20), since 2026-09-01 with `scripts/measure_break_activation.mjs
+--mode=floor`, at 0.01 m resolution, hysteresis-free, tabulated in
+`shared/params.js` `PEEL_FLOOR` with their basis in `PEEL_FLOOR_BASIS`. Three
 findings from taking that seriously rather than reading the threshold table
 off the shelf:
 
@@ -1498,8 +1500,9 @@ off the shelf:
   flip moves α 2.6 → 3.7 — a genuine branch change *between two closed-out
   branches*, against a 41° target. Clamping to it costs two thirds of the
   spot's seasonal range and buys no peel. Its peel actually returns at
-  1.07→1.08 (α 9.1 → 14.4). A floor is defined by the quantity it is a floor
-  *on*, which is the peel, not the branch id.
+  1.07→1.08 (α 9.1 → 14.4) on the 2026-08-20 bake — 1.10→1.11 on today's, see
+  below. A floor is defined by the quantity it is a floor *on*, which is the
+  peel, not the branch id.
 * **The floor carries its basis and declines outside it.** The ladder was run
   at tide 0 and each site's card period, and the threshold is a surface in
   (H₀, T, tide), not a point on the H₀ axis. A `#month=` keeps the card period
@@ -1510,6 +1513,13 @@ off the shelf:
   (T 9, tide +0.35) up to the tide-0 floor and took Sewers from α **12.8 to
   3.9** and The Hook from **10.4 to 5.9**, manufacturing two closeouts the
   clamp exists to prevent. `peelFloorH0()` now returns null off-basis.
+* **The floor carries its model version too** (2026-09-01). The threshold is
+  also a function of the bake that produced it: a shoaling change six days
+  after the first table moved every floor one to two rungs, and the test that
+  pinned the table could not see it. Each floor is now stamped with a digest
+  of the bake at its rungs and re-measured headlessly by the test; the table
+  and what it changed on screen are in "The floor depends on the model
+  version" below.
 
 Condition days are therefore left alone, and there is a second reason to leave
 them alone: **a day declares its own height as part of its identity.** "Small
@@ -1520,9 +1530,14 @@ the HUD names both numbers when it happens.
 
 ### What it costs, per spot
 
-Twelve months × seven spots, `scripts/audit_shipped_states.mjs`, each booted
-from a fresh document. "Seasonal range kept" is the drawn H₀ span over the
-requested 0.660 m span (August 0.585 → January 1.245).
+Two measurements, one per model version. The first is the 2026-08-20 GPU
+audit the clamp shipped with; the second is the 2026-09-01 headless
+re-measurement on the current bake, which is what `PEEL_FLOOR` now carries.
+
+**As shipped 2026-08-20** (commit `533aef6`; twelve months × seven spots,
+`scripts/audit_shipped_states.mjs`, each booted from a fresh document).
+"Seasonal range kept" is the drawn H₀ span over the requested 0.660 m span
+(August 0.585 → January 1.245).
 
 | spot | target α | floor | months clamped | H₀ drawn | seasonal range kept | α before | α after |
 |---|---|---|---|---|---|---|---|
@@ -1555,6 +1570,88 @@ The twelve that remain are all `#day=` states, all pre-existing, all off the
 floor's measured basis. They are not fixed here and the clamp does not touch
 them.
 
+### The floor depends on the model version (re-measured 2026-09-01)
+
+The break-field instrument (`research/BREAK_FIELD_2026-09-01.md` §3–4) found
+the 2026-08-20 table stale on an axis its basis did not record. Commit
+`09c7f4a` (2026-08-26, finite-depth group velocity in K_s and in the reef
+fit's h_b) moved every branch threshold one to two 0.01 m rungs, and the
+2026-08-26 signed crest-relative α made the collapsed inshore branch read
+*negative* at Sewers and The Hook. `tests/peel-floor.test.js` compared the
+table to constants copied from the same sweep, so nothing failed: on the
+current bake the shipped 1.61 m floor at Sewers drew **−8.3°** — a
+left-handed closeout at all twelve months, the exact state the clamp exists
+to prevent — and Second Peak's 1.08 drew 5.8°.
+
+Re-measured with `scripts/measure_break_activation.mjs --mode=floor` at
+commit `c85bf62`: tide 0, card T, γ 0.78, 0.01 m rungs from 0.40 m to the
+card H₀, through a selector the instrument reproduces from the bake
+bit-for-bit at every rung (`tests/break-field-gate.test.js`). "The peel
+returns" is defined on the peel, not the branch id: **the lowest H₀ from
+which every rung up to the card reads stage-median clean signed α ≥ 10° with
+the authored handedness and a majority of stage stations on the reef
+footprint.** The reef condition is new and necessary: First Peak's inshore
+bore reads 10–12° at 0% on the reef from 0.60 to 1.25 m, and Jack's reads
+10.0–10.6° at 1–38% on the reef from 0.73 to 0.77 m; neither is the peel.
+
+| spot | target α | floor 08-20 → **09-01** | largest flip today | α one rung below → at floor (signed) | on-reef below → at floor | what fails below | flips above the floor |
+|---|---|---|---|---|---|---|---|
+| Sewers | 38 | 1.61 → **1.62** | 1.61→1.62 (164 m) | −8.3 → 34.8 | 0.33 → 0.65 | sign, reef | none |
+| First Peak | 50 | 1.26 → **1.38** | 1.27→1.28 (75 m) | 5.9 → 22.1 | 0.88 → 0.88 | α | none |
+| Second Peak | 41 | 1.08 → **1.11** | 1.04→1.05 (40 m) | 9.4 → 10.6 | 0.70 → 0.75 | α | none |
+| Jack's | 37 | 0.85 → **0.78** | 0.83→0.84 (130 m) | 10.6 → 11.1 | 0.38 → 0.56 | reef | 0.78→0.79, 0.79→0.80, 0.83→0.84 — all between peels (11–12° → 24°) |
+| The Hook | 41 | 1.05 → **1.09** | 1.03→1.04 (112 m) | −5.3 → 12.3 | 0.50 → 0.54 | sign, reef | 1.15→1.16 (14.5° → 20.4°) |
+| Sharks | 36 | 0.81 → **0.81** | 0.79→0.80 (73 m) | 15.0 → 16.4 | 0.49 → 0.54 | reef (0.493, one station short of a majority) | none |
+
+Five of six floors moved; four rose, one fell. Jack's is the loosening and is
+stated as such: at 0.78–0.83 m the line is a right-hand peel on the reef by
+the declared criterion (α 11.1–12.2°, 56–64% on the wedge) but a faster one
+than the 08-20 floor drew (26.7° at 0.85), and from 0.79 it carries 12–17
+reversed on-reef stations. The criterion accepts it for the same reason this
+section accepted First Peak's 12.1° in August: the floor puts a state on the
+healthy branch; it does not make it the wave the card draws. If that is the
+wrong call it is a criterion change, to be made in `PEEL_FLOOR_BASIS` and
+re-measured, not a number to edit.
+
+What it does on screen (`#month=`; headless twin of the audit — a month is on
+the floor's basis by construction and `bed.js` bakes on the CPU in the
+browser too, so these are the numbers `stageAlpha()` reads back):
+
+| spot | months clamped | H₀ drawn | seasonal range kept | α drawn (was, at the 08-20 floor on today's bake) | month states that move |
+|---|---|---|---|---|---|
+| Sewers | 12/12 | 1.620 only | 0% | 34.8 (−8.3) | all 12: 1.610 → 1.620 |
+| First Peak | 12/12 | 1.380 only | 0% | 22.1 (8.5) | all 12: 1.260 → 1.380 |
+| Second Peak | 9/12 | 1.110–1.245 | 20% | 10.6–20.9 (5.8–20.9) | Mar–Nov: 1.080 → 1.110 |
+| Jack's | 5/12 | 0.780–1.245 | 70% | 11.1–39.1 (26.7–39.1) | May–Sep: 0.850 → 0.780; Oct: 0.850 → 0.801, unclamped |
+| The Hook | 9/12 | 1.090–1.245 | 23% | 12.3–39.7 (−5.5–39.7) | Mar–Nov: 1.050 → 1.090 |
+| Sharks | 6/12 | 0.810–1.245 | 66% | 16.4–30.7 (same) | none |
+
+48 of 72 month states move. Card states do not — the clamp never sees them,
+and the test pins every card H₀ above its floor and healthy. `#day=` states
+do not — all seven are off-basis and pass through, as before.
+
+Two things the re-measured floor still does not do, both recorded in
+`research/BREAK_FIELD_2026-09-01.md`:
+
+* **It does not guard the tide axis.** At the card H₀ the shipped line flips
+  on a 0.04 m tide step at five of six spots (Jack's moves 132 m). The floor
+  is a point on the H₀ axis at tide 0; it declines off-basis, which is
+  correct, and it leaves those states unguarded, which is the next
+  measurement (NEXT_INVESTMENTS §1).
+* **It does not make Sewers or First Peak seasonal.** The wedge at Sewers
+  activates at 1.24 m against an August p75 of 0.585 m; no selector on this
+  bed draws a Sewers peel in summer. That is a reef-extent fact, not a floor
+  fact.
+
+Pinning: each `PEEL_FLOOR` row carries a `bakeDigest` (sha1 of the shipped
+line, its gap flags and the canonical α along it at floorLo and floorHi), and
+`PEEL_FLOOR_BASIS` carries the date, commit, tide, period rule, γ, step and
+criterion. `tests/peel-floor.test.js` re-bakes the floor rungs and every
+month's drawn height headlessly on every run, so the next change to the bed,
+the dispersion, the reef fit, the presets or the α metric fails the suite
+with the re-run command in the message, rather than inheriting a floor from
+a model that no longer exists.
+
 ### The pattern, for the next one
 
 1. **Name which side is which.** Write down what the demo needs and what the
@@ -1567,7 +1664,9 @@ them.
 4. **Declare, don't override.** Move the intervention up to the level where
    authorship legitimately owns something — here, "what conditions this model
    will draw" rather than "where the break line goes".
-5. **Carry the basis with the number**, and decline outside it.
+5. **Carry the basis with the number** — tide, period, γ, step, criterion *and the
+   model version* — decline outside it, and pin the number to the bake so the
+   next model change re-opens the measurement instead of inheriting it.
 6. **Quantify the cost per case and publish the row where it is total.** The
    Sewers row is the one that makes this section worth having.
 7. **Disclose in the product, not only in the docs.** A silent clamp is the

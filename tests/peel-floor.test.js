@@ -1,30 +1,44 @@
 // The peel floor: #month= / #day= may not ask a spot for an ocean it cannot
 // draw a peel in, and the authored card states must not move.
 //
-// WHAT THIS FILE CAN AND CANNOT PIN. The acceptance instrument for the peel is
-// `__pointbreak.stageAlpha()`, which needs a GPU bake, so the measured α
-// invariant is enforced by `scripts/audit_shipped_states.mjs` (evidence under
-// evidence/clamp/) and recorded below as the constants this file checks the
-// CLAMP ARITHMETIC against. That split is the repo's existing practice — see
-// url-params.test.js, whose default-ocean regression is source-shaped for the
-// same reason. What is pinned here:
+// WHAT THIS FILE PINS, AND HOW. The floor table in shared/params.js is a
+// MEASUREMENT of the bake (MODEL.md 4.6), and a measurement carries its basis:
+// tide, period, gamma, the H0 step, the alpha criterion — and the model
+// version (research/BREAK_FIELD_2026-09-01 §4: the 2026-08-20 table was one
+// to two rungs stale after commit 09c7f4a changed shoaling, and nothing
+// noticed because the old version of this file compared the table to
+// constants copied from the same sweep). So this file does not carry a copy
+// of the numbers. It RE-MEASURES them: bed.js bakes on the CPU, headless,
+// through the same instrument that produced the table
+// (scripts/measure_break_activation.mjs, reproduction-gated against the real
+// bake in tests/break-field-gate.test.js), and asserts
 //
-//   1. every reachable month/day request at every mapped spot lands on the
-//      healthy side of that spot's measured branch-flip threshold;
-//   2. no authored card H0 is at or below its own floor, i.e. the clamp is
-//      provably inert on the bare-URL states;
-//   3. the floor table still matches the measurement it was read off;
-//   4. main.js routes derived oceans through ONE clamp (MODEL.md 4.5).
+//   1. the table's basis (tide 0, card T, gamma, step, criterion) is the
+//      instrument's and the runtime's;
+//   2. at each spot the bake at floorLo/floorHi still reads what the table
+//      says, and the criterion still turns between them — the peel is absent
+//      below and present above, on the reef, with the authored handedness;
+//   3. the bake fingerprint at those rungs matches PEEL_FLOOR[spot].bakeDigest,
+//      so a bake change that moves the floor fails HERE and says what to
+//      re-run, instead of a #month= quietly clamping to a closeout;
+//   4. every reachable month at every mapped spot lands on a peel, and no
+//      authored card H0 is at or below its own floor (the clamp is inert on
+//      bare-URL states);
+//   5. the floor declines off-basis, main.js routes derived oceans through ONE
+//      clamp (MODEL.md 4.5), and the product discloses it.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { PRESETS, PEEL_FLOOR, peelFloorH0 } from '../shared/params.js';
+// The instrument registers the `three` resolve hook bed.js needs; import it
+// before anything that pulls bed.js.
+const I = await import('../scripts/measure_break_activation.mjs');
+import { PRESETS, PEEL_FLOOR, PEEL_FLOOR_BASIS, peelFloorH0 } from '../shared/params.js';
 import { MONTHLY_OCEAN } from '../data/climatology/pp_monthly_ocean.js';
+const { GAMMA } = await import('../web-three/js/dispersion.js');
 
-// conditions.js pulls TIDE_RANGE from bed.js, which imports three — not
-// loadable under `node --test`. The bank is a flat literal, so read the H0s
-// off the source instead of vendoring a copy that could go stale.
+// conditions.js pulls TIDE_RANGE from bed.js. The bank is a flat literal, so
+// read the H0s off the source instead of vendoring a copy that could go stale.
 const CONDITIONS_SRC = readFileSync(
   new URL('../web-three/js/conditions.js', import.meta.url), 'utf8');
 const CONDITION_DAYS = [...CONDITIONS_SRC.matchAll(
@@ -37,26 +51,16 @@ const code = MAIN_JS.split('\n').filter((l) => !l.trim().startsWith('//')).join(
 
 const MAPPED = Object.keys(PEEL_FLOOR).filter((k) => PEEL_FLOOR[k]);
 
-// The measured thresholds (TODO 1c'-d, scripts/measure_branch_flip.mjs, 0.01 m
-// resolution at tide 0 and card T). Duplicated here on purpose: if someone
-// edits the bank, this fails rather than silently redefining what "healthy"
-// means. Update BOTH only with a fresh sweep.
-// `floor*` is the step at which the PEEL returns, which is the flip at five
-// spots and is NOT at Second Peak — its 1.02->1.03 flip moves alpha 2.6 -> 3.7,
-// a branch change between two closeouts, and the peel returns at 1.07->1.08.
-const MEASURED = {
-  sewers:     { flipLo: 1.60, flipHi: 1.61, floorLo: 1.60, floorHi: 1.61, target: 38, cardH0: 2.2, basisT: 15 },
-  firstpeak:  { flipLo: 1.25, flipHi: 1.26, floorLo: 1.25, floorHi: 1.26, target: 50, cardH0: 1.8, basisT: 14 },
-  secondpeak: { flipLo: 1.02, flipHi: 1.03, floorLo: 1.07, floorHi: 1.08, target: 41, cardH0: 1.5, basisT: 14 },
-  jacks:      { flipLo: 0.84, flipHi: 0.85, floorLo: 0.84, floorHi: 0.85, target: 37, cardH0: 1.1, basisT: 13 },
-  thehook:    { flipLo: 1.04, flipHi: 1.05, floorLo: 1.04, floorHi: 1.05, target: 41, cardH0: 1.5, basisT: 13 },
-  sharks:     { flipLo: 0.80, flipHi: 0.81, floorLo: 0.80, floorHi: 0.81, target: 36, cardH0: 1.0, basisT: 13 },
-};
-
 // The acceptance floor for stage-median alpha, picked from the data rather
 // than chosen: the collapsed states read 1.4-9.1 deg against 36-50 deg
-// targets, the healthy card states read 26.3-51.4. 10 deg is the gap.
+// targets, the healthy card states read 26.3-51.4. 10 deg is the gap. The
+// instrument owns the number (ALPHA_FLOOR_DEG); the table's basis records it;
+// this file checks all three agree.
 export const ALPHA_FLOOR_DEG = 10;
+
+const RE_MEASURE = `re-run \`node ${PEEL_FLOOR_BASIS.instrument}\` and update PEEL_FLOOR `
+  + '(+ MODEL.md 4.6, CONTROLS.md #clamp row); the floor was measured at commit '
+  + `${PEEL_FLOOR_BASIS.modelCommit} on ${PEEL_FLOOR_BASIS.measured}`;
 
 // The clamp, as the runtime applies it (main.js setDerivedH0). `ocean` carries
 // the basis check — a floor measured at tide 0 and card T does not describe an
@@ -69,40 +73,95 @@ const clamp = (spot, requestedH0, ocean = {}) => {
 // on-basis by construction. That is what makes the month the clampable state.
 const onBasis = (spot) => ({ T: PEEL_FLOOR[spot].basisT, tideM: 0 });
 
-test('the floor table still matches the sweep it was measured from', () => {
+// One headless bake at (H0, card T, tide 0), read the way stageAlpha() reads it.
+const shippedAt = (spot, H0) => I.repSummary(
+  I.instrumentState(spot, { H0, T: PEEL_FLOOR[spot].basisT, tide: PEEL_FLOOR[spot].basisTideM }), 1).shipped;
+const near = (a, b, tol) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= tol;
+
+test('the floor table carries its basis, and the basis is the instrument\'s and the runtime\'s', () => {
   assert.deepEqual(Object.keys(PEEL_FLOOR).sort(), Object.keys(PRESETS).sort(),
     'every preset needs a PEEL_FLOOR entry, even if it is null');
   assert.equal(PEEL_FLOOR.privates, null,
     'Privates has no measured bed, so no bake, no branch and nothing to clamp to');
-  for (const [spot, m] of Object.entries(MEASURED)) {
+  const B = PEEL_FLOOR_BASIS;
+  assert.match(B.modelCommit, /^[0-9a-f]{7,40}$/, 'the basis must name the commit it was measured at');
+  assert.match(B.measured, /^\d{4}-\d{2}-\d{2}$/, 'the basis must carry its date');
+  assert.equal(B.gamma, GAMMA, `the floor was measured at gamma ${B.gamma}; dispersion.js GAMMA is now ${GAMMA} — ${RE_MEASURE}`);
+  assert.equal(B.alphaFloorDeg, ALPHA_FLOOR_DEG);
+  assert.equal(I.ALPHA_FLOOR_DEG, ALPHA_FLOOR_DEG, 'the instrument\'s collapse line drifted from the table\'s');
+  assert.equal(I.ON_REEF_MIN, B.onReefMin, 'the instrument\'s on-reef criterion drifted from the table\'s');
+  assert.equal(I.FLOOR_STEP_M, B.stepM);
+  assert.equal(I.FLOOR_LADDER_LO_M, B.ladderLoM);
+  assert.equal(B.tideM, 0, 'the floor is measured at tide 0 — a #month= does not move the tide');
+  for (const spot of MAPPED) {
     const f = PEEL_FLOOR[spot];
-    for (const k of ['flipLo', 'flipHi', 'floorLo', 'floorHi'])
-      assert.equal(f[k], m[k], `${spot} ${k} drifted from the measurement`);
-    assert.equal(f.alphaTarget, m.target, `${spot} alpha target drifted`);
-    assert.equal(f.basisT, m.basisT, `${spot} basis period drifted`);
-    assert.equal(f.basisTideM, 0, `${spot} basis tide must be 0 — the ladder's own`);
-    // The floor IS the healthy side of the measured step. Not a rounded-up
-    // margin, not a tuned value — anything else is authorship wearing a
-    // measurement's clothes.
-    assert.equal(f.floorH0, m.floorHi,
-      `${spot} floor must be the measured healthy-side H0, not a picked number`);
-    // ...and the step it names must actually be the peel returning. This is
-    // what caught Second Peak: its branch flip crosses from 2.6 to 3.7 deg,
-    // two closeouts, so clamping to it would have cost seasonal range and
-    // bought no peel.
-    assert.ok(f.alphaBelow < ALPHA_FLOOR_DEG,
-      `${spot} alphaBelow ${f.alphaBelow} is not a collapse; re-derive the floor`);
-    assert.ok(f.alphaAbove >= ALPHA_FLOOR_DEG,
-      `${spot} floor does not restore a peel (alpha ${f.alphaAbove} above it). `
-      + 'A floor is defined by the quantity it floors — the peel, not the branch id.');
+    assert.equal(f.basisTideM, 0, `${spot} basis tide must be 0 — the ladder was run there`);
+    assert.equal(f.basisT, PRESETS[spot].T, `${spot}: the floor's basis period must be the card's own`);
+    assert.equal(f.alphaTarget, PRESETS[spot].alpha, `${spot} alpha target drifted from the preset`);
+    assert.ok(near(f.floorHi - f.floorLo, B.stepM, 1e-9), `${spot}: floorLo/floorHi must be one ${B.stepM} m rung apart`);
+    assert.ok(near(f.flipHi - f.flipLo, B.stepM, 1e-9), `${spot}: flipLo/flipHi must be one ${B.stepM} m rung apart`);
+    // The floor is the measured healthy-side rung, not a picked number with a
+    // margin — anything else is authorship wearing a measurement's clothes.
+    assert.equal(f.floorH0, f.floorHi, `${spot} floor must be the measured healthy-side H0`);
+    assert.match(f.bakeDigest, /^[0-9a-f]{16}$/, `${spot} carries no bake fingerprint`);
   }
 });
 
-test('every reachable month lands above the spot floor', () => {
+test('the bake still reads what the table says at every floor rung (model-version basis)', () => {
+  // This is the check the 2026-08-20 version of this file could not make: it
+  // compared the table to constants copied from the same sweep, so when
+  // 09c7f4a moved the bake, Sewers' floor went on clamping twelve months to a
+  // height that had become a left-handed closeout (-8.3 deg) and nothing
+  // failed. Now the bake is re-run at floorLo and floorHi.
+  for (const spot of MAPPED) {
+    const f = PEEL_FLOOR[spot];
+    const below = shippedAt(spot, f.floorLo), above = shippedAt(spot, f.floorHi);
+    const say = (side, r) => `${spot} at ${side}: alpha ${r.medianClean?.toFixed(2)} deg, on-reef ${r.onReefFrac.toFixed(3)}`;
+    assert.ok(near(below.medianClean, f.alphaBelow, 0.051),
+      `${say('floorLo ' + f.floorLo, below)}; the table says ${f.alphaBelow}. The bake moved under the floor — ${RE_MEASURE}`);
+    assert.ok(near(above.medianClean, f.alphaAbove, 0.051),
+      `${say('floorHi ' + f.floorHi, above)}; the table says ${f.alphaAbove}. The bake moved under the floor — ${RE_MEASURE}`);
+    assert.ok(near(below.onReefFrac, f.onReefBelow, 0.0051), `${say('floorLo', below)}; the table says on-reef ${f.onReefBelow} — ${RE_MEASURE}`);
+    assert.ok(near(above.onReefFrac, f.onReefAbove, 0.0051), `${say('floorHi', above)}; the table says on-reef ${f.onReefAbove} — ${RE_MEASURE}`);
+    // ...and the step it names must actually be the peel returning, by the
+    // declared criterion: absent one rung below (alpha, sign or reef), present
+    // one rung above. This is what caught Second Peak in 2026-08 (a flip
+    // between two closeouts) and First Peak's inshore bore in 2026-09 (10-12
+    // deg with 0% of the stage on the reef).
+    assert.ok(!I.peelHealthy(below, 1),
+      `${say('floorLo', below)} already reads as a peel on the reef; the floor is too high — ${RE_MEASURE}`);
+    assert.ok(I.peelHealthy(above, 1),
+      `${say('floorHi', above)} is not a peel on the reef (needs alpha >= ${ALPHA_FLOOR_DEG}, right-handed, >= ${I.ON_REEF_MIN} on the reef); `
+      + `the floor does not restore a peel — ${RE_MEASURE}`);
+    // The flip the table names must still be a flip on this bake.
+    const lo = I.instrumentState(spot, { H0: f.flipLo, T: f.basisT, tide: 0 }).real.z;
+    const hi = I.instrumentState(spot, { H0: f.flipHi, T: f.basisT, tide: 0 }).real.z;
+    assert.ok(I.maxAbsDiff(lo, hi) > I.FLIP_M,
+      `${spot}: ${f.flipLo}->${f.flipHi} moves the line ${I.maxAbsDiff(lo, hi).toFixed(1)} m, not a flip (> ${I.FLIP_M} m) — ${RE_MEASURE}`);
+  }
+});
+
+test('the bake fingerprint at the floor rungs matches the one the floor was read off', () => {
+  // Stronger than the alpha check above: ANY change to the line, its gaps or
+  // the canonical alpha along it at floorLo/floorHi (bed, dispersion, reef
+  // fit, presets, the alpha metric) changes this. When it fails and the alpha
+  // check passes, the floor may still hold — but it has to be re-read, not
+  // assumed; that is MEASUREMENT_LESSONS 14b on the model-version axis.
+  for (const spot of MAPPED) {
+    const f = PEEL_FLOOR[spot];
+    const now = I.floorDigest(spot, f);
+    assert.equal(now, f.bakeDigest,
+      `${spot}: the bake at ${f.floorLo}/${f.floorHi} m (T ${f.basisT}, tide 0) fingerprints ${now}, `
+      + `the floor was read off ${f.bakeDigest}. The model moved under PEEL_FLOOR — ${RE_MEASURE}`);
+  }
+});
+
+test('every reachable month lands above the spot floor, and draws a peel there', () => {
   const H0_MIN = 0.4, H0_MAX = 3.0;
   assert.equal(MONTHLY_OCEAN.length, 12);
   for (const spot of MAPPED) {
     const floor = peelFloorH0(spot, onBasis(spot));
+    const drawnSet = new Set();
     for (const m of MONTHLY_OCEAN) {
       const asked = Math.min(Math.max(m.H0, H0_MIN), H0_MAX);
       const drawn = clamp(spot, asked, onBasis(spot));
@@ -111,6 +170,16 @@ test('every reachable month lands above the spot floor', () => {
       // and the clamp only ever raises: a month must never be made SMALLER
       // than the climatology says, which would be authorship overriding data.
       assert.ok(drawn >= asked, `${spot} month=${m.key}: the clamp lowered H0`);
+      drawnSet.add(drawn);
+    }
+    // The point of the floor: what the month DRAWS is a peel on the reef. A
+    // month is on-basis by construction, so the headless bake is the one the
+    // reader gets. (Every distinct drawn height, once.)
+    for (const H0 of drawnSet) {
+      const r = shippedAt(spot, H0);
+      assert.ok(I.peelHealthy(r, 1),
+        `${spot}: a month drawn at ${H0} m reads alpha ${r.medianClean?.toFixed(1)} deg, on-reef ${r.onReefFrac.toFixed(2)} — `
+        + `the floor is not holding the months on a peel; ${RE_MEASURE}`);
     }
   }
 });
@@ -119,7 +188,10 @@ test('the floor declines to bind off the ocean it was measured at', () => {
   // The measured guard, not a stylistic one: applying the tide-0 floor to
   // `#day=small` (T 9, tide +0.35) took Sewers from alpha 12.8 to 3.9 and The
   // Hook from 10.4 to 5.9 — the clamp manufacturing the closeouts it exists to
-  // prevent. Lesson 13: check the domain before reading the number.
+  // prevent. Lesson 13: check the domain before reading the number. And the
+  // tide axis is the one the floor does NOT guard: the shipped line flips on
+  // a 0.04 m tide step at five of six spots (BREAK_FIELD_2026-09-01 §5.2), so
+  // an off-basis request must pass through, never be clamped to a tide-0 number.
   // 7 = the six original days + `foggy` (2026-08-27). Bank-size changes are
   // deliberate; bump this with the bank so a parse regression cannot hide.
   assert.equal(CONDITION_DAYS.length, 7, 'the conditions bank did not parse');
@@ -128,6 +200,8 @@ test('the floor declines to bind off the ocean it was measured at', () => {
     assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: 0 }), b.floorH0);
     assert.equal(peelFloorH0(spot, { T: b.basisT + 1, tideM: 0 }), null, `${spot}: wrong T still clamped`);
     assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: 0.35 }), null, `${spot}: wrong tide still clamped`);
+    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: 0.04 }), null, `${spot}: one tide rung off-basis still clamped`);
+    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: -0.04 }), null, `${spot}: one tide rung off-basis still clamped`);
     // Every condition day is either on the basis or left alone. None may be
     // clamped from off-basis.
     for (const d of CONDITION_DAYS) {
@@ -140,21 +214,19 @@ test('the floor declines to bind off the ocean it was measured at', () => {
 
 test('the clamp is inert on every authored card state', () => {
   // The bare-URL states are the calibration input for model-glsl SHELTER_*
-  // and every one of them measured healthy (36.4/51.4/35.9/32.9/37.0/26.3
-  // stage-median alpha). If a card H0 ever sat at or below its own floor the
-  // clamp would move a shipped default, which it must never do.
+  // and every one of them measures healthy. If a card H0 ever sat at or below
+  // its own floor the clamp would move a shipped default, which it must never do.
   for (const spot of MAPPED) {
     const cardH0 = PRESETS[spot].H0;
     const floor = peelFloorH0(spot, onBasis(spot));
-    assert.equal(cardH0, MEASURED[spot].cardH0, `${spot} card H0 moved`);
     // The card's own period IS the basis, so a card state is maximally exposed
     // to the clamp — it is inert there because of the H0 gap, not a domain gap.
-    assert.equal(PRESETS[spot].T, PEEL_FLOOR[spot].basisT,
-      `${spot}: the floor's basis period must be the card's own`);
     assert.ok(cardH0 > floor,
       `${spot} card H0 ${cardH0} is not above its floor ${floor} — `
       + 'the clamp would now change a bare-URL state');
     assert.equal(clamp(spot, cardH0, onBasis(spot)), cardH0, `${spot} card H0 was clamped`);
+    const r = shippedAt(spot, cardH0);
+    assert.ok(I.peelHealthy(r, 1), `${spot} card state reads alpha ${r.medianClean?.toFixed(1)}, on-reef ${r.onReefFrac.toFixed(2)} — not a peel`);
   }
   // Privates has no floor at all, so nothing there can be clamped.
   assert.equal(peelFloorH0('privates', { T: 12, tideM: 0 }), null);
@@ -199,23 +271,31 @@ test('the clamp is A/B revertible and disclosed', () => {
     + 'and name the basis it declined against');
 });
 
-test('CONTROLS.md carries the measured floors, not a bare mention', () => {
+test('CONTROLS.md carries the measured floors and their basis, not a bare mention', () => {
   const doc = readFileSync(new URL('../docs/CONTROLS.md', import.meta.url), 'utf8');
   const row = doc.split('\n').find((l) => l.startsWith('| `clamp` |'));
   assert.ok(row, 'no #clamp row in CONTROLS.md');
   for (const spot of MAPPED)
-    assert.ok(row.includes(PEEL_FLOOR[spot].floorH0.toFixed(2)),
+    assert.ok(row.includes(`**${PEEL_FLOOR[spot].floorH0.toFixed(2)}**`),
       `the #clamp row must quote ${spot}'s measured floor ${PEEL_FLOOR[spot].floorH0}`);
-  assert.ok(/\*\*64 → 12\*\*/.test(row) && /52 → 0/.test(row),
-    'the #clamp row must carry the before/after blast radius it was measured at');
-  assert.ok(/0 of 7 differ/.test(row),
-    'the #clamp row must state that the card states did not move');
+  assert.ok(row.includes(PEEL_FLOOR_BASIS.measured) && row.includes(PEEL_FLOOR_BASIS.modelCommit),
+    'the #clamp row must name the date and commit the floors were measured at — the model version is part of the basis');
+  assert.ok(row.includes('--mode=floor'), 'the #clamp row must name the instrument that re-measures the floor');
+  assert.ok(/untouched by construction/.test(row),
+    'the #clamp row must state that the card states are never routed through the clamp');
 });
 
-test('MODEL.md documents the tradeoff the clamp takes', () => {
+test('MODEL.md documents the tradeoff the clamp takes, and its model-version dependence', () => {
   const doc = readFileSync(new URL('../docs/MODEL.md', import.meta.url), 'utf8');
   assert.ok(/## 4\.6 The peel floor/.test(doc),
     'MODEL.md must carry the named tradeoff section the clamp is justified by');
-  assert.ok(/Sewers/.test(doc.split('## 4.6 The peel floor')[1].slice(0, 6000)),
+  const sec = doc.split('## 4.6 The peel floor')[1].split('\n## 5')[0];
+  assert.ok(/Sewers/.test(sec.slice(0, 6000)),
     'the tradeoff section must state the spot that loses its whole seasonal range');
+  assert.ok(sec.includes(PEEL_FLOOR_BASIS.measured) && sec.includes(PEEL_FLOOR_BASIS.modelCommit),
+    '4.6 must carry the re-measurement date and commit');
+  for (const spot of MAPPED)
+    assert.ok(sec.includes(`**${PEEL_FLOOR[spot].floorH0.toFixed(2)}**`),
+      `4.6 must tabulate ${spot}'s current floor ${PEEL_FLOOR[spot].floorH0}`);
+  assert.ok(/model[- ]version/i.test(sec), '4.6 must name the model-version dependence of the floor');
 });

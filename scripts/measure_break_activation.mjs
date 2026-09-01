@@ -44,10 +44,12 @@
 //   node scripts/measure_break_activation.mjs                    # everything
 //   node scripts/measure_break_activation.mjs --preset=secondpeak --h0=0.7   # one field
 //   node scripts/measure_break_activation.mjs --mode=sweep --preset=sewers
-//   --mode=field|sweep|f0|triage|all   --out=qa/break-field   --step=0.005   --lo=0.4 --hi=3.0
+//   node scripts/measure_break_activation.mjs --mode=floor      # re-measure PEEL_FLOOR (MODEL.md 4.6)
+//   --mode=field|sweep|f0|triage|floor|all   --out=qa/break-field   --step=0.005   --lo=0.4 --hi=3.0
 //   A partial run merges into the standing qa/break-field/summary.json.
 import { registerHooks } from 'node:module';
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -71,6 +73,7 @@ const { PP_GEO_DATA } = await import('../data/model/pp_geo_profiles.js');
 const { PP_DEPTH_DATA } = await import('../data/model/pp_depth_patches.js');
 const D = await import('../web-three/js/dispersion.js');
 const { signedPeelGeometryAt } = await import('../web-three/js/peel-geometry.js');
+const { MONTHLY_OCEAN } = await import('../data/climatology/pp_monthly_ocean.js');
 
 // ---------- constants mirrored from bed.js / main.js ----------
 // Not exported there; tests/break-field-gate.test.js reads bed.js's source to
@@ -648,6 +651,115 @@ export function triageLowH0(key, { H0, T, tide = 0 }) {
   };
 }
 
+// ---------- the peel floor, re-measured on this bake (MODEL.md 4.6, LESSONS 14b) ----------
+// The floor is a floor ON THE PEEL, not on the branch id: the lowest H0 from
+// which every rung up to the card draws a peel on the reef. Three conditions,
+// all on the shipped line's stage readback, all stated once here and copied
+// into shared/params.js PEEL_FLOOR_BASIS with the numbers:
+//   1. stage-median clean signed alpha >= ALPHA_FLOOR_DEG with the authored
+//      sign (tests/peel-floor.test.js ALPHA_FLOOR_DEG: collapsed states read
+//      1-9 deg, healthy card states 26-51, 10 is the gap);
+//   2. at least ON_REEF_MIN of the stage stations sit on the synthetic wedge
+//      footprint (the peel is the REEF branch, not the inshore bore, which at
+//      First Peak reads 10-12 deg with 0% on the reef);
+//   3. both hold at every rung from the floor to the card H0 (First Peak's
+//      line dips to 6-8 deg between 1.26 and 1.37 after reading 10.6 at 1.25).
+// Basis: tide 0, the site card's own T, 0.01 m rungs from FLOOR_LADDER_LO_M
+// to the card H0. Off that basis peelFloorH0() must return null (14b).
+export const ALPHA_FLOOR_DEG = 10;
+export const ON_REEF_MIN = 0.5;
+export const FLOOR_STEP_M = 0.01;
+export const FLOOR_LADDER_LO_M = 0.4;
+
+export function peelHealthy(rep, handSign = 1) {
+  const a = rep.medianClean;
+  return Number.isFinite(a) && Math.sign(a) === handSign && Math.abs(a) >= ALPHA_FLOOR_DEG
+    && rep.onReefFrac >= ON_REEF_MIN;
+}
+// Which of the three conditions a rung fails, for the report.
+export function peelFailures(rep, handSign = 1) {
+  const a = rep.medianClean, out = [];
+  if (!Number.isFinite(a) || Math.sign(a) !== handSign) out.push('sign');
+  else if (Math.abs(a) < ALPHA_FLOOR_DEG) out.push('alpha');
+  if (rep.onReefFrac < ON_REEF_MIN) out.push('reef');
+  return out;
+}
+
+// A fingerprint of the bake at the two floor rungs: the shipped line, its gap
+// flags and the canonical alpha along it on the stage grid. Any change to the
+// bake inputs (bed, dispersion, reef fit, presets, the alpha metric) that
+// could move the floor changes this; tests/peel-floor.test.js compares it to
+// PEEL_FLOOR[key].bakeDigest so a stale floor fails loudly instead of quietly
+// clamping a #month= to a height the current bake draws a closeout at.
+export function floorDigest(key, spec) {
+  const h = createHash('sha1');
+  for (const H0 of [spec.floorLo, spec.floorHi]) {
+    const inst = instrumentState(key, { H0, T: spec.basisT, tide: spec.basisTideM ?? 0 });
+    h.update(`${key} H0=${H0} T=${spec.basisT} tide=${spec.basisTideM ?? 0}\n`);
+    h.update(inst.real.z.map((z) => z.toFixed(4)).join(','));
+    h.update(inst.real.gap.join(''));
+    h.update(inst.real.alpha.map((a) => (Number.isFinite(a) ? a.toFixed(6) : 'nan')).join(','));
+  }
+  return h.digest('hex').slice(0, 16);
+}
+
+export function measurePeelFloor(key, { handSign = 1, lo = FLOOR_LADDER_LO_M, log = null } = {}) {
+  const card = cardOf(key);
+  const sw = sweepH0(key, { T: card.T, tide: 0, lo, hi: card.H0, step: FLOOR_STEP_M, handSign, log });
+  const rows = sw.rows;
+  // the lowest rung from which every rung up to the card is healthy
+  let k = rows.length;
+  while (k > 0 && peelHealthy(rows[k - 1].reps.shipped, handSign)) k--;
+  const cont = continuityOf(sw, 1).shipped;
+  const flips = cont.flips.slice().sort((a, b) => a.from - b.from);
+  const largest = cont.flips.reduce((b, f) => (b === null || f.dzMax > b.dzMax ? f : b), null);
+  const act = reefActivationH0(key, { T: card.T, tide: 0 });
+  const base = { key, label: PRESETS[key].label, basisT: card.T, basisTideM: 0, alphaTarget: card.alpha,
+                 cardH0: card.H0, ladder: { lo, hi: card.H0, step: FLOOR_STEP_M }, worstGate: sw.worstGate,
+                 reefActivationH0: act.H0, flips, largestFlip: largest };
+  if (k === rows.length) return { ...base, floorLo: null, floorHi: null, note: 'the card state itself is not healthy' };
+  if (k === 0) return { ...base, floorLo: null, floorHi: rows[0].H0, note: `healthy at the ladder bottom ${lo}` };
+  const below = rows[k - 1].reps.shipped, above = rows[k].reps.shipped;
+  const spec = { ...base, floorLo: rows[k - 1].H0, floorHi: rows[k].H0, floorH0: rows[k].H0,
+    alphaBelow: below.medianClean, alphaAbove: above.medianClean,
+    onReefBelow: below.onReefFrac, onReefAbove: above.onReefFrac,
+    reversalsBelow: below.reversals, reversalsAbove: above.reversals,
+    pinnedBelow: below.pinnedN, pinnedAbove: above.pinnedN,
+    failedBelow: peelFailures(below, handSign),
+    flipsAboveFloor: flips.filter((f) => f.from >= rows[k].H0),
+    rungs: rows.map((r) => ({ H0: r.H0, alpha: round(r.reps.shipped.medianClean, 2), onReef: round(r.reps.shipped.onReefFrac, 3),
+                              reversals: r.reps.shipped.reversals, pinned: r.reps.shipped.pinnedN })) };
+  spec.bakeDigest = floorDigest(key, spec);
+  return spec;
+}
+
+// What the floor does to the twelve #month= states at one spot, headless. A
+// month keeps the card T and tide 0, i.e. it sits exactly on the floor's
+// basis, and bed.js bakes on the CPU in the browser too, so these are the
+// numbers audit_shipped_states.mjs would read back through stageAlpha().
+export function monthCost(key, floorH0, { handSign = 1, prevFloorH0 = null } = {}) {
+  const card = cardOf(key);
+  const basis = fieldBasis(key, { T: card.T, tide: 0 });
+  const alphaAt = (H0) => repSummary(instrumentState(key, { H0, T: card.T, tide: 0 }, basis), handSign).shipped;
+  const H0_MIN = 0.4, H0_MAX = 3.0;
+  const months = MONTHLY_OCEAN.map((m) => {
+    const asked = Math.min(Math.max(m.H0, H0_MIN), H0_MAX);
+    const drawn = floorH0 !== null && asked < floorH0 ? floorH0 : asked;
+    const prev = prevFloorH0 !== null && asked < prevFloorH0 ? prevFloorH0 : asked;
+    const raw = alphaAt(asked), now = alphaAt(drawn);
+    return { key: m.key, asked, drawn, prevDrawn: prev, clamped: drawn !== asked, changed: Math.abs(drawn - prev) > 1e-9,
+             alphaRaw: raw.medianClean, alphaDrawn: now.medianClean, onReefDrawn: now.onReefFrac };
+  });
+  const drawnH0 = months.map((m) => m.drawn);
+  const askedSpan = Math.max(...months.map((m) => m.asked)) - Math.min(...months.map((m) => m.asked));
+  return { key, floorH0, months, clampedN: months.filter((m) => m.clamped).length,
+           changedN: months.filter((m) => m.changed).length,
+           drawnMin: Math.min(...drawnH0), drawnMax: Math.max(...drawnH0),
+           rangeKept: (Math.max(...drawnH0) - Math.min(...drawnH0)) / askedSpan,
+           alphaRawMin: Math.min(...months.map((m) => m.alphaRaw)), alphaRawMax: Math.max(...months.map((m) => m.alphaRaw)),
+           alphaDrawnMin: Math.min(...months.map((m) => m.alphaDrawn)), alphaDrawnMax: Math.max(...months.map((m) => m.alphaDrawn)) };
+}
+
 // ---------- field export ----------
 export function fieldDump(inst) {
   const { key, spot, state, basis, field, sel, reps, gate, fit } = inst;
@@ -803,6 +915,17 @@ async function main() {
     summary.reefActivation = Object.fromEntries(MAPPED.map((k) => [k, reefActivationH0(k, { T: PRESETS[k].T, tide: 0 })]));
   }
 
+  // ---- the peel floor on this bake (MODEL.md 4.6) ----
+  if (mode === 'all' || mode === 'floor') {
+    for (const key of presets) {
+      const fl = measurePeelFloor(key, { handSign: handSigns[key], log });
+      const prev = PEEL_FLOOR[key]?.floorH0 ?? null;
+      const cost = fl.floorH0 ? monthCost(key, fl.floorH0, { handSign: handSigns[key], prevFloorH0: prev }) : null;
+      summary.presets[key].peelFloor = { ...fl, shippedFloorH0: prev, monthCost: cost };
+      log(`${key} floor: ${fl.floorLo}->${fl.floorHi} (shipped ${prev}); largest flip ${fl.largestFlip?.from}->${fl.largestFlip?.to}; digest ${fl.bakeDigest}`);
+    }
+  }
+
   // Compact: the committed summary carries 521 rungs x 6 spots x 6 reps and
   // pretty-printing doubles it. Read it with a tool, not an eye.
   writeFileSync(join(outDir, 'summary.json'), JSON.stringify(summary));
@@ -836,6 +959,26 @@ async function main() {
     console.log(mdTable(['spot', 'F0 m', 'rep', 'D(0.02)', 'D(0.01)', 'ratio', 'flips>20 (0.01)', 'card alpha', 'card on-reef', 'card reversals', 'rep - first onset m'],
       presets.flatMap((k) => (summary.presets[k].f0Sweep?.rows || []).map((r) =>
         [PRESETS[k].label, r.F0, r.rep, fmt(r.D2), fmt(r.D1), fmt(r.ratio, 2), r.flips, fmt(r.cardAlpha), fmt(r.cardOnReef, 2), r.cardReversals, fmt(r.cardMinusFirstMed)]))));
+  }
+  if (mode === 'all' || mode === 'floor') {
+    const P = presets.filter((k) => summary.presets[k].peelFloor);
+    console.log(`\n## The peel floor, re-measured (tide 0, card T, ${FLOOR_STEP_M} m rungs; alpha >= ${ALPHA_FLOOR_DEG} deg with the authored sign, >= ${Math.round(ON_REEF_MIN * 100)}% of stage stations on the reef, holding to the card)\n`);
+    console.log(mdTable(['spot', 'shipped floor', 'largest flip', 'reef activates', 'floor (peel returns)', 'alpha below -> above', 'on-reef below -> above', 'fails below', 'flips above floor', 'gate max |dz|', 'digest'],
+      P.map((k) => { const f = summary.presets[k].peelFloor;
+        return [f.label, fmt(f.shippedFloorH0, 2), f.largestFlip ? `${f.largestFlip.from}->${f.largestFlip.to} (${f.largestFlip.dzMax} m)` : 'none',
+                fmt(f.reefActivationH0, 3), `${fmt(f.floorLo, 2)}->${fmt(f.floorHi, 2)}`, `${fmt(f.alphaBelow)} -> ${fmt(f.alphaAbove)}`,
+                `${fmt(f.onReefBelow, 2)} -> ${fmt(f.onReefAbove, 2)}`, (f.failedBelow || []).join('+') || 'n/a',
+                (f.flipsAboveFloor || []).map((x) => `${x.from}->${x.to}`).join('; ') || 'none', f.worstGate.maxDzM.toExponential(1), f.bakeDigest || 'n/a']; })));
+    console.log('\n## What the floor does to #month= (headless twin of audit_shipped_states.mjs, months only)\n');
+    console.log(mdTable(['spot', 'floor', 'months clamped', 'months that move vs shipped floor', 'H0 drawn', 'seasonal range kept', 'alpha raw', 'alpha drawn'],
+      P.filter((k) => summary.presets[k].peelFloor.monthCost).map((k) => { const c = summary.presets[k].peelFloor.monthCost;
+        return [PRESETS[k].label, fmt(c.floorH0, 2), `${c.clampedN}/12`, `${c.changedN}: ${c.months.filter((m) => m.changed).map((m) => `${m.key} ${fmt(m.prevDrawn, 3)}->${fmt(m.drawn, 3)}`).join(', ') || '-'}`,
+                `${fmt(c.drawnMin, 3)}-${fmt(c.drawnMax, 3)}`, `${Math.round(c.rangeKept * 100)}%`, `${fmt(c.alphaRawMin)}-${fmt(c.alphaRawMax)}`, `${fmt(c.alphaDrawnMin)}-${fmt(c.alphaDrawnMax)}`]; })));
+    console.log('\n## Paste-ready shared/params.js PEEL_FLOOR entries\n');
+    for (const k of P) { const f = summary.presets[k].peelFloor; if (!f.floorH0) continue;
+      console.log(`  ${k}: {\n    flipLo: ${f.largestFlip.from.toFixed(2)}, flipHi: ${f.largestFlip.to.toFixed(2)}, floorLo: ${f.floorLo.toFixed(2)}, floorHi: ${f.floorHi.toFixed(2)}, floorH0: ${f.floorH0.toFixed(2)},\n`
+        + `    alphaBelow: ${f.alphaBelow.toFixed(1)}, alphaAbove: ${f.alphaAbove.toFixed(1)}, onReefBelow: ${f.onReefBelow.toFixed(2)}, onReefAbove: ${f.onReefAbove.toFixed(2)},\n`
+        + `    alphaTarget: ${f.alphaTarget}, basisT: ${f.basisT}, basisTideM: 0, bakeDigest: '${f.bakeDigest}' },`); }
   }
   if (summary.triage) {
     const t = summary.triage;
