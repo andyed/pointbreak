@@ -1,5 +1,18 @@
 # TODO
 
+## 2026-09-01 tranche — index
+
+Research written today, one line each. All headless; nothing here changed a
+shipped default.
+
+- `docs/research/PRIVATES_CONTOUR_2026-09-01.md` — why Private's contour fit fails (the contour turns 33–38° at x ≈ 70 m, not noise); 30-variant sweep; `--truncate 0.5` brings it to 1.87 m RMS and leaves the six untouched. Full tables: `docs/research/assets/privates_contour_sweep_2026-09-01.md`.
+- `docs/research/BATHY_SOURCES_2026-09-01.md` — bathymetry survey: CSMP 2 m (null at every spot), NOAA CUDEM 1/9" (exists here, corrects the 08-09 note), wide NCEI 1/3" (15 m contour on-grid); datums checked; breaking-depth contour normals rotate 6–20° between grids. §7 (later same day): CUDEM per-tile provenance — no source footprint under any canon spot, surf zone is GMT-surface interpolation, the −0.10 m sheet is that interpolant, no uncertainty raster exists. Figure: `docs/figures/assets/bathy_candidates_2026-09-01.png` (`gen_bathy_candidates.py`).
+- `docs/research/BREAK_FIELD_2026-09-01.md` — the break-activation field exported and a continuous break line tested on it: no continuous form keeps a sharp onset; the "second guess" holds. Side findings: `PEEL_FLOOR` off-basis (→ MODEL.md §4.6 re-measured), `h0-low` QA row is n/a.
+- `docs/research/CUDEM_BED_2026-09-01.md` — the model run on the CUDEM bed: three of six mapped spots lose their bed, Second Peak reads as a left; stable vs DEM-specific quantities tabulated; verdict "not the shipped bed until a sounding exists under the break".
+- `docs/research/VALIDATION_PLAN.md` "Ground truth status 2026-09-01" — what today changed about validation: zero measured surfaces under the surf zone across three public grids; OFR 2007-1270 data confirmed not public (Pubs Warehouse, ScienceBase, CMGDS checked); request draft in `docs/drafts/` (gitignored).
+- `data/bathy/candidates/ncei_cudem19/README.md` — CUDEM tile provenance in full: Lim et al. 2023 source hierarchy, spatial-metadata footprints (GeoJSON clip committed), per-spot interpolation gaps 408–651 m, the −0.10 sheet measured on the GeoTIFF.
+- `data/model/README.md` — the `--bathy` / `--bed=<tag>` source-selectable builders and instrument.
+
 ## ▶ MEASURED, NOT WIRED (2026-09-01) — the model on the CUDEM 1/9" bed
 
 `docs/research/CUDEM_BED_2026-09-01.md`. Both builders now take `--bathy` and
@@ -1067,6 +1080,29 @@ spot's measured branch-flip threshold, and publish the cost.** Shipped as
 up as **MODEL.md §4.6 "The peel floor: when the demo and the simulation
 disagree"** and referenced from the README product definition. Pinned by
 `tests/peel-floor.test.js` (8 tests); suite 74 → 82, all green.
+
+**Re-measured 2026-09-01 — the table below is stale on the current bake.**
+`docs/research/BREAK_FIELD_2026-09-01.md` §4 found the 08-20 floors off-basis
+on an axis their basis did not record: commit `09c7f4a` (finite-depth group
+velocity in K_s and the reef fit's h_b) moved every branch threshold one to
+two 0.01 m rungs, and the signed crest-relative α made the collapsed inshore
+branch read *negative*, so on today's bake the shipped 1.61 m Sewers floor
+drew −8.3° at all twelve months — the state the clamp exists to prevent — and
+the tests passed because they compared the table to constants from the same
+sweep. The floors were re-measured with
+`scripts/measure_break_activation.mjs --mode=floor` under a criterion that is
+defined on the peel, not the branch id (α ≥ 10°, authored handedness, majority
+of stations on the reef footprint, holding at every rung up to the card):
+Sewers 1.61 → 1.62, First Peak 1.26 → 1.38, Second Peak 1.08 → 1.11, Jack's
+0.85 → 0.78, The Hook 1.05 → 1.09, Sharks 0.81 unchanged; 48 of 72 month
+states move, card and `#day=` states do not. Each `PEEL_FLOOR` row now carries
+a `bakeDigest` and `PEEL_FLOOR_BASIS` the date, commit, tide, period rule, γ,
+step and criterion, so the next bed/dispersion/reef-fit/α-metric change fails
+the suite instead of inheriting a floor from a model that no longer exists.
+Full table and the two things the floor still does not do (the tide axis;
+Sewers and First Peak seasonality): **MODEL.md §4.6 "The floor depends on the
+model version (re-measured 2026-09-01)"**. The numbers below are kept as the
+08-20 record.
 
 **Measured** (`scripts/audit_shipped_states.mjs`, 114 states, 108 baking, each
 booted from a fresh document; both arms in one build via `--extra=clamp=0`):

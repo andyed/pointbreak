@@ -82,7 +82,9 @@ gives sources only generically — "NOAA Office of Coast Survey, NOAA National
 Geodetic Survey, NOAA Office for Coastal Management, U.S. Geological Survey,
 and the U.S. Army Corps of Engineers" — and the tile index shapefile carries
 only `location, srs, MissionID, URL`. **What fed the surf zone of this tile is
-not stated anywhere found.** DOI 10.25921/ds9v-ky35 (DataCite, verified);
+not stated anywhere found** — *superseded the same day: it is stated, in the
+tile-set development report and the per-tile spatial-metadata footprints;
+see §7.* DOI 10.25921/ds9v-ky35 (DataCite, verified);
 methods paper Amante et al. 2023 (CrossRef, verified). Bib keys:
 `cires2014cudem`, `amante2023cudem`. Licence: "Not subject to copyright
 protection within the United States." Not for navigation.
@@ -408,3 +410,68 @@ alongshore texture: peaks, gullies, section boundaries. Column "range" is max−
 | 150 m | CUDEM 1/9" | 601 | 0.205 | 3.63 | -1.53 |
 | 250 m | NCEI 1/3" (shipped) | 601 | 0.315 | 4.12 | -3.76 |
 | 250 m | CUDEM 1/9" | 601 | 0.229 | 3.48 | -3.19 |
+
+## 7. CUDEM surf-zone provenance — second pass, 2026-09-01
+
+§1c said the tile's surf-zone source "is not stated anywhere found". It is
+stated; the first pass stopped at the dataset-level ISO record. That record
+points to "DEM Development Reports" for "detailed information regarding the
+source data used in creation of a specific DEM tile", and the bulk page
+carries a `ninth_spatial_meta.zip`. Both were fetched. Full detail, tables
+and the refetch recipe are in
+`data/bathy/candidates/ncei_cudem19/README.md` ("Provenance of the surf-zone
+cells"); the findings that matter to the model:
+
+1. **Sources for this tile are listed** in Lim, Love, Amante, Carignan &
+   MacFerrin (2023), *Digital Elevation Models of Santa Cruz*, the NCEI/CIRES
+   development report for the twelve 1/9" tiles including
+   `n37x00_w122x00_2023v1` (bib `lim2023santacruzdem`). Gridding is GMT
+   `surface` (spline) over a weighted datalist; the lowest weight (0.1) is a
+   "bathymetric pre-surface" — an interpolated fill masked to a lidar-derived
+   coastline — that supplies every cell no sounding reaches.
+
+2. **Per-cell provenance exists**: the CUDEM spatial-metadata product (Amante
+   et al. 2023 §2.4) is a per-tile GeoPackage of source footprints, generated
+   at 1/3" and vectorised. This tile's has 12 features; the window clip is
+   committed as
+   `data/bathy/candidates/ncei_cudem19/ncei19_n37x00_w122x00_2023v1_sm_pp_clip.geojson`.
+
+3. **No source footprint contains any of the seven canon spots.** Along each
+   OSM shore-normal the 2020 San Mateo RCD topographic lidar ends 39–114 m
+   shoreward of the node and the nearest bathymetry (JALBTCX Coastal
+   California Topo-bathy DEM 2009–2013 and/or the CSMP Monterey Canyon grid)
+   begins 324–576 m seaward. Every node sits in an unmeasured gap 408–651 m
+   wide. The USACE 2014 topobathy lidar — the only surf-zone-capable source
+   in the hierarchy — covers 0.07 % of the window and none of the reef. The
+   source class at all seven spots is **interpolation**. The surf-zone
+   structure §4 found in the CUDEM (a shallower flat, 2–3× the alongshore
+   texture, 6–20° contour rotation) is therefore the shape of a spline
+   between the waterline and the 10 m isobath, not new soundings; it should
+   not be read as reef.
+
+4. **The −0.10 m flats at The Hook and Shark's Cove** are that spline
+   flattening against the coastline mask. On the GeoTIFF they are
+   −0.100 ± 0.0005 m over a 5.0 ha connected sheet from First Peak's
+   longitude to Private's (the bit-exact −0.10 in CUDEM_BED §3 is the stage
+   JSON's 2 dp rounding). The window's shallow-cell histogram piles 17,007
+   cells into [−0.2, −0.1) against ~3,000 per 0.1 m bin elsewhere. Why the
+   sheet sits at −0.10 rather than 0 is not documented anywhere fetched; that
+   nothing was measured under it is.
+
+5. **No uncertainty raster exists** for any CUDEM tile. ISO: "No quantitative
+   vertical accuracy analyses have been performed on the DEM tiles." Amante et
+   al. 2023 did not quantify bathymetric accuracy and list per-cell
+   total-propagated-uncertainty rasters as future work with USGS.
+
+**Consequence for §4 and §5.** Item 3 of §5 ("the CUDEM grid is the candidate
+for `bed.js` if the reef is ever to be resolved") is withdrawn as stated: the
+CUDEM resolves nothing under the break, because it has nothing under the break.
+It remains the better *frame* — same datum, 3 m lattice, land included, and the
+2012 DEM is no better sourced here — but neither surface carries a measurement
+between the waterline and ~300–500 m out at any canon spot. The
+"two unvalidated surfaces disagreeing by ~1 m" of §4 is now sharper: two
+interpolants across the same hole, differing in interpolator. The only
+surveyed soundings under this surf zone remain the USGS OFR 2007-1270 products
+(SWATHplus to "just less than 2 m", and the Coastal Profiling System
+waverunner transects "into water depths less than 1 m"); their status is in
+`VALIDATION_PLAN.md`, "Ground truth status 2026-09-01".
