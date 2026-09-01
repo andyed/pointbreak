@@ -100,24 +100,61 @@ def _crossings(samples: list[tuple[float, float | None]], target: float) -> list
     return out
 
 
-def _profile_for(name: str, spots: dict, canon_u: list[float], index: int, bathy: dict) -> dict:
-    spot = spots[name]
-    u = spot["u"]
+# Fit options. The defaults reproduce the shipped module byte for byte; the
+# alternatives exist for data/model/experiments/contour_variants.py (see
+# docs/research/PRIVATES_CONTOUR_2026-09-01.md).
+#
+#   ref:     ("node", delta_m)   contour at the surf node's own elevation + delta
+#            ("fixed", navd88_m) contour at an absolute NAVD88 elevation
+#   window:  ("neighbors", cap)  midpoints to the neighbouring canon spots, |x| <= cap
+#            ("symmetric", cap)  +-min(cap, half the nearer neighbour gap)
+#            ("fixed", half)     +-half
+#   branch:  "nearest"  per scan line, the crossing nearest z = 0 (the origin line)
+#            "track"    walk outward from x = 0, picking the crossing nearest the
+#                       previous line's selection (continuity)
+#   truncate: None      keep the whole window
+#             slope     walking outward from x = 0, end the stage at the last line
+#                       before the selected contour steps more than slope * 10 m
+#                       shore-normal between adjacent lines (the contour has
+#                       turned away from the stage frame; the platform ends)
+DEFAULT_OPTIONS = {
+    "ref": ("node", 0.0),
+    "window": ("neighbors", 250.0),
+    "branch": "nearest",
+    "truncate": None,
+}
+
+SCAN_HALF_M = 150.0
+LINE_STEP_M = 10.0
+
+
+def _stage_window(spots: dict, canon_u: list[float], index: int, mode: tuple) -> tuple[float, float]:
+    u = canon_u[index]
     prev_u = canon_u[index - 1] if index else 0.0
     next_u = canon_u[index + 1] if index + 1 < len(canon_u) else spots["Trees"]["u"]
-    stage_start = max(-250.0, (prev_u + u) / 2 - u)
-    stage_end = min(250.0, (u + next_u) / 2 - u)
+    kind, value = mode
+    if kind == "neighbors":
+        return max(-value, (prev_u + u) / 2 - u), min(value, (u + next_u) / 2 - u)
+    if kind == "symmetric":
+        half = min(value, (u - prev_u) / 2, (next_u - u) / 2)
+        return -half, half
+    if kind == "fixed":
+        return -float(value), float(value)
+    raise ValueError(f"unknown window mode {mode!r}")
 
-    ox, oy = spot["x"], spot["y"]
-    elev0 = _sample_bathy(bathy, ox, oy)
-    if elev0 is None:
+
+def _frame_at(name: str, bathy: dict, px: float, py: float, osm_tangent_deg: float):
+    """Elevation and (shore, along) unit vectors at an ENU point.
+
+    Bathymetric gradient points uphill/shoreward. Its perpendicular is the
+    local equal-elevation tangent; orient that tangent to OSM down-point.
+    """
+    elev = _sample_bathy(bathy, px, py)
+    if elev is None:
         raise ValueError(f"{name}: spot falls outside bathymetry grid")
-
-    # Bathymetric gradient points uphill/shoreward. Its perpendicular is the
-    # local equal-elevation tangent; orient that tangent to OSM down-point.
     eps = 5.0
-    ex1, ex0 = _sample_bathy(bathy, ox + eps, oy), _sample_bathy(bathy, ox - eps, oy)
-    ey1, ey0 = _sample_bathy(bathy, ox, oy + eps), _sample_bathy(bathy, ox, oy - eps)
+    ex1, ex0 = _sample_bathy(bathy, px + eps, py), _sample_bathy(bathy, px - eps, py)
+    ey1, ey0 = _sample_bathy(bathy, px, py + eps), _sample_bathy(bathy, px, py - eps)
     if None in (ex1, ex0, ey1, ey0):
         raise ValueError(f"{name}: cannot estimate bathymetric gradient")
     gx, gy = (ex1 - ex0) / (2 * eps), (ey1 - ey0) / (2 * eps)
@@ -126,30 +163,120 @@ def _profile_for(name: str, spots: dict, canon_u: list[float], index: int, bathy
         raise ValueError(f"{name}: degenerate bathymetric gradient")
     shore = (gx / glen, gy / glen)
     along = (shore[1], -shore[0])
-    osm_tangent = (
-        math.cos(math.radians(spot["coast_tangent_deg"])),
-        math.sin(math.radians(spot["coast_tangent_deg"])),
-    )
+    osm_tangent = (math.cos(math.radians(osm_tangent_deg)), math.sin(math.radians(osm_tangent_deg)))
     if along[0] * osm_tangent[0] + along[1] * osm_tangent[1] < 0:
         along = (-along[0], -along[1])
+    return elev, shore, along
 
-    contour_points: list[tuple[float, float]] = []
-    x = math.ceil(stage_start / 10) * 10
+
+def _scan_line(bathy: dict, ox: float, oy: float, along, shore, x: float) -> list[tuple[float, float | None]]:
+    """Shore-normal elevation samples at 1 m spacing along the stage line x."""
+    scan = []
+    z = -SCAN_HALF_M
+    while z <= SCAN_HALF_M + 1e-9:
+        px = ox + along[0] * x + shore[0] * z
+        py = oy + along[1] * x + shore[1] * z
+        scan.append((z, _sample_bathy(bathy, px, py)))
+        z += 1.0
+    return scan
+
+
+def _contour_lines(bathy: dict, ox: float, oy: float, along, shore, target: float,
+                   stage_start: float, stage_end: float) -> list[tuple[float, list[float]]]:
+    """(x, crossings of target) for every stage line in the window."""
+    lines: list[tuple[float, list[float]]] = []
+    x = math.ceil(stage_start / LINE_STEP_M) * LINE_STEP_M
     while x <= stage_end + 1e-9:
-        scan = []
-        z = -150.0
-        while z <= 150.0 + 1e-9:
-            px = ox + along[0] * x + shore[0] * z
-            py = oy + along[1] * x + shore[1] * z
-            scan.append((z, _sample_bathy(bathy, px, py)))
-            z += 1.0
-        candidates = _crossings(scan, elev0)
-        if candidates:
-            # The contour through the stage origin is the nearest branch in
-            # this local window. Mapped runtime spots all fit below 2 m RMSE.
-            contour_points.append((x, min(candidates, key=abs)))
-        x += 10.0
+        lines.append((x, _crossings(_scan_line(bathy, ox, oy, along, shore, x), target)))
+        x += LINE_STEP_M
+    return lines
 
+
+def _select_branch(lines: list[tuple[float, list[float]]], branch: str, seed: float = 0.0) -> list[tuple[float, float]]:
+    """Reduce multi-valued scan lines to one contour point each, sorted by x."""
+    points: list[tuple[float, float]] = []
+    if branch == "nearest":
+        for x, candidates in lines:
+            if candidates:
+                # The contour through the stage origin is the nearest branch in
+                # this local window. Mapped runtime spots all fit below 2 m RMSE.
+                points.append((x, min(candidates, key=abs)))
+        return points
+    if branch == "track":
+        by_x = dict(lines)
+        outward = [x for x, _ in lines if x >= 0]
+        inward = [x for x, _ in lines if x < 0][::-1]
+        for sequence in (outward, inward):
+            prev = seed
+            for x in sequence:
+                candidates = by_x[x]
+                if not candidates:
+                    continue
+                prev = min(candidates, key=lambda c: abs(c - prev))
+                points.append((x, prev))
+        points.sort()
+        return points
+    raise ValueError(f"unknown branch mode {branch!r}")
+
+
+def _truncate_at_departure(points: list[tuple[float, float]], stage_start: float, stage_end: float,
+                           slope: float) -> tuple[list[tuple[float, float]], float, float]:
+    """Cut the window where the contour leaves the stage frame.
+
+    Walk outward from x = 0 on each side. The first adjacent pair whose
+    shore-normal step exceeds slope * line spacing marks the contour turning
+    more than atan(slope) away from the stage tangent; the stage ends at the
+    last line before it. A side that never departs keeps its original bound.
+    """
+    limit = slope * LINE_STEP_M
+    pts = sorted(points)
+    pos = [p for p in pts if p[0] >= 0]
+    neg = [p for p in pts if p[0] <= 0][::-1]
+    keep: list[tuple[float, float]] = []
+    new_start, new_end = stage_start, stage_end
+    for side, sequence in (("pos", pos), ("neg", neg)):
+        kept = sequence[:1]
+        for prev, cur in zip(sequence, sequence[1:]):
+            if abs(cur[1] - prev[1]) > limit:
+                if side == "pos":
+                    new_end = prev[0]
+                else:
+                    new_start = prev[0]
+                break
+            kept.append(cur)
+        keep.extend(kept)
+    dedup = sorted(set(keep))
+    return dedup, new_start, new_end
+
+
+def _measure(name: str, spots: dict, canon_u: list[float], index: int, bathy: dict, options: dict | None = None) -> dict:
+    """Everything _profile_for needs, plus the raw contour for experiments."""
+    opts = {**DEFAULT_OPTIONS, **(options or {})}
+    spot = spots[name]
+    stage_start, stage_end = _stage_window(spots, canon_u, index, opts["window"])
+
+    ox, oy = spot["x"], spot["y"]
+    elev0, shore, along = _frame_at(name, bathy, ox, oy, spot["coast_tangent_deg"])
+
+    ref_kind, ref_value = opts["ref"]
+    target = elev0 + ref_value if ref_kind == "node" else float(ref_value)
+    rx, ry, ref_offset = ox, oy, 0.0
+    if target != elev0:
+        # The fit is constrained through (0, 0), so the frame origin has to sit
+        # on the contour being fitted: slide shore-normal from the node to the
+        # nearest crossing of the target elevation and re-take the tangent there.
+        candidates = _crossings(_scan_line(bathy, ox, oy, along, shore, 0.0), target)
+        if not candidates:
+            raise ValueError(f"{name}: the origin scan line never crosses {target:.2f} m")
+        ref_offset = min(candidates, key=abs)
+        rx, ry = ox + shore[0] * ref_offset, oy + shore[1] * ref_offset
+        _, shore, along = _frame_at(name, bathy, rx, ry, spot["coast_tangent_deg"])
+
+    lines = _contour_lines(bathy, rx, ry, along, shore, target, stage_start, stage_end)
+    contour_points = _select_branch(lines, opts["branch"])
+    if opts["truncate"] is not None:
+        contour_points, stage_start, stage_end = _truncate_at_departure(
+            contour_points, stage_start, stage_end, float(opts["truncate"]))
     if len(contour_points) < 8:
         raise ValueError(f"{name}: too few contour samples ({len(contour_points)})")
     c2, c3, rmse = _fit_x2_x3(contour_points)
@@ -162,32 +289,68 @@ def _profile_for(name: str, spots: dict, canon_u: list[float], index: int, bathy
     shore_slope = _linear_slope(slope_points)
 
     return {
-        "uM": round(u, 1),
-        "stageOriginENU": [round(ox, 1), round(oy, 1)],
-        "stageAlongENU": [round(along[0], 8), round(along[1], 8)],
-        "stageShoreENU": [round(shore[0], 8), round(shore[1], 8)],
-        "osmCoastTangentDeg": round(spot["coast_tangent_deg"], 1),
-        "bathyContourTangentDeg": round(math.degrees(math.atan2(along[1], along[0])), 1),
-        "reefElevationNavd88M": round(elev0, 2),
-        "shoreSlope": round(shore_slope, 6),
-        "stageBoundsM": [round(stage_start, 1), round(stage_end, 1)],
-        "contourFit": {
-            "x2": round(c2, 10),
-            "x3": round(c3, 12),
-            "rmseM": round(rmse, 2),
-            "samples": len(contour_points),
-            "usable": rmse <= 5.0,
-        },
+        "u": spot["u"],
+        "origin": (ox, oy),
+        "ref_point": (rx, ry),
+        "ref_offset": ref_offset,
+        "target": target,
+        "elev0": elev0,
+        "shore": shore,
+        "along": along,
+        "osm_tangent_deg": spot["coast_tangent_deg"],
+        "tangent_deg": math.degrees(math.atan2(along[1], along[0])),
+        "shore_slope": shore_slope,
+        "stage": (stage_start, stage_end),
+        "lines": lines,
+        "points": contour_points,
+        "c2": c2,
+        "c3": c3,
+        "rmse": rmse,
+        "options": opts,
     }
 
 
-def build() -> str:
+def _profile_for(name: str, spots: dict, canon_u: list[float], index: int, bathy: dict, options: dict | None = None) -> dict:
+    m = _measure(name, spots, canon_u, index, bathy, options)
+    profile = {
+        "uM": round(m["u"], 1),
+        "stageOriginENU": [round(m["origin"][0], 1), round(m["origin"][1], 1)],
+        "stageAlongENU": [round(m["along"][0], 8), round(m["along"][1], 8)],
+        "stageShoreENU": [round(m["shore"][0], 8), round(m["shore"][1], 8)],
+        "osmCoastTangentDeg": round(m["osm_tangent_deg"], 1),
+        "bathyContourTangentDeg": round(m["tangent_deg"], 1),
+        "reefElevationNavd88M": round(m["elev0"], 2),
+        "shoreSlope": round(m["shore_slope"], 6),
+        "stageBoundsM": [round(m["stage"][0], 1), round(m["stage"][1], 1)],
+        "contourFit": {
+            "x2": round(m["c2"], 10),
+            "x3": round(m["c3"], 12),
+            "rmseM": round(m["rmse"], 2),
+            "samples": len(m["points"]),
+            "usable": m["rmse"] <= 5.0,
+        },
+    }
+    if m["options"] != DEFAULT_OPTIONS:
+        # Non-default fits carry their provenance. The default output is
+        # unchanged so `--check` stays byte-stable.
+        profile["contourFit"]["variant"] = {
+            "ref": list(m["options"]["ref"]),
+            "window": list(m["options"]["window"]),
+            "branch": m["options"]["branch"],
+            "truncate": m["options"]["truncate"],
+            "refElevationNavd88M": round(m["target"], 2),
+            "refOffsetShoreM": round(m["ref_offset"], 1),
+        }
+    return profile
+
+
+def build(options: dict | None = None) -> str:
     osm = json.loads(OSM_PATH.read_text())
     bathy = json.loads(BATHY_PATH.read_text())
     spots = {spot["name"]: spot for spot in osm["spots"]}
     canon_u = [spots[name]["u"] for name in CANON]
     profiles = {
-        name: _profile_for(name, spots, canon_u, index, bathy)
+        name: _profile_for(name, spots, canon_u, index, bathy, options)
         for index, name in enumerate(CANON)
     }
     payload = {
@@ -212,8 +375,22 @@ def build() -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="fail if the generated module is stale")
+    parser.add_argument(
+        "--truncate", type=float, default=None, metavar="SLOPE",
+        help=(
+            "end each stage where the contour turns more than atan(SLOPE) from the "
+            "stage tangent between adjacent 10 m lines. Off by default. Measured "
+            "passing band 0.4-0.7 (docs/research/PRIVATES_CONTOUR_2026-09-01.md); "
+            "0.5 brings Private's to 1.87 m RMS and leaves the six mapped spots byte-identical."
+        ),
+    )
+    parser.add_argument("--print", action="store_true", help="write the module to stdout instead of the file")
     args = parser.parse_args()
-    output = build()
+    options = {"truncate": args.truncate} if args.truncate is not None else None
+    output = build(options)
+    if args.print:
+        print(output, end="")
+        return 0
     if args.check:
         if not OUT_PATH.exists() or OUT_PATH.read_text() != output:
             print(f"stale: {OUT_PATH}")
