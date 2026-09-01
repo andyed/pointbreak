@@ -56,3 +56,14 @@ node docs/figures/render_check.mjs docs/figures/og-card.svg \
 
 The inset is a simulated render, not aerial photography; the card labels it
 `SIMULATED` in the adjacent high-contrast caption.
+
+## Bathymetry candidates sheet (2026-09-01)
+
+`bathy_candidates_2026-09-01.png` is generated, not captured:
+`python3 docs/figures/gen_bathy_candidates.py` reads `data/bathy/pp_bathy.json`
+and `data/bathy/pp_bathy_cudem19.json`, block-means the 3 m stage lattice to
+12 m/px, and draws hillshades of both grids, their −2/−5/−10/−15 m NAVD88
+contours, the OSM coastline, the seven canon spots, and a submerged-only
+CUDEM − NCEI difference at ±2 m. Data: NOAA NCEI (public domain) on an
+OSM-derived frame (ODbL; © OpenStreetMap contributors). Read with
+`docs/research/BATHY_SOURCES_2026-09-01.md`.

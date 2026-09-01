@@ -50,6 +50,24 @@ Attribution is a courtesy, not an obligation — we give it anyway.
 The tidal datum (MSL − NAVD88 = 0.905 m) comes from NOAA CO-OPS station 9413450
 (Monterey). Also public domain.
 
+### Candidate grids added 2026-09-01 (`data/bathy/candidates/`, `data/bathy/pp_bathy_*.json`)
+
+Evaluated in `docs/research/BATHY_SOURCES_2026-09-01.md`; none is wired into
+the runtime.
+
+| File | Source | Licence |
+|---|---|---|
+| `data/bathy/bathy_subset_wide.ascii`, `data/bathy/pp_bathy_ncei13_wide.json` | same NOAA NCEI Monterey 1/3 arc-second DEM, wider OPeNDAP window | public domain (US Government) |
+| `data/bathy/candidates/ncei_cudem19/*.tif`, `data/bathy/pp_bathy_cudem19.json` | NOAA NCEI / CIRES CUDEM 1/9 arc-second tile `ncei19_n37x00_w122x00_2023v1`, doi:10.25921/ds9v-ky35 | public domain; "Not subject to copyright protection within the United States." Not for navigation. |
+| `data/bathy/candidates/csmp_aptos/README.md` (no data files committed) | USGS California Seafloor Mapping Program, DS 781, *Bathymetry [USGS]--Offshore Aptos, California* (Dartnell, Ritchie, Finlayson 2015), doi:10.5066/F7K35RQB | public domain, marked **CC0 1.0 Universal** by USGS; attribution to USGS PCMSC requested. Not for navigation. Evaluated and found not to cover the reef; the clip and JSON are gitignored, only the README (provenance, recipe, coverage numbers) is kept. |
+
+The `pp_bathy_*.json` files are those grids resampled onto the OSM-derived
+stage frame, so — like `data/model/pp_depth_patches.js` above — their
+*arrangement* is a derivative of ODbL data even though the elevations are
+public domain. The `*_pp_clip.tif` files are plain spatial subsets in the
+sources' own coordinate systems and carry no ODbL obligation. The full
+downloads under `candidates/*/raw/` are gitignored, not redistributed.
+
 ## Third-party code
 
 `web-three/vendor/three.module.js` and `web-three/vendor/OrbitControls.js` are
