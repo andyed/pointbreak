@@ -1150,6 +1150,7 @@ function refreshHUD() {
     hudClampKey.hidden = !c;
     if (c) {
       const spot = PRESETS[c.spot]?.label || c.spot;
+      const fmtTide = (t) => `${t >= 0 ? '+' : ''}${t.toFixed(2)}`;
       const measured = `measured ${c.flip.floorLo.toFixed(2)}→${c.flip.floorHi.toFixed(2)} m, `
         + `α ${c.flip.alphaBelow.toFixed(1)}°→${c.flip.alphaAbove.toFixed(1)}° `
         + `against a ${c.flip.alphaTarget}° target`;
@@ -1159,8 +1160,8 @@ function refreshHUD() {
           + `Size is clamped here — this is not the season's height. #clamp=0 draws it raw.`
         : `NOT applied. The floor at ${spot} is ${c.flip.floorH0.toFixed(2)} m and `
           + `${c.source} asks for ${c.requested.toFixed(3)} m, but it was ${measured} `
-          + `at T ${c.flip.basisT} s and tide 0 — this state is at T ${c.T} s, tide `
-          + `${c.tideM >= 0 ? '+' : ''}${c.tideM.toFixed(2)} m, so the number does not describe it. `
+          + `at T ${c.flip.basisT} s and holds for tide ${fmtTide(c.flip.tideBandM[0])}…${fmtTide(c.flip.tideBandM[1])} m `
+          + `— this state is at T ${c.T} s, tide ${fmtTide(c.tideM)} m, so the number does not describe it. `
           + `Drawing the requested height unclamped; the peel here is whatever the bed gives.`;
     }
   }
@@ -1364,6 +1365,14 @@ function setTide(value) {
   if (!Number.isFinite(v)) return;
   state.tide = Math.min(Math.max(v, TIDE_RANGE[0]), TIDE_RANGE[1]);
   clearActiveDay();
+  // A month's drawn height depends on the tide: the peel floor holds only
+  // inside the spot's measured tide band (params.js PEEL_FLOOR tideBandM) and
+  // declines outside it. Re-derive the month at the new tide, the same way the
+  // hash parser reads #tide= before #month=, or the slider would drag a
+  // tide-0 clamp — and the HUD line that vouches for it — to a tide the
+  // number does not describe. Off the band the month draws its raw p75 and
+  // the HUD says so. Nothing here touches the tide itself.
+  if (activeMonthKey) setMonth(activeMonthKey);
   refreshHUD();
 }
 
