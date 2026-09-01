@@ -399,8 +399,11 @@ float farFadeAt(vec2 xz){
 // Two entry points, one body: the (dep, Ks) overload is for callers that
 // already hold both, so the hot vertex path does not re-fetch the bed for a
 // number it computed four lines earlier.
+// The body lives in the shared model as breakerCeilM (2026-09-01) so the
+// transported crash can size itself off the same number; this name stays for
+// the bend, the curtain and the instruments that already read it.
 float crestCeilM(float dep, float Ks){
-  return clamp(0.8*VIS*min(u_H0*Ks, GAMMA*dep), 0.5, 14.0);
+  return breakerCeilM(dep, Ks);
 }
 float crestCeilM(vec2 xz0){
   float dep = modelDepthM(xz0);
@@ -1631,6 +1634,23 @@ void main() {
     float innerF = smoothstep(zbC + 12.0, zbC + 34.0, sourceXZ.y);
     foamM *= mix(1.0, min(stripeCarve, 1.0), innerF);
   }
+  // ---- transported crash material (#roller=, default OFF) ----
+  // The deposit at the curtain landing and the bore-carried roller are fresh
+  // MASS, not a tail: they sit outside the comet/stripe carves above (which
+  // dissolve tails) and floor the material like the pocket does. Read at
+  // sourceXZ — the roller belongs to the water it was seeded in and travels
+  // with it; asking at worldXZ would query the lifecycle at a displaced point
+  // (the ownership rule at the top of main). Uniform branch: no cost and a
+  // bit-identical frame at the default.
+#ifdef ROLLER
+  float rollerM = 0.0;
+  if (u_roller > 0.0) {
+    vec4 impF = impactSourceAt(sourceXZ, t);
+    rollerM = clamp(1.4*impF.x + 1.0*impF.y, 0.0, 1.0);
+    // lightly perforated by the same erosion lattice so it is whitewater
+    foamM = max(foamM, rollerM*(0.55 + 0.45*er));
+  }
+#endif
   // Probe 1 changes only the material response. Probe 2 additionally spends
   // the contrast budget on one live head: the line-attached zipper and its
   // current bore stay bright while re-breaking stripes resolve as dim film.
@@ -1871,6 +1891,12 @@ void main() {
   float nearLine = exp(-pow((sourceXZ.y - breakLine(sourceXZ.x))/25.0, 2.0));
   float freshCore = u_crestRead * (1.0 - ageK) * smoothstep(0.55, 0.90, foamM)
                   * max(nearLine, clamp(foamPocketF*1.4, 0.0, 1.0));
+  // The transported crash is freshly aerated mass wherever it is — dense
+  // white, not lace. Inside the uniform branch so the default path compiles
+  // the shipped freshCore text unchanged (see the model's rollerFoam note).
+#ifdef ROLLER
+  if (u_roller > 0.0) freshCore = max(freshCore, rollerM * u_crestRead * smoothstep(0.55, 0.90, foamM));
+#endif
   foamCol = mix(foamCol, vec3(1.0), 0.6*freshCore);
   vec3 filmCol = mix(base, vec3(0.60, 0.68, 0.70), 0.6);
   // deeper film with #head: the aged tail grades toward water so the fresh
@@ -2096,13 +2122,15 @@ void main(){
 // AUTHORED, in the wave's own length (the #lamcap lesson: no world-space
 // constants in displacement paths). The 0.9 is the classical plunging-jet
 // picture — the jet lands roughly a face height ahead — and is the knob the
-// Mead & Black vortex-ratio refinement would replace (MODEL.md 1.4).
+// Mead & Black vortex-ratio refinement would replace (MODEL.md 1.4). The
+// constant is declared in shared/model-glsl.js (spliced through
+// SURFACE_PRELUDE) since 2026-09-01, because the transported crash
+// (impactSourceAt) seeds its deposit at this same landing.
 export const CURTAIN_VERT = `
 ${SURFACE_PRELUDE}
 ${SURFACE_GLSL}
 varying float vCurtA;    // curtain alpha: overturn gate x far fade
 varying vec2  vCurtUV;   // (alongshore metres, fall parameter v) for streaks
-const float CURT_REACH = 0.9;
 
 void main(){
   float x0 = position.x;               // alongshore, world metres

@@ -60,6 +60,17 @@ uniform float u_gapMask;    // 1 = honor baked section gaps, 0 = #gap=0 A/B reve
 uniform float u_headRead;   // 1 = comet-head whitewater aging, 0 = #head=0 A/B revert
 uniform float u_splash;     // #splash=1: concentrated impact spray + surface
                             // aeration on the shared lifecycle bell.
+// #roller=: the TRANSPORTED crash — an impact deposit at the curtain landing
+// plus a roller carried down-face/down-line with the bore, both seeded by
+// impactSourceAt() on the lifecycle clock. Gain. EVERY roller symbol is
+// compiled only under #define ROLLER (main.js sets it on the grid material
+// when the page boots with #roller): a uniform branch on u_roller was measured
+// to move 1-3 pixels of the default frame by 1-12 levels against the pristine
+// tree (compiler contraction around the inserted blocks), so the default build
+// must compile the pristine TEXT, not merely the same values.
+#ifdef ROLLER
+uniform float u_roller;
+#endif
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
 uniform float u_lipSize;    // 1 = the pocket->whitewater path carries foamSizeAt() like the
                             // rest of the foam field, 0 = #lipn=0 A/B revert (size-free lip)
@@ -182,6 +193,26 @@ const float CRASH_PEAK_S = 0.42;
 const float CRASH_SIGMA_S = 0.20;
 const float BORE_FADE_START_S = 2.60;
 const float BORE_END_S = 3.80;
+// The curtain lands CURT_REACH*h_crest shoreward of the crest source point.
+// Owned by the model since 2026-09-01 because two consumers read it — the
+// falling sheet (shaders.js CURTAIN_VERT) is drawn down to it, and the
+// transported crash (impactSourceAt, below) is seeded at it. One constant, or
+// the deposit lands beside the curtain instead of under it. AUTHORED, in the
+// wave's own length: the classical plunging-jet picture puts the landing about
+// a face height ahead; the Mead & Black vortex-ratio refinement would replace
+// it (MODEL.md 1.4).
+const float CURT_REACH = 0.9;
+// Transported-crash timescales, SECONDS (rate independence: every reach below
+// is a speed in m/s times one of these, never a frame count). The roller must
+// be zero again before the lifecycle clock wraps at T (shortest preset 12 s)
+// and before breakerCausalGate begins at 0.72*T, or the tail of one crest's
+// roller would be handed to the next carrier — the "teleport" the acceptance
+// gate forbids. CRASH_PEAK_S + ROLLER_END_S = 5.42 s clears both.
+#ifdef ROLLER
+const float DEPOSIT_TAU_S = 0.55;   // impact deposit e-fold at the landing
+const float ROLLER_TAU_S = 1.60;   // roller mass e-fold while it travels
+const float ROLLER_END_S = 5.00;   // smooth hard end of the roller's life
+#endif
 
 // The pitching lip is a short event, not a held pose. Its arc angle grows
 // quadratically into impact (constant angular acceleration), then the bend
@@ -802,6 +833,174 @@ vec4 breakerLifecycleAtX(float x, float t){
   return vec4(age, frontZ, impact, bore);
 }
 
+// Depth-limited DISPLAYED crest height, metres above still water: the wave
+// height the water CAN carry, min(H0*Ks, gamma*h), with ~0.8 of it above the
+// mean and VIS applied after the physical threshold. This is the body of
+// shaders.js crestCeilM — which now calls it — moved here so the model can size
+// the crash off the same number the #curl bend and the curtain size off. One
+// authority for "how big is the breaking wave here" (MODEL.md 4.5).
+float breakerCeilM(float dep, float Ks){
+  return clamp(0.8*VIS*min(u_H0*Ks, GAMMA*dep), 0.5, 14.0);
+}
+float breakerCeilM(vec2 xz0){
+  float dep = modelDepthM(xz0);
+  return breakerCeilM(dep, shoalingKsAt(dep));
+}
+
+#ifdef ROLLER
+// The lifecycle's impact channel AT ITS PEAK (impactAge = 1): how hard THIS
+// station's crest crashes, independent of where in the impact bell we are
+// reading. Exactly the factors breakerLifecycleAtX multiplies into life.z —
+// set activity, reef window, section mask, plunge character, sheltered size —
+// re-read at the EMISSION time so a roller keeps the strength of the event
+// that made it while the set envelope moves on underneath.
+float breakerImpactPeakAtX(float x, float tEmit){
+  float zb = breakLine(x);
+  vec2 atBreak = vec2(x, zb);
+  float env = setEnv(rayS(atBreak), tEmit);
+  float activity = env*env*reefWindow(x)*breakMask(x);
+  float plunge = smoothstep(0.45, 1.25, u_xi);
+  return activity*(0.18 + 0.82*plunge)*foamSizeAt(x);
+}
+
+// ---------- the transported crash (#roller, 2026-09-01, default OFF) --------
+// NEXT_INVESTMENTS 2, slices 1-3. The lip lands (curl -> curtain -> impact
+// bell) and then nothing is left of the landing: #splash was measured as
+// ~0.1% of drone pixels, a garnish, not transported mass. This is the state
+// that mass needs, written as ONE deterministic function of source coordinate
+// and canonical time — no particle history, no ping-pong texture — so
+// speed=0, permalink clocks and filmsheets stay seek-safe by construction.
+//
+// SOURCE, not a second authority. The clock is the lifecycle's own: age at
+// the break line (mod(w*t - rayPhase(x, zb)), the breakerLifecycleAtX idiom),
+// impact at CRASH_PEAK_S — the same instant breakerCurlCycle releases the bend
+// and the impact bell peaks. The LOCUS is the curtain's landing: the crest
+// source point at impact (zb + c_z*CRASH_PEAK_S, CURTAIN_VERT's zc) plus
+// CURT_REACH times the depth-limited crest height (breakerCeilM, the curtain's
+// hC). The STRENGTH is the lifecycle impact gain at its peak. Nothing here
+// decides anew where or when the wave breaks.
+//
+// TWO MECHANISMS, one source, one clock (slice 3):
+//   deposit — white mass left AT the landing. Stationary, short (DEPOSIT_TAU_S),
+//             a band CURT-sized off h_crest. Adds NO height: a narrow raised
+//             strip at the landing outlived the curl as a detached plate once
+//             already (1fa3f84), so the deposit is material only.
+//   roller  — the mass that keeps going. Transported with the BORE: speed is
+//             breakerLifecycleAtX's own frontSpeed (mix(2.4, 4.1, plunge)),
+//             direction is the wave's propagation ray (grad rayS — sin/cos of
+//             the refracted swell angle plus the contour bow), so the
+//             down-line component is the along-shore part of that ray and not
+//             a chosen speed (the NEXT_INVESTMENTS "unowned quantity" caveat).
+//             It spreads as sqrt(1 + tau/1.5) and decays on ROLLER_TAU_S with
+//             a smooth end at ROLLER_END_S.
+//
+// LAGRANGIAN BACK-TRACE. Material at source (x, z) at time t left SOME
+// station's landing tau seconds ago and has since moved vel*tau. tau is first
+// read off this station's own clock, then refined once at the emitter that
+// implies (x0 = x - vel.x*tau): the along-line drift is a few metres against
+// the line's smooth age field, so one step converges. Pre-impact at the
+// emitter (tau <= 0) or past the roller's life returns zero exactly — that is
+// the "absent pre-break" and "no teleport to the next carrier" gates, in code.
+//
+// CONTACT GATE — THE ONE PLACE THE AUTHORITY IS SPLIT. The curtain draws
+// nothing unless the bend has genuinely overturned (CURTAIN_VERT gates on
+// curl = th/PI >= 0.30 turns). curl is a vertex-stage OUTPUT of choppyPos
+// (shaders.js) and is not available to the model, nor at the emitter station
+// from a displaced fragment. The model gates contact on the same xi ->
+// curvature map the bend uses instead: the bend's arc angle is
+// dyB*mix(0.30, 2.60, plunge)/hCrest with dyB <= 0.65*hCrest, so its ceiling
+// reaches the curtain's 0.30-turn gate (0.94 rad) at plunge ~ 0.5. The
+// smoothstep below is that crossing, then calibrated against the curtain gate
+// the rig measured at three sites (see the constant). Spilling Sharks (xi 0.45
+// -> plunge 0) and bed-less Privates (xi 0.35) therefore read zero, which is
+// the graceful near-zero slice 4 asks for, from the same knob and not a
+// per-site bank.
+//
+// Returns vec4(deposit, roller, rollerCenterZ, tauSinceImpact). Amplitudes are
+// gain-scaled by u_roller and dimensionless (~[0, 1.5]); consumers size the
+// foam and the mound from them. Zero everywhere when u_roller = 0.
+vec4 impactSourceAt(vec2 sourceXZ, float t){
+  float x = sourceXZ.x;
+  float w = 2.0*PI/u_T;
+  float plunge  = smoothstep(0.45, 1.25, u_xi);
+  // CALIBRATED TO THE CURTAIN'S OWN GATE, measured (measure_crash_transport,
+  // max overturn along the transect over 40 s, curtain gate = smoothstep(0.30,
+  // 0.55, curl)*breakMask*farFade): Sewers xi 1.15 (plunge 0.96) curl 0.60-0.73
+  // -> gate 0.63-1.00; First Peak xi 0.85 (plunge 0.50) curl 0.26-0.34 -> gate
+  // 0.00-0.07; Second Peak xi 0.65 (plunge 0.16) curl 0.12 -> gate 0. The
+  // first cut, smoothstep(0.25, 0.60, plunge), gave First Peak 0.5 and landed
+  // a deposit under a curtain that barely draws; this ramp reproduces the
+  // measured gates at all three sites.
+  float contact = smoothstep(0.48, 0.90, plunge);
+  float gain    = u_roller * clamp(u_breakShape, 0.0, 1.0) * contact;
+  if (gain <= 0.0) return vec4(0.0);
+
+  // The water's propagation ray and the bore's speed along it — both owned
+  // elsewhere (rayS, breakerLifecycleAtX); read, not chosen.
+  float phi = swellPhi();
+  vec2  dir = normalize(vec2(sin(phi) + cos(phi)*coastCurveSlope(x), cos(phi)));
+  float frontSpeed = mix(2.4, 4.1, plunge);
+  vec2  vel = dir*frontSpeed;
+
+  // ---- deposit: this station's own landing, this station's own clock ----
+  float ageHere = mod(w*t - rayPhase(vec2(x, breakLine(x))), 2.0*PI)/w;
+  float tauD = ageHere - CRASH_PEAK_S;
+  float deposit = 0.0;
+  if (tauD > 0.0 && tauD < ROLLER_END_S) {
+    float zbD = breakLine(x);
+    float kkD = kLocalAt(vec2(x, zbD));
+    float kzD = max(kkD*cos(phi), 0.25*kkD);
+    float zcD = zbD + (w/kzD)*CRASH_PEAK_S;          // crest source at impact
+    float hCD = breakerCeilM(vec2(x, zcD));
+    float zLD = zcD + CURT_REACH*hCD;                 // the curtain's landing
+    float sigD = max(0.30*hCD, 1.5);                  // >~1.5 cells or it aliases
+    float dzD  = sourceXZ.y - zLD;
+    deposit = gain * breakerImpactPeakAtX(x, t - tauD)
+            * smoothstep(0.0, 0.08, tauD) * exp(-tauD/DEPOSIT_TAU_S)
+            * exp(-0.5*dzD*dzD/(sigD*sigD));
+  }
+
+  // ---- roller: back-traced to the station whose landing it left ----
+  // Same life window as the deposit: a wrapped tauD (~T at the approaching
+  // side) would otherwise back-trace to an up-line emitter and hand its live
+  // roller to this pre-break station (measured at First Peak: field present at
+  // the pre-contact clocks, 8% of the cover frame). The price is the few metres
+  // of down-line drift into a not-yet-impacted station, which is under the
+  // probe step at the head.
+  float roller = 0.0, zr = 0.0, tau = 0.0;
+  if (tauD > 0.0 && tauD < ROLLER_END_S) {
+    float x0   = x - vel.x*tauD;
+    float age0 = mod(w*t - rayPhase(vec2(x0, breakLine(x0))), 2.0*PI)/w;
+    tau = age0 - CRASH_PEAK_S;
+    if (tau > 0.0 && tau < ROLLER_END_S) {
+      x0 = x - vel.x*tau;
+      float zb0 = breakLine(x0);
+      float kk0 = kLocalAt(vec2(x0, zb0));
+      float kz0 = max(kk0*cos(phi), 0.25*kk0);
+      float zc0 = zb0 + (w/kz0)*CRASH_PEAK_S;
+      float hC0 = breakerCeilM(vec2(x0, zc0));
+      float zL0 = zc0 + CURT_REACH*hC0;
+      zr = zL0 + vel.y*tau;                            // where the mass is now
+      float sigR = max(0.55*hC0, 2.5) * sqrt(1.0 + tau/1.5);
+      float dzr  = sourceXZ.y - zr;
+      float endFade = 1.0 - smoothstep(0.70*ROLLER_END_S, ROLLER_END_S, tau);
+      roller = gain * breakerImpactPeakAtX(x0, t - tau)
+             * smoothstep(0.0, 0.25, tau) * exp(-tau/ROLLER_TAU_S) * endFade
+             * exp(-0.5*dzr*dzr/(sigR*sigR));
+    } else {
+      tau = 0.0;
+    }
+  }
+
+  vec4 outv = vec4(deposit, roller, zr, tau);
+  if (!(outv.x == outv.x)) outv.x = 0.0;   // NaN guards (house rule)
+  if (!(outv.y == outv.y)) outv.y = 0.0;
+  if (!(outv.z == outv.z)) outv.z = 0.0;
+  if (!(outv.w == outv.w)) outv.w = 0.0;
+  return outv;
+}
+#endif
+
 // The carrier's crest bell is intentionally symmetric, but whitewater is not:
 // a station may foam only after the zipper has crossed it. Raw lifecycle age
 // is 0 at that crossing, grows through the wake, and reads near T on the
@@ -1205,6 +1404,28 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float splashBurst = crashAmp * splashBand * splashRag;
   if (!(splashBurst == splashBurst)) splashBurst = 0.0; // NaN guard (house rule)
 
+  // ---- the transported crash: deposit + roller (#roller=, default OFF) ----
+  // impactSourceAt() is the one source (see its header): the curtain landing
+  // on the lifecycle clock, back-traced along the bore's own transport. Read
+  // at the SOURCE coordinate like every Lagrangian term in this function; the
+  // renderer displaces the result with the water it belongs to and never asks
+  // the lifecycle again at the displaced position.
+  // Uniform branch: the default frame pays nothing and stays bit-identical.
+#ifdef ROLLER
+  float rollDeposit = 0.0, rollMass = 0.0;
+  if (u_roller > 0.0) {
+    vec4 imp = impactSourceAt(xz, t);
+    rollDeposit = imp.x;
+    rollMass    = imp.y;
+    // HEIGHT, roller only. A roller is a rolling mass of aerated water WITH
+    // volume — the structural bore mound already says so at 0.27*u_H0 — so it
+    // gets a low, wide mound that travels with it. Physical metres like every
+    // h term here (VIS applies at the end). The deposit adds none: a narrow
+    // raised strip at the landing is exactly the detached plate 1fa3f84 removed.
+    h += 0.16*u_H0*rollMass*moundNoise;
+  }
+#endif
+
   // SIZE_AUDIT open item 1: the whole foam block was H0-free, so whitewater
   // amount and brightness were identical at every size. This factor scales the
   // H0-free foam terms (legacy path + aftermath residue) with swell height;
@@ -1319,6 +1540,19 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float structuralFoam = 1.55*impactFoam + 0.84*boreFoam
                        + 0.66*trailFoam + 0.42*trailLace
                        + 0.90*cometFoam + 1.25*splashFoamN;
+  // Transported crash material (#roller). Born white like the splash, denser
+  // than the bore it rides through, textured by the same advected clumps so it
+  // reads as whitewater and not as a painted band. Accumulated INSIDE the
+  // uniform branch: adding a zero term to the sum above is exact in value but
+  // changes the expression the compiler sees, and under fast-math that moved
+  // one pixel by one level against the pristine tree. The default path must
+  // compile the identical text.
+#ifdef ROLLER
+  if (u_roller > 0.0) {
+    float rollerFoam = (1.45*rollDeposit + 1.05*rollMass) * (0.72 + 0.28*clumps);
+    structuralFoam += rollerFoam;
+  }
+#endif
   // Downstream aftermath residue (2026-08-11). The structural bands above are
   // all clocked by life.w, which hard-zeros at BORE_END_S, and trailBand is
   // capped shoreward at the moving front (life.y) — max extent frontSpeed*3.8 s

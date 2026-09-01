@@ -7,6 +7,7 @@ import { swellPhi } from '../web-three/js/model-js.js';
 const model = readFileSync(new URL('../shared/model-glsl.js', import.meta.url), 'utf8');
 const shaders = readFileSync(new URL('../web-three/js/shaders.js', import.meta.url), 'utf8');
 const main = readFileSync(new URL('../web-three/js/main.js', import.meta.url), 'utf8');
+const controls = readFileSync(new URL('../docs/CONTROLS.md', import.meta.url), 'utf8');
 
 function glslConstant(name) {
   const match = model.match(new RegExp(`const float ${name} = ([0-9.]+);`));
@@ -317,4 +318,119 @@ test('every foam term carries the one size factor, pocket path included', () => 
   // The clamp bound is a real calibration limit, so the HUD says when it binds
   // instead of rendering a size-blind field silently.
   assert.match(main, /foam size ×[\d.]+ floor/);
+});
+
+// ---------------------------------------------------------------------------
+// The transported crash (#roller — NEXT_INVESTMENTS 2, slices 1-3, 2026-09-01)
+// ---------------------------------------------------------------------------
+// Flag-gated prototype, NOT promoted. These pin the three things the
+// investment note says a wrong build would get wrong: it must be OFF by
+// default and revert through one gain; it must read the lifecycle clock and
+// the curtain's landing rather than deciding anew where the wave breaks; and
+// it must be seeded in SOURCE water, never queried at the displaced world
+// position. Tuning constants are free to move; the structure is not.
+test('the transported crash is OFF by default and reverts through one gain', () => {
+  assert.match(main, /u_roller:\s+\{ value: 0 \}/);
+  assert.match(main, /h\.has\('roller'\)/);
+  assert.match(main, /uniforms\.u_roller\.value = v/);
+  assert.match(model, /#ifdef ROLLER\s*uniform float u_roller;\s*#endif/);
+  // The default build compiles the pristine TEXT: every roller symbol is under
+  // #define ROLLER, which main.js sets on the grid material only when the page
+  // boots with #roller (a uniform branch alone moved 1-3 default pixels).
+  assert.match(main, /const ROLLER_BUILD = [\s\S]{0,200}?readHashParams\(\)\.get\('roller'\)/);
+  assert.match(main, /defines: ROLLER_BUILD \? \{ ROLLER: 1 \} : \{\}/);
+  assert.match(main, /curlProbeMat = new THREE\.ShaderMaterial\(\{[\s\S]{0,600}?defines: \{ ROLLER: 1 \}/,
+    'the instrument must always compile the roller symbols so probe row 3 exists');
+  assert.match(model, /#ifdef ROLLER\s*float rollDeposit = 0\.0, rollMass = 0\.0;/);
+  assert.match(shaders, /#ifdef ROLLER\s*float rollerM = 0\.0;/);
+  assert.match(shaders, /#ifdef ROLLER\s*if \(u_roller > 0\.0\) freshCore/);
+  assert.match(controls, /^\| `roller` \|/m);
+  // Every consumer sits behind the uniform gate and every accumulator is
+  // initialised to zero outside it, so the default frame is the shipped frame
+  // bit-for-bit (measured against the pristine tree by
+  // scripts/measure_crash_transport.mjs --baseline).
+  assert.match(model, /float rollDeposit = 0\.0, rollMass = 0\.0;\s*if \(u_roller > 0\.0\) \{\s*vec4 imp = impactSourceAt\(xz, t\);/);
+  assert.match(shaders, /float rollerM = 0\.0;\s*if \(u_roller > 0\.0\) \{\s*vec4 impF = impactSourceAt\(sourceXZ, t\);/);
+  assert.match(model, /if \(gain <= 0\.0\) return vec4\(0\.0\);/);
+  // The DEPOSIT may not lift the water: a narrow raised strip at the landing
+  // outlived the curl as a detached plate once already (1fa3f84). Only the
+  // roller — a mass with volume, moving with the bore — carries a mound.
+  assert.match(model, /h \+= [\d.]+\*u_H0\*rollMass\*moundNoise;/);
+  assert.doesNotMatch(model, /h\s*\+=[^;\n]*rollDeposit/);
+});
+
+test('impactSourceAt reads the lifecycle clock and the curtain landing, not a second break authority', () => {
+  assert.match(model, /vec4 impactSourceAt\(vec2 sourceXZ, float t\)/);
+  // The clock is breakerLifecycleAtX's own idiom: age at the break line,
+  // contact at CRASH_PEAK_S — the instant the bend releases and the impact
+  // bell peaks. No new onset.
+  assert.match(model, /float ageHere = mod\(w\*t - rayPhase\(vec2\(x, breakLine\(x\)\)\), 2\.0\*PI\)\/w;/);
+  assert.match(model, /float tauD = ageHere - CRASH_PEAK_S;/);
+  // The locus is the curtain's landing: the crest source at impact plus
+  // CURT_REACH times the ceiling — one constant, owned by the model and read by
+  // CURTAIN_VERT, never redeclared in the renderer.
+  assert.match(model, /const float CURT_REACH = 0\.9;/);
+  assert.doesNotMatch(shaders, /const float CURT_REACH/);
+  assert.match(shaders, /Pland = surfacePos\(vec2\(x0, zc \+ CURT_REACH\*hC\)/);
+  assert.match(model, /float zLD = zcD \+ CURT_REACH\*hCD;/);
+  assert.match(model, /float zL0 = zc0 \+ CURT_REACH\*hC0;/);
+  // One ceiling. crestCeilM keeps its name for the bend, the curtain and the
+  // instruments, but its body is the model's breakerCeilM.
+  assert.match(model, /float breakerCeilM\(float dep, float Ks\)\{\s*return clamp\(0\.8\*VIS\*min\(u_H0\*Ks, GAMMA\*dep\), 0\.5, 14\.0\);/);
+  assert.match(shaders, /float crestCeilM\(float dep, float Ks\)\{\s*return breakerCeilM\(dep, Ks\);/);
+  assert.doesNotMatch(shaders, /crestCeilM\(float dep, float Ks\)\{\s*return clamp\(/);
+  // Strength is the lifecycle's impact gain at its PEAK — the same factors
+  // life.z multiplies — read at emission time, not a new strength bank.
+  assert.match(model, /float breakerImpactPeakAtX\(float x, float tEmit\)[\s\S]{0,400}?return activity\*\(0\.18 \+ 0\.82\*plunge\)\*foamSizeAt\(x\);/);
+  assert.match(model, /float impact = activity\*impactAge\*\(0\.18 \+ 0\.82\*plunge\)\*sizeAmp;/);
+  assert.match(model, /breakerImpactPeakAtX\(x, t - tauD\)/);
+  assert.match(model, /breakerImpactPeakAtX\(x0, t - tau\)/);
+  // Transport is the bore's own speed along the wave's own ray — no velocity
+  // constant is introduced (the NEXT_INVESTMENTS "unowned quantity" caveat).
+  assert.match(model, /float frontSpeed = mix\(2\.4, 4\.1, plunge\);\s*vec2\s+vel = dir\*frontSpeed;/);
+  assert.match(model, /vec2\s+dir = normalize\(vec2\(sin\(phi\) \+ cos\(phi\)\*coastCurveSlope\(x\), cos\(phi\)\)\);/);
+  // Zero before contact and past the roller's life, by construction.
+  assert.match(model, /if \(tauD > 0\.0 && tauD < ROLLER_END_S\)/);
+  assert.match(model, /if \(tau > 0\.0 && tau < ROLLER_END_S\)/);
+  // The one documented split: contact is gated on the bend's xi->curvature map
+  // because curl is a vertex-stage output the model cannot read.
+  assert.match(model, /float contact = smoothstep\([\d.]+, [\d.]+, plunge\);/);
+  assert.doesNotMatch(model, /impactSourceAt[\s\S]{0,3000}?crestCeilM\(/);
+});
+
+test('the roller dies before the lifecycle clock can hand it to the next carrier', () => {
+  // age wraps at T and breakerCausalGate begins fading at 0.72*T; a roller
+  // still alive there would be re-attributed to the approaching crest — the
+  // teleport the acceptance gate forbids. Checked against every shipped
+  // preset's period, shortest first.
+  const peak = glslConstant('CRASH_PEAK_S');
+  const end = glslConstant('ROLLER_END_S');
+  const tauR = glslConstant('ROLLER_TAU_S');
+  const tauD = glslConstant('DEPOSIT_TAU_S');
+  assert.ok(tauD < tauR, 'the deposit is the SHORT mechanism, the roller the long one');
+  assert.ok(end > 2*tauR, 'the roller end must not truncate its own e-fold');
+  for (const key of ['sewers', 'firstpeak', 'secondpeak', 'jacks', 'thehook', 'sharks', 'privates']) {
+    const st = makeState(); applyPreset(st, key);
+    assert.ok(peak + end < 0.72*st.T,
+      `${key}: roller life ${peak + end} s reaches the causal gate at ${0.72*st.T} s`);
+  }
+  assert.match(model, /1\.0 - smoothstep\(0\.70\*ROLLER_END_S, ROLLER_END_S, tau\)/);
+});
+
+test('the transported crash is read at the source coordinate, never the displaced world position', () => {
+  // ocean()'s xz IS the source coordinate; the fragment reads sourceXZ.
+  assert.match(model, /vec4 imp = impactSourceAt\(xz, t\);/);
+  assert.match(shaders, /vec4 impF = impactSourceAt\(sourceXZ, t\);/);
+  assert.doesNotMatch(shaders, /impactSourceAt\(worldXZ/);
+  assert.doesNotMatch(shaders, /impactSourceAt\(vWorldPos/);
+  // The material floor sits AFTER the comet/stripe carves: those dissolve
+  // tails, and freshly landed mass is not a tail.
+  assert.ok(shaders.indexOf('foamM *= mix(1.0, 0.45 + 0.55*carveTail') < shaders.indexOf('vec4 impF = impactSourceAt'),
+    'the roller floor must come after the comet carve');
+  assert.match(shaders, /foamM = max\(foamM, rollerM\*/);
+  assert.match(shaders, /if \(u_roller > 0\.0\) freshCore = max\(freshCore, rollerM/);
+  assert.match(model, /if \(u_roller > 0\.0\) \{\s*float rollerFoam = [\s\S]{0,160}?structuralFoam \+= rollerFoam;\s*\}/);
+  // The probe exposes the field so the rig measures the shipped shader, not a twin.
+  assert.match(main, /gl_FragColor = impactSourceAt\(xz, u_time\);/);
+  assert.match(main, /deposit: buf\[r\], roller: buf\[r \+ 1\], rollerZ: buf\[r \+ 2\], rollerTau: buf\[r \+ 3\]/);
 });

@@ -13,6 +13,84 @@ garnish rather than transported impact mass, so it remains off. The next
 breaker tranche is still an advected roller/foam state plus curtain-contact
 deposit, not promotion of the existing height burst.
 
+## ▶ PROTOTYPE, NOT PROMOTED (2026-09-01) — the transported crash, `#roller=`
+
+NEXT_INVESTMENTS §2 slices 1–3, flag-gated, default byte-identical. One shared
+function `impactSourceAt(sourceXZ, t)` (model-glsl) seeds two mechanisms from
+one source and one clock: an **impact deposit** at the curtain landing (crest
+source at `CRASH_PEAK_S` + `CURT_REACH·h_crest`, exactly `CURTAIN_VERT`'s
+landing — `CURT_REACH` now lives in the model so both read one constant) and a
+**roller** carried with the bore at the lifecycle's own `frontSpeed` along the
+propagation ray (down-line component = the ray's along-shore part, not a chosen
+speed). Deterministic Lagrangian back-trace from source coordinate and canonical
+time; no history, no ping-pong, seek-safe by construction. `crestCeilM` is now a
+name for the model's `breakerCeilM` so the crash sizes off the bend's ceiling.
+**Bit-identity had to be built, not assumed:** with the roller behind a plain
+`if (u_roller > 0.0)` uniform branch the default frame differed from the
+pristine tree by 1–3 pixels (1–12 levels) at several cells while two clean
+loads of the same tree were byte-identical — attributable to the build, not
+noise; restoring `crestCeilM`'s literal body did not remove it, so it is the
+compiler contracting differently around the inserted blocks. Every roller
+symbol now sits under `#ifdef ROLLER`, defined on the grid material only when
+the page boots with `#roller`; the default build compiles the pristine text and
+the rig's baseline diff reads byte-identical.
+
+**Measured** (`scripts/measure_crash_transport.mjs`, one tracked crest, Sewers,
+x* = −47.2, impact t = 49.10 s; field read off the shipped shader through
+`curlProbe` row 3):
+
+    tau (s)   deposit  roller  centre dz (m)  dz/tau (m/s)
+    -0.80       0        0          —            —        (crest not yet across)
+    -0.20       0        0          —            —        (bend accelerating)
+     0.15     1.02     0.80        0.5          3.59
+     0.50     0.54     0.98        1.9          3.89
+     1.00     0.22     0.72        4.0          3.96
+     2.00     0.04     0.39        8.0          3.99
+     3.00     0.01     0.21       12.0          4.00
+     4.00     0.00     0.08       16.0          4.01
+     5.20       0        0          —            —        (dead before the T wrap)
+
+Origin 8.5 m ahead of the bend centre (0.9·ceil = 6.9 m; the argmax-`curl`
+proxy reads ~1.6 m seaward of the phase crest), monotone, linear in elapsed
+time (rate spread 0.11 m/s over five separations), decays without a jump, and
+the next station's event (x = −27, t = 52.4) is its own. Sharks (ξ 0.45) and
+Privates (bed-less) read exactly zero field and zero on/off pixels. Re-seeking
+the same permalink from a clean page is byte-identical. **Second Peak fires no
+event at any station in 40 s: the bend there peaks at 0.12 turns, under the
+curtain's 0.30-turn gate, so the curtain never draws and nothing lands** — the
+contact proxy agrees with the curtain, which is the one place the geometry
+authority is split (curl is a vertex output the model cannot read; contact is
+gated on the bend's own ξ→curvature map). **The first cut of that proxy,
+`smoothstep(0.25, 0.60, plunge)`, disagreed with the curtain at First Peak**
+(ξ 0.85: measured max overturn 0.26–0.34 turns, curtain gate 0–0.07, proxy
+0.5 — a deposit under a curtain that barely draws). Recalibrated to the gates
+the rig measured at the three sites: `smoothstep(0.48, 0.90, plunge)` — Sewers
+0.63–1.0, First Peak ≈ 0.01, Second Peak 0. The rig prints the curtain gate
+next to the event so the next disagreement is caught the same way. A second
+defect the same First Peak cells caught: with the lifecycle clock wrapped (age
+near T) the roller back-trace reached an up-line emitter and handed its live
+mass to a pre-break station; the roller now carries the deposit's own
+`tauD < ROLLER_END_S` life window.
+
+**Screen coverage is small**: peak on/off diff 0.32 % of the cliff frame,
+0.22 % drone, 0.10 % lineup, 0.07 % cover at Sewers (mean change 12–18 levels
+inside the diff); First Peak ≤ 0.014 % everywhere, as its near-zero curtain
+gate says — the landing zone is already whitewater, so the material floor
+changes few pixels. Whether that reads as a crash is the eye's call. **The Cover camera cannot show it at
+Sewers**: it aims at the baked line's action *centroid* (−47.2, −161.7), which
+lies 65 m shoreward of the line at that x, so the frame holds stations
+x ≈ −115…−90 — a section gap (`breakMask` 0) — seen from ~80 m. That is a
+pre-existing aim defect, recorded here because it decides which camera can
+judge the crash. Frames for the eye: `qa/crash-transport/index.html` (before /
+after / after with `splash=0` / |diff|×4, per clock). Judge in sequence; the
+numbers above cannot say whether it reads as a crash.
+
+Open: (a) the deposit and roller sit ~10 m ahead of the lifecycle's own `life.y`
+front (which starts AT the line), so the existing impact mound and the new
+landing are two loci — the note's "two of those as separate phases" question,
+now measurable; (b) size 0.16·H₀ mound and the foam coefficients are untuned;
+(c) `cam=cover` aim.
+
 ## ▶ NEW (2026-08-30, live) — foam terminates on hard straight edges in plan view
 
 Live report from a `cam=drone` frame at `sewers`, pinned `sim=44` and `sim=52`
