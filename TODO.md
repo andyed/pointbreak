@@ -1,5 +1,24 @@
 # TODO
 
+## ▶ MEASURED, NOT WIRED (2026-09-01) — the model on the CUDEM 1/9" bed
+
+`docs/research/CUDEM_BED_2026-09-01.md`. Both builders now take `--bathy` and
+write tagged siblings (`pp_geo_profiles.cudem19.js` etc.); the headless model
+runs on any of them with `--bed=<tag>` (`scripts/lib/bed-source.mjs`, a
+resolve hook; the shipped default is byte-identical and untouched). On the
+finer bed three of six mapped spots lose their bed outright (Sewer Peak misses
+the 5 m contour floor at 5.03 m; The Hook and Shark's Cove sit on a flat stored
+as exactly −0.10 m and cannot be framed), Second Peak's shipped line reads as a
+left at the card state (−0.4°, 44 reversed stations) with no H0 at which a
+peel returns, and Private's passes the fit only under `--truncate 0.5` and then
+draws a left on 8 % reef coverage. Stable across grids: reef-activation H0
+(Jack's 0.616 on both; others within 0.05 m), the flip rungs at Second Peak
+and Jack's, the depth at the drawn line, h_b. DEM-specific: contour tangents
+(−19° to +23°), breaking-depth contour normals (6–20°), the line's position
+(14–100 m), Second Peak's and Sewers' card alpha. Verdict: the finer bed does
+not become the shipped bed until the two flats are explained, the reef fit
+uses the signed metric, and either surface has a sounding under the break.
+
 ## ✔ 2026-08-26 — anatomy core promoted; transported crash remains next
 
 The judged anti-saucer mechanisms now ship together: curl, aerated lip,
