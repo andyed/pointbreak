@@ -19,7 +19,7 @@ import { makeSurfaceQuery } from './surface-query.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
          rayS, oceanH as oceanHJS, surferState as surferStateJS,
-         SET_DEPTH, SET_DEPTH_LEGACY, LAM } from './model-js.js';
+         SET_DEPTH, SET_DEPTH_LEGACY, LAM, SET_ANCHOR_S, setEnv, reefWindow, sectionShift } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, breakGapAt, BREAK_Z_MIN, BREAK_Z_MAX,
@@ -675,7 +675,9 @@ controls.maxDistance = 2000;
 let aimEnabled = true;
 const AIM_TAU_S = 6;                  // aim glide time constant, sim seconds
 const AIM_STEP_M = 5;                 // centroid sampling step along the stage
-const aimState = { x: 0, z: 0, ok: false, preset: null };
+// (x, z) is the centroid the stage-scale shots frame; (cx, cz) is the Cover
+// aim — a point ON the line, see bakedCoverAim — smoothed by the same lag.
+const aimState = { x: 0, z: 0, cx: 0, cz: 0, ok: false, preset: null };
 
 // Raw (unsmoothed) action centroid of the current bake, or null without one.
 // Same stage restriction as stageAlpha(): the bake's flat flanks are not surf.
@@ -693,12 +695,64 @@ function bakedAimCentroid() {
   return n ? { x: sx / n, z: sz / n } : null;
 }
 
+// The Cover aim (2026-09-01): the station where the SET-PEAK crest crosses the
+// drawn break line, as a point on that line.
+//
+// The centroid is the wrong target for a close-up. It is the MEAN of the line,
+// and on a curved line the mean is not on the line: at Sewers it sits 65 m
+// shoreward of the line at its own x, so a camera parked 16 m off it framed a
+// section gap from ~80 m and the crash-transport rig read 0.07% cover coverage
+// against 0.32% from the cliff (TODO 2026-09-01). Measured with
+// scripts/measure_cover_aim.mjs over the twelve baked preset/day cells: the
+// centroid shot had the set-peak head in frame in 0 of 12 cells at the card day.
+//
+// What this computes is the JS twin of the sheets' breakpoint marker at
+// t = SET_ANCHOR_S: `pocket` sampled ON the line is crestNear(theta)*env^2*reef
+// (model-glsl ocean(): the distance bell is 1 there), so its argmax over the
+// stage is where a crest is crossing the line while the set is on it. Gap
+// stations are excluded exactly as bakedAimCentroid excludes them — the
+// lifecycle fires no crash inside a gap (breakMask), so there is nothing there
+// to frame. Same phase field as the GPU (rayPhase follows P.phaseFn), same
+// envelope (setEnv on the live u_setRef), same sections shift as the drawn
+// line (sectionShift, which the bake alone does not carry).
+//
+// It is STILL a still camera: the point depends on the bake and the house set
+// clock, not on the running sim time, so a permalink at any `sim=` gets the
+// same shot, and the head passes through the frame once per period. The GPU
+// argmax at t = 45 agreed with this twin to within one 2 m station on every
+// baked cell when it landed (rig column `coverAimRaw` vs `headAt45`).
+const COVER_AIM_STEP_M = 2;
+function bakedCoverAim() {
+  if (!lastBaked) return null;
+  const P = modelP();
+  const lo = (P.stageStart ?? -110) + 10, hi = (P.stageEnd ?? 290) - 10;
+  const w = 2 * Math.PI / P.T;
+  let best = null, bestScore = -Infinity;
+  for (let x = lo; x <= hi; x += COVER_AIM_STEP_M) {
+    if (breakGapAt(x, lastBaked.x0, lastBaked.x1)) continue;
+    const zb = breakZAt(x, lastBaked.x0, lastBaked.x1) + sectionShift(x, P);
+    if (!Number.isFinite(zb)) continue;
+    const theta = w * SET_ANCHOR_S - rayPhase(x, zb, P);
+    // crestNear, as model-glsl writes it: smoothstep(0.55, 0.98, cos(theta))
+    const u = Math.min(Math.max((Math.cos(theta) - 0.55) / (0.98 - 0.55), 0), 1);
+    const near = u * u * (3 - 2 * u);
+    const env = setEnv(rayS(x, zb, P), SET_ANCHOR_S, P);
+    const score = near * env * env * reefWindow(x, P);
+    if (Number.isFinite(score) && score > bestScore) { bestScore = score; best = { x, z: zb }; }
+  }
+  return best;
+}
+
 function updateAim(simDt) {
   if (!aimEnabled || !lastBaked) { aimState.ok = false; return; }
   const c = bakedAimCentroid();
   if (!c || !Number.isFinite(c.x) || !Number.isFinite(c.z)) { aimState.ok = false; return; }
+  // The Cover point rides the same state: no crossing found (a bake with every
+  // stage station gapped) falls back to the centroid rather than to nothing.
+  const cv = bakedCoverAim() || c;
   if (!aimState.ok || aimState.preset !== state.preset) {
     aimState.x = c.x; aimState.z = c.z;
+    aimState.cx = cv.x; aimState.cz = cv.z;
     aimState.ok = true; aimState.preset = state.preset;
     return;
   }
@@ -708,6 +762,8 @@ function updateAim(simDt) {
   const k = 1 - Math.exp(-Math.max(simDt, 0) / AIM_TAU_S);
   aimState.x += (c.x - aimState.x) * k;
   aimState.z += (c.z - aimState.z) * k;
+  aimState.cx += (cv.x - aimState.cx) * k;
+  aimState.cz += (cv.z - aimState.cz) * k;
 }
 
 const aimOn = () => aimEnabled && aimState.ok;
@@ -797,9 +853,10 @@ const CAM_PRESETS = [
   // the surface is convincing AS WATER, which is the question a cover asks.
   //
   // Geometry, and why each number: it stands COVER_STANDOFF_M off the aim
-  // point — the baked line's action centroid, i.e. the travelling breakpoint,
-  // so the shot is on the pocket by construction and follows it as the peel
-  // runs — down-point of it (aim.x + standoff) so the wave is coming toward
+  // point — the station where the set-peak crest crosses the DRAWN break line
+  // (bakedCoverAim; until 2026-09-01 this was the line's action centroid,
+  // which is not on the line and at Sewers framed a section gap from 80 m) —
+  // down-point of it (aim.x + standoff) so the wave is coming toward
   // the lens and presents its face rather than being seen edge-on, and
   // SHOREWARD of it (aim.z + standoff*0.55) so the camera looks BACK at the
   // advancing face, which is the side a wave's face is on and where a water
@@ -816,9 +873,9 @@ const CAM_PRESETS = [
   // framing, that is the clamp doing its job and the standoff wants raising,
   // not the clamp disabling.
   { name: 'Cover',  pos: () => aimOn()
-      ? [aimState.x + COVER_STANDOFF_M, COVER_EYE_M, aimState.z + COVER_STANDOFF_M*0.55]
+      ? [aimState.cx + COVER_STANDOFF_M, COVER_EYE_M, aimState.cz + COVER_STANDOFF_M*0.55]
       : [COVER_STANDOFF_M, COVER_EYE_M, breakLineJS(COVER_STANDOFF_M) + COVER_STANDOFF_M*0.55],
-    target: () => aimOn() ? [aimState.x, COVER_AIM_Y_M, aimState.z]
+    target: () => aimOn() ? [aimState.cx, COVER_AIM_Y_M, aimState.cz]
                           : [0, COVER_AIM_Y_M, breakLineJS(0)], fov: 28 },
   { name: 'Point',  pos: () => [0, 560, 200],                                 target: () => [0, 0, 140] },
   { name: 'Follow', pos: () => cliffStation(cliffStationX()),                 target: () => [0, 2, breakLineJS(0) - 11] },
@@ -1916,7 +1973,6 @@ function frame(now) {
   // Advance the smoothed camera aim point from THIS frame's bake. Sim-time
   // delta, mirroring the simTime advance above: pause freezes the aim glide
   // with everything else, speed scales it with the waves.
-  updateAim((!state.paused && Number.isFinite(dt)) ? dt * state.speed : 0);
   uniforms.u_breakMix.value = baked ? 1 : 0;
   if (baked) {
     if (uniforms.u_breakTex.value !== baked.texture) {
@@ -1964,6 +2020,14 @@ function frame(now) {
   } else {
     uniforms.u_setRef.value = 0;
   }
+  // Camera aim runs AFTER the phase field (psiPhaseFn above) and the set anchor
+  // (u_setRef just above) are current for this frame: bakedCoverAim reads
+  // both through modelP(), and when this call sat before them it snapped the
+  // Cover point on the previous frame's reference — with speed=0 the glide
+  // never caught up, and the shot parked 60-100 m off its own target at five
+  // of twelve baked cells (measure_cover_aim.mjs, 2026-09-01). The centroid is
+  // insensitive to the order; the Cover point is not.
+  updateAim((!state.paused && Number.isFinite(dt)) ? dt * state.speed : 0);
   // Underwater is a camera state, not a fragment test: sample the JS twin's
   // surface height under the eye. gl_FrontFacing would conflate "below the
   // water" with "under M2's folded lip", which is a different thing entirely.
@@ -2754,6 +2818,10 @@ window.__pointbreak = {
       enabled: aimEnabled, ok: aimState.ok,
       aim: aimState.ok ? { x: aimState.x, z: aimState.z } : null,
       raw, errDeg,
+      // The Cover aim: raw twin point on the drawn line (bakedCoverAim) and the
+      // smoothed point the shot is actually parked off.
+      coverAim: bakedCoverAim(),
+      coverSmoothed: aimState.ok ? { x: aimState.cx, z: aimState.cz } : null,
       cam: CAM_PRESETS[camIdx].name,
       camPos: camera.position.toArray(),
       target: controls.target.toArray(),

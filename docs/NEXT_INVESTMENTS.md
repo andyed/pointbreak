@@ -249,7 +249,9 @@ feeds white mass transported down-face and down-line as a decaying roller.
   read: the lip lands without a persistent crash/roller state.
 - The existing `#splash` path was measured as a tiny garnish, roughly 0.1% of
   drone pixels and absent in one cover frame. Increasing its height does not
-  create transported mass.
+  create transported mass. (It ships ON regardless — promoted in `3f05530`,
+  2026-08-28, as the release phase of the causal bend; `#splash=0` is the
+  revert. Garnish is a statement about mass, not a reason to hide the burst.)
 - `breakerLifecycleAtX` already has an impact channel, and the curtain knows its
   tip and landing edge. Timing and contact geometry exist; transport and
   material persistence do not.
@@ -308,8 +310,9 @@ owner from rank 1.
 
 ### Rollback and non-goals
 
-Ship the spike behind one whole-state `crash=0` revert. Keep `#splash` off so
-two effects cannot impersonate one event during judgment.
+Ship the spike behind one whole-state `crash=0` revert. Judge it with
+`&splash=0` as well as with the shipped burst, so two effects cannot
+impersonate one event (the crash-transport rig's `alone_*` frames do this).
 
 Non-goals: no Navier-Stokes solver, no spray-volume claim, no generic particle
 system, no foam-material redesign, no revival of `look=foam`, and no tuning of

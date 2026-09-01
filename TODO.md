@@ -91,9 +91,14 @@ in every mapped drone comparison; Privates remained visually neutral. The old
 paths remain available as `#curl=0&lip=0&curtain=0&onset=0&sapp=0.42`.
 
 This does **not** close the section below. `#splash` was re-measured as a tiny
-garnish rather than transported impact mass, so it remains off. The next
-breaker tranche is still an advected roller/foam state plus curtain-contact
-deposit, not promotion of the existing height burst.
+garnish rather than transported impact mass (~0.1 % of drone pixels). It was
+nevertheless promoted two days later, in `3f05530` (2026-08-28, "stage causal
+curl and foam"): the bend now accelerates into the shared impact clock and
+releases into the splash/spray burst, so `u_splash` ships at **1** and
+`#splash=0` is the A/B revert (CONTROLS.md has said so since that commit; this
+paragraph said "remains off" until 2026-09-01 and was the stale one — see the
+reconciliation note below). The next breaker tranche is still an advected
+roller/foam state plus curtain-contact deposit, not a bigger height burst.
 
 ## ▶ PROTOTYPE, NOT PROMOTED (2026-09-01) — the transported crash, `#roller=`
 
@@ -171,7 +176,73 @@ Open: (a) the deposit and roller sit ~10 m ahead of the lifecycle's own `life.y`
 front (which starts AT the line), so the existing impact mound and the new
 landing are two loci — the note's "two of those as separate phases" question,
 now measurable; (b) size 0.16·H₀ mound and the foam coefficients are untuned;
-(c) `cam=cover` aim.
+(c) ~~`cam=cover` aim~~ — fixed 2026-09-01, next entry.
+
+## ✔ 2026-09-01 — Cover aims at the set-peak crossing, not the line's mean
+
+The close-up framed the baked line's action **centroid**, which is the MEAN of
+the line and on a curved line is not on it (Sewers: 65 m shoreward of the line
+at its own x; The Hook: 66 m). Now `bakedCoverAim()` (main.js) aims at the
+station where the set-peak crest crosses the DRAWN line — the JS twin of the
+sheets' breakpoint marker at `t = SET_ANCHOR_S`: argmax over non-gap stage
+stations of `crestNear(θ)·env²·reefWindow`, which is `pocket` sampled on the
+line, on the same phase field (`rayPhase` with the bake's `phaseFn`), the same
+envelope (`setEnv` on the live `u_setRef`) and the same sections shift as the
+shader (`sectionShift`, new model-js export; the bake alone does not carry it).
+Still a still camera: the point depends on the bake and the house set clock,
+not on sim time. Smoothed by the existing aim lag; `#aim=0` fallback unchanged.
+Drone, Cliff, Lineup, POV untouched (they keep the centroid).
+
+**Measured** (`scripts/measure_cover_aim.mjs`, new: head = GPU `pocket` argmax
+along the line per clock, projected through THREE's own camera; 16 clocks over
+one T from the set peak; 1000×625; twelve baked preset/day cells — Privates has
+no bake and keeps the authored fallback by design). Live Cover camera:
+
+    cell              deg→head@45  eye→head@45   head in frame /T   head in middle third /T
+                      before after  before after   before  after      before  after
+    sewers/card        33.7  18.5    113   20      0%      6%        0%      0%
+    sewers/small       23.1   0.5     46   18     19%      6%       13%      6%
+    firstpeak/card     30.7   9.7     48   20      0%     38%        0%      0%
+    firstpeak/small   110.6   3.2      9   18     75%    100%       31%     19%
+    secondpeak/card    21.3   7.4     22   20     19%     63%        0%      6%
+    secondpeak/small   18.3   2.5     74   19     69%     19%       38%     13%
+    jacks/card         38.4   3.4     17   19      0%     19%        0%     13%
+    jacks/small       147.5   1.9     21   18     50%     75%        0%     25%
+    thehook/card      153.9  12.8     59   17      0%     88%        0%     13%
+    thehook/small     142.5   2.1     60   18     19%     88%       19%     56%
+    sharks/card       167.7   1.6     54   18      0%    100%        0%    100%
+    sharks/small       79.6   2.5     19   19      0%     50%        0%     50%
+
+At the set peak the head is now in frame in 12 of 12 cells (before: 3 of 12,
+none at the card day; five cells had it BEHIND the camera). The middle-third
+fraction is bounded by the rig's own geometry, not the aim — the eye sits 16 m
+down-point and 8.8 m shoreward, so the head is within the centre third only
+inside ~6 m of the aim and a head moving 4–7 m/s spends ≤ 2 clocks there; where
+the line runs diagonal (Jack's, Sharks) the camera happens to look along it and
+the fraction is high. Read it as "frames a crashing station" vs "frames
+nothing". Two things the numbers say and the eye should confirm:
+- **Sewers card is the weak cell** even after: the set-peak crossing is at
+  x = −83, the exit of the −115…−90 section gap, so the head appears at the aim
+  and leaves down-line; nothing approaches through the gap. The crash at the
+  aim lands at t ≈ 45.4, 16–20 m from the lens. The centroid's own station
+  (x −47, `lineAtCx` in the rig) held the head in frame 31 % of the period
+  but 63 m away at the set peak; the brief asked for the head at the set peak.
+- The crest top at Sewers projects at ndc y 0.86 — a 2.2 m day's lip 20 m
+  away sits near the top of a frame aimed 3.2 m above still water
+  (`COVER_AIM_Y_M`, tuned for a ~5 m crest). Not changed here; a height that
+  follows the ceiling would be a separate taste call.
+
+The twin agreed with the GPU argmax at t = 45 to within one 2 m station on
+every cell. One defect the rig caught on the first after-run: `updateAim` ran
+BEFORE the frame's `u_setRef` refresh, so the cover point snapped on a stale
+envelope reference and a `speed=0` page never glided off it (60–100 m off at
+five cells). The call now runs after the set-anchor block.
+
+Frames for the eye: `qa/cover-aim/{before,after}/<preset>_<day>_t45.0.png` and
+`_t46.0.png`, side by side in `qa/cover-aim/after/compare.html`. QA sheet
+groups `cover` and `cover-anatomy` (`build_qa_sheets.mjs`) change framing; both
+are `pubDrop: true` (local only), so no published row moves. The crash-transport
+rig's `sewers-cover` cell will now frame a live station (`stationNearCentre`).
 
 **Second pass (2026-09-01, later) — legibility, still flag-gated, still not
 promoted.** The five gates passed on a roller nobody could see, so the second

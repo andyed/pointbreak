@@ -118,11 +118,20 @@ export function peelAngleAt(x, P) {
   return Math.atan(-cc) - Math.atan(-Math.tan(swellPhi(P)) - cc);
 }
 
-export function breakLine(x, P) {
+// MODEL-TWIN of the GLSL breakLine()'s sections term: shallow patches meet the
+// break criterion early, so the line is pulled SEAWARD (never shoreward) by up
+// to 55*sections metres. The GPU adds this on top of the baked line too, so a
+// consumer that wants the drawn line at a station (the Cover aim) adds it to
+// bed.js breakZAt. Numerically identical to the shader; keep it so.
+export function sectionShift(x, P) {
   const xx = mix(x, Math.abs(x), P.aframe);
   const sec = P.sections * 55 * (vnoise1(xx * 0.02 + 7.3) - 0.5) * 2;
+  return Math.min(sec, 0) * (P.sections >= 0.05 ? 1 : 0);
+}
+
+export function breakLine(x, P) {
   // the break line IS the contour through the surf node (contourZ = 0)
-  return -coastCurve(x, P) + Math.min(sec, 0) * (P.sections >= 0.05 ? 1 : 0);
+  return -coastCurve(x, P) + sectionShift(x, P);
 }
 
 // MODEL-TWIN of the GLSL reefWindow. Knots ride on P (P.reefWin), same
