@@ -62,6 +62,12 @@ qa/*
 !qa/break-field/
 qa/break-field/*
 !qa/break-field/summary.json
+# Signed reef-fit instrument (scripts/measure_reef_fit_signed.mjs): the beta
+# scans, shape scans and station profiles regenerate in ~4 min and stay
+# ignored; the report the research note cites is committed.
+!qa/reef-fit-signed/
+qa/reef-fit-signed/*
+!qa/reef-fit-signed/report.md
 
 # Raw bathymetry pulls behind data/bathy/candidates/*/ — full CSMP zips and
 # extracted 100-300 MB GeoTIFFs. Each candidate README records the URL, and the
