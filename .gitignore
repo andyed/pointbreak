@@ -69,6 +69,12 @@ qa/break-field/*
 qa/reef-fit-signed/*
 !qa/reef-fit-signed/report.md
 
+# The tide axis of the peel floor (--mode=tide): one compact table per spot
+# is the measurement TIDE_FLOOR_2026-09-01.md cites and is committed; the
+# full (H0, tide) rungs grid beside it (~1 MB/spot) is regenerable and is not.
+!qa/break-field/tide-floor/
+qa/break-field/tide-floor/*.rungs.json
+
 # Raw bathymetry pulls behind data/bathy/candidates/*/ — full CSMP zips and
 # extracted 100-300 MB GeoTIFFs. Each candidate README records the URL, and the
 # committed *_pp_clip.tif files are the spatial subsets the analysis reads.

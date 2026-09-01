@@ -28,7 +28,7 @@
 //      clamp (MODEL.md 4.5), and the product discloses it.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 // The instrument registers the `three` resolve hook bed.js needs; import it
 // before anything that pulls bed.js.
@@ -73,10 +73,13 @@ const clamp = (spot, requestedH0, ocean = {}) => {
 // on-basis by construction. That is what makes the month the clampable state.
 const onBasis = (spot) => ({ T: PEEL_FLOOR[spot].basisT, tideM: 0 });
 
-// One headless bake at (H0, card T, tide 0), read the way stageAlpha() reads it.
-const shippedAt = (spot, H0) => I.repSummary(
-  I.instrumentState(spot, { H0, T: PEEL_FLOOR[spot].basisT, tide: PEEL_FLOOR[spot].basisTideM }), 1).shipped;
+// One headless bake at (H0, card T, tide), read the way stageAlpha() reads it.
+const shippedAt = (spot, H0, tide = PEEL_FLOOR[spot].basisTideM) => I.repSummary(
+  I.instrumentState(spot, { H0, T: PEEL_FLOOR[spot].basisT, tide }), 1).shipped;
 const near = (a, b, tol) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= tol;
+// The tide band as the HUD, CONTROLS.md and MODEL.md print it.
+const fmtTide = (t) => `${t >= 0 ? '+' : ''}${t.toFixed(2)}`;
+const bandText = (f) => `${fmtTide(f.tideBandM[0])}…${fmtTide(f.tideBandM[1])} m`;
 
 test('the floor table carries its basis, and the basis is the instrument\'s and the runtime\'s', () => {
   assert.deepEqual(Object.keys(PEEL_FLOOR).sort(), Object.keys(PRESETS).sort(),
@@ -104,6 +107,71 @@ test('the floor table carries its basis, and the basis is the instrument\'s and 
     // margin — anything else is authorship wearing a measurement's clothes.
     assert.equal(f.floorH0, f.floorHi, `${spot} floor must be the measured healthy-side H0`);
     assert.match(f.bakeDigest, /^[0-9a-f]{16}$/, `${spot} carries no bake fingerprint`);
+  }
+  // The tide axis (TIDE_FLOOR_2026-09-01): the band is measured on the same
+  // 0.01 m rungs as the H0 floor, over the range the model accepts and no
+  // further — a band edge AT the range limit is "holds as far as the tide
+  // can go", not "holds forever".
+  assert.equal(B.tideStepM, I.TIDE_STEP_M);
+  assert.deepEqual(B.tideRangeM, I.TIDE_RANGE_M, 'the basis tide range must be the bake\'s own TIDE_RANGE');
+  assert.match(B.tideMeasured, /^\d{4}-\d{2}-\d{2}$/);
+  const [tLo, tHi] = B.tideRangeM;
+  for (const spot of MAPPED) {
+    const f = PEEL_FLOOR[spot];
+    assert.ok(Array.isArray(f.tideBandM) && f.tideBandM.length === 2, `${spot} carries no tide band`);
+    const [lo, hi] = f.tideBandM;
+    assert.ok(lo <= 0 && hi >= 0, `${spot} tide band ${bandText(f)} does not contain the tide-0 basis`);
+    assert.ok(lo >= tLo - 1e-9 && hi <= tHi + 1e-9, `${spot} tide band ${bandText(f)} leaves the accepted tide range`);
+    for (const [side, edge, limit] of [['lo', f.tideEdges.lo, tLo], ['hi', f.tideEdges.hi, tHi]]) {
+      assert.equal(edge.tide, side === 'lo' ? lo : hi, `${spot} ${side} edge is not the band edge`);
+      if (edge.beyondTide === null) {
+        assert.ok(near(edge.tide, limit, 1e-9), `${spot} ${side} edge has no failing rung beyond it, so it must be the range limit ${limit}`);
+      } else {
+        // one tide rung beyond the edge, on the instrument's own ladder
+        const ladder = I.tideLadder();
+        const i = ladder.findIndex((t) => near(t, edge.tide, 1e-9));
+        assert.ok(i >= 0, `${spot} ${side} edge ${edge.tide} is not a rung of the tide ladder`);
+        assert.ok(near(ladder[i + (side === 'lo' ? -1 : 1)], edge.beyondTide, 1e-9),
+          `${spot} ${side}: beyondTide ${edge.beyondTide} is not the next rung after ${edge.tide}`);
+        assert.ok(edge.failH0 >= f.floorH0 - 1e-9 && edge.failH0 <= PRESETS[spot].H0 + 1e-9,
+          `${spot} ${side}: the failing rung ${edge.failH0} must lie between the floor and the card`);
+      }
+    }
+    assert.match(f.tideDigest, /^[0-9a-f]{16}$/, `${spot} carries no tide-edge fingerprint`);
+  }
+});
+
+test('the bake still reads what the table says at the tide edges (tide basis)', () => {
+  // The twin of the H0 check: at each band edge the floor and the card are
+  // both peels, and one rung beyond the edge the tabulated H0 is not — with
+  // the alpha and reef fraction the table recorded. A bake change that moves
+  // the band fails here with the re-run command.
+  const RE_TIDE = `re-run \`node ${PEEL_FLOOR_BASIS.tideInstrument}\` and update PEEL_FLOOR tideBandM/tideEdges/tideDigest `
+    + '(+ MODEL.md 4.6, CONTROLS.md #clamp row, research/TIDE_FLOOR_2026-09-01.md)';
+  for (const spot of MAPPED) {
+    const f = PEEL_FLOOR[spot], cardH0 = PRESETS[spot].H0;
+    const say = (H0, tide, r) => `${spot} at H0 ${H0} tide ${fmtTide(tide)}: alpha ${r.medianClean?.toFixed(2)}, on-reef ${r.onReefFrac.toFixed(3)}`;
+    for (const side of ['lo', 'hi']) {
+      const e = f.tideEdges[side];
+      const atFloor = shippedAt(spot, f.floorH0, e.tide), atCard = shippedAt(spot, cardH0, e.tide);
+      assert.ok(I.peelHealthy(atFloor, 1), `${say(f.floorH0, e.tide, atFloor)} — the floor is not a peel at the band edge; ${RE_TIDE}`);
+      assert.ok(I.peelHealthy(atCard, 1), `${say(cardH0, e.tide, atCard)} — the card is not a peel at the band edge; ${RE_TIDE}`);
+      assert.ok(near(atFloor.medianClean, e.alphaFloor, 0.051), `${say(f.floorH0, e.tide, atFloor)}; the table says ${e.alphaFloor} — ${RE_TIDE}`);
+      assert.ok(near(atCard.medianClean, e.alphaCard, 0.051), `${say(cardH0, e.tide, atCard)}; the table says ${e.alphaCard} — ${RE_TIDE}`);
+      assert.ok(near(atFloor.onReefFrac, e.onReefFloor, 0.0051), `${say(f.floorH0, e.tide, atFloor)}; the table says on-reef ${e.onReefFloor} — ${RE_TIDE}`);
+      assert.ok(near(atCard.onReefFrac, e.onReefCard, 0.0051), `${say(cardH0, e.tide, atCard)}; the table says on-reef ${e.onReefCard} — ${RE_TIDE}`);
+      if (e.beyondTide === null) continue;              // the band runs to the range limit on this side
+      const edgeSame = shippedAt(spot, e.failH0, e.tide), beyond = shippedAt(spot, e.failH0, e.beyondTide);
+      assert.ok(I.peelHealthy(edgeSame, 1), `${say(e.failH0, e.tide, edgeSame)} already fails inside the band; ${RE_TIDE}`);
+      assert.ok(!I.peelHealthy(beyond, 1), `${say(e.failH0, e.beyondTide, beyond)} is a peel; the band is too narrow — ${RE_TIDE}`);
+      assert.ok(near(edgeSame.medianClean, e.alphaAtEdge, 0.051), `${say(e.failH0, e.tide, edgeSame)}; the table says ${e.alphaAtEdge} — ${RE_TIDE}`);
+      assert.ok(near(beyond.medianClean, e.alphaBeyond, 0.051), `${say(e.failH0, e.beyondTide, beyond)}; the table says ${e.alphaBeyond} — ${RE_TIDE}`);
+      assert.ok(near(beyond.onReefFrac, e.onReefBeyond, 0.0051), `${say(e.failH0, e.beyondTide, beyond)}; the table says on-reef ${e.onReefBeyond} — ${RE_TIDE}`);
+      assert.equal(I.peelFailures(beyond, 1).join('+'), e.fails, `${spot} ${side}: what fails beyond the edge changed — ${RE_TIDE}`);
+    }
+    const now = I.tideDigest(spot, { ...f, cardH0 });
+    assert.equal(now, f.tideDigest,
+      `${spot}: the bake at the tide edges fingerprints ${now}, the band was read off ${f.tideDigest}. The model moved under the tide band — ${RE_TIDE}`);
   }
 });
 
@@ -188,26 +256,41 @@ test('the floor declines to bind off the ocean it was measured at', () => {
   // The measured guard, not a stylistic one: applying the tide-0 floor to
   // `#day=small` (T 9, tide +0.35) took Sewers from alpha 12.8 to 3.9 and The
   // Hook from 10.4 to 5.9 — the clamp manufacturing the closeouts it exists to
-  // prevent. Lesson 13: check the domain before reading the number. And the
-  // tide axis is the one the floor does NOT guard: the shipped line flips on
-  // a 0.04 m tide step at five of six spots (BREAK_FIELD_2026-09-01 §5.2), so
-  // an off-basis request must pass through, never be clamped to a tide-0 number.
+  // prevent. Lesson 13: check the domain before reading the number. On the
+  // tide axis the basis is now a measured BAND (TIDE_FLOOR_2026-09-01): inside
+  // it the tide-0 floor holds and binds; outside it floorH0(tide) is higher
+  // than the tide-0 number, so a request must pass through, never be clamped
+  // to a number from another tide.
   // 7 = the six original days + `foggy` (2026-08-27). Bank-size changes are
   // deliberate; bump this with the bank so a parse regression cannot hide.
   assert.equal(CONDITION_DAYS.length, 7, 'the conditions bank did not parse');
+  const [tLo, tHi] = PEEL_FLOOR_BASIS.tideRangeM;
   for (const spot of MAPPED) {
     const b = PEEL_FLOOR[spot];
+    const [lo, hi] = b.tideBandM;
+    const inBand = (t) => t >= lo - 1e-9 && t <= hi + 1e-9;
     assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: 0 }), b.floorH0);
     assert.equal(peelFloorH0(spot, { T: b.basisT + 1, tideM: 0 }), null, `${spot}: wrong T still clamped`);
-    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: 0.35 }), null, `${spot}: wrong tide still clamped`);
-    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: 0.04 }), null, `${spot}: one tide rung off-basis still clamped`);
-    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: -0.04 }), null, `${spot}: one tide rung off-basis still clamped`);
+    // the band edges bind, one rung beyond them does not
+    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: lo }), b.floorH0, `${spot}: the low band edge must bind`);
+    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: hi }), b.floorH0, `${spot}: the high band edge must bind`);
+    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: lo - 0.01 }), null, `${spot}: one rung below the band still clamped`);
+    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: hi + 0.01 }), null, `${spot}: one rung above the band still clamped`);
+    // and every tide the slider can reach agrees with the band, both ways
+    for (let t = tLo; t <= tHi + 1e-9; t += 0.05) {
+      const got = peelFloorH0(spot, { T: b.basisT, tideM: t });
+      assert.equal(got, inBand(t) ? b.floorH0 : null, `${spot} at tide ${fmtTide(t)}: floor ${got}, band ${bandText(b)}`);
+    }
+    assert.equal(peelFloorH0(spot, { T: b.basisT, tideM: NaN }), null, `${spot}: a NaN tide must decline`);
     // Every condition day is either on the basis or left alone. None may be
-    // clamped from off-basis.
+    // clamped from off-basis, and none of the shipped seven changes height.
     for (const d of CONDITION_DAYS) {
       const drawn = clamp(spot, d.H0, { T: d.T, tideM: d.tideM });
-      if (d.T !== b.basisT || d.tideM !== 0)
+      if (d.T !== b.basisT || !inBand(d.tideM))
         assert.equal(drawn, d.H0, `${spot} day=${d.key} was clamped off-basis`);
+      else
+        assert.equal(drawn, Math.max(d.H0, b.floorH0), `${spot} day=${d.key} is on-basis and must be held to the floor`);
+      assert.equal(drawn, d.H0, `${spot} day=${d.key}: a shipped day changed height (${d.H0} -> ${drawn}); MODEL.md 4.6 says all seven pass through`);
     }
   }
 });
@@ -266,9 +349,17 @@ test('the clamp is A/B revertible and disclosed', () => {
   // The off-basis case gets a disclosure too: a floor that exists, a request
   // under it, and a decline on domain grounds is a collapsed peel the reader
   // would otherwise have no account of.
-  assert.ok(/c\.bound\s*\n?\s*\?/.test(hud) && /basisT/.test(hud),
+  assert.ok(/c\.bound\s*\n?\s*\?/.test(hud) && /basisT/.test(hud) && /tideBandM/.test(hud),
     'the HUD must distinguish a bound clamp from one that declined off-basis, '
-    + 'and name the basis it declined against');
+    + 'and name the basis it declined against — the period AND the tide band');
+  // The tide is a live control. Moving it under an active month must re-derive
+  // the month's height at the new tide (the hash parser already reads #tide=
+  // before #month= for the same reason), or the slider carries a tide-0 clamp
+  // and its HUD line to a tide the floor does not describe.
+  assert.ok(/function setTide\b[\s\S]{0,1200}?if \(activeMonthKey\) setMonth\(activeMonthKey\)/.test(code),
+    'setTide() must re-apply an active month so the floor is re-evaluated at the new tide');
+  assert.ok(/if \(h\.has\('tide'\)\)[^\n]*\n\s*setMonth\(/.test(code),
+    'the hash parser must read #tide= immediately before applying #month=');
 });
 
 test('CONTROLS.md carries the measured floors and their basis, not a bare mention', () => {
@@ -283,6 +374,15 @@ test('CONTROLS.md carries the measured floors and their basis, not a bare mentio
   assert.ok(row.includes('--mode=floor'), 'the #clamp row must name the instrument that re-measures the floor');
   assert.ok(/untouched by construction/.test(row),
     'the #clamp row must state that the card states are never routed through the clamp');
+  // ...and its tide band, per spot, in the HUD's own format, plus what a
+  // reader sees when the tide leaves it.
+  assert.ok(row.includes('--mode=tide'), 'the #clamp row must name the instrument that measures the tide band');
+  for (const spot of MAPPED)
+    assert.ok(row.includes(bandText(PEEL_FLOOR[spot])),
+      `the #clamp row must quote ${spot}'s tide band ${bandText(PEEL_FLOOR[spot])}`);
+  const tideRow = doc.split('\n').find((l) => l.startsWith('| `tide` |'));
+  assert.ok(/peel floor/.test(tideRow) && /clamp/.test(tideRow),
+    'the #tide row must point at the peel floor\'s tide band: the tide is a live control that leaves it');
 });
 
 test('MODEL.md documents the tradeoff the clamp takes, and its model-version dependence', () => {
@@ -298,4 +398,10 @@ test('MODEL.md documents the tradeoff the clamp takes, and its model-version dep
     assert.ok(sec.includes(`**${PEEL_FLOOR[spot].floorH0.toFixed(2)}**`),
       `4.6 must tabulate ${spot}'s current floor ${PEEL_FLOOR[spot].floorH0}`);
   assert.ok(/model[- ]version/i.test(sec), '4.6 must name the model-version dependence of the floor');
+  // the tide band, per spot, and the date it was measured
+  assert.ok(sec.includes(PEEL_FLOOR_BASIS.tideMeasured) && /tide band/i.test(sec), '4.6 must carry the tide-band measurement');
+  for (const spot of MAPPED)
+    assert.ok(sec.includes(bandText(PEEL_FLOOR[spot])), `4.6 must tabulate ${spot}'s tide band ${bandText(PEEL_FLOOR[spot])}`);
+  assert.ok(existsSync(new URL('../docs/research/TIDE_FLOOR_2026-09-01.md', import.meta.url)),
+    'the tide-band measurement must have its research note');
 });

@@ -23,7 +23,7 @@ bundle or compensate for bad state with another material pass.
 
 | rank | investment | leverage | principal risk | default sequencing |
 |---:|---|---|---|---|
-| 1 | ~~Continuous break activation and canonical reef fit~~ → **declared peel floor on the discrete selector** (verdict 2026-09-01, §1) | Very high: every breaker, peel and crash consumer depends on the break line | Was "very high"; measured. The residual risk is the tide axis, which the floor does not guard, and reef extent at Sewers / First Peak | Slices 1–2 done, floor re-measured on the current bake. Next: the floor's tide basis, then the reef-extent question. Slices 3–5 are not scheduled |
+| 1 | ~~Continuous break activation and canonical reef fit~~ → **declared peel floor on the discrete selector** (verdict 2026-09-01, §1) | Very high: every breaker, peel and crash consumer depends on the break line | Was "very high"; measured. The residual risk is reef extent at Sewers / First Peak, and the card states going off the reef above +0.33…+0.66 m of tide | Slices 1–2 done, floor re-measured on the current bake, tide band measured and declared. Next: the reef-extent question. Slices 3–5 are not scheduled |
 | 2 | Transported crash and roller state | Highest immediate visual return | High: state can become garnish, non-deterministic particles or a second break authority | Prototype alongside rank 1; integrate after its field is stable |
 | 3 | Finite-depth set propagation | Medium-high systemic return | Medium-high: linear group speed near breaking may be a worse story than the current offshore approximation | Measure first; do after ranks 1–2 unless the probe shows a large visible phase error |
 | 4 | Narrow CPU/GPU surface unification | Medium visual return, high truthfulness return | High cost and sync risk if treated as a full parity port | Migrate only proven consumers, last |
@@ -89,10 +89,19 @@ The discrete regime change stays, and the model declares the floor.
    `tests/peel-floor.test.js` re-bakes the floor rungs and every month.
    Floors 1.61/1.26/1.08/0.85/1.05/0.81 → **1.62/1.38/1.11/0.78/1.09/0.81**
    (Sewers→Sharks); 48 of 72 `#month=` states move. MODEL.md §4.6.
-2. **Extend the floor's basis to the tide axis.** Measure the (H₀, tide)
-   surface at card T with the same instrument and decide, per spot, whether
-   to declare a floor there or keep declining. The twelve collapsed `#day=`
-   states are the unguarded set.
+2. *Done 2026-09-01 (same day, second tranche):* the floor's basis extended
+   to the tide axis. `--mode=tide` measured the whole (H₀, tide) grid at
+   0.01 × 0.01 m over the accepted range (111,540 gated bakes, max |Δz| 0):
+   floorH₀ rises **0.53–0.65 m per metre of tide** at every spot, tracking
+   the reef's activation depth, so the tide-0 floor holds (conservatively)
+   at every low tide and fails by the first rung above 0. Adopted as a
+   per-spot **tide band** in `PEEL_FLOOR.tideBandM` — Sewers/Jack's/The Hook
+   −0.862…0, First Peak/Sharks −0.862…+0.01, Second Peak −0.72…+0.01 —
+   inside which `peelFloorH0()` returns the tide-0 floor and outside which it
+   declines; edges re-baked by `tests/peel-floor.test.js`. A tide-dependent
+   floor table was measured and not adopted: above +0.33…+0.66 m the card
+   itself is off the reef and no floor exists. The seven `#day=` states are
+   still off-basis (on T) and unchanged. `research/TIDE_FLOOR_2026-09-01.md`.
 3. **The reef-extent question** at Sewers and First Peak: what wedge geometry
    (extent, not amplitude — amplitude saturates, CONTROLS `reefamp`) would
    activate at the August p75, and whether that is still Pleasure Point.

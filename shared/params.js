@@ -115,6 +115,15 @@ export const DEFAULT_PRESET = 'secondpeak';
 //   onReefBelow / Above    fraction of stage stations on the wedge at floorLo/Hi
 //   basisT, basisTideM     THE OCEAN THESE WERE MEASURED AT (see below)
 //   bakeDigest             fingerprint of the bake at floorLo/Hi (see below)
+//   tideBandM              the tide interval in which the tide-0 floor HOLDS
+//                          (PEEL_FLOOR_BASIS.tideCriterion); the floor binds
+//                          inside it and declines outside it
+//   tideEdges.lo/hi        the last holding tide rung on each side, with the
+//                          alpha / on-reef of the floor and the card there,
+//                          and — where the band does not run to the range
+//                          limit — the next rung, the H0 that fails on it and
+//                          why (the twin of alphaBelow/Above on the tide axis)
+//   tideDigest             fingerprint of the bake at those edge states
 //
 // THE FLIP IS NOT THE FLOOR. "The peel returns" means: at every 0.01 m rung
 // from the floor up to the card H0, stage-median clean signed alpha is at
@@ -167,32 +176,78 @@ export const PEEL_FLOOR_BASIS = {
   alphaMetric: 'stage-median clean signed crest-relative alpha (derivedAlphaDeg on the 2 m stage grid, limiter-pinned stations excluded)',
   alphaFloorDeg: 10, onReefMin: 0.5,
   criterion: 'lowest H0 from which every 0.01 m rung up to the card H0 reads alpha >= alphaFloorDeg with the authored handedness and >= onReefMin of stage stations on the reef footprint',
+  // THE TIDE AXIS (research/TIDE_FLOOR_2026-09-01.md). The whole (H0, tide)
+  // grid: at every 0.01 m tide rung of the range the model accepts (bed.js
+  // TIDE_RANGE = MLLW..MHHW about MSL at NOAA CO-OPS 9413450, the range
+  // main.js clamps #tide= to; the observed extremes there are -1.59/+1.54 m
+  // and are NOT reachable), the H0 ladder above, gated at every rung.
+  // tideBandM per row is the contiguous tide interval around 0 in which the
+  // tide-0 floor HOLDS: floorH0(t) <= floorH0(0) and the card is a peel.
+  // Above it floorH0(t) is higher (the floor rises 0.53-0.65 m per m of tide,
+  // TIDE_FLOOR §3, tracking the reef's own activation depth), so the tide-0
+  // number would clamp a month onto a closeout; the floor declines there.
+  // Below it the tide-0 floor is conservative (over-clamps by up to 0.38-0.54
+  // m at MLLW) and still lands every month on a peel. A tide-dependent floor
+  // table was measured and not adopted — TIDE_FLOOR §4: above +0.33..+0.66 m
+  // (spot-dependent) the CARD itself is off the reef and no floor exists, so
+  // the table would have holes across a third to half of the accepted range.
+  tideMeasured: '2026-09-01',
+  tideInstrument: 'scripts/measure_break_activation.mjs --mode=tide',
+  tideStepM: 0.01, tideRangeM: [-0.862, 0.764],
+  tideCriterion: 'contiguous interval of 0.01 m tide rungs around 0 at which floorH0(tide) <= floorH0(0) and the card H0 is a peel; the tide-0 floor is returned inside it and null outside',
 };
 export const PEEL_FLOOR = {
   sewers: {
     flipLo: 1.61, flipHi: 1.62, floorLo: 1.61, floorHi: 1.62, floorH0: 1.62,
     alphaBelow: -8.3, alphaAbove: 34.8, onReefBelow: 0.33, onReefAbove: 0.65,
-    alphaTarget: 38, basisT: 15, basisTideM: 0, bakeDigest: '747a005bb046e8c7' },
+    alphaTarget: 38, basisT: 15, basisTideM: 0, bakeDigest: '747a005bb046e8c7',
+    tideBandM: [-0.862, 0], tideDigest: '1b971b6f02103c5b',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 16.9, onReefCard: 0.85, alphaFloor: 34.9, onReefFloor: 0.76 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 1.62, fails: 'sign+reef', alphaAtEdge: 34.8, alphaBeyond: -8.9, onReefAtEdge: 0.65, onReefBeyond: 0.33,
+                       alphaCard: 36.3, onReefCard: 0.76, alphaFloor: 34.8, onReefFloor: 0.65 } } },
   firstpeak: {
     flipLo: 1.27, flipHi: 1.28, floorLo: 1.37, floorHi: 1.38, floorH0: 1.38,
     alphaBelow: 5.9, alphaAbove: 22.1, onReefBelow: 0.88, onReefAbove: 0.88,
-    alphaTarget: 50, basisT: 14, basisTideM: 0, bakeDigest: 'a586daac7d4ad798' },
+    alphaTarget: 50, basisT: 14, basisTideM: 0, bakeDigest: 'a586daac7d4ad798',
+    tideBandM: [-0.862, 0.01], tideDigest: 'f50f43c907966b90',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 53.2, onReefCard: 1, alphaFloor: 59, onReefFloor: 1 },
+                 hi: { tide: 0.01, beyondTide: 0.02, failH0: 1.38, fails: 'alpha', alphaAtEdge: 21.7, alphaBeyond: 6, onReefAtEdge: 0.88, onReefBeyond: 0.88,
+                       alphaCard: 60.7, onReefCard: 1, alphaFloor: 21.7, onReefFloor: 0.88 } } },
   secondpeak: {
     flipLo: 1.04, flipHi: 1.05, floorLo: 1.10, floorHi: 1.11, floorH0: 1.11,
     alphaBelow: 9.4, alphaAbove: 10.6, onReefBelow: 0.70, onReefAbove: 0.75,
-    alphaTarget: 41, basisT: 14, basisTideM: 0, bakeDigest: '58148fabc1138cb5' },
+    alphaTarget: 41, basisT: 14, basisTideM: 0, bakeDigest: '58148fabc1138cb5',
+    // the one band not bounded below by the tide range: at -0.73 the CARD
+    // (1.50 m) reads 10.0 deg and stops being a peel, so no floor exists there
+    tideBandM: [-0.72, 0.01], tideDigest: 'e73974ace98ab333',
+    tideEdges: { lo: { tide: -0.72, beyondTide: -0.73, failH0: 1.5, fails: 'alpha', alphaAtEdge: 10.2, alphaBeyond: 10, onReefAtEdge: 0.73, onReefBeyond: 0.73,
+                       alphaCard: 10.2, onReefCard: 0.73, alphaFloor: 23.8, onReefFloor: 0.8 },
+                 hi: { tide: 0.01, beyondTide: 0.02, failH0: 1.11, fails: 'alpha', alphaAtEdge: 10, alphaBeyond: 9.7, onReefAtEdge: 0.71, onReefBeyond: 0.7,
+                       alphaCard: 26, onReefCard: 0.84, alphaFloor: 10, onReefFloor: 0.71 } } },
   jacks: {
     flipLo: 0.83, flipHi: 0.84, floorLo: 0.77, floorHi: 0.78, floorH0: 0.78,
     alphaBelow: 10.6, alphaAbove: 11.1, onReefBelow: 0.38, onReefAbove: 0.56,
-    alphaTarget: 37, basisT: 13, basisTideM: 0, bakeDigest: '618f85df8f158b0e' },
+    alphaTarget: 37, basisT: 13, basisTideM: 0, bakeDigest: '618f85df8f158b0e',
+    tideBandM: [-0.862, 0], tideDigest: '3e3884efee6997e0',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 35.2, onReefCard: 0.82, alphaFloor: 35.7, onReefFloor: 0.83 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 0.78, fails: 'reef', alphaAtEdge: 11.1, alphaBeyond: 10.7, onReefAtEdge: 0.56, onReefBeyond: 0.43,
+                       alphaCard: 37.1, onReefCard: 0.82, alphaFloor: 11.1, onReefFloor: 0.56 } } },
   thehook: {
     flipLo: 1.03, flipHi: 1.04, floorLo: 1.08, floorHi: 1.09, floorH0: 1.09,
     alphaBelow: -5.3, alphaAbove: 12.3, onReefBelow: 0.50, onReefAbove: 0.54,
-    alphaTarget: 41, basisT: 13, basisTideM: 0, bakeDigest: 'bf59838b525da980' },
+    alphaTarget: 41, basisT: 13, basisTideM: 0, bakeDigest: 'bf59838b525da980',
+    tideBandM: [-0.862, 0], tideDigest: 'cf6007523a31c057',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 16, onReefCard: 0.69, alphaFloor: 28.4, onReefFloor: 0.7 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 1.09, fails: 'sign', alphaAtEdge: 12.3, alphaBeyond: -5.3, onReefAtEdge: 0.54, onReefBeyond: 0.52,
+                       alphaCard: 36.8, onReefCard: 0.7, alphaFloor: 12.3, onReefFloor: 0.54 } } },
   sharks: {
     flipLo: 0.79, flipHi: 0.80, floorLo: 0.80, floorHi: 0.81, floorH0: 0.81,
     alphaBelow: 15.0, alphaAbove: 16.4, onReefBelow: 0.49, onReefAbove: 0.54,
-    alphaTarget: 36, basisT: 13, basisTideM: 0, bakeDigest: '01d723cefb316822' },
+    alphaTarget: 36, basisT: 13, basisTideM: 0, bakeDigest: '01d723cefb316822',
+    tideBandM: [-0.862, 0.01], tideDigest: 'af7576574f8fe5f5',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 15.6, onReefCard: 0.66, alphaFloor: 22.2, onReefFloor: 0.69 },
+                 hi: { tide: 0.01, beyondTide: 0.02, failH0: 0.81, fails: 'reef', alphaAtEdge: 15, alphaBeyond: 15.2, onReefAtEdge: 0.51, onReefBeyond: 0.49,
+                       alphaCard: 30.6, onReefCard: 0.73, alphaFloor: 15, onReefFloor: 0.51 } } },
   privates: null,
 };
 
@@ -210,7 +265,15 @@ export function peelFloorH0(presetKey, { T = null, tideM = 0 } = {}) {
   // Off-basis: the floor was measured somewhere else and does not describe
   // this ocean. Declining is the honest answer; guessing is lesson 13.
   if (T !== null && T !== f.basisT) return null;
-  if (Math.abs(tideM - f.basisTideM) > 1e-6) return null;
+  // The tide axis (research/TIDE_FLOOR_2026-09-01.md). The floor was measured
+  // at tide 0 and HOLDS — floorH0(t) <= floorH0(0) with the card still a peel,
+  // at every 0.01 m rung of H0 — only inside tideBandM. Above the band the
+  // floor at that tide is HIGHER than the tide-0 number (the reef sits deeper
+  // under more water; floorH0 rises 0.53-0.65 m per metre of tide), so clamping
+  // to 0's floor would land a month on a closeout. This is not a clamp on
+  // tide: the tide stays where the reader put it, the raw request draws, and
+  // the HUD says the floor does not describe this state.
+  if (!Number.isFinite(tideM) || tideM < f.tideBandM[0] - 1e-9 || tideM > f.tideBandM[1] + 1e-9) return null;
   return f.floorH0;
 }
 

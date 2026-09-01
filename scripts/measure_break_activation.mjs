@@ -780,6 +780,198 @@ export function monthCost(key, floorH0, { handSign = 1, prevFloorH0 = null } = {
            alphaDrawnMin: Math.min(...months.map((m) => m.alphaDrawn)), alphaDrawnMax: Math.max(...months.map((m) => m.alphaDrawn)) };
 }
 
+// ---------- the tide axis of the floor (MODEL.md 4.6, LESSONS 14b) ----------
+// PEEL_FLOOR is a point on the H0 axis at tide 0. The tide is a live control
+// (#tide=, the [ ] keys, the slider) and the shipped line flips on a 0.04 m
+// tide step at five of six spots at the card H0 (BREAK_FIELD_2026-09-01 5.2),
+// so the question is: over what tide interval does the tide-0 floor still
+// hold — i.e. at every H0 rung from floorH0 up to the card, at that tide, the
+// peel criterion is met — and how does floorH0 itself move with tide?
+//
+// Measured as a full (H0, tide) grid: at every tide rung of the ACCEPTED range
+// (PP_DEPTH_DATA.tideRangeM = MLLW..MHHW about MSL at NOAA 9413450, the range
+// main.js clamps #tide= to; the two limits are rungs too), the whole H0 ladder
+// 0.4 -> card at 0.01 m, gated against the real bake at every rung. The tide
+// step matches the H0 step: a boundary measured at 0.01 in one axis and 0.04
+// in the other is a boundary in one axis.
+export const TIDE_STEP_M = 0.01;
+export const TIDE_RANGE_M = PP_DEPTH_DATA.tideRangeM;      // [-0.862, 0.764]
+export function tideLadder(step = TIDE_STEP_M, [lo, hi] = TIDE_RANGE_M) {
+  const vals = [lo];
+  for (let t = Math.ceil(lo / step - 1e-9) * step; t <= hi + 1e-9; t += step) vals.push(round(t, 3));
+  vals.push(hi);
+  return vals.filter((v, i) => i === 0 || v - vals[i - 1] > 1e-9);
+}
+export const TIDE_SAMPLE_M = [-0.862, -0.5, -0.25, 0, 0.25, 0.5, 0.764];   // the table rows in the report
+
+const shippedRung = (r, handSign) => ({
+  H0: r.H0, alpha: r.reps.shipped.medianClean, onReef: r.reps.shipped.onReefFrac,
+  reversals: r.reps.shipped.reversals, pinned: r.reps.shipped.pinnedN,
+  healthy: peelHealthy(r.reps.shipped, handSign), fails: peelFailures(r.reps.shipped, handSign),
+});
+// The H0 ladder at ONE tide: the same rule as measurePeelFloor (the lowest rung
+// from which every rung up to the card is healthy), the basis reused across
+// the ladder, the gate run at every rung.
+export function floorAtTide(key, tide, { handSign = 1, lo = FLOOR_LADDER_LO_M, log = null } = {}) {
+  const card = cardOf(key);
+  const sw = sweepH0(key, { T: card.T, tide, lo, hi: card.H0, step: FLOOR_STEP_M, handSign, log });
+  const rows = sw.rows;
+  let k = rows.length;
+  while (k > 0 && peelHealthy(rows[k - 1].reps.shipped, handSign)) k--;
+  return {
+    tide, T: card.T, cardH0: card.H0,
+    floorH0: k === rows.length ? null : rows[k].H0,      // null: the card itself is not a peel here
+    floorLo: k > 0 && k < rows.length ? rows[k - 1].H0 : null,
+    healthyAtBottom: k === 0, cardHealthy: k < rows.length,
+    worstGate: sw.worstGate,
+    rungs: rows.map((r) => shippedRung(r, handSign)),
+    zAt: (H0) => rows.find((r) => Math.abs(r.H0 - H0) < 1e-6)?.reps.shipped.z ?? null,
+    reefActivationH0: reefActivationH0(key, { T: card.T, tide }).H0,
+  };
+}
+
+// Flips along the tide axis of one H0 row of the grid.
+export function flipsAlongTide(perTide, zOf, alphaOf) {
+  const out = [];
+  for (let i = 1; i < perTide.length; i++) {
+    const a = zOf(perTide[i - 1]), b = zOf(perTide[i]);
+    if (!a || !b) continue;
+    const dz = maxAbsDiff(a, b);
+    if (dz > FLIP_M) out.push({ from: perTide[i - 1].tide, to: perTide[i].tide, dzMax: round(dz, 1),
+      fracMove: round(b.reduce((q, z, j) => q + (Math.abs(z - a[j]) > 5 ? 1 : 0), 0) / b.length, 2),
+      alphaFrom: round(alphaOf(perTide[i - 1]), 1), alphaTo: round(alphaOf(perTide[i]), 1) });
+  }
+  return out;
+}
+
+// Least-squares slope of floorH0 against tide over the rungs where the floor
+// exists (the card is a peel). m of floor per m of tide.
+export function slopeOf(pairs) {
+  const p = pairs.filter(([, y]) => Number.isFinite(y));
+  if (p.length < 2) return { slope: null, n: p.length };
+  const mx = p.reduce((q, [x]) => q + x, 0) / p.length, my = p.reduce((q, [, y]) => q + y, 0) / p.length;
+  let sxx = 0, sxy = 0;
+  for (const [x, y] of p) { sxx += (x - mx) ** 2; sxy += (x - mx) * (y - my); }
+  const slope = sxy / sxx, icpt = my - slope * mx;
+  const rmse = Math.sqrt(p.reduce((q, [x, y]) => q + (y - (icpt + slope * x)) ** 2, 0) / p.length);
+  return { slope, intercept: icpt, rmse, n: p.length,
+           min: Math.min(...p.map(([, y]) => y)), max: Math.max(...p.map(([, y]) => y)) };
+}
+
+// The whole (H0, tide) grid for one spot, reduced to what the floor needs:
+//   perTide[]     floorH0(t), whether the tide-0 floor HOLDS at t (floorH0(t)
+//                 <= floorH0(0) and the card is a peel), the card and floor
+//                 rows, the first/last failing rung at or above floorH0(0)
+//   band          the contiguous tide interval around 0 in which it holds
+//   edges         the last holding rung and the first failing one on each
+//                 side, with the failing H0 and what fails there — or the
+//                 range limit, where the band runs out of accepted tide
+//   flips         along tide at the card H0 and at floorH0(0)
+//   slope         floorH0 per metre of tide, and the table at TIDE_SAMPLE_M
+export function measureTideFloor(key, { handSign = 1, log = null, ladder = tideLadder(), floor0 = PEEL_FLOOR[key]?.floorH0 ?? null } = {}) {
+  if (floor0 === null) throw new Error(`${key}: no tide-0 floor to test the tide axis of`);
+  const card = cardOf(key);
+  const perTide = [];
+  const worstGate = { maxDzM: 0, gapMismatch: 0, fieldMaxAbsDiff: 0, alphaMaxAbsDiff: 0, latticeMismatch: 0 };
+  let bakes = 0;
+  for (const tide of ladder) {
+    const r = floorAtTide(key, tide, { handSign });
+    for (const k of Object.keys(worstGate)) worstGate[k] = Math.max(worstGate[k], r.worstGate[k]);
+    bakes += r.rungs.length;
+    const at = (H0) => r.rungs.find((q) => Math.abs(q.H0 - H0) < 1e-6) ?? null;
+    const failing = r.rungs.filter((q) => q.H0 >= floor0 - 1e-9 && !q.healthy);
+    perTide.push({
+      tide, floorH0: r.floorH0, floorLo: r.floorLo, cardHealthy: r.cardHealthy, healthyAtBottom: r.healthyAtBottom,
+      holds: r.floorH0 !== null && r.floorH0 <= floor0 + 1e-9,
+      reefActivationH0: r.reefActivationH0,
+      card: at(card.H0), atFloor0: at(floor0),
+      failing: failing.length ? { n: failing.length, first: failing[0], last: failing[failing.length - 1] } : null,
+      zCard: r.zAt(card.H0), zFloor0: r.zAt(floor0),
+      rungs: r.rungs, worstGate: r.worstGate,
+    });
+    if (log) log(`${key} tide ${tide >= 0 ? '+' : ''}${tide.toFixed(3)}: floor ${r.floorH0 ?? 'none'} (tide-0 floor ${floor0} ${perTide[perTide.length - 1].holds ? 'holds' : 'FAILS'}); `
+      + `card α ${fmt(at(card.H0)?.alpha)} on-reef ${fmt(at(card.H0)?.onReef, 2)}; gate ${r.worstGate.maxDzM.toExponential(1)}`);
+  }
+  const i0 = perTide.findIndex((p) => Math.abs(p.tide) < 1e-9);
+  if (i0 < 0) throw new Error('the tide ladder must contain 0, the floor\'s basis');
+  if (!perTide[i0].holds) throw new Error(`${key}: the tide-0 floor ${floor0} does not hold at tide 0 — re-measure PEEL_FLOOR first (--mode=floor)`);
+  let a = i0, b = i0;
+  while (a > 0 && perTide[a - 1].holds) a--;
+  while (b < perTide.length - 1 && perTide[b + 1].holds) b++;
+  const edgeOf = (iEdge, iBeyond) => {
+    const e = perTide[iEdge];
+    const base = { tide: e.tide, alphaCard: e.card.alpha, onReefCard: e.card.onReef,
+                   alphaFloor0: e.atFloor0.alpha, onReefFloor0: e.atFloor0.onReef, floorH0: e.floorH0 };
+    if (iBeyond < 0 || iBeyond >= perTide.length) return { ...base, beyondTide: null, rangeLimit: true };
+    const by = perTide[iBeyond];
+    const fail = by.failing.first;                         // the lowest failing rung at/above floor0
+    const same = e.rungs.find((q) => Math.abs(q.H0 - fail.H0) < 1e-6);
+    return { ...base, beyondTide: by.tide, rangeLimit: false, floorH0Beyond: by.floorH0,
+             failH0: fail.H0, fails: fail.fails, failingRungs: by.failing.n,
+             alphaAtEdge: same.alpha, onReefAtEdge: same.onReef,
+             alphaBeyond: fail.alpha, onReefBeyond: fail.onReef };
+  };
+  const edges = { lo: edgeOf(a, a - 1), hi: edgeOf(b, b + 1) };
+  const holdsElsewhere = perTide.filter((p, i) => p.holds && (i < a || i > b)).map((p) => p.tide);
+  const pairs = perTide.map((p) => [p.tide, p.floorH0]);
+  const sampleAt = (t) => perTide.find((p) => Math.abs(p.tide - t) < 1e-9) ?? null;
+  return {
+    key, label: PRESETS[key].label, basisT: card.T, cardH0: card.H0, alphaTarget: card.alpha, floor0,
+    ladder: { lo: ladder[0], hi: ladder[ladder.length - 1], step: TIDE_STEP_M, n: ladder.length, h0Lo: FLOOR_LADDER_LO_M, h0Step: FLOOR_STEP_M },
+    bakes, worstGate,
+    band: [perTide[a].tide, perTide[b].tide], edges, holdsOutsideBand: holdsElsewhere,
+    flipsAtCard: flipsAlongTide(perTide, (p) => p.zCard, (p) => p.card?.alpha),
+    flipsAtFloor0: flipsAlongTide(perTide, (p) => p.zFloor0, (p) => p.atFloor0?.alpha),
+    slope: slopeOf(pairs),
+    slopeInBand: slopeOf(pairs.filter(([t]) => t >= perTide[a].tide - 1e-9 && t <= perTide[b].tide + 1e-9)),
+    samples: TIDE_SAMPLE_M.map((t) => { const p = sampleAt(t); return p && {
+      tide: t, floorH0: p.floorH0, holds: p.holds, reefActivationH0: round(p.reefActivationH0, 3),
+      alphaCard: round(p.card.alpha, 1), onReefCard: round(p.card.onReef, 2),
+      alphaFloor0: round(p.atFloor0.alpha, 1), onReefFloor0: round(p.atFloor0.onReef, 2) }; }).filter(Boolean),
+    perTide: perTide.map((p) => ({ tide: p.tide, floorH0: p.floorH0, holds: p.holds, cardHealthy: p.cardHealthy,
+      reefActivationH0: round(p.reefActivationH0, 4),
+      card: { alpha: round(p.card.alpha, 2), onReef: round(p.card.onReef, 3), reversals: p.card.reversals, pinned: p.card.pinned, fails: p.card.fails },
+      atFloor0: { alpha: round(p.atFloor0.alpha, 2), onReef: round(p.atFloor0.onReef, 3), reversals: p.atFloor0.reversals, pinned: p.atFloor0.pinned, fails: p.atFloor0.fails },
+      failing: p.failing && { n: p.failing.n, first: { ...p.failing.first, alpha: round(p.failing.first.alpha, 2), onReef: round(p.failing.first.onReef, 3) },
+                              last: { ...p.failing.last, alpha: round(p.failing.last.alpha, 2), onReef: round(p.failing.last.onReef, 3) } },
+      gateMaxDzM: p.worstGate.maxDzM })),
+    // the full grid, for the ignored rungs file: [H0, alpha, onReef, healthy] per rung per tide
+    grid: perTide.map((p) => ({ tide: p.tide, rungs: p.rungs.map((q) => [q.H0, round(q.alpha, 2), round(q.onReef, 3), q.healthy ? 1 : 0]) })),
+  };
+}
+
+// Fingerprint of the bake at the tide edges, the twin of floorDigest: at each
+// band edge the (floorH0, edge) and (card, edge) states, and beyond it the
+// (failH0, beyondTide) state the criterion fails at. A bake change that moves
+// the band moves this; tests/peel-floor.test.js re-bakes it.
+export function tideDigest(key, spec) {
+  const h = createHash('sha1');
+  const states = [];
+  for (const side of ['lo', 'hi']) {
+    const e = spec.tideEdges[side];
+    states.push({ H0: spec.floorH0, tide: e.tide }, { H0: spec.cardH0 ?? PRESETS[key].H0, tide: e.tide });
+    if (e.beyondTide !== null) states.push({ H0: e.failH0, tide: e.beyondTide });
+  }
+  for (const s of states) {
+    const inst = instrumentState(key, { H0: s.H0, T: spec.basisT, tide: s.tide });
+    h.update(`${key} H0=${s.H0} T=${spec.basisT} tide=${s.tide}\n`);
+    h.update(inst.real.z.map((z) => z.toFixed(4)).join(','));
+    h.update(inst.real.gap.join(''));
+    h.update(inst.real.alpha.map((a) => (Number.isFinite(a) ? a.toFixed(6) : 'nan')).join(','));
+  }
+  return h.digest('hex').slice(0, 16);
+}
+// The PEEL_FLOOR fields the tide measurement adds, in the shape params.js carries.
+export function tideEntryOf(m) {
+  const edge = (e) => (e.rangeLimit
+    ? { tide: e.tide, beyondTide: null, alphaCard: round(e.alphaCard, 1), onReefCard: round(e.onReefCard, 2), alphaFloor: round(e.alphaFloor0, 1), onReefFloor: round(e.onReefFloor0, 2) }
+    : { tide: e.tide, beyondTide: e.beyondTide, failH0: e.failH0, fails: e.fails.join('+'),
+        alphaAtEdge: round(e.alphaAtEdge, 1), alphaBeyond: round(e.alphaBeyond, 1),
+        onReefAtEdge: round(e.onReefAtEdge, 2), onReefBeyond: round(e.onReefBeyond, 2),
+        alphaCard: round(e.alphaCard, 1), onReefCard: round(e.onReefCard, 2), alphaFloor: round(e.alphaFloor0, 1), onReefFloor: round(e.onReefFloor0, 2) });
+  return { tideBandM: m.band, tideEdges: { lo: edge(m.edges.lo), hi: edge(m.edges.hi) } };
+}
+
 // ---------- the card-state summary (bed-source comparison) ----------
 // One row per spot, all from the bake's own code at the card ocean (tide 0,
 // card T, card H0): the contour fit and depth patch it read, the reef fit's
@@ -904,6 +1096,55 @@ async function main() {
   }
   const handSet = new Set(Object.values(handSigns));
   if (handSet.size > 1) log(`WARNING: card-state handedness disagrees across spots: ${JSON.stringify(handSigns)}`);
+
+  // ---- the tide axis of the floor: the full (H0, tide) grid per spot ----
+  // Its own files (qa/break-field/tide-floor/<key>.json, committed; the rungs
+  // grid beside it, ignored), never summary.json: one spot is ~30k gated bakes,
+  // so spots are run as parallel processes and must not share an output file.
+  if (mode === 'tide') {
+    const dir = join(outDir, 'tide-floor');
+    mkdirSync(dir, { recursive: true });
+    const results = [];
+    for (const key of presets) {
+      const t0 = Date.now();
+      const m = measureTideFloor(key, { handSign: handSigns[key], log });
+      const { grid, ...compact } = m;
+      compact.generated = new Date().toISOString();
+      compact.seconds = Math.round((Date.now() - t0) / 1000);
+      compact.tideRangeM = TIDE_RANGE_M;
+      compact.entry = tideEntryOf(m);
+      compact.tideDigest = tideDigest(key, { ...compact.entry, floorH0: m.floor0, cardH0: m.cardH0, basisT: m.basisT });
+      writeFileSync(join(dir, `${key}.json`), JSON.stringify(compact));
+      writeFileSync(join(dir, `${key}.rungs.json`), JSON.stringify({ key, ladder: m.ladder, grid }));
+      results.push(compact);
+      log(`${key}: ${m.bakes} bakes in ${compact.seconds}s, worst gate ${m.worstGate.maxDzM.toExponential(1)} m; band [${m.band[0]}, ${m.band[1]}]; digest ${compact.tideDigest}`);
+    }
+    const sgn = (t) => `${t >= 0 ? '+' : ''}${t.toFixed(2)}`;
+    const edgeStr = (e) => (e.rangeLimit ? `${sgn(e.tide)} (range limit; card α ${fmt(e.alphaCard)}, floor α ${fmt(e.alphaFloor0)})`
+      : `${sgn(e.tide)} → ${sgn(e.beyondTide)}: H0 ${e.failH0.toFixed(2)} α ${fmt(e.alphaAtEdge)}→${fmt(e.alphaBeyond)}, on-reef ${fmt(e.onReefAtEdge, 2)}→${fmt(e.onReefBeyond, 2)} (${e.fails.join('+')}; floor there ${e.floorH0Beyond ?? 'none'})`);
+    console.log(`\n## The tide band of the tide-0 floor (card T, H0 ${FLOOR_LADDER_LO_M}→card at ${FLOOR_STEP_M}, tide ${TIDE_RANGE_M[0]}→${TIDE_RANGE_M[1]} at ${TIDE_STEP_M}; holds = floorH0(t) ≤ floorH0(0) and the card is a peel)\n`);
+    console.log(mdTable(['spot', 'floor (tide 0)', 'band m', 'low edge', 'high edge', 'holds outside band', 'bakes', 'gate max |dz|', 'digest'],
+      results.map((m) => [m.label, m.floor0.toFixed(2), `[${sgn(m.band[0])}, ${sgn(m.band[1])}]`, edgeStr(m.edges.lo), edgeStr(m.edges.hi),
+        m.holdsOutsideBand.length ? m.holdsOutsideBand.map(sgn).join(' ') : 'none', m.bakes, m.worstGate.maxDzM.toExponential(1), m.tideDigest])));
+    console.log('\n## floorH0 against tide\n');
+    console.log(mdTable(['spot', ...TIDE_SAMPLE_M.map((t) => `floor @ ${sgn(t)}`), 'slope m/m (all)', 'slope in band', 'range'],
+      results.map((m) => [m.label, ...TIDE_SAMPLE_M.map((t) => { const s = m.samples.find((q) => Math.abs(q.tide - t) < 1e-9); return s ? (s.floorH0 === null ? 'none' : s.floorH0.toFixed(2)) : 'n/a'; }),
+        `${fmt(m.slope.slope, 3)} (rmse ${fmt(m.slope.rmse, 3)}, n ${m.slope.n})`, fmt(m.slopeInBand.slope, 3), `${fmt(m.slope.min, 2)}–${fmt(m.slope.max, 2)}`])));
+    console.log('\n## Reef activation H0 against tide (selector-free)\n');
+    console.log(mdTable(['spot', ...TIDE_SAMPLE_M.map((t) => `@ ${sgn(t)}`)],
+      results.map((m) => [m.label, ...TIDE_SAMPLE_M.map((t) => fmt(m.samples.find((q) => Math.abs(q.tide - t) < 1e-9)?.reefActivationH0, 3))])));
+    console.log('\n## Card row (card H0) and floor row (floorH0(0)) against tide: α / on-reef\n');
+    console.log(mdTable(['spot', 'row', ...TIDE_SAMPLE_M.map(sgn)],
+      results.flatMap((m) => [['card', 'alphaCard', 'onReefCard'], ['floor', 'alphaFloor0', 'onReefFloor0']].map(([row, ak, ok]) =>
+        [m.label, row, ...TIDE_SAMPLE_M.map((t) => { const s = m.samples.find((q) => Math.abs(q.tide - t) < 1e-9); return s ? `${fmt(s[ak])} / ${fmt(s[ok], 2)}` : 'n/a'; })]))));
+    console.log('\n## Flips (> 20 m in one 0.01 m tide rung) along tide\n');
+    console.log(mdTable(['spot', 'row', 'flips', 'rungs (from→to: dz m, % stations, α from→to)'],
+      results.flatMap((m) => [['card H0', m.flipsAtCard], ['floor H0', m.flipsAtFloor0]].map(([row, fl]) =>
+        [m.label, row, fl.length, fl.map((f) => `${sgn(f.from)}→${sgn(f.to)}: ${f.dzMax}, ${Math.round(f.fracMove * 100)}%, ${f.alphaFrom}→${f.alphaTo}`).join('; ') || 'none']))));
+    console.log('\n## Paste-ready PEEL_FLOOR tide fields\n');
+    for (const m of results) console.log(`  ${m.key}: ${JSON.stringify({ ...m.entry, tideDigest: m.tideDigest })},`);
+    return;
+  }
 
   for (const key of presets) {
     const P = { ...(summary.presets[key] || {}), key, spot: spotOf(key), card: cardOf(key), handSign: handSigns[key] };

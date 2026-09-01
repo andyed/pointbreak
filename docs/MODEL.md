@@ -1633,11 +1633,9 @@ do not — all seven are off-basis and pass through, as before.
 Two things the re-measured floor still does not do, both recorded in
 `research/BREAK_FIELD_2026-09-01.md`:
 
-* **It does not guard the tide axis.** At the card H₀ the shipped line flips
-  on a 0.04 m tide step at five of six spots (Jack's moves 132 m). The floor
-  is a point on the H₀ axis at tide 0; it declines off-basis, which is
-  correct, and it leaves those states unguarded, which is the next
-  measurement (NEXT_INVESTMENTS §1).
+* ~~**It does not guard the tide axis.**~~ Measured the same day; the next
+  subsection. The floor is now a point on the H₀ axis with a declared tide
+  band, inside which it binds and outside which it declines.
 * **It does not make Sewers or First Peak seasonal.** The wedge at Sewers
   activates at 1.24 m against an August p75 of 0.585 m; no selector on this
   bed draws a Sewers peel in summer. That is a reef-extent fact, not a floor
@@ -1651,6 +1649,103 @@ month's drawn height headlessly on every run, so the next change to the bed,
 the dispersion, the reef fit, the presets or the α metric fails the suite
 with the re-run command in the message, rather than inheriting a floor from
 a model that no longer exists.
+
+### The floor's tide band (measured 2026-09-01)
+
+The tide is a live control — `#tide=`, the `[` `]` keys, the drawer slider —
+and the break-field instrument had already seen the shipped line flip on a
+0.04 m tide step at five of six spots at the card H₀. The floor above is a
+point on the H₀ axis at tide 0. `peelFloorH0()` declined at any other tide,
+which was correct and left every tide-moved state unguarded; and the slider
+did not re-derive a month, so a month clamped at tide 0 kept its tide-0
+height, and the HUD line vouching for it, at whatever tide the reader
+dragged to.
+
+**Measured** (`scripts/measure_break_activation.mjs --mode=tide`,
+`research/TIDE_FLOOR_2026-09-01.md`): the whole (H₀, tide) grid per spot —
+every 0.01 m tide rung of the range the model accepts (MLLW −0.862 to MHHW
++0.764 m about MSL at NOAA CO-OPS 9413450, the range `bed.js` `TIDE_RANGE`
+clamps to; the station's observed extremes, −1.59 and +1.54 m, are not
+reachable), the H₀ ladder 0.40 → card at 0.01 m at each, 111,540 bakes, the
+replica bit-identical to the bake at every one. Two facts fall out.
+
+**floorH₀ rises with the tide, 0.53–0.65 m per metre, at every spot.** More
+water over the wedge means a bigger wave before the criterion is met on it;
+the reef's own activation height moves at the same rate (0.53–0.61 m/m), and
+to first order the slope is γ/(shelter·K_s). The tide-0 floor is therefore
+*conservative* at every tide below 0 — it over-clamps by up to 0.38–0.54 m at
+MLLW and still lands every month on a peel — and *wrong by the first rung
+above it*: at +0.01 m Sewers' 1.62 draws **−8.9°** (a left, 33 % on the
+reef), The Hook's 1.09 draws **−5.3°**, First Peak's 1.38 drops from 21.7 to
+6.0°.
+
+| spot | floor (tide 0) | floorH₀ at −0.86 / −0.50 / −0.25 / 0 / +0.25 / +0.50 / +0.76 m | slope m/m (rmse, n) | card stops being a peel at |
+|---|---|---|---|---|
+| Sewers | 1.62 | 1.08 / 1.30 / 1.46 / 1.62 / 1.78 / 1.95 / 2.13 | 0.647 (0.006, 165) | never |
+| First Peak | 1.38 | 0.85 / 1.07 / 1.22 / 1.38 / 1.54 / 1.70 / — | 0.629 (0.006, 153) | ≥ +0.66 |
+| Second Peak | 1.11 | — / 0.82 / 0.96 / 1.11 / 1.26 / 1.42 / — | 0.537 (0.100, 137) | ≤ −0.73 and ≥ +0.63 |
+| Jack's | 0.78 | 0.40 / 0.54 / 0.65 / 0.78 / 0.94 / 1.10 / — | 0.526 (0.022, 138) | ≥ +0.51 |
+| The Hook | 1.09 | 0.63 / 0.81 / 0.94 / 1.09 / 1.25 / 1.41 / — | 0.585 (0.014, 152) | ≥ +0.65 |
+| Sharks | 0.81 | 0.40 / 0.52 / 0.66 / 0.81 / 0.96 / — / — | 0.550 (0.018, 120) | ≥ +0.33 |
+
+**Above a spot-specific tide the card state itself is not a peel.** A dash
+in the table is a tide at which no H₀ up to the card draws a peel on the
+reef: Sharks' card is off the wedge (0 % on-reef) from +0.33 m, Jack's from
++0.51, Second Peak's reads 10.8° at 20 % from +0.63, The Hook's 6.5° at 22 %
+from +0.65, First Peak's 8.9° from +0.66. Only Sewers' card holds to MHHW.
+This is the reef-extent fact from the previous subsection on its second axis:
+at high water the synthetic wedge is too deep for the authored card, and no
+floor on H₀ can fix that.
+
+**What ships: a tide band, not a tide-dependent floor.** Each `PEEL_FLOOR`
+row carries `tideBandM`, the contiguous interval of tide rungs around 0 on
+which the tide-0 floor *holds* — floorH₀(t) ≤ floorH₀(0) and the card is a
+peel — and `peelFloorH0()` returns the floor inside it and null outside.
+
+| spot | tide band | low edge | high edge (α / on-reef at the floor, edge → beyond) |
+|---|---|---|---|
+| Sewers | **-0.86…+0.00 m** | MLLW (range limit) | 0 → +0.01: 34.8 → **−8.9**, 0.65 → 0.33 (sign, reef) |
+| First Peak | **-0.86…+0.01 m** | MLLW | +0.01 → +0.02: 21.7 → 6.0, 0.88 → 0.88 (α) |
+| Second Peak | **-0.72…+0.01 m** | −0.72 → −0.73: the **card** reads 10.2 → 10.0 (α) | +0.01 → +0.02: 10.0 → 9.7, 0.71 → 0.70 (α) |
+| Jack's | **-0.86…+0.00 m** | MLLW | 0 → +0.01: 11.1 → 10.7, 0.56 → 0.43 (reef) |
+| The Hook | **-0.86…+0.00 m** | MLLW | 0 → +0.01: 12.3 → **−5.3**, 0.54 → 0.52 (sign) |
+| Sharks | **-0.86…+0.01 m** | MLLW | +0.01 → +0.02: 15.0 → 15.2, 0.51 → 0.49 (reef) |
+
+The bands are one-sided because the floor is monotone in tide: the tide-0
+number is the tightest floor at 0 by construction, so it cannot hold above
+0 except where floorH₀ is flat for a rung (First Peak, Second Peak, Sharks:
++0.01). Second Peak's band is the one bounded below by the card rather than
+by the range; its card is marginal at low water (8.4° at MLLW).
+
+The alternative, a floor *table* in tide, was measured — it is the second
+column block above — and not adopted. It would have no entry across a third
+to half of the accepted range at five spots (the card fails there), it would
+slide a month's drawn height by 0.5–0.65 m per metre of slider at every
+spot (Sewers 1.08 → 2.13 m across the range), and at Second Peak the low-tide
+floor is not even monotone (rmse 0.10 m about the line; nine downward steps
+between −0.67 and −0.38). The band changes nothing that ships: months sit at
+tide 0, all seven `#day=` states are off-basis on T, and the nowcast's T is
+never exactly the card's. What it changes is the tide-moved state, which was
+either stale or unguarded, and is now one of two disclosed things:
+
+* **Below the band's high edge** (any low tide): the tide-0 floor binds. It
+  is more than the tide needs — by 0.38–0.54 m at MLLW — and the month it
+  holds is a peel on the reef at every rung of the grid.
+* **Above it**: the floor declines; the month draws its raw p75 — at the
+  summer p75 a closeout at every spot — and the HUD line reads "NOT applied
+  … holds for tide −0.86…+0.00 m — this state is at tide +0.30 m, so the
+  number does not describe it." The tide itself is never moved by the floor.
+  `#tide=` is parsed before `#month=`, and `setTide()` re-derives an active
+  month, so the slider cannot carry a tide-0 clamp to a tide it was not
+  measured at.
+
+Pinning: `tideEdges` records, per side, the α and on-reef of the floor and
+the card at the edge rung and — where the band does not run to the range
+limit — the next rung, the H₀ that fails on it and why; `tideDigest` is the
+sha1 of the bake at those states. `tests/peel-floor.test.js` re-bakes them
+on every run the way it re-bakes the H₀ edges, and `PEEL_FLOOR_BASIS`
+carries the tide step, range and criterion beside the H₀ ones (lesson 14b:
+every held-fixed parameter and its range).
 
 ### The pattern, for the next one
 
@@ -1666,7 +1761,9 @@ a model that no longer exists.
    will draw" rather than "where the break line goes".
 5. **Carry the basis with the number** — tide, period, γ, step, criterion *and the
    model version* — decline outside it, and pin the number to the bake so the
-   next model change re-opens the measurement instead of inheriting it.
+   next model change re-opens the measurement instead of inheriting it. Where
+   the basis is a range rather than a point (the tide band), measure the
+   range's edges to the same resolution as the number and pin those too.
 6. **Quantify the cost per case and publish the row where it is total.** The
    Sewers row is the one that makes this section worth having.
 7. **Disclose in the product, not only in the docs.** A silent clamp is the
