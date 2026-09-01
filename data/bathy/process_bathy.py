@@ -7,61 +7,25 @@ Output: pp_bathy.json — elevation grid (m, NAVD88; negative = below datum)
 
 Source dataset: NOAA NCEI Monterey Bay 1/3 arc-second Coastal DEM (2012),
 monterey_13_navd88_2012.nc. ~10 m post spacing.
-"""
-import json, math, re
 
-R = 6371000.0
+The projection, the OPeNDAP parser and the bilinear sampler live in
+stage_frame.py so build_candidate_grids.py shares them byte-for-byte.
+"""
+import json, math
+
+from stage_frame import StageGrid, load_origin, make_projector, parse_opendap_ascii
 
 # --- parse the OPeNDAP ascii ---
-rows, lats, lons = [], [], []
-section = None
-with open('bathy_subset.ascii') as f:
-    for line in f:
-        line = line.strip()
-        if line.startswith('Band1.Band1['):
-            section = 'grid'; continue
-        if re.match(r'^Band1\.lat($|\[)', line):
-            section = 'lat'; continue
-        if re.match(r'^Band1\.lon($|\[)', line):
-            section = 'lon'; continue
-        if not line or line.startswith(('Dataset', 'Grid', 'ARRAY', 'MAPS',
-                                        'Float', '}', '---')):
-            continue
-        if section == 'grid' and line.startswith('['):
-            vals = line.split(',')[1:]  # drop "[i]" row index
-            rows.append([float(v) for v in vals])
-        elif section == 'lat':
-            lats = [float(v) for v in line.split(',')]
-        elif section == 'lon':
-            lons = [float(v) for v in line.split(',')]
-
-assert rows and lats and lons, f'parse failure: {len(rows)} rows, {len(lats)} lats, {len(lons)} lons'
-assert len(rows) == len(lats) and len(rows[0]) == len(lons)
+rows, lats, lons = parse_opendap_ascii('bathy_subset.ascii')
 
 # --- same origin as the OSM geometry ---
-geo = json.load(open('../osm/pp_geometry.json'))
-lat0, lon0 = geo['origin']['lat'], geo['origin']['lon']
-coslat = math.cos(math.radians(lat0))
-def to_xy(lat, lon):
-    return ((lon - lon0) * math.radians(1) * R * coslat,
-            (lat - lat0) * math.radians(1) * R)
+lat0, lon0, geo = load_origin('../osm/pp_geometry.json')
+to_xy, _ = make_projector(lat0, lon0)
 
-x0, y0 = to_xy(lats[0], lons[0])
-x1, y1 = to_xy(lats[-1], lons[-1])
-dx = (x1 - x0) / (len(lons) - 1)
-dy = (y1 - y0) / (len(lats) - 1)
-
-def sample(x, y):
-    """Bilinear elevation sample at local-meter (x, y); None outside grid."""
-    fc, fr = (x - x0) / dx, (y - y0) / dy
-    c, r = int(fc), int(fr)
-    if not (0 <= c < len(lons) - 1 and 0 <= r < len(lats) - 1):
-        return None
-    tc, tr = fc - c, fr - r
-    z00, z01 = rows[r][c], rows[r][c + 1]
-    z10, z11 = rows[r + 1][c], rows[r + 1][c + 1]
-    return (z00 * (1-tc) * (1-tr) + z01 * tc * (1-tr)
-            + z10 * (1-tc) * tr + z11 * tc * tr)
+grid = StageGrid.from_latlon_grid(rows, lats, lons, to_xy)
+x0, y0, dx, dy = grid.x0, grid.y0, grid.dx, grid.dy
+x1, y1 = grid.x_max(), grid.y_max()
+sample = grid.sample
 
 spot_depths = []
 for sp in geo['spots']:
