@@ -85,7 +85,9 @@ test('the floor table carries its basis, and the basis is the instrument\'s and 
   assert.deepEqual(Object.keys(PEEL_FLOOR).sort(), Object.keys(PRESETS).sort(),
     'every preset needs a PEEL_FLOOR entry, even if it is null');
   assert.equal(PEEL_FLOOR.privates, null,
-    'Privates has no measured bed, so no bake, no branch and nothing to clamp to');
+    'Privates has no floor: its card ocean sits below its own wedge\'s activation, '
+    + 'so no rung up to the card is on the reef and the criterion has no domain '
+    + '(re-baked in its own test below; MODEL.md 4.6 "Privates")');
   const B = PEEL_FLOOR_BASIS;
   assert.match(B.modelCommit, /^[0-9a-f]{7,40}$/, 'the basis must name the commit it was measured at');
   assert.match(B.measured, /^\d{4}-\d{2}-\d{2}$/, 'the basis must carry its date');
@@ -314,6 +316,35 @@ test('the clamp is inert on every authored card state', () => {
   // Privates has no floor at all, so nothing there can be clamped.
   assert.equal(peelFloorH0('privates', { T: 12, tideM: 0 }), null);
   assert.equal(clamp('privates', 0.4, { T: 12, tideM: 0 }), 0.4);
+});
+
+test('Privates\' null floor is re-baked, not inherited (measured 2026-09-02)', () => {
+  // Privates is mapped (--truncate 0.5 contour, 1.87 m RMS) and has a bake, so
+  // its null is a measured verdict with a stated reason, and the reason has to
+  // keep being true: the card ocean (0.70 m, T 12, tide 0) sits BELOW the
+  // wedge's own activation H0 (0.721 m on this bake), so no rung 0.40 -> 0.70
+  // puts a station on the reef and "every rung up to the card is healthy"
+  // fails at the card itself. If the bake, the card or the reef fit ever move
+  // so that the card is on the wedge, a floor becomes measurable and this
+  // fails naming the run — the same discipline as the six digests above.
+  const key = 'privates', card = PRESETS[key];
+  assert.equal(card.geoSpot, "Private's", 'Privates is the mapped preset this verdict was measured on');
+  const act = I.reefActivationH0(key, { T: card.T, tide: 0 }).H0;
+  assert.ok(Number.isFinite(act) && act > card.H0,
+    `Privates' wedge now activates at ${act?.toFixed(3)} m, at or below its ${card.H0} m card — `
+    + 'the card may be on the reef and a floor may exist; re-run `node scripts/measure_break_activation.mjs '
+    + '--mode=floor --preset=privates` and add the PEEL_FLOOR row (MODEL.md 4.6 "Privates")');
+  const r = I.repSummary(I.instrumentState(key, { H0: card.H0, T: card.T, tide: 0 }), 1).shipped;
+  assert.equal(r.onReefFrac, 0,
+    `Privates' card line has ${(r.onReefFrac * 100).toFixed(0)}% of stations on the reef; it was measured at 0%`);
+  assert.ok(r.medianClean >= ALPHA_FLOOR_DEG && r.reversals === 0,
+    `Privates' card line reads alpha ${r.medianClean?.toFixed(1)} with ${r.reversals} reversals — it was a clean `
+    + 'right-hand platform peel (15.7 deg, 0 reversals); the null floor was not measured on a closeout');
+  const fl = I.measurePeelFloor(key, { handSign: 1 });
+  assert.equal(fl.floorHi, null,
+    `the instrument now finds a Privates floor at ${fl.floorLo}->${fl.floorHi}; add the PEEL_FLOOR row`);
+  assert.equal(fl.note, 'the card state itself is not healthy');
+  assert.deepEqual(fl.flips, [], 'the 0.40 -> card ladder at Privates had no branch flip when measured');
 });
 
 test('a derived ocean has exactly one clamp owner (MODEL.md 4.5)', () => {

@@ -53,12 +53,18 @@ export const PARAM_DEFS = [
 // The bank is the Pleasure Point canon, ordered apex -> down-point. Every name
 // is a real site on this point; geoSpot is its OSM surf node. Private's was the
 // one site whose coastline defeated the cubic contour fit (16.62 m RMS over the
-// 250 m OSM-midpoint window). CANDIDATE 2026-09-01: with the stage ended where
-// the contour departs the frame (`build_geo_profiles.py --truncate 0.5`, see
+// 250 m OSM-midpoint window). MAPPED 2026-09-02: with the stage ended where
+// the contour departs the frame (`build_geo_profiles.py --truncate 0.5`, the
+// default in `npm run build:geo` since that date; see
 // docs/research/PRIVATES_CONTOUR_2026-09-01.md) it fits at 1.87 m RMS on a
 // [-189.7, 60] m window and maps to its own OSM node. The six other profiles
-// are numerically unchanged by that flag. Not yet a product decision — the
-// render evidence is in the same doc.
+// are byte-identical under the flag. What the mapped bed does NOT give it: the
+// M5 reef fit does not converge there (7.6 deg against 31 after 14 iterations;
+// h_b 1.40 m is the node's own depth, so the wedge may lift the bed by at most
+// 0.64 m) and its wedge activates at 0.721 m — ABOVE the 0.70 m card — so at
+// the card ocean the line is the DEM platform's own peel (15.7 deg stage
+// median, 0 % of stations on the wedge), not the reef's. See PEEL_FLOOR below
+// for what that costs.
 //
 // RETARGET 2026-08-13 (Track 1c'-c.7). The old bank encoded the golden-rule
 // gradient as alpha RISING down-point (58/62/66/70 = mellower). That is
@@ -165,11 +171,31 @@ export const DEFAULT_PRESET = 'secondpeak';
 // to 5.9, turning two healthy states into closeouts. So `basisT`/`basisTideM`
 // are checked before the floor is allowed to bind.
 //
-// Privates stays null: it had no measured bed when this table was measured, so
-// no bake, no break-line branch, no flip. The 2026-09-01 mapped-bed candidate
-// gives it a bake, but its flip has NOT been measured on the H0 ladder — a
-// floor written here without that measurement would be a guess, so a derived
-// ocean at Privates is still unclamped until --mode=floor is run for it.
+// Privates stays null, MEASURED (2026-09-02, `--mode=floor --preset=privates`
+// on tree 4412eaa): the criterion has no domain there. Its card ocean (0.70 m,
+// T 12, tide 0) sits BELOW its own wedge's activation H0 (0.721 m), so at every
+// one of the 31 rungs 0.40 -> 0.70 the shipped line has 0 % of stage stations
+// on the reef — it is the DEM platform's line, a right-hand 15.7-26.2 deg peel
+// with 0 reversals and 0 pinned stations (gate 0, replica bit-identical) — and
+// "every rung up to the card is healthy" fails at the card itself (instrument
+// note: "the card state itself is not healthy"). Not a closeout: alpha never
+// drops below 12.8 deg and never changes sign anywhere on 0.40 -> 3.00 m at
+// any sample tide. The line DOES sit on the wedge above the card — healthy at
+// every rung 0.76 -> 1.43 m at tide 0 (alpha 12.8-28.6, on-reef 0.52-0.99) —
+// and off it again seaward above 1.43 m; and the card itself is a peel on the
+// wedge at tides <= -0.09 m, where a floor exists (0.70 at -0.09, 0.61 at
+// -0.25, 0.48 at -0.50, the 0.40 ladder bottom below -0.66; MLLW activation
+// 0.269). A tide-0 floor would have to be 0.76 m, above the authored card,
+// which the table's own invariant (no card at or below its floor) forbids. So:
+// no floor, no clamp, derived oceans pass through raw — Jun-Sep p75
+// 0.585-0.706 m draw on the platform at 15.7-18.7 deg, the other eight months
+// on the wedge at 13.3-27.3 deg, all twelve right-handed. The decision that
+// would create a floor is authorship's — a card H0 >= 0.76 m, or a card tide
+// <= -0.09 m — and is not taken here. Docs: MODEL.md 4.6 "Privates",
+// research/PRIVATES_CONTOUR_2026-09-01.md "Peel floor and tide band".
+// tests/peel-floor.test.js re-bakes the verdict (activation above the card,
+// 0 % on reef at the card, measurePeelFloor finding no floor) so a bake that
+// makes a Privates floor possible fails the suite instead of inheriting this.
 //
 // Everything below was read off ONE run of the instrument; every field is
 // checked against a fresh headless measurement by tests/peel-floor.test.js.
