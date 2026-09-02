@@ -51,10 +51,14 @@ export const PARAM_DEFS = [
 // wave that demonstrates it is on the west side, not here.
 //
 // The bank is the Pleasure Point canon, ordered apex -> down-point. Every name
-// is a real site on this point; geoSpot is its OSM surf node. Private's is the
-// one site whose coastline defeats the cubic contour fit (16.5 m RMS), so it
-// runs on the synthetic stage and says so in the app rather than borrowing a
-// neighbour's bathymetry.
+// is a real site on this point; geoSpot is its OSM surf node. Private's was the
+// one site whose coastline defeated the cubic contour fit (16.62 m RMS over the
+// 250 m OSM-midpoint window). CANDIDATE 2026-09-01: with the stage ended where
+// the contour departs the frame (`build_geo_profiles.py --truncate 0.5`, see
+// docs/research/PRIVATES_CONTOUR_2026-09-01.md) it fits at 1.87 m RMS on a
+// [-189.7, 60] m window and maps to its own OSM node. The six other profiles
+// are numerically unchanged by that flag. Not yet a product decision — the
+// render evidence is in the same doc.
 //
 // RETARGET 2026-08-13 (Track 1c'-c.7). The old bank encoded the golden-rule
 // gradient as alpha RISING down-point (58/62/66/70 = mellower). That is
@@ -79,7 +83,7 @@ export const PRESETS = {
   jacks:      { label: "Jack's (38th)", geoSpot: '38th',        alpha: 37, xi: 0.50, sections: 0.10, T: 13, H0: 1.1, dF: 0.006, tau: 5,   chop: 0.1,  aframe: 0 },
   thehook:    { label: 'The Hook',     geoSpot: 'The Hook',     alpha: 41, xi: 0.80, sections: 0.20, T: 13, H0: 1.5, dF: 0.007, tau: 5,   chop: 0.15, aframe: 0 },
   sharks:     { label: 'Sharks',       geoSpot: "Shark's Cove", alpha: 36, xi: 0.45, sections: 0.10, T: 13, H0: 1.0, dF: 0.006, tau: 4.5, chop: 0.1,  aframe: 0 },
-  privates:   { label: 'Privates',     geoSpot: null,           alpha: 31, xi: 0.35, sections: 0.05, T: 12, H0: 0.7, dF: 0.006, tau: 4,   chop: 0.15, aframe: 0 },
+  privates:   { label: 'Privates',     geoSpot: "Private's",    alpha: 31, xi: 0.35, sections: 0.05, T: 12, H0: 0.7, dF: 0.006, tau: 4,   chop: 0.15, aframe: 0 },
 };
 
 export const DEFAULT_PRESET = 'secondpeak';
@@ -161,7 +165,11 @@ export const DEFAULT_PRESET = 'secondpeak';
 // to 5.9, turning two healthy states into closeouts. So `basisT`/`basisTideM`
 // are checked before the floor is allowed to bind.
 //
-// Privates has no measured bed, so no bake, no break-line branch, no flip.
+// Privates stays null: it had no measured bed when this table was measured, so
+// no bake, no break-line branch, no flip. The 2026-09-01 mapped-bed candidate
+// gives it a bake, but its flip has NOT been measured on the H0 ladder — a
+// floor written here without that measurement would be a guess, so a derived
+// ocean at Privates is still unclamped until --mode=floor is run for it.
 //
 // Everything below was read off ONE run of the instrument; every field is
 // checked against a fresh headless measurement by tests/peel-floor.test.js.
