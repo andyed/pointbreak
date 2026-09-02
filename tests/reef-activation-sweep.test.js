@@ -33,7 +33,7 @@ test('every patch pattern occurs exactly once in bed.js', () => {
 
 test('patched-at-zero bake reproduces the shipped instrument at every mapped spot', async () => {
   const g = await S.gate();
-  assert.equal(g.rows.length, 6);
+  assert.equal(g.rows.length, 7);   // Private's mapped 2026-09-02
   for (const r of g.rows) {
     assert.equal(r.dH0, 0, `${r.key}: activation ${r.patchedH0} vs instrument ${r.refH0}`);
     assert.equal(r.dBeta, 0, `${r.key}: reef fit beta differs`);

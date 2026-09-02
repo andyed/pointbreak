@@ -48,12 +48,15 @@ test('the instrument touches no renderer file', () => {
   assert.ok(!/model-glsl|shaders\.js/.test(SRC), 'slices 1-2 are instrument-only: no renderer imports');
 });
 
-test('replica line == shipped bake at card and flip states, all six mapped spots', () => {
-  assert.equal(I.MAPPED.length, 6);
+test('replica line == shipped bake at card and flip states, all seven mapped spots', () => {
+  // Private's joined the mapped set 2026-09-02 (--truncate 0.5); its peel
+  // floor is not yet measured, so it is gated at the card state only.
+  assert.equal(I.MAPPED.length, 7);
   for (const key of I.MAPPED) {
     const f = PEEL_FLOOR[key];
-    const states = [I.cardOf(key),
-      { H0: f.flipLo, T: f.basisT, tide: f.basisTideM }, { H0: f.flipHi, T: f.basisT, tide: f.basisTideM }];
+    const states = [I.cardOf(key)];
+    if (f && Number.isFinite(f.flipLo)) states.push(
+      { H0: f.flipLo, T: f.basisT, tide: f.basisTideM }, { H0: f.flipHi, T: f.basisT, tide: f.basisTideM });
     for (const st of states) {
       const inst = I.instrumentState(key, st);
       const g = inst.gate;

@@ -29,10 +29,15 @@ const X_RANGE = I.X_RANGE;
 // NEXT_INVESTMENTS §1), tide 0, card T. If the bake moves them, the docs move
 // too — this is the test that says so.
 const DOCUMENTED = { sewers: 1.239, firstpeak: 1.143, secondpeak: 1.003,
-                     jacks: 0.616, thehook: 0.916, sharks: 0.726 };
+                     jacks: 0.616, thehook: 0.916, sharks: 0.726,
+                     // Private's mapped 2026-09-02 (--truncate 0.5 contour); measured
+                     // the same day with --mode=card. Its reef fit does not converge
+                     // (7.6 deg vs 31, 0 % of stations on the wedge), so this is the
+                     // activation of a wedge the line does not sit on.
+                     privates: 0.721 };
 
 test('the runtime activation equals the instrument\'s bisection at every mapped spot, tide 0', () => {
-  assert.equal(I.MAPPED.length, 6);
+  assert.equal(I.MAPPED.length, 7);
   for (const key of I.MAPPED) {
     const T = PRESETS[key].T;
     const ref = I.reefActivationH0(key, { T, tide: 0 }).H0;
