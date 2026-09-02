@@ -456,7 +456,14 @@ const PRESET_LABELS = {
   jacks: "Jack's (38th)", thehook: 'The Hook', sharks: 'Sharks',
   privates: 'Privates',
 };
-const PRESET_NOTE = { privates: 'synthetic stage — no measured bed' };
+// Privates read 'synthetic stage — no measured bed' until 2026-09-02. It is
+// mapped now (truncated contour, 1.87 m RMS, window [-189.7, 60] m); what still
+// sets it apart is the reef, and the note says so rather than going quiet. On
+// the next rebuild its rows gain what the other six have — a pixel corridor
+// (foam_pix), a depth ceiling (ceilM; 1.41-1.58 m of water under the card
+// line, stage max 2.86 m) and a real crest/ceiling fill (set-peak pocket
+// median 1.17) — and the "Synthetic stage" row banner no longer fires there.
+const PRESET_NOTE = { privates: 'mapped 2026-09-02 (truncated contour, 1.87 m RMS) · reef fit does not converge (7.6° vs 31°) · wedge activates at 0.72 m, above the 0.70 m card — the peel is the surveyed platform\'s' };
 const LOCATION_KEYS = ['sewers', 'firstpeak', 'secondpeak', 'jacks', 'thehook', 'sharks', 'privates'];
 const SEASON_PRESETS = ['sewers', 'secondpeak'];
 // The caption names the ASKED height and says so. The DRAWN height, and whether
@@ -495,9 +502,11 @@ const floorTxt = (k) => `${PEEL_FLOOR[k].floorH0.toFixed(2)} m`;
 //     reader's. day=modelcard and day=overhead sit between the two kept rows.
 //   SETS/locations — Sewers, Second Peak, Privates instead of all seven. Those
 //     three span the shipped Iribarren range end to end (xi 1.15 the most
-//     plunging, 0.65 the most spilling) and include the ONE synthetic-stage
-//     site, which is where the n/a honesty story lives. The four dropped sites
-//     interpolate between the two mapped ones.
+//     plunging, 0.65 the most spilling) and include Privates, the down-point
+//     site whose reef fit does not converge (it was the one synthetic-stage
+//     site, where the n/a honesty story lived, until it was mapped on
+//     2026-09-02). The four dropped sites interpolate between Sewers and
+//     Second Peak.
 //   SETS/seasons — January vs August only, on both presets. Those are the
 //     extremes the CDIP climatology actually settles (p75 1.245 m against
 //     0.585 m, and zero hours at or above 1.3 m in 25 Augusts). October is the
@@ -623,7 +632,8 @@ const SHEETS = [
         note: 'The location axis: every shipped site preset at the same climatological month, so what differs between rows is the reef.',
         pubNote: 'The location axis: three shipped site presets at the same climatological month, so what differs '
             + 'between rows is the reef. Sewers and Second Peak are the ends of the breaker-character range '
-            + '(ξ 1.15 against 0.65); Privates is the synthetic-stage site.',
+            + '(ξ 1.15 against 0.65); Privates is the down-point site whose bed was mapped on 2026-09-02 and whose '
+            + 'reef fit does not converge (7.6° against 31°), so its rows show the surveyed platform\'s own peel.',
         base: 'cam=drone',
         rows: LOCATION_KEYS.map((k) => ({
           id: `loc-${k}`, label: PRESET_LABELS[k],
@@ -1005,7 +1015,9 @@ function trackedWave({ watchX, seedZ, lineStep, ribStep, ribBack, ribFwd, ribHal
 // model's own answer to "is this thing breaking, and how big is it". Camera-
 // independent by construction, so it cannot be moved by the framing the way a
 // pixel measure can (MEASUREMENT_LESSONS 11), and it is the ONLY read available
-// at Privates, which has no measured bed and therefore no baked line to project.
+// at a site with no baked line to project. Privates was that site until it was
+// mapped on 2026-09-02; no shipped preset is in that state now, and the branch
+// stays for the next one that fails closed.
 function probeStage({ nStations, halfM, n, aimX }) {
   const pb = window.__pointbreak;
   const line = pb.lineProbe(4) || [];
@@ -1058,11 +1070,14 @@ function probeStage({ nStations, halfM, n, aimX }) {
     baked, stageLo: +lo.toFixed(1), stageHi: +hi.toFixed(1), stations: out, atAim,
     crestMaxM: crests.length ? Math.max(...crests) : null,
     // The depth-limited ceiling, or null where the site has no measured bed.
-    // Privates runs u_depthMix = 0, and there crestCeilM is not a depth limit
-    // at all (see MEASUREMENT_LESSONS 12) — reporting a number there invited
-    // the 2026-08-18 sheet's "5.20 m against a 2.34 m ceiling, 2.2x over",
-    // which divided a synthetic crest by 1.878*H0. n/a is the honest read,
-    // matching what the pixel corridor already says on the same row.
+    // Until 2026-09-02 that was Privates: it ran u_depthMix = 0, and there
+    // crestCeilM was not a depth limit at all (see MEASUREMENT_LESSONS 12) —
+    // reporting a number invited the 2026-08-18 sheet's "5.20 m against a
+    // 2.34 m ceiling, 2.2x over", which divided a synthetic crest by 1.878*H0.
+    // Privates is mapped now and its ceiling is a depth (1.41-1.58 m of water
+    // under the card line; set-peak pocket fill median 1.17, top of the mapped
+    // family's 0.99-1.07), so a rebuild prints it. null stays the honest read
+    // for any preset that fails closed, matching the pixel corridor's n/a.
     ceilM: (() => {
       const c = out.map((s) => s.ceil).filter((v) => v !== null);
       return c.length ? Math.max(...c) : null;
@@ -1995,17 +2010,19 @@ Seasonality: CDIP MOP v1.1 SC116 hindcast (Scripps).</span></p>
 // The two ways this sheet legitimately says n/a. Both are results — a number
 // would be the dishonest option — so they are explained where they appear.
 const NA_NOTE = `<p><b>Where this sheet says <span class="na">n/a</span>, and why.</b> Two measures go blank at
-<b>Privates</b>, and only at Privates, because that site's coastline defeats the contour fit (16.5 m RMS) and
-it runs on a <i>synthetic stage</i> rather than a surveyed seabed. <b>foam<sub>pix</sub></b> needs a baked break
-line to project a corridor onto; with no measured bed there is no baked line, so there is nothing to sample and
-the cell reads <code>n/a</code> instead of sampling an arbitrary band of pixels. <b>ceilM</b>, the depth-limited
-crest ceiling in the JSON, is <code>null</code> for the same root cause one step further on: the site runs
-<code>u_depthMix = 0</code>, the seabed sampler is a 1×1 stand-in, and the depth the shader reads back is the
-storage format's quantization floor rather than a seabed — so γh never binds and the "ceiling" would be
-<code>1.878·H₀</code> wearing a depth limit's name. <b>Privates has no measured bed and therefore no ceiling to
-be over.</b> An earlier sheet did print that number and produced a headline defect ("2.2× over its ceiling")
-that was entirely an artifact of dividing by it. Everything else on the Privates row — crest, foam<sub>model</sub>,
-the set envelope — is measured the same way as every other site and is directly comparable.</p>`;
+any site with no baked break line. <b>foam<sub>pix</sub></b> needs a baked line to project a corridor onto; with
+no measured bed there is no baked line, so there is nothing to sample and the cell reads <code>n/a</code> instead
+of sampling an arbitrary band of pixels. <b>ceilM</b>, the depth-limited crest ceiling in the JSON, is
+<code>null</code> for the same root cause one step further on: such a site runs <code>u_depthMix = 0</code>, the
+seabed sampler is a 1×1 stand-in, and the depth the shader reads back is the storage format's quantization floor
+rather than a seabed — so γh never binds and the "ceiling" would be <code>1.878·H₀</code> wearing a depth limit's
+name. <b>A site with no measured bed has no ceiling to be over.</b> <b>Privates</b> was that site until
+2026-09-02, when its bed was mapped on a truncated contour window (1.87 m RMS); an earlier sheet did print the
+degenerate number there and produced a headline defect ("2.2× over its ceiling") that was entirely an artifact of
+dividing by it. On a build from the mapped bed every Privates cell carries real reads — its ceiling at the card is
+1.41–1.58 m of water under the line and its set-peak pocket fill is 1.17, at the top of the mapped family — and
+<code>n/a</code> should appear nowhere on these pages; if it does, a preset has failed closed and this note
+explains the blank.</p>`;
 
 // What the tracked wave is doing in this cell, derived from the model reads
 // rather than asserted. Each phrase is a STATE at a known clock, never a verb
@@ -2062,7 +2079,7 @@ function cellHTML(base, cell, row) {
   <div class="nums">
     <span>foam<sub>model</sub> <b>${cell.modelFoamMax.toFixed(2)}</b> (${(cell.modelFoamFrac * 100).toFixed(0)}% of stage)</span>
     <span>foam<sub>pix</sub> ${cell.pixFracLo === null
-      ? '<b class="na" title="No measured bed at this site, so there is no baked break line to project a pixel corridor onto. n/a is the result, not a gap — see the footer.">n/a</b>'
+      ? '<b class="na" title="No baked break line at this site (no measured bed), so there is no corridor to project a pixel read onto. n/a is the result, not a gap — see the footer.">n/a</b>'
       : `<b>${(cell.pixFracLo * 100).toFixed(1)}%</b>`}</span>
   </div>
   <a class="hash" href="${esc(url)}" title="${esc('#' + cell.hash)}">#${esc(cell.hash)}</a>
@@ -2244,15 +2261,17 @@ ${flats.length ? `<div class="alert"><b>${flats.length} cell${flats.length === 1
     <b>foam<sub>pix</sub></b> — the camera's answer: share of samples at luma ≥ ${FOAM_LO} over the whitewater
     <i>attachment corridor</i>, ${CORRIDOR_N} points per line station spanning ${CORRIDOR_M[0]} m to
     +${CORRIDOR_M[1]} m across the break line in <i>world</i> metres (sections shift included), each the max of its
-    3×3 neighbourhood. Reads <code>n/a</code> where there is no baked line to project (Privates).
+    3×3 neighbourhood. Reads <code>n/a</code> where there is no baked line to project (no shipped preset since
+    Privates was mapped on 2026-09-02).
     It is corridor-local: whitewater that has already advected shoreward is outside it by design.<br>
     <b>ceilM</b> (JSON only) — the depth-limited crest ceiling <code>0.8·VIS·min(H₀K<sub>s</sub>, γh)</code> at those
-    transects. <code>null</code> at Privates, and that is a result, not a gap: with no measured bed the site runs
+    transects. <code>null</code> at a site with no measured bed, and that is a result, not a gap: such a site runs
     <code>u_depthMix = 0</code>, the seabed sampler is a 1×1 stand-in, and the depth the shader reads back is the
     storage format's own quantization floor (a flat 30.91 m stage-wide) rather than a seabed. <code>γh</code> then
     never binds and the "ceiling" is <code>1.878·H₀</code> wearing a depth limit's name, while the crest above it
-    came from the depth-free synthetic branch. <b>Privates has no measured bed and therefore no ceiling to be over.</b>
-    Its crest at the January set peak (5.32 m) is in family with all six mapped sites (4.99–5.32 m) on the same day.</dd>
+    came from the depth-free synthetic branch. <b>A site with no measured bed has no ceiling to be over.</b> Privates
+    was that site until 2026-09-02 (its January set-peak crest, 5.32 m, was in family with the six mapped sites'
+    4.99–5.32 m on the same day); on the mapped bed its ceiling is a depth and prints like the others'.</dd>
   <dt>links</dt><dd>Every hash is a live link into <code>${esc(base)}web-three/</code> at that exact state, so clicking a
     suspicious frame drops you into the simulator at it. ${prov.mode === 'published'
       ? 'Those links are <b>relative to this page</b> and resolve against the simulator published beside the essay, so they work wherever this bundle is served from.'
@@ -2324,10 +2343,11 @@ local sheet until it is done.</p>`,
 <p><b>This is the published view: 7 of 13 rows.</b> The full local sheet runs all seven site presets at
 <code>month=january</code> plus two presets across three months. Published here are three sites and two
 months. The sites are <b>Sewers</b> (ξ 1.15, the most plunging in the bank), <b>Second Peak</b> (ξ 0.65, the
-most spilling) and <b>Privates</b> (the one synthetic-stage site, which is where the <span class="na"
-title="Explained in full at the foot of this page.">n/a</span> readings on this page come from) — the two ends
-of the breaker-character range plus the honest edge case. The four omitted sites sit between the two mapped
-ones. The months are <b>January</b> and <b>August</b>, the two the CDIP record actually separates: H₀ p75
+most spilling) and <b>Privates</b> (the down-point site, mapped on 2026-09-02 on a truncated contour window,
+whose reef fit does not converge — 7.6° against 31° — so its rows show the surveyed platform's own peel; until
+that date it was the one synthetic-stage site and the source of this page's
+<span class="na" title="Explained in full at the foot of this page.">n/a</span> readings) — the two ends of the
+breaker-character range plus the edge case. The four omitted sites sit between Sewers and Second Peak. The months are <b>January</b> and <b>August</b>, the two the CDIP record actually separates: H₀ p75
 1.245 m against 0.585 m, with zero hours at or above Hs 1.3 m across twenty-five Augusts. October is the
 shoulder month and is in the local sheet to catch a monotonicity break, which is QA rather than exposition.
 <b>All five clocks are kept in every row</b>: lull → building → peak → easing → lull is the demonstration.</p>`,
@@ -2419,8 +2439,10 @@ not August's. The requested climatology also remains in the row label and permal
 <code>clamp</code> control.</p>
 <p><b>What is on this sheet.</b> The location axis is all seven presets at <code>month=january</code>
 (7 rows). The season axis is two presets × three months (6 rows): January the peak month, October the
-autumn shoulder, August the flat one. <code>privates</code> is the <b>synthetic-stage</b> site — it has
-no measured bed, so its reef is authored rather than surveyed, and the app says so in its readout.
+autumn shoulder, August the flat one. <code>privates</code> is the down-point site: mapped on 2026-09-02
+(truncated contour, 1.87 m RMS), but its synthetic reef fit does not converge (7.6° against 31°) and its wedge
+activates at 0.72 m, above the 0.70 m card, so the card-state line is the surveyed platform's own peel and the
+app's readout says <i>reef synthetic</i>.
 Camera is <code>cam=drone</code> throughout: a set is a property of the whole lineup, and the overhead
 view is the one that shows the envelope arriving down the point.</p>
 <p><b>What was left out.</b> 7 presets × 12 months × 5 clocks would be 420 frames. The sampled

@@ -190,15 +190,23 @@ test('the app build has an identity that moves when the shipped bytes move', () 
 });
 
 test('the n/a cells explain themselves on the page', () => {
-  // These sheets legitimately report n/a at Privates (no measured bed, so no
+  // These sheets legitimately report n/a at a site with no measured bed (no
   // baked line to project a corridor onto and no depth ceiling to be under).
-  // A published reader cannot be left to guess at a blank.
+  // Privates was that site until 2026-09-02; no shipped preset is now, and the
+  // note must say so rather than keep presenting Privates as bed-less. A
+  // published reader cannot be left to guess at a blank.
   assert.match(rig, /const NA_NOTE = /);
-  assert.ok(/Privates has no measured bed and therefore no ceiling to\s*\n?be over/.test(rig)
-    || rig.includes('no measured bed and therefore no ceiling'),
-  'the n/a note does not state why there is no ceiling at Privates');
+  assert.ok(/A site with no measured bed has no ceiling to be over/.test(rig),
+    'the n/a note does not state why a bed-less site has no ceiling');
+  assert.ok(/<b>Privates<\/b> was that site until\s*\n?2026-09-02/.test(rig),
+    'the n/a note must record that Privates is mapped, not present it as bed-less');
+  assert.ok(!/Privates has no measured bed/.test(rig) && !/Privates is the synthetic-stage site/.test(rig),
+    'the rig still describes Privates as bed-less / synthetic-stage');
+  // the locations row carries what still sets Privates apart — the reef, not the bed
+  assert.match(rig, /PRESET_NOTE = \{ privates: 'mapped 2026-09-02/,
+    'the Privates row note must state the mapped bed and the non-converging reef fit');
   // and the marker itself carries a reason without needing the footer
-  assert.match(rig, /class="na" title="No measured bed/);
+  assert.match(rig, /class="na" title="No baked break line/);
 });
 
 test('the standing block states what the sheet is not', () => {
