@@ -198,16 +198,34 @@ and both vehicles bind it as `u_bed`.
   backdrop card. Cameras derive the cliff top from the same field (~11 m at
   Second Peak) instead of floating at a hand-tuned 16 m.
 - Presets with no bathymetry run `u_depthMix = 0`, which collapses every term
-  above back to the §2 stand-ins. In the shipped bank that is **Privates
-  alone** — its coastline defeats the contour fit at 16.5 m RMS (§2.1), so
-  `applyGeoProfile` nulls its `geoSpot` and `applyBed` binds no patch. (The
+  above back to the §2 stand-ins. In the shipped bank that was **Privates
+  alone** until 2026-09-02 — its coastline defeated the contour fit at 16.5 m
+  RMS over the 250 m OSM-midpoint window (§2.1), so `applyGeoProfile` nulled
+  its `geoSpot` and `applyBed` bound no patch. **Since 2026-09-02 all seven
+  presets are mapped**: `build_geo_profiles.py --truncate 0.5` ends each stage
+  where its contour turns more than 27° off the frame, which gives Private's a
+  [−189.7, 60] m window at **1.87 m RMS** (25 samples; the −0.52 m contour
+  turns 33–38° into the cove from ~70 m down-point of the node) and leaves the
+  six other profiles byte-identical (`research/PRIVATES_CONTOUR_2026-09-01.md`).
+  The depth ceiling there is real — 1.41–1.58 m of water under the card line,
+  `crestCeilM` stage max 2.86 m, set-peak pocket fill median 1.17 — but the
+  peel is the DEM's, not the reef's: the M5 fit does not converge (β 22.0°,
+  7.6° against a 31° target, 14 iterations; h_b 1.40 m is the node's own depth,
+  so the wedge may lift the bed by at most 0.64 m) and the wedge activates at
+  0.721 m, above the 0.70 m card, so at the card ocean the line has 0 % of its
+  stations on the wedge and reads 15.7° stage-median off the raw platform
+  (§4.6 "Privates"). The fail-closed path is still live for any future preset
+  whose fit misses the 5 m floor. (The
   A-frame is a *parameter*, not a site: `aframe = 1` on a mapped preset keeps
   `u_depthMix = 1` and its measured bed — verified 2026-08-19, Second Peak's
   ceiling is identical with and without it.) The `web/` raymarcher stays
   depth-free by the same switch.
 
   **What the depth field degenerates to there, and what may not read it
-  (2026-08-19).** `bedElevM` is *not* gated by `u_depthMix`. With no patch
+  (2026-08-19; reached by no shipped preset since Privates was mapped on
+  2026-09-02 — kept because the mechanism is unchanged and
+  `tests/depth-model.test.js` still pins it).** `bedElevM` is *not* gated by
+  `u_depthMix`. With no patch
   bound it samples `bed.js`'s 1×1 all-zeros `EMPTY_BED` stand-in, decodes
   `unit = 0`, and returns `u_bedElev.x` — the low edge of the RGBA8
   quantization window, −30 m NAVD88. That is a property of the storage format,
@@ -1037,7 +1055,7 @@ the measurement:
 | 38th (Jack's) | 981 | 57.2 | 41.9 | 47.3 | 56.4 | provisional, wide |
 | The Hook | 1331 | 45.2 | 36.3 | 45.4 | 51.6 | provisional, wide |
 | Shark's Cove | 1598 | 34.9 | 358.9 | 11.2 | 28.8 | **OPEN — degenerate at ±50 m** |
-| Private's | 1977 | 33.5 | 45.9 | 29.3 | 32.8 | provisional (synthetic stage) |
+| Private's | 1977 | 33.5 | 45.9 | 29.3 | 32.8 | provisional (synthetic stage when measured; mapped 2026-09-02 on the truncated window, frame tangent 38.9°, row not re-derived) |
 
 The spread across window scales is 0.8° at Second Peak, 12.6° at First Peak and
 14–30° at the other five — i.e. **at six of seven spots the uncertainty on
@@ -1079,8 +1097,9 @@ Because α is a difference of bearings, the α swing equals the φ_b swing exact
 3.5–6.4°; at 152° it swings 4.7–8.5°. **4–8° is the honest figure**, and it is
 1.5–2× the peel's response to the ±0.3 m H₀ step the audit captures use —
 except at Privates, where the ratio inverts (0.8×). That is a known consequence
-of Privates' 16.5 m RMS contour fit on a synthetic stage, not a reason to relax
-anything.
+of Privates' 16.5 m RMS contour fit on a synthetic stage (as it stood when this
+was measured; mapped 2026-09-02 on the truncated window at 1.87 m RMS, table
+not re-derived), not a reason to relax anything.
 
 Absolute derived α values are deliberately **not** tabulated here. They are
 `crest − B_spot`, and `B_spot` is not yet a number the repo can defend.
@@ -1547,7 +1566,7 @@ re-measurement on the current bake, which is what `PEEL_FLOOR` now carries.
 | The Hook | 41 | 1.05 | 9/12 | 1.050–1.245 | 30% (0.195 m) | 4.7–34.9 | 17.1–34.9 |
 | Jack's | 37 | 0.85 | 6/12 | 0.850–1.245 | 60% (0.395 m) | 2.7–33.2 | 21.3–33.2 |
 | Sharks | 36 | 0.81 | 6/12 | 0.810–1.245 | 66% (0.435 m) | 6.7–26.3 | 16.4–26.3 |
-| Privates | 31 | — no measured bed | 0/12 | 0.585–1.245 | 100% | n/a | n/a |
+| Privates | 31 | — no measured bed (then; mapped 2026-09-02 and still no floor, for the reason in "Privates" below) | 0/12 | 0.585–1.245 | 100% | n/a | n/a |
 
 **Sewers and First Peak lose the season entirely.** All twelve months clamp to
 one height, so `#month=` there varies nothing at all — the control is inert at
@@ -1848,6 +1867,67 @@ and drawn H₀ with the same verdict from the capture's own clamp readback
 (`scripts/build_qa_sheets.mjs` `h0HeaderHTML`); until the published set is
 rebuilt, its `sea-sewers-august` row still shows a 1.62 m wave under a
 0.585 m caption.
+
+### Privates: the card is below its own reef (measured 2026-09-02)
+
+Private's was mapped on 2026-09-02 (§2.2; `research/PRIVATES_CONTOUR_2026-09-01.md`),
+so the floor question above was put to it the same day with
+`scripts/measure_break_activation.mjs --mode=floor --preset=privates` on tree
+`4412eaa`, then the full (H₀, tide) grid. `PEEL_FLOOR.privates` stays **null**,
+and the reason is different from the one it carried while unmapped.
+
+**The criterion has no domain.** The reef's activation H₀ at the card T and
+tide 0 is **0.721 m**; the card is **0.70 m**. So at every one of the 31 rungs
+0.40 → 0.70 the shipped line has 0 % of stage stations on the wedge — it is
+the DEM platform's own line, through the OSM node (−2.4 m) in 1.49 m of
+water — and "every rung up to the card is healthy" fails at the card. It is a
+right-hand peel at every rung (α 25.7° at 0.40 falling to 15.7° at 0.70, 0
+reversals, 0 pinned, gate 0), failing on `reef` alone; the collapse the six
+floors guard against does not happen here (α never under 12.8° and never
+negative anywhere on 0.40–3.00 m at any sample tide). The card state is, in
+this section's own words, *a lull on the reef, not a smaller wave on it*.
+
+**Where a floor would be.** Above the card the line moves onto the wedge
+across 0.72–0.77 m (on-reef 0.04 → 0.71; four consecutive > 20 m steps) and is
+healthy at every rung **0.76–1.43 m** (α 12.8–28.6°, on-reef 0.52–0.99), then
+leaves it seaward above 1.43 m (0 % by 1.90 m, the line 132 m seaward of the
+node). A tide-0 floor would therefore be 0.76 m — above the authored card,
+which this table's invariant (no card at or below its own floor, so a clamp
+never moves a bare-URL state) forbids. On the tide axis the card is on the
+wedge only at **tides ≤ −0.09 m**, where a floor exists (0.70 at −0.09, 0.61 at
+−0.25, 0.48 at −0.50, the 0.40 ladder bottom below −0.66 m; rising ~0.53 m/m
+like the six) — a band that excludes its own basis, so no row. Period alone
+also reaches it: at the card H₀ the line is on the wedge from T 14 s (on-reef
+0.54; 0.97 at 18 s), not at the card's 12 s.
+
+**What it costs.** Nothing is clamped and nothing collapses. Unclamped at
+tide 0 the twelve months draw Jan–May and Oct–Dec on the wedge (α 13.3–27.3°,
+on-reef 0.54–0.99) and **Jun–Sep on the platform**, exactly as the card does
+(α 15.7–18.7°, on-reef 0.00). All twelve are right-hand peels.
+
+**What would change it** is authorship, not measurement: a card H₀ ≥ 0.76 m
+(then the floor is 0.75→0.76 and the clamp binds Jun–Sep), or a card tide
+≤ −0.09 m. Neither is taken here: the 0.70 m card is the visitors'-guide
+"small, soft, down-point" number, and the DEM says the reef this model builds
+under it needs 0.72 m. The reef fit's non-convergence (7.6° against 31°,
+`withinTol: false`, HUD "reef synthetic") is the same fact seen from the fit:
+h_b for the card is 1.40 m, the node's own depth, so the wedge has 0.64 m of
+lift to work with and cannot shape a line that is not on it.
+
+**What the product says (step 7).** Today: nothing — `setDerivedH0` discloses
+only where a `PEEL_FLOOR` row exists, so the clamp row is hidden and the reef
+line reads "α 31° target · 14° at x0 · 16° stage · reef synthetic". The line a
+derived ocean at Privates should carry, in this section's pattern: *"No peel
+floor at Privates: the site card (0.70 m at T 12 s) is below the reef's own
+activation (0.72 m at this tide), so the criterion has no domain here. Drawing
+the requested height unclamped; the line is the surveyed platform's own peel
+(16° at the card against a 31° target), not the reef's. The reef is in play
+from 0.72 m at this tide."* Building it means an `activeClamp`-shaped record
+for `spec === null` on a mapped spot; queued for the product pass with the
+frames, not done here. `tests/peel-floor.test.js` re-bakes the verdict
+(activation above the card, 0 % on reef at the card, `measurePeelFloor`
+returning no floor) so a bake that makes a Privates floor possible fails the
+suite instead of inheriting the null.
 
 ### The pattern, for the next one
 

@@ -475,9 +475,11 @@ def main() -> int:
         "--truncate", type=float, default=None, metavar="SLOPE",
         help=(
             "end each stage where the contour turns more than atan(SLOPE) from the "
-            "stage tangent between adjacent 10 m lines. Off by default. Measured "
-            "passing band 0.4-0.7 (docs/research/PRIVATES_CONTOUR_2026-09-01.md); "
-            "0.5 brings Private's to 1.87 m RMS and leaves the six mapped spots byte-identical."
+            "stage tangent between adjacent 10 m lines. Off by default in this script; "
+            "`npm run build:geo` / `check:geo` pass 0.5 since 2026-09-02, which is how the "
+            "shipped module is built. Measured passing band 0.4-0.7 "
+            "(docs/research/PRIVATES_CONTOUR_2026-09-01.md); 0.5 brings Private's to "
+            "1.87 m RMS and leaves the six other spots byte-identical."
         ),
     )
     parser.add_argument("--print", action="store_true", help="write the module to stdout instead of the file")

@@ -59,24 +59,29 @@ unresolved NAVD88-to-MSL offset. Absolute elevation is not used as water depth.
 Profiles with more than 5 m RMS contour-fit error fail closed to the synthetic
 stage.
 
-The current preset bank truthfully maps Jack's to OSM's `38th`, plus Second
-Peak, First Peak, The Hook and Sharks. On `main` Privates is synthetic: its
-coastline defeats the cubic contour fit (16.5 m RMS) over the OSM-midpoint
-window, so it fails closed to the synthetic stage rather than borrowing a
-neighbour's bathymetry. The `privates-mapped-bed` branch is the candidate that
-maps it (below); it is evidence for a decision, not the decision.
+The preset bank truthfully maps all seven canon spots to their own OSM nodes:
+Sewers, First Peak, Second Peak, Jack's (OSM `38th`), The Hook, Sharks and —
+since 2026-09-02 — Private's. `npm run build:geo` / `check:geo` pass
+`--truncate 0.5` (the script's own default stays off, so a bare invocation still
+reproduces the pre-2026-09-02 module), which ends each stage where its contour
+turns more than 27° off the frame between adjacent 10 m lines. Six profiles are
+byte-identical under the flag; Private's gains a [-189.7, 60] m window at
+1.87 m RMS (25 samples) and a seventh depth patch. No spot borrows a
+neighbour's bathymetry.
 
-Why it fails is measured in `docs/research/PRIVATES_CONTOUR_2026-09-01.md`: the
-contour is smooth but turns 33–38° shoreward from ~70 m down-point of the node
-(the platform edge receding into the cove toward Trees), and the origin-
-constrained cubic cannot follow it over the 250 m OSM-midpoint window. The
-reference elevation and the branch selection were tested and are not the cause.
-`build_geo_profiles.py --truncate 0.5` ends each stage where its contour turns
-more than 27° off the frame; that gives Privates a [-189.7, 60] m window at
-1.87 m RMS and leaves the six mapped profiles byte-identical (passing band
-0.4–0.7). On `main` it is off by default; the `privates-mapped-bed` branch
-carries it in `build:geo`/`check:geo`, sets the `privates` preset's `geoSpot`,
-regenerates `pp_depth_patches.js` with a seventh patch and re-derives the tests
-that pinned Privates as unmapped. The render evidence for that branch is the
-"Render evidence" section of the same doc. The sweep itself is
+Why the untruncated fit failed is measured in
+`docs/research/PRIVATES_CONTOUR_2026-09-01.md`: the contour is smooth but turns
+33–38° shoreward from ~70 m down-point of the node (the platform edge receding
+into the cove toward Trees), and the origin-constrained cubic cannot follow it
+over the 250 m OSM-midpoint window (16.62 m RMS). The reference elevation and
+the branch selection were tested and are not the cause; the passing band for
+the truncation slope is 0.4–0.7. The sweep itself is
 `data/model/experiments/contour_variants.py` (read-only, ~2 s).
+
+What the mapped bed does not settle, recorded in the same note ("Render
+evidence" and "Peel floor and tide band"): the M5 reef fit does not converge at
+Private's (7.6° against a 31° target; h_b 1.40 m is the node's own depth) and
+its wedge activates at 0.721 m, above the 0.70 m card, so the card-state line is
+the DEM platform's (15.7° stage median, 0 % of stations on the wedge),
+`PEEL_FLOOR.privates` stays null with that reason, and the depth ceiling is real
+while the peel is the DEM's.
