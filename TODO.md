@@ -1211,7 +1211,22 @@ must still show whitewater); the HUD swell row now says `foam size ×0.55 floor`
 The distilled open state. Everything below this section is the lab notebook,
 kept in full as the record; blockers are marked here.
 
-## ⚠ OPEN (2026-08-19) — the bend line has no reference on a bed-less stage
+## ✔ RETIRED 2026-09-02 (was ⚠ OPEN 2026-08-19) — the bend line has no reference on a bed-less stage
+
+**Retired by the mapped bed, 2026-09-02.** Privates runs on the truncated-contour
+bed (`--truncate 0.5`, 1.87 m RMS, window [−189.7, 60] m; merge `4465154`), so no
+shipped preset is bed-less and the class this entry describes has no instance:
+`crestCeilM` at Privates reads 1.41–1.58 m of water under the line at the card
+(stage max 2.86 m), the set-peak pocket fill is 0.94 / **1.17** / 1.25 (min /
+median / max over 16 pocket stations) — at the top of the mapped family's
+0.99–1.07, not the 2.2× of the degenerate denominator — and `#curl`'s bend
+radius there is now keyed to a depth. Option (b) below is what happened, by
+measurement rather than invention. Still true and recorded in MODEL.md §4.6
+"Privates": the reef fit does not converge there (7.6° against 31°) and its
+wedge activates at 0.721 m, above the 0.70 m card, so the peel is the DEM
+platform's and `PEEL_FLOOR.privates` stays null with that reason. The mechanism
+note below stands for any future preset that fails closed;
+`tests/depth-model.test.js` still pins it. Text below unchanged.
 
 Closed for now as **instrument + documentation**, with one real residue left
 deliberately unfixed. The QA sheet's "Privates draws 5.20 m against a 2.34 m
@@ -1321,7 +1336,7 @@ booted from a fresh document; both arms in one build via `--extra=clamp=0`):
 | The Hook | 1.05 | 9/12 | 1.050–1.245 | 30% | 4.7–34.9 → 17.1–34.9 |
 | Jack's | 0.85 | 6/12 | 0.850–1.245 | 60% | 2.7–33.2 → 21.3–33.2 |
 | Sharks | 0.81 | 6/12 | 0.810–1.245 | 66% | 6.7–26.3 → 16.4–26.3 |
-| Privates | — no bed | 0/12 | 0.585–1.245 | 100% | n/a |
+| Privates | — no bed (then; mapped 2026-09-02, still no floor: card 0.70 m < activation 0.721 m, MODEL.md §4.6 "Privates") | 0/12 | 0.585–1.245 | 100% | n/a |
 
 **Sewers and First Peak lose the season outright** — twelve months on one
 height, so `#month=` varies nothing there. Stated, not hidden; the HUD names
@@ -2039,7 +2054,9 @@ DOCUMENTED now, WIRED after Track 1; scene identity PROMOTED alongside Track 1.
 
       **(1) THE MAP — six of six mapped spots, one threshold each.** Full
       0.40–3.00 ladder, refined to 0.01 m. Privates has no measured bed, so no
-      bake and no flip. `aStage` = `stageAlpha().medianClean`.
+      bake and no flip *(as of this sweep; mapped 2026-09-02 and measured —
+      still no floor, its card sits below its wedge's activation, MODEL.md
+      §4.6 "Privates")*. `aStage` = `stageAlpha().medianClean`.
 
       | spot | target α | card H₀ | threshold H₀ | jump | stations | α below → above | pinned |
       |---|---|---|---|---|---|---|---|
@@ -2368,7 +2385,8 @@ No parity port. Consequences to carry honestly:
       already rides the bake). Measured (scripts/measure_cam_aim.mjs, sim=42,
       `__pointbreak.aimProbe().errDeg` vs the raw centroid): drone 1.8–13.6°
       → 0.0°, cliff 1.9–18.9° → 0.4–0.8° across the six mapped spots
-      (Privates has no bake — authored fallback by design). sound.js stays on
+      (Privates had no bake then — authored fallback by design; mapped
+      2026-09-02). sound.js stays on
       the authored line (its own Track 2 item above).
 
 ### Track 3 — direction becomes a condition (doc NOW, wire AFTER Track 1)
@@ -2905,6 +2923,8 @@ precedent) — do not decide now.
       contour fits drive the shared GLSL, JS surfer twin, and both renderers
       for the mapped sites; superseded 2026-08-10 — six of seven now carry
       surveyed profiles, and only Privates falls back to the synthetic stage
+      (superseded again 2026-09-02: seven of seven, Privates on the truncated
+      contour at 1.87 m RMS)
 
 ## Phase 2 — web-three (SPEC'D: docs/WEB_THREE_SPEC.md)
 - [x] M0 grid + vertical displacement + shared model GLSL (extract model-glsl.js)

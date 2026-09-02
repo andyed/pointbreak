@@ -1689,8 +1689,10 @@ section.el.style.display = 'none';
 // down-point arclength uM, base height proportional to each spot's stage
 // window length (stageBoundsM[1] - stageBoundsM[0]; the windows tile the
 // coastline, so the proportions are the coastline's own). Private's preset
-// carries geoSpot null on purpose (no mapped reef), so menu geometry maps
-// preset -> profile name explicitly instead of reading state semantics.
+// carried geoSpot null until 2026-09-02 (no mapped reef), so menu geometry
+// maps preset -> profile name explicitly instead of reading state semantics;
+// the entry is now redundant with PRESETS.privates.geoSpot and stays for the
+// next preset that fails closed.
 const SPOT_PROFILE_FOR_PRESET = { privates: "Private's" };
 const SPOT_MARK_RGB = [121, 220, 255];   // --accent: the active spot
 const SPOT_BLANK_RGB = [13, 20, 24];     // --panel: blank marker, keeps labels aligned

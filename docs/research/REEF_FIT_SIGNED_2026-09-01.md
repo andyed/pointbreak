@@ -7,6 +7,17 @@ and `docs/NEXT_INVESTMENTS.md` are untouched. Every number comes from
 `scripts/measure_reef_fit_signed.mjs`, which runs the bake's own code headless
 and re-derives the shipped fit after every section (§6).*
 
+*Scope note, 2026-09-02: every "six" and "all six spots" below is the mapped
+set on 2026-09-01. Private's was mapped the next day (`--truncate 0.5`
+contour, 1.87 m RMS) and is not in these tables. At its card state the shipped
+fit does not converge — β 22.0°, 7.6° against a 31° target after 14 iterations,
+`withinTol: false`, 0 sign violations — because the wedge is not active there:
+activation 0.721 m against a 0.70 m card, so the five-station fit window reads
+the DEM platform's line, not the reef's (h_b 1.40 m is the node's own depth; at
+most 0.64 m of lift). A signed refit at Private's is therefore gated on the
+card, not on β — see `PRIVATES_CONTOUR_2026-09-01.md` "Peel floor and tide
+band" and MODEL.md §4.6 "Privates".*
+
 ## Why
 
 `reefFitFor()` fits the synthetic wedge's strike β so that an **unsigned** line

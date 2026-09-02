@@ -352,14 +352,20 @@ npm run check:geo && npm test                                    # default path,
 
 ## Render evidence, 2026-09-01
 
-Branch `privates-mapped-bed` (worktree, not on main) enables the candidate:
+*Landed on `main` 2026-09-02 (merge `4465154`; tests `4412eaa`): `build:geo` /
+`check:geo` carry `--truncate 0.5`, `privates.geoSpot` is `"Private's"`, seven
+depth patches ship, 181/181 tests. The paragraph below describes the branch as
+it stood when the frames were taken; the floor question it leaves open is
+answered in "Peel floor and tide band" at the end of this note.*
+
+Branch `privates-mapped-bed` (a worktree at the time) enabled the candidate:
 `build:geo`/`check:geo` carry `--truncate 0.5`, `pp_depth_patches.js` gains a
 seventh patch, `privates.geoSpot = "Private's"`, and the six tests that used
 Private's as the canonical *unmapped* example are re-derived onto non-spot
 names (`geo-model`, `camera-clamp` ×3, `incident-direction` ×2, `reef-audit`).
-Suite 154/154 both before and after. `PEEL_FLOOR.privates` stays `null`: the
-candidate gives Privates a bake, but its branch flip has not been run on the H0
-ladder, so nothing clamps a derived ocean there yet.
+Suite 154/154 both before and after. `PEEL_FLOOR.privates` stayed `null` on the
+branch: the candidate gives Privates a bake, but its branch flip had not been
+run on the H0 ladder, so nothing clamped a derived ocean there yet.
 
 **Frames.** `scripts/capture_privates_bed.mjs` serves BEFORE (`git archive
 main`, fc468fe) and AFTER (this branch) side by side and cold-loads the same
@@ -479,3 +485,162 @@ T 9 s, tide +0.35, Δf 0.015.
 Not decided here: flipping `--truncate 0.5` into `DEFAULT_OPTIONS`, retiring the
 n/a rows for Privates in `build_qa_sheets.mjs` (`PRESET_NOTE`) and the
 `qa-publish` test text, and measuring `PEEL_FLOOR.privates`.
+
+*2026-09-02: the flag is the `npm run build:geo` / `check:geo` default (the
+script's own default stays off), the QA-sheet text and the `qa-publish` pins are
+re-derived, and the floor is measured below.*
+
+## Peel floor and tide band at Private's (measured 2026-09-02)
+
+The mapped bed gives Private's a bake, so the question the six mapped spots
+answer in `PEEL_FLOOR` (MODEL.md §4.6) can be put to it: the lowest H₀ from
+which every 0.01 m rung up to the card reads stage-median clean signed α ≥ 10°
+with the authored handedness **and** ≥ 50 % of stage stations on the reef
+footprint (`PEEL_FLOOR_BASIS.criterion`), at tide 0 and the card T. Instrument:
+`scripts/measure_break_activation.mjs --mode=floor --preset=privates` on tree
+`4412eaa`, then the same module's `floorAtTide` / `sweepH0` / `sweepParam`
+exports over the whole accepted (H₀, tide) range and the T range. Gate 0 at
+every rung (the replica is bit-identical to the bake). The card and floor
+results are in `qa/break-field/summary.json` under `presets.privates`.
+
+### The answer: no floor, and the reason is the card, not the line
+
+| | |
+|---|---|
+| card | H₀ 0.70 m, T 12 s, tide 0, target α 31° |
+| reef activation H₀ at the card T, tide 0 | **0.721 m** |
+| ladder 0.40 → 0.70 at 0.01 m (31 rungs) | on-reef **0.00 at every rung**; α 25.7° (0.40) falling to 15.7° (0.70), right-handed throughout; 0 reversals, 0 pinned |
+| what fails, per rung | `reef` only — never `sign`, never `alpha` |
+| `measurePeelFloor` | `floorLo: null, floorHi: null`, note "the card state itself is not healthy"; no branch flip on the ladder |
+| `PEEL_FLOOR.privates` | stays **null** |
+
+The card ocean is below the wedge's activation, so the wedge does not break at
+the card and the shipped line is the DEM platform's own: through the OSM node
+(−2.4 m), stage median −8.8 m, in 1.49 m of water. The criterion is defined up
+to the card and the card fails it; there is nothing to floor. This is §4.6's
+own vocabulary ("Activation is a crest depth") applied to a card state: 0.70 m
+at Private's at tide 0 is a lull on the reef, not a smaller wave on it.
+
+It is **not** the closeout mechanism the other six floors guard against. On the
+whole 0.40 → 3.00 m ladder at tide 0 (261 rungs) α stays in 12.8–28.6°, never
+changes sign, and no rung is under 10°; the same holds at every sample tide
+(one rung at 9.7° at tide −0.50 is the sole sub-10° reading in 1,827 rungs).
+What moves with H₀ is *which bed the line is on*.
+
+### Above the card the line does sit on the wedge
+
+| H₀ (tide 0, T 12) | α | on-reef | reversals | line z at node / stage median |
+|---|---|---|---|---|
+| 0.70 (card) | 15.7 | 0.00 | 0 | −2.4 / −8.8 m |
+| 0.72 | 15.1 | 0.04 | 0 | |
+| 0.73 → 0.77 | 15.4 → 15.6 | 0.24 → 0.71 | 0 → 16 | four consecutive > 20 m steps (34 / 48 / 27 / 25 m): the line moving onto the wedge |
+| 0.76 | 13.4 | **0.60** | 16 | −15.5 / −22.7 m — first healthy rung |
+| 0.80 | 27.4 | 0.86 | 18 | |
+| 0.90 | 22.4 | 0.99 | 17 | −53.1 / −68.1 m |
+| 1.20 | 23.0 | 0.91 | 0 | |
+| 1.43 | 22.9 | 0.52 | 0 | −100.7 / −113.5 m — last healthy rung |
+| 1.44 | 22.9 | 0.50 (one station short of a majority) | 0 | |
+| 1.90 → 3.00 | 23.6–24.9 | 0.00 | 0 | −131.7 / −145.9 m at 1.90: seaward of the wedge |
+
+Healthy by the criterion at all 68 rungs 0.76–1.43 m. The 16–18 reversed
+stations at 0.75–0.80 m are on-reef reversals of the kind
+`REEF_FIT_SIGNED_2026-09-01.md` §2 found at the six (slew-ramp shoulders); they
+are gone from 1.20 m. So a floor *would* exist at tide 0 if the card were
+0.76 m or more — the step 0.75→0.76, on-reef 0.49→0.60 — but it sits above the
+authored card, and `tests/peel-floor.test.js`'s invariant (no card at or below
+its own floor, so a clamp never moves a bare-URL state) exists to forbid that.
+Raising the card is an authorship decision and is not taken here.
+
+### The tide axis
+
+Full grid: 165 tide rungs (MLLW −0.862 → MHHW +0.764 m at 0.01 m) × the
+31-rung card ladder = 5,115 bakes, gate 0.
+
+| tide | activation H₀ | card α | card on-reef | floor (criterion) |
+|---|---|---|---|---|
+| −0.86 (MLLW) | 0.269 | 20.5 | 0.70 | 0.40 (healthy at the ladder bottom) |
+| −0.66 | 0.367 | 21.0 | 0.95 | 0.40 (last tide healthy at the bottom) |
+| −0.50 | 0.448 | 20.2 | 0.97 | 0.48 |
+| −0.25 | 0.582 | 22.5 | 0.97 | 0.61 |
+| −0.15 | 0.637 | 27.7 | 0.84 | 0.67 |
+| −0.10 | 0.665 | 12.6 | 0.58 | 0.70 |
+| **−0.09** | 0.670 | 12.5 | 0.53 | **0.70 — the last tide with a floor** |
+| −0.08 | 0.676 | 12.3 | 0.44 | none (the card fails `reef`) |
+| **−0.04** | **0.698** | 14.9 | 0.10 | none — the last tide at which the wedge activates at or below the card |
+| −0.02 … +0.02 | 0.710–0.732 | 15.2–16.4 | 0.00 | none |
+| 0 | 0.721 | 15.7 | 0.00 | none |
+| +0.25 | 0.865 | 21.0 | 0.00 | none |
+| +0.50 | 1.014 | 29.5 | 0.00 | none |
+| +0.76 (MHHW) | 1.176 | 15.8 | 0.00 | none |
+
+A floor exists at 79 of the 165 tide rungs, all at or below −0.09 m, and rises
+~0.53 m per metre of tide there (0.40 at −0.66 → 0.70 at −0.09), the slope the
+six show (0.53–0.65). Activation rises 0.56 m/m across the range (0.269 →
+1.176). The healthy H₀ band moves with it — [0.40, 0.88] at MLLW, [0.48, 1.11]
+at −0.50, [0.61, 1.27] at −0.25, [0.76, 1.43] at 0, [0.91, 1.60] at +0.25,
+[1.06, 1.77] at +0.50, [1.23, 1.95] at MHHW — with the card inside it only
+below −0.09 m. A `PEEL_FLOOR` row cannot carry a tide band that excludes its
+own basis, so there is no row.
+
+### Period
+
+At the card H₀ and tide 0 the line reaches the wedge with period alone: on-reef
+0.00 for T ≤ 12.5 s, 0.17 at 13, 0.54 at 14, 0.76 at 15, 0.97 at 18 (longer
+period, larger K_s, lower activation). The card's own 12 s is on the platform
+side of that step.
+
+### What the twelve months draw (tide 0, T 12, unclamped)
+
+| month | p75 H₀ | α | on-reef | where |
+|---|---|---|---|---|
+| Jan | 1.245 | 22.5 | 0.70 | wedge |
+| Feb | 1.189 | 22.9 | 0.91 | wedge |
+| Mar | 1.037 | 21.9 | 0.97 | wedge |
+| Apr | 0.857 | 23.3 | 0.97 | wedge |
+| May | 0.754 | 13.3 | 0.54 | wedge (marginal) |
+| Jun | 0.706 | 15.7 | 0.00 | platform |
+| Jul | 0.618 | 18.3 | 0.00 | platform |
+| Aug | 0.585 | 18.7 | 0.00 | platform |
+| Sep | 0.693 | 15.9 | 0.00 | platform |
+| Oct | 0.801 | 27.3 | 0.86 | wedge |
+| Nov | 0.908 | 22.2 | 0.99 | wedge |
+| Dec | 1.214 | 23.0 | 0.89 | wedge |
+
+Eight of twelve months break on the wedge; the four summer months break on the
+platform exactly as the card does. Every month is a right-hand peel of 13.3° or
+more; none is a closeout; nothing is clamped and nothing needs to be.
+
+### What the HUD should say (not implemented here)
+
+`setDerivedH0` builds a disclosure only where a `PEEL_FLOOR` row exists, so at
+Private's the clamp row is hidden and the reef-fit line reads "α 31° target ·
+14° at x0 · 16° stage · reef synthetic". A reader on a June month has no account
+of why the wave is on the inshore platform. The line the state deserves, in the
+§4.6 pattern (both facts, and the flag):
+
+> No peel floor at Privates: the site card (0.70 m at T 12 s) is below the
+> reef's own activation (0.72 m at this tide), so the peel-floor criterion has
+> no domain here. Drawing the requested 0.585 m unclamped; the line is the
+> surveyed platform's own peel (16° at the card against a 31° target), not the
+> reef's. The reef is in play from 0.72 m at this tide.
+
+and on the card state itself: "the card is below the reef's activation at this
+tide — the wave drawn is the platform's". Building it means letting
+`setDerivedH0` emit an `activeClamp`-shaped record when `spec === null` on a
+mapped spot, reading `reefActivationH0` as the other branch already does. Left
+for the product pass, with the frames.
+
+### Bounds
+
+- H₀ 0.40–3.00 m at 0.01 m (261 rungs) at tides −0.862, −0.50, −0.25, 0,
+  +0.25, +0.50, +0.764 m; the 31-rung card ladder at all 165 tide rungs; T
+  8–18 s at 0.5 s at the card H₀ and tide 0. Shipped representation only (the
+  selector `bed.js` bakes); `handSign` +1 from the card's own sign.
+- Not measured: the criterion at any T other than the card's 12 s (the floor
+  basis is card T by construction); Δf, sections, ξ (not bake inputs); the
+  full H₀ range at tide rungs other than the seven samples.
+- Model version: tree `4412eaa`, γ 0.78 — the bake inputs of
+  `PEEL_FLOOR_BASIS.modelCommit` plus the seventh depth patch.
+- Pinned: `tests/peel-floor.test.js` re-bakes the verdict (activation above the
+  card, 0 % on reef at the card, `measurePeelFloor` returning no floor) on
+  every run.

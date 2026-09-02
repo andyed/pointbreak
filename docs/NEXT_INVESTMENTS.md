@@ -203,7 +203,9 @@ signed peel metric. Do not merely soften the final line or move the threshold.
   `canonicalFitDeferred: true`. Direct canonical retuning against the current
   locus made Second Peak pass through a closeout and reverse.
 - `docs/research/MEASUREMENT_LESSONS.md` section 14 measured discontinuous
-  35–172 m line changes across a 0.01 m H0 step at all six mapped sites. The
+  35–172 m line changes across a 0.01 m H0 step at all six mapped sites (the
+  six mapped then; Privates, mapped 2026-09-02, shows the same class of step
+  at 0.73–0.77 m as its line moves onto the wedge, with no sign change). The
   disappearing dips were only 0.002–0.144 m deep on beds with 0.31–0.93 m
   residuals.
 - Greedy, Viterbi, shoreward-most, seaward-most and a residual-derived merge
@@ -254,7 +256,8 @@ Primary owner: **break-field/reef physics**.
 
 ### Acceptance gates
 
-- The adjacent-state sweep covers all six mapped presets across the documented
+- The adjacent-state sweep covers all mapped presets (six when written; seven
+  since Privates was mapped on 2026-09-02) across the documented
   H0, period and tide operating basis. Halving a parameter step must reduce the
   activation-field change rather than relocate a fixed jump; exceptions are
   allowed only at a declared no-break boundary.
@@ -345,7 +348,8 @@ owner from rank 1.
    a short impact deposit at the curtain landing and a longer-lived roller
    transported down-face/down-line. Both share one source and clock.
 4. Make size derive from incoming/breaking scale and plunge character, then
-   test spilling Sharks and synthetic Privates for graceful near-zero output.
+   test spilling Sharks and Privates (mapped 2026-09-02; its wedge is inactive
+   at the card, so it is still the near-zero case) for graceful near-zero output.
    Do not add a per-site crash-strength bank.
 5. Judge motion in tracked-wave sequences. Still frames may judge silhouette
    and material, but cannot certify that mass lands, travels or decays.
@@ -362,8 +366,9 @@ owner from rank 1.
   all current camera rigs. There is no second break line encoded in a mesh or
   material threshold.
 - Screen coverage grows monotonically across small/card/big Sewers states, but
-  does not create a mature plunging plume at spilling Sharks or bed-less
-  Privates.
+  does not create a mature plunging plume at spilling Sharks or Privates
+  (bed-less when written; mapped 2026-09-02, with its wedge inactive at the
+  card).
 - The existing 122-test model suite, geometry/depth/swash checks and all-seven-
   preset camera matrix remain green. The final live gate is an ordered
   five-clock cover plus drone row with a plain, flag-free URL.
