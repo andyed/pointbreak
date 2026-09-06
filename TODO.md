@@ -306,6 +306,34 @@ the gain-0 surface so the next pair is identical by construction); and
 evidence. Whether any of this reads as a crash is the eye's call — frames in
 sequence, `after` and `alone` (`splash=0`) rows, in `compare.html`.
 
+**Third pass (2026-09-02) — default-path attachment and post-break height.**
+The spray repair is no longer roller-only. Every particle now takes its full
+base position from the shipped `surfacePos()` and adds a ballistic vertical
+offset that is zero at launch and landing. Nominal apex height is 6–28% of the
+local breaking ceiling (30% at the crash ceiling) and determines airtime through
+`v₀ = √(2g·apex)`, replacing the independent H₀·VIS height and random flight
+clock. The roller build still relocates the source to `impactLandingAt`, but it
+does not own the attachment fix. The default path therefore intentionally
+differs from the pristine tree. At the same time,
+the carrier no longer loses 68% of its height at the break threshold. Its
+authored dissipation closure now retains about 92% / 70% / 50% after 0.25 / 1 /
+2 local wavelengths of shoreward travel, with the depth ceiling and swash fade
+left in charge of shoaling and final extinction. This closes the two coupled
+live defects: the face remains substantial after breaking, and the spray cannot
+keep the obsolete datum after the modeled surface moves beneath it.
+
+**Fourth pass (2026-09-02) — cotton-ball representation removed.** The exact
+live report URL (`#month=card&h0=1.50`, default Second Peak / Free view) showed
+the remaining defect: the corrected trajectories still ended in
+`THREE.Points`, and `SPRAY_FRAG` gave every sample the same radial soft-circle
+mask. The 0.20 s crash burst stacked those capped bright discs until they read
+as one or two opaque white spheres. Spray is now instanced filament geometry in
+world metres. Length (3.5–12% of `breakerCeilM`) and width (0.4–1.0%) share the
+event's local scale, and each quad aligns to the camera-plane projection of its
+instantaneous ballistic velocity. There is no `gl_PointSize`, `gl_PointCoord`
+or radial mask left in the pass. Reloading the exact report URL removes both
+spheres while keeping attached whitewater and produces no console errors.
+
 ## ▶ NEW (2026-08-30, live) — foam terminates on hard straight edges in plan view
 
 Live report from a `cam=drone` frame at `sewers`, pinned `sim=44` and `sim=52`

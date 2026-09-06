@@ -2035,28 +2035,29 @@ void main() {
 // simulation clock: every point samples breakerLifecycleAtX(), so the airborne
 // collapse cannot outrun the surface mound or leave foam at a different locus.
 export const SPRAY_VERT = `
-uniform float u_time;
+attribute vec3 aSpraySeed;
 varying float vSprayAlpha;
 varying float vSprayShade;
-${MODEL_GLSL}
+varying vec2 vSprayUV;
+${SURFACE_PRELUDE}
+${SURFACE_GLSL}
 
 void main(){
-  float x0 = position.x;
-  float seedY = position.y;
-  float seedZ = position.z;
+  float x0 = aSpraySeed.x;
+  float seedY = aSpraySeed.y;
+  float seedZ = aSpraySeed.z;
   vec4 life = breakerLifecycleAtX(x0, u_time);
   float plunge = smoothstep(0.45, 1.25, u_xi);
 
   // PER-PARTICLE BALLISTICS (spray critique, 2026-08-11). The old pass flew
   // every droplet on the ONE shared lifecycle phase plus a constant hover
   // offset, so the whole population rose and floated in lockstep — detached
-  // bead-strings above the wave. Each droplet now owns a hashed launch delay
-  // and flight time: it leaves the LIP at the breaking front's position at
-  // launch time, arcs ballistically shoreward, and lands inside the trailing
-  // foam, where its alpha melts out.
+  // bead-strings above the wave. Each droplet now owns a launch delay and a
+  // local-break-height-scaled apex; gravity derives its flight time. It leaves
+  // the LIP at the breaking front's position at launch time, arcs shoreward,
+  // and lands inside the trailing foam, where its alpha melts out.
   float h1 = hash21(vec2(x0*1.73, seedY*31.7));
   float h2 = hash21(vec2(seedZ*47.9, x0*0.61));
-  float Tf    = 0.45 + 0.75*seedY;                  // flight time, s
   // On the shipped crash path no droplet launches before impact. #splash=0
   // preserves the older pre-impact scatter as part of the exact crash revert.
   float delayLegacy = CRASH_PEAK_S - 0.25 + 0.95*h1;
@@ -2068,61 +2069,79 @@ void main(){
   float delay = mix(delayLegacy, delayCrash, step(0.001, u_splash));
   float crashMode = step(0.001, u_splash);
   float tf    = life.x - delay;                     // this droplet's own flight clock, s
-  float u01   = clamp(tf/Tf, 0.0, 1.0);
-  float airborne = (tf > 0.0 && tf < Tf) ? 1.0 : 0.0;
 
   // anchor: the front's position when THIS droplet launched (life.y is the
   // front now; frontSpeed mirrors breakerLifecycleAtX's mix(2.4, 4.1, plunge)).
   float frontSpeed = mix(2.4, 4.1, plunge);
-  float zLaunch = life.y - frontSpeed*tf*airborne;
+  float travelT = max(tf, 0.0);
+  float zLaunch = life.y - frontSpeed*travelT;
   // shoreward ballistic drift slower than the front (0.30-1.15x), so most
   // droplets fall behind the head and land in the trail, not ahead of it
   float vz = frontSpeed*(0.30 + 0.85*h2);
 
-  // vertical: lip height down to the foam, apex taxonomy- and size-gated.
-  // Heights in metres of DISPLAYED face (u_H0*VIS): identity at the 1.5 m
-  // calibration day like every size factor.
-  float yLipLegacy = 0.15 + u_H0*VIS*(0.50 + 0.30*seedZ);
-  // AMPLIFIER BACKOFF 2026-08-30. The first crash pass raised this to
-  // (0.72 + 0.25*seedZ) and multiplied lift by 1.35, putting the apex at
-  // 8.8-12.3 m against a displayed crest of u_H0*VIS = 7.0 m. Droplets fly an
-  // arc that never samples the water (y is absolute, from the still-water
-  // datum), so height above the crest is exactly where that decoupling becomes
-  // visible: white sprites hanging in open sky. Kept slightly above legacy —
-  // a plunging crash does leave the lip harder — but no longer clearing the
-  // wave. The real repair is anchoring y to the surface; deferred deliberately.
-  float yLipCrash  = 0.15 + u_H0*VIS*(0.54 + 0.28*seedZ);
-  float yLip = mix(yLipLegacy, yLipCrash, crashMode);
-  float lift = u_H0*VIS*(0.22 + 0.70*seedY)*(0.30 + 0.70*plunge);
-  lift *= mix(1.0, 1.08, crashMode);
-  float x = x0 + (seedZ - 0.5)*2.4 + (h2 - 0.5)*1.8*u01;   // randomized spacing + drift
-  float z = zLaunch + vz*tf;
-  float y = yLip*(1.0 - u01) + 4.0*lift*u01*(1.0 - u01);   // parabola: lip -> apex -> foam
+  // Ballistic height ABOVE the modeled water. The old path used an absolute
+  // yLip measured from the still-water datum, while x/z followed the moving
+  // breaker front. When the carrier dropped after breaking, the two coordinate
+  // systems visibly separated and the burst became a cloud living above the
+  // wave. The apex is now a fraction of the LOCAL displayed breaking ceiling,
+  // not a second H0*VIS height system, and flight time is derived from that
+  // apex under gravity below instead of being randomized independently.
+  float breakScale = breakerCeilM(vec2(x0, zLaunch));
+  float sprayLift = breakScale*(0.06 + 0.22*seedY)*(0.35 + 0.65*plunge);
+  sprayLift *= mix(1.0, 1.08, crashMode);
+  float z = zLaunch + vz*travelT;
   // ---- one landing line, two materials (#roller=, default OFF) ----
   // With the transported crash armed the spray is the EJECTA of the same
   // landing the deposit and the splash-up sheet come from — not a second
   // plume launched from the bore front ~8 m up-face of it (the two-loci defect
   // TODO item (a) named). Same clock (tf is already this station's age past
   // CRASH_PEAK_S); the locus moves to impactLandingAt's zL and the arc is
-  // anchored to the DRAWN surface there (ocean() at the source point, the
-  // repair 1b0c80e deferred) instead of the still-water datum, thrown UP to
-  // the splash-up's own ballistic peak and back to the water. The spray
-  // decides nothing: it reads the landing. Compiled only under ROLLER, so the
-  // default build is the shipped text.
+  // thrown UP to the splash-up's own ballistic peak and back to the water.
+  // The spray decides nothing: it reads the landing.
 #ifdef ROLLER
   if (u_roller > 0.0) {
     vec4 landS = impactLandingAt(x0, u_time);
     if (landS.w > 0.0) {
-      float fS, pS, bS, cS, aS;
-      float y0 = ocean(vec2(x0, landS.x), u_time, fS, pS, bS, cS, aS);
       float peakS = splashUpPeakM(landS.y)*(0.35 + 0.65*seedY);
-      z = landS.x + vz*tf;
-      y = y0 + 4.0*peakS*u01*(1.0 - u01);
+      z = landS.x + vz*travelT;
+      sprayLift = peakS;
     }
   }
 #endif
-  vec3 world = vec3(x, y, z);
+  // A ballistic launched at v0 = sqrt(2*g*apex) returns to its baseline after
+  // Tf = 2*v0/g. The old independent Tf let equal-height droplets hang for
+  // arbitrarily different times and implied a different gravity per seed.
+  float v0 = sqrt(2.0*G*max(sprayLift, 0.0));
+  float Tf = 2.0*v0/G;
+  float u01 = clamp(tf/max(Tf, 1e-3), 0.0, 1.0);
+  float airborne = (tf > 0.0 && tf < Tf) ? 1.0 : 0.0;
+  float x = x0 + (seedZ - 0.5)*2.4 + (h2 - 0.5)*1.8*u01;   // randomized spacing + drift
+  float sprayY = max(v0*tf - 0.5*G*tf*tf, 0.0);
+  // One surface authority on every build: the ballistic is an offset over the
+  // exact displaced water geometry. At launch and landing the offset is zero,
+  // so the spray cannot detach even as breaker height, fold, shoaling, setup or
+  // the transported roller changes beneath it.
+  float fS, pS, bS, cS, lS, aS, kS;
+  vec3 base = surfacePos(vec2(x, z), u_time, fS, pS, bS, cS, lS, aS, kS);
+  vec3 world = base + vec3(0.0, sprayY, 0.0);
   vec4 mv = modelViewMatrix*vec4(world, 1.0);
+
+  // Geometry, not a screen-space dot. The quad is a narrow physical filament
+  // in world metres, aligned to the droplet's instantaneous ballistic velocity
+  // after that velocity is transformed into the camera plane. Length and width
+  // scale from the same local breaking ceiling as the trajectory; neither is a
+  // pixel radius, so distance and wave size retain their meaning.
+  vec3 velocityWorld = vec3((h2 - 0.5)*1.8/max(Tf, 1e-3), v0 - G*tf, vz);
+  vec2 velocityView = (mat3(modelViewMatrix)*velocityWorld).xy;
+  vec2 along = velocityView/max(length(velocityView), 1e-4);
+  vec2 across = vec2(-along.y, along.x);
+  float filamentLength = breakScale*(0.035 + 0.085*seedY)
+                       * (0.55 + 0.45*plunge)*(1.0 - 0.25*u01);
+  float filamentWidth = breakScale*(0.004 + 0.006*seedZ)
+                      * (1.0 - 0.35*u01);
+  mv.xy += along*(0.5*filamentLength*position.x)
+         + across*(0.5*filamentWidth*position.y);
+  vSprayUV = position.xy*0.5 + 0.5;
 
   float grain = 0.40 + 0.60*smoothstep(0.08, 0.98, h1);
   // launch-window weight: droplets only leave while the crash is actually
@@ -2131,9 +2150,10 @@ void main(){
   // impact term alone.
   float lw = exp(-0.5*pow((delay - CRASH_PEAK_S)/(CRASH_SIGMA_S*2.6), 2.0));
   float live = clamp(u_breakShape, 0.0, 1.0)*(life.z + 0.8*life.w)*lw*grain*airborne;
-  // fade in fast off the lip, melt out over the last quarter of the arc so
-  // splashdown reads as joining the foam, not popping off
-  float ends = smoothstep(0.0, 0.10, u01)*(1.0 - smoothstep(0.72, 1.0, u01));
+  // Become visible while still within a thin skin of the launch surface; the
+  // old 0.10 ramp hid the attached base until the arc was already metres high.
+  // Melt out over the last quarter so splashdown joins the foam, not pops off.
+  float ends = smoothstep(0.0, 0.025, u01)*(1.0 - smoothstep(0.72, 1.0, u01));
   // SIZE_AUDIT open item 3: launch height already scales with H0 but droplet
   // opacity did not. Same 1.5 m calibration anchor (factor == 1.0 at H0 = 1.5,
   // so every 1.5 m preset is unchanged); tighter clamp than the foam factor
@@ -2147,13 +2167,6 @@ void main(){
   vSprayAlpha = clamp(live*(0.30 + 0.70*seedY)*ends*sizeSpray*crashGain,
                       0.0, 1.0);
   vSprayShade = 0.72 + 0.28*seedZ;
-  // 2.80 with a 42 px ceiling is what turned droplets into blobs. The ceiling
-  // is the operative half: at 42 px a single sprite is a visible shape rather
-  // than a speck of spray. 18 px keeps headroom over the legacy 15 px cap for
-  // genuinely close droplets without ever drawing a plate.
-  float crashPointGain = mix(1.0, 1.35, crashMode);
-  gl_PointSize = clamp((2.5 + 6.5*seedY)*(1.0 - 0.30*u01)*crashPointGain
-                     * 310.0/max(-mv.z, 12.0), 1.0, 18.0);
   gl_Position = projectionMatrix*mv;
 }
 `;
@@ -2389,11 +2402,16 @@ void main(){
 export const SPRAY_FRAG = `
 varying float vSprayAlpha;
 varying float vSprayShade;
+varying vec2 vSprayUV;
 
 void main(){
-  vec2 q = gl_PointCoord - vec2(0.5);
-  float r = length(q);
-  float alpha = vSprayAlpha*(1.0 - smoothstep(0.16, 0.50, r));
+  vec2 q = vSprayUV*2.0 - 1.0;
+  // Feather the physical filament's ends and sides independently. This is not
+  // a radial point mask: overlapping samples remain threads instead of merging
+  // into the circular, solid-core billboards reported as cotton balls.
+  float endFade = 1.0 - smoothstep(0.55, 1.0, abs(q.x));
+  float sideFade = 1.0 - smoothstep(0.20, 1.0, abs(q.y));
+  float alpha = vSprayAlpha*endFade*sideFade;
   if (alpha < 0.012) discard;
   vec3 foam = mix(vec3(0.76, 0.80, 0.79), vec3(0.98), vSprayShade);
   gl_FragColor = vec4(foam, alpha);

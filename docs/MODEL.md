@@ -432,6 +432,18 @@ the next modulo reset. Geometry, impact, bore, spray and line-attached foam all
 read that same clock from `breakerLifecycleAtX`; none is allowed to invent a
 second moving head.
 
+Breaking also starts the carrier's height loss; it is not the height loss. The
+old `1 − 0.68·brk` coupling removed 68% as soon as the mask reached one, making
+the just-broken face collapse to 32% of its incoming height. The authored
+closure now measures shoreward travel from the break route in **local
+wavelengths**, `s/L_local = max(z − z_b, 0)/(2π/k_local)`, and retains
+`exp(−0.35·s/L_local)` at full break weight: about 92% after a quarter
+wavelength, 70% after one and 50% after two. Partial break weight blends that
+loss continuously. The physical depth cap `growGeo = min(Hsh,Hlim)/Heff` still
+owns what the local depth can carry, and `shoreFade` still extinguishes the
+carrier in the swash. This is a scale-aware kinematic closure, not a claimed
+field-validated dissipation law; a fluid solver would make the loss emerge.
+
 That distinction matters because the carrier foam clock and the breaker clock
 have different jobs. `crestClockS` softens the carrier's modulo reset over the
 crest's finite injection width, preventing a shore-parallel hard seam. Applying
@@ -449,12 +461,27 @@ The curl is an event on the same clock, not a held deformation. Its bend angle
 starts with zero angular velocity, grows quadratically to the shared impact at
 `0.42 s`, and releases over `1.5` impact sigmas. As the bend releases, the
 Peregrine-style splash-up begins; airborne spray launches no earlier than
-impact on the shipped path. The handoff is therefore **accelerate → curl →
-release/crash → bore**, with foam carrying the aftermath. `#splash=0` restores
-the pre-crash timing, and `#onset=0&#splash=0` restores the old held bend with its
-legacy splash behavior. This is still a kinematic event layer rather than a
-fluid solve: it establishes ordering and attachment, not transported water
-mass or impact pressure.
+impact on the shipped path. Every spray particle now samples `surfacePos()` at
+its current horizontal position and adds only a ballistic vertical offset,
+which is zero at launch and landing. Its nominal apex is 6–28% of the local
+displayed breaking ceiling (modulated down for spilling character, with the
+crash path reaching 30%), and `v₀ = √(2g·apex)`
+sets both trajectory and airtime under the same gravity as the splash-up. The
+airborne material is instanced geometry rather than screen-space points:
+filament length is 3.5–12% and width 0.4–1.0% of that same local ceiling, and
+each filament follows the camera-plane projection of its instantaneous
+ballistic velocity. Distance therefore scales the mark through perspective,
+not a pixel-size clamp, and overlapping samples remain threads instead of
+radially symmetric discs. The
+earlier path combined an absolute `H₀·VIS` launch height, a still-water datum
+and a separately randomized flight time while the source moved with the
+breaker, letting the plume remain aloft after the face beneath it had fallen
+and implying a different acceleration for each droplet. The handoff is therefore
+**accelerate → curl → release/crash → bore**, with foam carrying the aftermath.
+`#splash=0` restores the pre-crash timing, and `#onset=0&#splash=0` restores the
+old held bend with its legacy splash behavior. This is still a kinematic event
+layer rather than a fluid solve: it establishes ordering and attachment, not
+transported water mass or impact pressure.
 
 ### 2.3 The swell gets a direction (2026-08-10)
 
@@ -1418,9 +1445,11 @@ remains undefendable (23–50 m route RMS); closing that gap remains Track 3c.*
    complaint). It has to be prevented upstream: a fit that returns a line whose
    α changes sign on the stage is an invalid fit. The current fit samples five
    stations spanning 32 m of a 113–312 m reef, so it cannot see the violation.
-2. **`brk` does three jobs** — "is breaking", "how much energy is lost"
-   (`decay`), and "draw foam". They need separating before either of the first
-   two can be reasoned about alone.
+2. **`brk` still does two authority jobs** — "is breaking" and "draw foam".
+   Height loss is no longer the instantaneous `1 − 0.68·brk`: `brkW` now only
+   blends a separate, wavelength-scaled post-break travel law (§2.2b). That
+   removes the visible threshold collapse without pretending this kinematic
+   model has solved dissipation.
 
    *Note, 2026-08-11 (Celeris read).* Celeris (Tavakkol & Lynett 2017) carries
    **no explicit breaking model at all** — numerical dissipation from the
@@ -1430,9 +1459,9 @@ remains undefendable (23–50 m route RMS); closing that gap remains Track 3c.*
    a phase-resolving scheme "how much energy is lost" is *nobody's declared
    quantity*; it falls out of the discretization. Only "is breaking" (a
    threshold on the field) and "draw foam" (authorship) are things anyone owns.
-   So the separation to aim for is two jobs, not three — and `decay` should be
-   understood as an artifact of having no solver to lose the energy for us,
-   rather than as a third authority awaiting an owner. See
+   The remaining separation to aim for is between the two declared jobs;
+   `decay` remains an artifact of having no solver to lose the energy for us,
+   rather than a third authority awaiting an owner. See
    `research/SURF_SCIENCE_REFS.md` (Celeris, full read).
 3. **The JS twin's synthetic height path should not exist.** It is authority B
    on a quantity physics owns.

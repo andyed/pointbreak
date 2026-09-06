@@ -261,6 +261,7 @@ void main(){
 
   // ---- JS transcription (leg 2). Independent hand port of the height path. ----
   const PI = Math.PI, G = 9.81, LAM = 90.0, GAMMA = 0.78;
+  const BREAK_HEIGHT_ATTEN_PER_L = 0.35;
   const SHELTER_X0 = 24.0, SHELTER_L = 1675.0;
   const texArr = (u) => Array.from(u.value.image.data);
   const breakTex = texArr(pb.uniforms.u_breakTex);
@@ -272,6 +273,10 @@ void main(){
   const mix = (a, b, s) => a + (b - a) * s;
   const step_ = (e, x) => (x >= e ? 1 : 0);
   const smoothstep = (a, b, x) => { const s = clamp((x - a) / (b - a), 0, 1); return s * s * (3 - 2 * s); };
+  const postBreakHeightRetention = (runM, localWaveLenM, breakWeight) => {
+    const wavelengths = Math.max(runM, 0) / Math.max(localWaveLenM, 1);
+    return mix(1, Math.exp(-BREAK_HEIGHT_ATTEN_PER_L * wavelengths), clamp(breakWeight, 0, 1));
+  };
   const modG = (a, b) => a - b * Math.floor(a / b);
   function hash11(p) { p = fract(p * 0.1031); p *= p + 33.33; return fract((p + p) * p); }
   function hash21(x, y) {
@@ -362,6 +367,14 @@ void main(){
     const xx = mix(x, Math.abs(x), aframe);
     return mix(legacy, U.u_refrKappa * xx + psiLookup(contourZ(x, z)), U.u_psiMix * U.u_depthMix);
   }
+  function kLocalAt(x, z) {
+    const omega = 2 * PI / U.u_T;
+    const h = modelDepthM(x, z);
+    const y = omega * omega * h / G;
+    const den = Math.max(Math.pow(1 - Math.exp(-Math.pow(y, 1.25)), 0.4), 1e-4);
+    const k = (y / den) / h;
+    return mix(2 * PI / LAM, k, U.u_psiMix * U.u_depthMix);
+  }
   function setPhase(s, tt) {
     const cg = G * U.u_T / (4 * PI);
     const tRef = (45.0 - (U.u_setRef ?? 0) / cg) * (U.u_setAnchor ?? 0);
@@ -398,7 +411,8 @@ void main(){
     const gate = smoothstep(0.90, 1.25, excess);
     const brkW = mix(reef * mask, Math.max(reef * mask, gate), U.u_depthMix);
     const brk = inside * brkW;
-    const decay = 1 - 0.68 * brk;
+    const localWaveLen = 2 * PI / Math.max(kLocalAt(x, z), 1e-3);
+    const decay = postBreakHeightRetention(z - zb, localWaveLen, brkW);
     const shoreFade = mix(1, smoothstep(0, 1.6, waterDepthM(x, z) + lift), U.u_depthMix);
     let theta = w * tt - rayPhase(x, z);
     // Forward pitch. u_pitchOdd = 1 is the #pitch=0 A/B revert to the ODD map

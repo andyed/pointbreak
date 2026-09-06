@@ -30,6 +30,15 @@ function smoothstep(a, b, x) {
   return t * t * (3 - 2 * t);
 }
 
+// MODEL-TWIN of postBreakHeightRetention(). A break mask starts the loss; it
+// does not instantaneously stand in for the loss. At full break weight the
+// carrier retains 70% after one local wavelength and 50% after two.
+export function postBreakHeightRetention(runM, localWaveLenM, breakWeight = 1) {
+  const wavelengths = Math.max(runM, 0) / Math.max(localWaveLenM, 1);
+  const brokenRetention = Math.exp(-BREAK_HEIGHT_ATTEN_PER_L * wavelengths);
+  return mix(1, brokenRetention, clamp(breakWeight, 0, 1));
+}
+
 // ---------- hash / noise (bit-for-bit the model-glsl formulas) ----------
 function hash11(p) { p = fract(p * 0.1031); p *= p + 33.33; return fract((p + p) * p); }
 function hash21(x, y) {
@@ -189,7 +198,7 @@ export function oceanH(x, z, t, P) {
 
   const grow  = 1 + 0.85 * Math.exp(-Math.max(d, 0) / 90) * reef;
   const brk   = smoothstep(-6, 14, z - zb) * reef;
-  const decay = 1 - 0.68 * brk;
+  const decay = postBreakHeightRetention(z - zb, LAM, reef);
 
   const s     = rayS(x, z, P);
   // Crest phase follows rayPhase (shoals under P.phaseFn). setEnv stays on the

@@ -477,20 +477,31 @@ function considerQuality(dtMs) {
 // Deterministic stations/seeds keep A/B captures reproducible. This is a
 // deliberately sparse volume: the Point reference is clean dark lanes with a
 // narrow collapsing head, not the opaque particle blizzard of a surf game.
+// Each sample is an instanced, world-metre filament aligned to its modeled
+// velocity. THREE.Points was the wrong primitive: even a physically correct
+// centre trajectory still rasterized as a camera-facing cotton-ball disc.
 function makeSprayGeometry(count = 5200) {
   let seed = 0x51f15e;
   const random = () => {
     seed = (1664525*seed + 1013904223) >>> 0;
     return seed/4294967296;
   };
-  const pos = new Float32Array(count*3);
+  const seeds = new Float32Array(count*3);
   for (let i = 0; i < count; i++) {
-    pos[i*3] = -285 + 570*random();
-    pos[i*3 + 1] = random();
-    pos[i*3 + 2] = random();
+    seeds[i*3] = -285 + 570*random();
+    seeds[i*3 + 1] = random();
+    seeds[i*3 + 2] = random();
   }
-  const sprayGeo = new THREE.BufferGeometry();
-  sprayGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const sprayGeo = new THREE.InstancedBufferGeometry();
+  sprayGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+    -1, -1, 0,
+     1, -1, 0,
+     1,  1, 0,
+    -1,  1, 0,
+  ], 3));
+  sprayGeo.setIndex([0, 1, 2, 0, 2, 3]);
+  sprayGeo.setAttribute('aSpraySeed', new THREE.InstancedBufferAttribute(seeds, 3));
+  sprayGeo.instanceCount = count;
   return sprayGeo;
 }
 const sprayMat = new THREE.ShaderMaterial({
@@ -498,14 +509,14 @@ const sprayMat = new THREE.ShaderMaterial({
   fragmentShader: SPRAY_FRAG,
   uniforms,
   // Same build flag as the water: under #roller the spray launches from the
-  // roller's landing line (one source, two materials); without it the shipped
-  // spray text compiles unchanged.
+  // roller's landing line (one source, two materials). Both arms anchor the
+  // particle arc to the shipped surface geometry.
   defines: ROLLER_BUILD ? { ROLLER: 1 } : {},
   transparent: true,
   depthWrite: false,
   blending: THREE.NormalBlending,
 });
-const sprayPoints = new THREE.Points(makeSprayGeometry(), sprayMat);
+const sprayPoints = new THREE.Mesh(makeSprayGeometry(), sprayMat);
 sprayPoints.frustumCulled = false; // positions are shader-authored from seeds
 scene.add(sprayPoints);
 

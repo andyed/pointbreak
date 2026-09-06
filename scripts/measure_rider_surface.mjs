@@ -71,6 +71,7 @@ async function probeInPage() {
 
   // ---- GLSL constants (model-glsl.js / shaders.js) ----
   const PI = 3.14159265, G = 9.81, LAM = 90.0, VIS = 3.2, GAMMA = 0.78;
+  const BREAK_HEIGHT_ATTEN_PER_L = 0.35;
   const CRASH_PEAK_S = 0.42, CRASH_SIGMA_S = 0.20;
   const BORE_FADE_START_S = 2.60, BORE_END_S = 3.80;
   const SHELTER_X0 = 24.0, SHELTER_L = 1675.0;
@@ -79,6 +80,10 @@ async function probeInPage() {
   const fract = (x) => x - Math.floor(x);
   const clamp = (x, a, b) => Math.min(Math.max(x, a), b);
   const mix = (a, b, s) => a + (b - a) * s;
+  const postBreakHeightRetention = (runM, localWaveLenM, breakWeight) => {
+    const wavelengths = Math.max(runM, 0) / Math.max(localWaveLenM, 1);
+    return mix(1, Math.exp(-BREAK_HEIGHT_ATTEN_PER_L * wavelengths), clamp(breakWeight, 0, 1));
+  };
   const step_ = (e, x) => (x >= e ? 1 : 0);
   const smoothstep = (a, b, x) => {
     const s = clamp((x - a) / (b - a), 0, 1);
@@ -277,7 +282,8 @@ async function probeInPage() {
     const gate = smoothstep(0.90, 1.25, excess);
     const brkW = mix(reef * mask, Math.max(reef * mask, gate), U.u_depthMix);
     const brk = inside * brkW;
-    const decay = 1 - 0.68 * brk;
+    const localWaveLen = 2 * PI / Math.max(kLocalAt(x, z), 1e-3);
+    const decay = postBreakHeightRetention(z - zb, localWaveLen, brkW);
     const shoreFade = mix(1, smoothstep(0, 1.6, waterDepthM(x, z) + lift), U.u_depthMix);
     let theta = w * tt - rayPhase(x, z);
     // Forward pitch: EVEN map + retuned q (2026-08-18). u_pitchOdd = 1 is the
@@ -408,7 +414,7 @@ async function probeInPage() {
     const reef = reefWindow(x);
     const grow = 1 + 0.85 * Math.exp(-Math.max(d, 0) / 90) * reef;
     const brk = smoothstep(-6, 14, z - zb) * reef;
-    const decay = 1 - 0.68 * brk;
+    const decay = postBreakHeightRetention(z - zb, LAM, reef);
     const s = rayS(x, z);
     const theta = w * tt - twinRayPhase(x, z);
     const env = setEnv(s, tt, anchor);

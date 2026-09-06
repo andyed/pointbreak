@@ -144,40 +144,45 @@ test('the visible crash is concentrated ballistic spray, never raised water geom
   assert.doesNotMatch(model, /h\s*\+=\s*(?:splash|crash)(?:Up|Burst|Lift)\s*;/);
 
   assert.match(shaders, /float crashMode = step\(0\.001, u_splash\);/);
-  assert.match(shaders, /float yLip = mix\(yLipLegacy, yLipCrash, crashMode\);/);
-  // The crash gains are TUNING and are pinned structurally, not by literal —
-  // except for their ceilings, which are not tuning but the lesson. SPRAY_VERT
-  // composes y from the still-water datum and never samples the surface, so an
-  // oversized or saturated droplet advertises that decoupling as a white plate
-  // hanging in the sky (reported 2026-08-30). Until y is anchored to the
-  // surface, a droplet must stay small enough and sheer enough to read as
-  // spray. Raise these only together with that anchor.
+  // One coordinate system: the shipped surface supplies x/y/z and the
+  // ballistic is only a vertical offset. Both ends of the arc are therefore
+  // on the wave instead of on an independent still-water datum.
+  assert.match(shaders, /vec3 base = surfacePos\(vec2\(x, z\), u_time,[\s\S]{0,130}?vec3 world = base \+ vec3\(0\.0, sprayY, 0\.0\);/);
+  assert.doesNotMatch(shaders, /yLipLegacy|yLipCrash|float yLip/);
+  // Spray scale and duration both come from the local breaking event. An
+  // independent H0*VIS apex and random flight clock imply a new coordinate
+  // system and a different gravity for every seed.
+  assert.match(shaders, /float breakScale = breakerCeilM\(vec2\(x0, zLaunch\)\);\s*float sprayLift = breakScale\*\(0\.06 \+ 0\.22\*seedY\)/);
+  assert.match(shaders, /float v0 = sqrt\(2\.0\*G\*max\(sprayLift, 0\.0\)\);\s*float Tf = 2\.0\*v0\/G;/);
+  assert.match(shaders, /float sprayY = max\(v0\*tf - 0\.5\*G\*tf\*tf, 0\.0\);/);
+  assert.doesNotMatch(shaders, /float Tf\s*=\s*0\.45 \+ 0\.75\*seedY/);
+  // The crash alpha gain is TUNING and is pinned structurally, not by literal.
   const gainOf = (name) => {
     const m = new RegExp(`float ${name} = mix\\(1\\.0, ([\\d.]+), crashMode\\);`).exec(shaders);
     assert.ok(m, `${name} must be a crashMode-gated mix so #splash=0 reverts exactly`);
     return Number(m[1]);
   };
   const alphaGain = gainOf('crashGain');
-  const pointGain = gainOf('crashPointGain');
   assert.ok(alphaGain >= 1.0 && alphaGain <= 1.6,
             `crash alpha gain ${alphaGain} saturates droplets into opaque objects`);
-  assert.ok(pointGain >= 1.0 && pointGain <= 1.6,
-            `crash point gain ${pointGain} inflates droplets into visible plates`);
 
-  const capM = /gl_PointSize = clamp\([\s\S]{0,240}?crashPointGain[\s\S]{0,160}?1\.0, ([\d.]+)\);/.exec(shaders);
-  assert.ok(capM, 'the spray point size must stay clamped');
-  assert.ok(Number(capM[1]) <= 20.0,
-            `point-size ceiling ${capM[1]} px draws a plate, not a droplet`);
+  // Airborne water is physical, velocity-aligned geometry. Camera-facing point
+  // discs merge into a saturated circular object however well their centres
+  // are modeled, so neither point-size nor radial point-coordinate paths may
+  // return.
+  assert.match(main, /new THREE\.InstancedBufferGeometry\(\)/);
+  assert.match(main, /new THREE\.InstancedBufferAttribute\(seeds, 3\)/);
+  assert.match(shaders, /vec3 velocityWorld = vec3\([\s\S]{0,180}?vec2 along = velocityView\/max\(length\(velocityView\), 1e-4\);/);
+  assert.match(shaders, /float filamentLength = breakScale\*\(0\.035 \+ 0\.085\*seedY\)[\s\S]{0,180}?float filamentWidth = breakScale\*\(0\.004 \+ 0\.006\*seedZ\)/);
+  assert.match(shaders, /mv\.xy \+= along\*\(0\.5\*filamentLength\*position\.x\)[\s\S]{0,100}?across\*\(0\.5\*filamentWidth\*position\.y\);/);
+  assert.doesNotMatch(shaders, /gl_PointSize|gl_PointCoord|float r = length\(q\)/);
 
-  // The apex must not clear the drawn crest by a wide margin while the arc is
-  // still unanchored: that gap IS the floating artifact.
-  const lipCrash = /float yLipCrash\s*= 0\.15 \+ u_H0\*VIS\*\(([\d.]+) \+ ([\d.]+)\*seedZ\);/.exec(shaders);
-  assert.ok(lipCrash, 'yLipCrash must stay an explicit H0*VIS-scaled launch height');
-  assert.ok(Number(lipCrash[1]) <= 0.60,
-            `crash launch height ${lipCrash[1]}*H0*VIS throws droplets over the crest`);
-  const liftGain = /lift \*= mix\(1\.0, ([\d.]+), crashMode\);/.exec(shaders);
+  const liftGain = /sprayLift \*= mix\(1\.0, ([\d.]+), crashMode\);/.exec(shaders);
   assert.ok(liftGain && Number(liftGain[1]) <= 1.15,
             'crash lift multiplier re-inflates the apex above the crest');
+  const birthRamp = /float ends = smoothstep\(0\.0, ([\d.]+), u01\)/.exec(shaders);
+  assert.ok(birthRamp && Number(birthRamp[1]) <= 0.03,
+            `spray stays invisible until ${birthRamp?.[1]} of its arc and leaves a gap above the wave`);
   assert.doesNotMatch(shaders, /vCurtCrash|zyCrash|crashBulge/);
 
   const sigma = glslConstant('CRASH_SIGMA_S');
@@ -186,9 +191,9 @@ test('the visible crash is concentrated ballistic spray, never raised water geom
   assert.ok(sigma < 0.70, 'crash spray is still spread like the lost-crash build');
 });
 
-test('airborne whitewater is a separate deterministic render pass', () => {
+test('airborne whitewater is a separate deterministic filament render pass', () => {
   assert.match(main, /let seed = 0x51f15e/);
-  assert.match(main, /new THREE\.Points\(makeSprayGeometry\(\), sprayMat\)/);
+  assert.match(main, /new THREE\.Mesh\(makeSprayGeometry\(\), sprayMat\)/);
   assert.match(shaders, /export const SPRAY_VERT/);
   assert.match(shaders, /export const SPRAY_FRAG/);
 });
@@ -399,10 +404,11 @@ test('the splash-up sheet and the relocated spray are consumers of one landing, 
   assert.match(main, /makeSurfaceQuery\(renderer, uniforms, ROLLER_BUILD \? \{ ROLLER: 1 \} : \{\}\)/);
   assert.match(readFileSync(new URL('../web-three/js/surface-query.js', import.meta.url), 'utf8'), /defines,\s*vertexShader/);
   // Spray relocation: under the flag the droplets launch from the landing on
-  // the same clock and are anchored to the drawn surface there, not the datum;
-  // and it is compiled under ROLLER so the default spray text is untouched.
-  assert.match(shaders, /#ifdef ROLLER\s*if \(u_roller > 0\.0\) \{\s*vec4 landS = impactLandingAt\(x0, u_time\);[\s\S]{0,700}?float y0 = ocean\(vec2\(x0, landS\.x\), u_time,[\s\S]{0,300}?z = landS\.x \+ vz\*tf;\s*y = y0 \+ 4\.0\*peakS\*u01\*\(1\.0 - u01\);/);
+  // the same clock. Surface anchoring sits after the branch, so default and
+  // roller builds share one surfacePos() authority.
+  assert.match(shaders, /#ifdef ROLLER\s*if \(u_roller > 0\.0\) \{\s*vec4 landS = impactLandingAt\(x0, u_time\);[\s\S]{0,500}?z = landS\.x \+ vz\*travelT;\s*sprayLift = peakS;[\s\S]{0,120}?#endif[\s\S]{0,1000}?vec3 base = surfacePos\(vec2\(x, z\), u_time/);
   assert.match(shaders, /float peakS = splashUpPeakM\(landS\.y\)\*\(0\.35 \+ 0\.65\*seedY\);/);
+  assert.doesNotMatch(shaders, /ocean\(vec2\(x0, landS\.x\)/);
   // The roller's material is its own: texture advected with the mass at the
   // lifecycle's own front speed (geoF.w), a leading-edge rim keyed to the
   // field, a denser floor than the pocket's, and shading applied AFTER the

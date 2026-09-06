@@ -663,6 +663,18 @@ float kLocalAt(vec2 xz){
   return mix(2.0*PI/LAM, k, u_psiMix*u_depthMix);
 }
 
+// Gradual post-break carrier-height loss. The old 1 - 0.68*brk coupled the
+// break/foam mask straight into height and removed 68% as soon as the mask
+// reached one. A breaking threshold says where dissipation starts, not that it
+// has already happened. Distance travelled shoreward of the line supplies the
+// missing evolution coordinate, normalized by the wave's own local length so
+// shoaled short waves decay over a proportionally shorter run.
+float postBreakHeightRetention(float runM, float localWaveLenM, float breakWeight){
+  float wavelengths = max(runM, 0.0)/max(localWaveLenM, 1.0);
+  float brokenRetention = exp(-BREAK_HEIGHT_ATTEN_PER_L*wavelengths);
+  return mix(1.0, brokenRetention, clamp(breakWeight, 0.0, 1.0));
+}
+
 // Psi(contourZ) from the 256x1 bake. Same 16-bit RG decode as breakTexZ.
 float psiLookup(float zc){
   float f = clamp((zc - u_refrZ.x)/max(u_refrZ.y - u_refrZ.x, 1e-3), 0.0, 1.0)*255.0;
@@ -1336,11 +1348,12 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // shore break outside the reef window survives (reef = 0, gate = 1), but
   // nothing breaks before the wave has reached the line.
   brk           = inside * brkW;   // == mix(brkZip, inside*max(reef*mask, gate), u_depthMix)
-  float decay   = 1.0 - 0.68*brk;          // broken wave has dumped its energy
+  float localWaveLen = 2.0*PI/max(kLocalAt(xz), 1e-3);
+  float decay = postBreakHeightRetention(z - zb, localWaveLen, brkW);
 
   // ---- the wave dies in the swash ----
-  // Without this the inshore wave settles at 32% amplitude and runs to the
-  // stage edge forever, which is exactly why the beach was invisible.
+  // Post-break attenuation above is gradual and wavelength-scaled; this final
+  // depth gate is still what actually kills the carrier at the waterline.
   // Setup water counts here too: during a set the raised sheet lets broken
   // waves run farther up the shore before dying; in the lull they die where
   // they always did. The excursion of the wave-covered zone therefore
