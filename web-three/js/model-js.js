@@ -19,7 +19,13 @@ const PI  = Math.PI;
 // (sound.js imports it); the GLSL const in model-glsl.js is the GPU source of
 // truth and must stay numerically identical.
 export const LAM = 90.0;
-const VIS = 3.2;    // MODEL-TWIN: visual amplitude gain
+// MODEL-TWIN: visual amplitude gain. A uniform on the GPU since 2026-09-05
+// (#vis=), so the twin has to track it or the rider rides a different sea from
+// the one drawn. main.js calls setVis() from the same flag that sets u_vis.
+let VIS = 3.2;
+export function setVis(v) { if (Number.isFinite(v) && v > 0) VIS = v; }
+export function getVis() { return VIS; }
+export const BREAK_HEIGHT_ATTEN_PER_L = 0.35; // MODEL-TWIN: shared/model-glsl.js
 
 // ---------- GLSL-style helpers ----------
 const fract = (x) => x - Math.floor(x);

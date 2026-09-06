@@ -19,7 +19,8 @@ import { makeSurfaceQuery } from './surface-query.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
          rayS, oceanH as oceanHJS, surferState as surferStateJS,
-         SET_DEPTH, SET_DEPTH_LEGACY, LAM, SET_ANCHOR_S, setEnv, reefWindow, sectionShift } from './model-js.js';
+         SET_DEPTH, SET_DEPTH_LEGACY, LAM, SET_ANCHOR_S, setEnv, reefWindow, sectionShift,
+         setVis } from './model-js.js';
 import { iribarrenMeasured } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, breakGapAt, BREAK_Z_MIN, BREAK_Z_MAX,
@@ -29,7 +30,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          setReefAmp, setReefFlank, getReefShape, reefAudit,
          setShelter, getShelter, setDensityLine, breakCandidates,
          breakExcessProfile, setOnsetMerge, getOnsetMerge,
-         cameraFloorY, UNMAPPED_DIP_M } from './bed.js';
+         cameraFloorY, UNMAPPED_DIP_M, bedElevAt } from './bed.js';
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { burnoffFog } from './fog.js';
@@ -280,6 +281,17 @@ const uniforms = {
   // Re-derived from state.T every frame (see the u_T sync) so a live-ocean T
   // change keeps the width the flag asked for; see parseWrapWidth.
   u_wrapS:      { value: 0 },
+  // Brow sharpening (EXPERIMENT 2026-09-05, #brow=<0..1>). 0 = the shipped
+  // ground, to <= 1 level (42 px of 1.23 M; see browSharpen). Land only, above 2 m
+  // over still water, so no depth the model uses can move. Plateau is the
+  // terrace height above still water; 11 m is the measured marine terrace at
+  // 38th Avenue (research/SCALE_AND_BROW_2026-09-05.md).
+  // Visual amplitude gain (#vis=<gain>, 2026-09-05). 3.2 = the shipped look.
+  // A uniform so the matched Lookout pose can price the exaggeration against
+  // the photograph; the JS twin tracks it through setVis().
+  u_vis:          { value: 3.2 },
+  u_brow:         { value: 0 },
+  u_browPlateauM: { value: 11.0 },
   // Birth ramp (EXPERIMENT 2026-09-01, #birth=): whitewater deposit develops
   // over a fraction of LAM behind the zipper head, so the lifecycle clock's
   // x = x_head snap stops printing a shore-normal straight edge in plan view.
@@ -813,6 +825,69 @@ function cliffStationX() {
   return state.geoSpot ? Math.min(210, state.stageEnd ?? 215) : 210;
 }
 
+// ---- Lookout: the 2026-09-05 fixture pose, replayed ----------------------
+// Not a designed shot. Every number is read off one photograph — frame
+// cliff-cam-reference.jpg in docs/research/assets/pleasure-point-2026-09-05/,
+// taken from the cliff top at 38th Avenue at 11:14 PDT — so a capture here and
+// that photograph are the same frame and can be laid side by side. This is
+// what the fixture's per-frame pose was recorded FOR; the other cameras are
+// compositions, this one is a measurement.
+//
+// The position is absolute (ENU metres from the OSM apex origin), not relative
+// to a spot, so it stays the same physical place under every preset: loaded at
+// Second Peak it correctly stands 400 m up the point rather than teleporting.
+// Height comes from the DEM, not from the phone — a GPS altitude confirms a
+// terrain surface, it never replaces one — and at this frame the two agree to
+// 0.63 m (manifest `gps_minus_dem_m`).
+//
+// Pitch is not in EXIF; iOS records no tilt. It is solved instead from where
+// the horizon falls in the photograph — row 313 of 960 — which at this frame's
+// 31.4 deg vertical field is 5.59 deg below level. Field of view comes from the
+// 48 mm equivalent focal length on the long axis.
+const LOOKOUT = {
+  frame: 'cliff-cam-reference.jpg',
+  enuM: [817.1, 542.3],   // manifest stage_x_m / stage_y_m, PP apex origin
+  headingDeg: 187.3,      // EXIF GPSImgDirection, true north
+  vfovDeg: 31.4,
+  pitchDeg: 5.59,         // solved from the horizon row, not recorded
+  eyeH: 1.55,             // hand-held, no tripod; DEM ground + standing height
+};
+// ENU -> the active preset's stage frame. Every profile carries its own origin
+// and basis, so this is a plain change of basis, not an approximation.
+function lookoutBasis() {
+  return state.geoSpot ? PP_GEO_DATA.profiles[state.geoSpot] : null;
+}
+function enuToStage(pr, dE, dN) {
+  return [dE * pr.stageAlongENU[0] + dN * pr.stageAlongENU[1],
+          dE * pr.stageShoreENU[0] + dN * pr.stageShoreENU[1]];
+}
+function lookoutStation() {
+  const pr = lookoutBasis();
+  // The unmapped site has no profile and therefore no frame to replay.
+  if (!pr) return cliffStation(cliffStationX());
+  const [x, z] = enuToStage(pr, LOOKOUT.enuM[0] - pr.stageOriginENU[0],
+                                LOOKOUT.enuM[1] - pr.stageOriginENU[1]);
+  const ground = bedElevAt(state.geoSpot, x, z) - MSL_ABOVE_NAVD88;
+  return [x, ground + LOOKOUT.eyeH, z];
+}
+function lookoutTarget() {
+  const pr = lookoutBasis();
+  if (!pr) return [-30, 2, breakLineJS(-30) - 25];
+  const [x, y, z] = lookoutStation();
+  const h = LOOKOUT.headingDeg * Math.PI / 180;
+  const [dx, dz] = enuToStage(pr, Math.sin(h), Math.cos(h));
+  // Aim at where the ray meets the water plane, not at a fixed range. Only the
+  // DIRECTION matters to the shot, but the target is a point the eye clamp acts
+  // on: clampEye() lifts any target that falls below the bed, and a first pass
+  // used D = 260 m, which put the target 12 m UNDER the seabed. It was lifted
+  // to the floor, the pitch came back 3.39 deg instead of 5.59, and the horizon
+  // sat 107 px low against the photograph. Landing on y = 0 keeps the target
+  // above the bed everywhere seaward, so the solved pitch survives the clamp.
+  const tanP = Math.tan(LOOKOUT.pitchDeg * Math.PI / 180);
+  const D = Math.min(Math.max(y / Math.max(tanP, 1e-3), 40), 400);
+  return [x + D * dx, y - D * tanP, z + D * dz];
+}
+
 const CAM_PRESETS = [
   { name: 'Free',   pos: () => [-140, 55, -230],                              target: () => [40, 0, 40] },
   // Cliff aims at the peak, seaward of the break — not down the coast axis:
@@ -829,6 +904,9 @@ const CAM_PRESETS = [
   { name: 'Cliff',  pos: () => cliffStation(cliffStationX()),
     target: () => aimOn() ? [aimState.x, 2, aimState.z]
                           : [-30, 2, breakLineJS(-30) - 25], fov: 30 },
+  // Lookout sits deliberately outside AIM_SHOTS: a replayed pose that re-aims
+  // itself at the action centroid is no longer the photograph's frame.
+  { name: 'Lookout', pos: lookoutStation, target: lookoutTarget, fov: LOOKOUT.vfovDeg },
   { name: 'Lineup', pos: () => aimOn() ? [aimState.x + 35, 8.5, aimState.z - 30]
                                        : [35, 8.5, breakLineJS(35) - 30],
     target: () => aimOn() ? [aimState.x, 4.0, aimState.z + 2]
@@ -2475,6 +2553,22 @@ function applyHashParams() {
   // fraction of the ramp AHEAD of the head (centred blend variant);
   // #birthrag=<0..1> jitters the ramp position with world noise. Absent, 0,
   // or non-finite = shipped. Boot-only, like every other A/B flag here.
+  // #brow=<0..1> sharpens the cliff brow; #browtop=<m> moves the plateau the
+  // remap works up to. Boot-only, like every other A/B flag here.
+  // #vis=<gain> overrides the visual amplitude gain. Boot-only.
+  const visV = parseFloat(h.get('vis'));
+  if (h.has('vis') && Number.isFinite(visV) && visV > 0 && visV <= 8) {
+    uniforms.u_vis.value = visV;
+    setVis(visV);
+  }
+  const browV = parseFloat(h.get('brow'));
+  if (h.has('brow') && Number.isFinite(browV) && browV > 0) {
+    uniforms.u_brow.value = Math.min(browV, 1);
+  }
+  const browTopV = parseFloat(h.get('browtop'));
+  if (h.has('browtop') && Number.isFinite(browTopV) && browTopV > 2.5) {
+    uniforms.u_browPlateauM.value = browTopV;
+  }
   const birthV = parseFloat(h.get('birth'));
   if (h.has('birth') && Number.isFinite(birthV) && birthV > 0) {
     uniforms.u_birthW.value = Math.min(birthV, 1);
@@ -2659,6 +2753,61 @@ window.__pointbreak = {
     povState.ready = false;
   },
   surfaceQueryStats: () => surfaceQuery.stats(),
+  // Surface elevation along a ray, metres above still water, from the CPU twin
+  // (model-js oceanH).
+  //
+  // DO NOT USE THIS TO JUDGE THE DRAWN SURFACE (2026-09-05, and this probe
+  // already caused one wrong published finding — MEASUREMENT_LESSONS 4, an
+  // instrument that scores a replica certifies the replica). model-js oceanH
+  // computes `grow` as growSyn ALONE: `1 + 0.85*exp(-d/90)*reef`, the synthetic
+  // pre-bathymetry stand-in with no depth limit, and it amplifies u_H0 rather
+  // than Heff, so it has no sheltering either. model-glsl ocean() uses
+  // `mix(growSyn, growGeo, u_depthMix)` with `growGeo = min(Hsh, gamma*dep)/Heff`
+  // — so at every MAPPED spot (u_depthMix = 1) the shader and this twin sit at
+  // OPPOSITE ends of that mix. Measured at Jack's card state: twin ~5.7 m crest,
+  // GPU 4.09 m. The repo already calls the CPU surface "known-drift" (see the
+  // POV entry in CONTROLS.md); this is the mechanism and the size of it.
+  //
+  // For the drawn surface use `scripts/probe_wave_shape.mjs`, whose GPU leg is
+  // MODEL_GLSL verbatim bound to the live uniforms. This stays because it is
+  // the twin the rider and Follow camera actually ride, so knowing what IT
+  // says is worth something — just not about the picture.
+  // Bed elevation along the same kind of ray, in metres about MSL. Companion
+  // to surfaceRay for the LAND side: the cliff brow is the geometry that
+  // decides whether a cliff camera has any near field at all.
+  bedRay: (x0, z0, dx, dz, dFrom = -40, dTo = 80, step = 1) => {
+    // JS twin of model-glsl browSharpen, so the probe reports the ground the
+    // shader actually draws rather than the raw DEM. Without it the two
+    // disagree the moment #brow is on, and the probe would quietly certify
+    // the unsharpened profile.
+    const wl = MSL_ABOVE_NAVD88;   // probe reports metres about MSL
+    const amt = uniforms.u_brow.value;
+    const top = uniforms.u_browPlateauM.value;
+    const LO = 2.0;
+    const sharpen = (a) => {
+      if (!(amt > 0) || a <= LO || a >= Math.max(top, LO + 0.5)) return a;
+      const t = (a - LO) / (Math.max(top, LO + 0.5) - LO);
+      return LO + (Math.max(top, LO + 0.5) - LO) * Math.pow(t, 1 + (0.35 - 1) * Math.min(Math.max(amt, 0), 1));
+    };
+    const out = [];
+    for (let d = dFrom; d <= dTo; d += step) {
+      const raw = state.geoSpot
+        ? bedElevAt(state.geoSpot, x0 + dx * d, z0 + dz * d) - wl
+        : null;
+      out.push([d, Number.isFinite(raw) ? sharpen(raw) : null]);
+    }
+    return out;
+  },
+  surfaceRay: (x0, z0, dx, dz, dMax = 400, step = 1) => {
+    const P = modelP();
+    const n = Math.max(1, Math.floor(dMax / step));
+    const out = [];
+    for (let i = 0; i <= n; i++) {
+      const d = i * step;
+      out.push([d, oceanHJS(x0 + dx * d, z0 + dz * d, simTime, P)]);
+    }
+    return out;
+  },
   povProbe: () => ({
     active: CAM_PRESETS[camIdx]?.name === 'POV',
     ready: povState.ready,

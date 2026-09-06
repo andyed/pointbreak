@@ -1398,18 +1398,48 @@ void main() {
     vec3 cliffCol = vec3(0.52, 0.46, 0.36);
     vec3 albedo = mix(mix(drySand, wetSand, wetness), cliffCol,
                       smoothstep(1.8, 6.5, above));
-    // Marine terrace (2026-08-12, "land mass styling"). Above the cliff band
-    // the blob was uniform cliffCol — the audit's "featureless tan carrying
-    // zero place identity". The bluff top at Pleasure Point is a vegetated
-    // terrace, so: low-saturation scrub clumps over dirt, elevation-gated.
-    // Value structure only — no props are invented, and the clump noise is
-    // the same field the water and kelp use, so it reads as one scene.
-    vec3 dirtCol  = vec3(0.47, 0.42, 0.33);
-    vec3 scrubCol = vec3(0.31, 0.33, 0.23);
-    float terrace = smoothstep(6.5, 10.0, above);
-    float veg = smoothstep(0.35, 0.75,
-        vnoise2(worldXZ*0.055 + vec2(7.7, -3.1))*0.6 + vnoise2(worldXZ*0.21)*0.4);
-    albedo = mix(albedo, mix(dirtCol, scrubCol, veg), terrace);
+    // Marine terrace (2026-08-12, "land mass styling"; palette MEASURED and
+    // the cover model rebuilt 2026-09-05 against the photographic fixture in
+    // docs/research/assets/pleasure-point-2026-09-05/). The 2026-08-12 pair
+    // was invented, and what it got wrong was not value but hue: mean sRGB of
+    // sunlit crops is iceplant mat (0.297, 0.288, 0.138) and dry grass
+    // (0.467, 0.426, 0.245), against the old scrub (0.31, 0.33, 0.23) and
+    // dirt (0.47, 0.42, 0.33). Values were close; the blue channel was ~0.09
+    // too high in both, so the terrace read grey-olive where the place is
+    // yellow-olive.
+    //
+    // Three cover classes, not two, because the fixture shows essentially no
+    // bare dirt up here: bleached straw grass, Carpobrotus (iceplant) mat with
+    // red anthocyanin tips, and coyote-brush clumps that read near-black at
+    // this distance. Dirt is gone as a class — it was standing in for grass.
+    // Still value structure only: no props, and the clump field is the one the
+    // water and kelp already use, so the surfaces read as one scene.
+    vec3 grassCol = vec3(0.47, 0.43, 0.25);   // measured: bleached straw
+    vec3 iceCol   = vec3(0.30, 0.29, 0.14);   // measured: iceplant mat
+    vec3 iceTip   = vec3(0.40, 0.20, 0.15);   // the mat's red tips
+    vec3 brushCol = vec3(0.13, 0.16, 0.11);   // coyote brush, near-black here
+    // The onset is RAGGED, not lower. First pass here read "the mat spills
+    // over the brow" as "vegetation starts low" and dropped the ramp to
+    // 3.2→5.4 m; the render went green almost to the sand, which the fixture
+    // does not show — cliff-face-bench.jpg has mat on the plateau and the
+    // top metre or two of the lip, then bare buff face, then talus. So the
+    // 2026-08-12 elevation was about right and only its EDGE was wrong: a
+    // fixed smoothstep traces a contour line along the DEM. Jitter the
+    // threshold with a coarse field so the boundary is an irregular margin.
+    float brow    = 7.0 + 2.0*vnoise2(worldXZ*0.09 + vec2(-2.3, 5.1));
+    float terrace = smoothstep(brow, brow + 1.6, above);
+    // Classes come off the RAW clump field, not off a saturated coverage
+    // scalar: smoothstepping a value that is already pinned at 1 over most of
+    // the terrace would have painted brush everywhere.
+    float vclump = vnoise2(worldXZ*0.055 + vec2(7.7, -3.1))*0.6
+                 + vnoise2(worldXZ*0.21)*0.4;
+    float mat    = smoothstep(0.38, 0.62, vclump);
+    float shrub  = smoothstep(0.72, 0.86, vclump);
+    float tip    = smoothstep(0.55, 0.95, vnoise2(worldXZ*0.85 + vec2(3.3, 1.7)));
+    vec3 cover = mix(grassCol, iceCol, mat);
+    cover = mix(cover, iceTip, 0.30*tip*mat);
+    cover = mix(cover, brushCol, shrub);
+    albedo = mix(albedo, cover, terrace);
     // roughen with the same noise field the water uses, so the two surfaces
     // read as one scene rather than two asset libraries. The third, sub-metre
     // octave is the blocky-sand fix: the two coarse octaves alone left the

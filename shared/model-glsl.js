@@ -178,6 +178,29 @@ uniform float u_crestWrap;
 // period clamp to 0.75 T so a sweep can reach ~0.6 LAM. Always seconds here:
 // the metres -> seconds conversion (at c = LAM/T) lives in the JS flag parser.
 uniform float u_wrapS;
+// ---- brow sharpening (#brow=, EXPERIMENT 2026-09-05; 0 = the shipped ground).
+// OFF reproduces the pre-flag frame to <= 1 level: 42 of 1,228,800 pixels move
+// by one level on one channel at the Lookout pose, which is compiler scheduling
+// around the added uniform, not a path change -- browSharpen early-returns.
+// Measured, not assumed; the #lip flag carries the same caveat for the same
+// reason, while #birth's untouched uniform branch is 0 differing pixels. The NCEI 1/3" grid spends 32 m of horizontal
+// run on the 11.7 m marine-terrace cliff at 38th Avenue -- a 20 deg ramp where
+// the photographs show a near-vertical face over talus (measured along the
+// #cam=lookout view ray, research/SCALE_AND_BROW_2026-09-05.md section 2). The
+// consequence is not cosmetic: at the fixture pose the frame's bottom edge
+// first meets terrace-level ground about 3 m out, and on a ramp that ground
+// has already fallen away, so a cliff camera has no near field at all and the
+// riprap band and the wave-cut bench have nothing to sit on.
+//
+// This is a LAND-ONLY monotone remap of elevation, applied at the end of
+// bedElevM so every consumer -- vertex land test, fragment shading, the seabed
+// mesh, waterDepthM -- sees the same ground by construction, the same reason
+// the extrapolation ramp lives there. It is not a bed change: nothing at or
+// below BROW_LO metres above still water is touched, so the surf zone, the
+// waterline, the swash band and the held 2 m coastal plain are all identical,
+// and nothing the model computes from depth can move.
+uniform float u_brow;          // 0 = off; 1 = full sharpening
+uniform float u_browPlateauM;  // terrace height above still water, metres
 // ---- the birth ramp (#birth=, EXPERIMENT 2026-09-01; all three default 0 =
 // the shipped frame, bit-identical). Whitewater deposit develops over a finite
 // distance behind the zipper head instead of appearing at full strength on
@@ -194,10 +217,26 @@ uniform float u_birthRag;   // noise jitter of the ramp position, in ramp widths
 const float PI  = 3.14159265;
 const float G   = 9.81;
 const float LAM = 90.0;   // display wavelength, m (shoaled ~15 s swell at ~8 m depth)
-const float VIS = 3.2;    // visual amplitude gain: physical heights are nearly
-                          // invisible at landscape scale; exaggerate, don't lie about kinematics
+// Visual amplitude gain: physical heights are nearly invisible at landscape
+// scale; exaggerate, don't lie about kinematics. Every height term in this file
+// is PHYSICAL up to the last multiply -- which is why the break criterion's own
+// comment warns that letting VIS into the threshold made it ~3x too eager.
+//
+// A uniform since 2026-09-05 (#vis=<gain>) rather than a const, so the matched
+// Lookout pose can price it against the photograph it exaggerates
+// (research/SCALE_AND_BROW_2026-09-05.md section 1). The #define keeps all ~60
+// call sites reading VIS, so the diff is the declaration and nothing else.
+// Default 3.2 = the shipped look, unchanged.
+uniform float u_vis;
+#define VIS u_vis
 const float GAMMA = 0.78; // depth-limited breaker index H/h (McCowan solitary-wave
                           // limit; Battjes/Nairn put field values ~0.7-0.9)
+// Height attenuation per LOCAL wavelength after breaking. This is the one
+// authored closure for dissipation in a kinematic model with no fluid solver:
+// at full break weight, carrier height retains exp(-0.35) = 70% after one
+// wavelength and 50% after two. The depth-limited cap and shoreFade still own
+// the shoaling profile and final swash extinction respectively.
+const float BREAK_HEIGHT_ATTEN_PER_L = 0.35;
 
 // Breaker lifecycle in SECONDS, deliberately independent of peel speed. The
 // zipper kinematics stay in rayS()/swellPhi(); these only decide how much of
@@ -478,6 +517,26 @@ float bedTexel(ivec2 p){
   return mix(u_bedElev.x, u_bedElev.y, unit);
 }
 
+// Brow sharpening (#brow=). Monotone remap of height-above-water inside the
+// band [BROW_LO, u_browPlateauM], identity outside it in BOTH directions: at or
+// below BROW_LO nothing moves (the beach, the talus, the swash and every
+// submerged sample), and at or above the plateau nothing moves either (inland
+// ground that genuinely rises higher is not flattened). Inside, a power curve
+// pushes mid elevations UP, which -- on a profile that is roughly linear in
+// distance -- extends the terrace seaward and compresses the fall into a short
+// steep face. That is the shape a marine terrace actually has and the shape the
+// 10 m posts cannot resolve.
+const float BROW_LO = 2.0;     // m above still water; below this, untouched
+float browSharpen(float e){
+  if (u_brow <= 0.0) return e;                       // untouched when off
+  float a = e - u_waterLevel;
+  float top = max(u_browPlateauM, BROW_LO + 0.5);
+  if (a <= BROW_LO || a >= top) return e;
+  float t = (a - BROW_LO) / (top - BROW_LO);
+  float s = pow(t, mix(1.0, 0.35, clamp(u_brow, 0.0, 1.0)));
+  return u_waterLevel + BROW_LO + (top - BROW_LO) * s;
+}
+
 // Seabed elevation, metres NAVD88 (positive = dry land above the datum).
 float bedElevM(vec2 xz){
   vec2 uv = (xz - u_bedRect.xy) / max(u_bedRect.zw - u_bedRect.xy, vec2(1e-3));
@@ -537,7 +596,8 @@ float bedElevM(vec2 xz){
   float dO = length(dOut);
   float oceanic = 1.0 - smoothstep(u_waterLevel - 0.5, u_waterLevel + 1.0, e);
   float landHold = mix(e, min(e, u_waterLevel + 2.0), smoothstep(60.0, 520.0, dO));
-  return mix(landHold, e - 0.045 * dO, oceanic);
+  float ground = mix(landHold, e - 0.045 * dO, oceanic);
+  return browSharpen(ground);
 }
 
 // Still-water depth, metres. Zero on land — the shoreline is wherever this
