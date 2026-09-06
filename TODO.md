@@ -1,5 +1,39 @@
 # TODO
 
+## 2026-09-05 — first photographic field capture
+
+- `docs/research/FIELD_CAPTURE_2026-09-05.md` — pre-registration for the trip
+  (SC116 and tide written down before the model was run), what the model
+  predicts at this tide and height, the fixed-pose video protocol, and which
+  Mimo capture modes are usable. Key fact: at the observed tide (+0.316 m MSL,
+  verified) every spot is above its `tideBandM`, so `peelFloorH0()` returns
+  null everywhere — this is a high-tide falsification day, not the peel-speed
+  day the validation plan asks for. Next daylight minus tides inside the
+  model's accepted range are listed there; 2026-11-06 is the best candidate.
+- `docs/research/assets/pleasure-point-2026-09-05/` — ten-frame benchmark
+  fixture with a per-frame camera pose (stage coordinates, altitude, true
+  heading, FOV, bearing and range to every canon spot). Stills only: hand-held,
+  so nothing here goes to `measure_cam.py`. First photographic reference in the
+  repo; also the first **sunny** reference, where `VISUAL_GROUND_TRUTH.md` was
+  written entirely from marine-layer stills.
+- `docs/research/SCALE_AND_BROW_2026-09-05.md` — measurements off the replayed
+  pose, including one **retracted the same day**. (1) RETRACTED: "the drawn wave
+  is ~5x too large and ignores its own depth limit" was measured with a probe
+  reading model-js `oceanH`, the CPU twin, which uses `growSyn` alone and is not
+  depth-limited. `probe_wave_shape.mjs` on the GPU says `H_phys/(gamma*h)` never
+  exceeds ~1.05 at Jack's card state — the cap is applied and holds. The
+  render/photo size gap is `VIS = 3.2`, the documented viewing exaggeration;
+  what the matched pose prices is whether 3.2 is right, which is a look call.
+  (1b) REAL: model-js `oceanH` has drifted from the shader — no `growGeo`, and
+  `P.H0` where the shader uses `Heff`, i.e. opposite ends of the `u_depthMix`
+  mix at every mapped spot, ~1.4x at Jack's card. It places the surfer and
+  drives Follow and the audio. Not fixed. (2) The DEM spends 32 m of run on the
+  11.7 m cliff (20°), which is why a cliff camera has no near field; `#brow` is
+  built, measured and off by default.
+- `docs/figures/index.html` §01 — Plates 1 and 2, the stairs and the two
+  placards. First photographs in the essay; provenance appended to
+  `docs/figures/assets/PROVENANCE.md`.
+
 ## 2026-09-01 tranche — index
 
 Research written today, one line each. All headless; nothing here changed a

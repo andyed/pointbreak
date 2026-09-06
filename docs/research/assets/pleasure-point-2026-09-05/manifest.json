@@ -1,0 +1,594 @@
+{
+  "capture": "Pleasure Point field capture, 2026-09-05",
+  "captured_local": "2026-09-05 11:12-11:14 PDT",
+  "station": "cliff top at 38th Avenue, walking NE; hand-held, no gimbal, no tripod",
+  "purpose": "visual-fidelity benchmark fixture for the cliff camera and the signage panel of the visual essay",
+  "stage_projection": {
+    "origin_lat": 36.954095,
+    "origin_lon": -121.976216,
+    "metres_per_deg_lon": 88857.8,
+    "metres_per_deg_lat": 111193.2,
+    "note": "least-squares fit to the 12 named spots in data/osm/pp_geometry.json",
+    "max_residual_m": 0.06
+  },
+  "conditions": {
+    "sc116_nowcast": {
+      "record_local": "2026-09-05 10:00 PDT",
+      "waveHs_m": 0.902,
+      "waveTp_s": 16.67,
+      "waveDp_deg": 188.5,
+      "source": "CDIP THREDDS MOP_alongshore/SC116_nowcast.nc"
+    },
+    "tide_observed": {
+      "time_local": "2026-09-05 11:12 PDT",
+      "m_above_msl": 0.316,
+      "source": "NOAA CO-OPS 9413450 verified water level, datum MSL",
+      "note": "the model tide axis; predicted was +0.14, observed ran ~0.18 m high"
+    },
+    "sky": "sun out, scattered cirrus and small cumulus, light offshore-to-calm; NOT the marine-layer DIFFUSE default in VISUAL_GROUND_TRUTH.md"
+  },
+  "model_state_at_capture": {
+    "every_spot_above_its_tide_band": true,
+    "note": "PEEL_FLOOR[*].tideBandM tops at 0.00-0.01 m; observed tide +0.316 m, so peelFloorH0() returns null at every spot. SC116 Hs 0.902 m clears floorH0 only at Jacks (0.78) and Sharks (0.81)."
+  },
+  "frames": [
+    {
+      "file": "cliff-face-bench.jpg",
+      "group": "render",
+      "target": "Cliff stratigraphy and the wave-cut bench: iceplant cap, grass margin, buff mudstone face with bedding, talus, pocket beach, dark bench at the waterline.",
+      "photos_uuid": "622B19A1-3A18-4D4A-9A4E-EA4FB8C1F3E8",
+      "local_time": "2026-09-05 11:12:19",
+      "orientation": "portrait",
+      "camera": {
+        "lat": 36.9587383,
+        "lon": -121.967475,
+        "stage_x_m": 776.7,
+        "stage_y_m": 516.3,
+        "heading_true_deg": 233.9,
+        "gps_horizontal_error_m": 3.5,
+        "focal_35mm_eq": 24,
+        "hfov_deg": 58.7,
+        "vfov_deg": 73.7,
+        "pixels": [
+          4284,
+          5712
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 10.6,
+        "ground_elev_navd88_m": 10.76,
+        "ground_elev_msl_m": 9.85,
+        "gps_minus_dem_m": 0.75,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 190.8,
+          "range_m": 140.9
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 77.1,
+          "range_m": 281.6
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 214.3,
+          "range_m": 432.9
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.4,
+          "range_m": 505.3
+        }
+      ],
+      "spots_in_frame": [
+        "Second Peak"
+      ]
+    },
+    {
+      "file": "bench-pocket-tele.jpg",
+      "group": "render",
+      "target": "Same bench and pocket beach at 67 mm: bench edge geometry and swash boundary without the near-field cap.",
+      "photos_uuid": "48584E73-5D2D-4437-A4D4-32C4117028A8",
+      "local_time": "2026-09-05 11:12:22",
+      "orientation": "portrait",
+      "camera": {
+        "lat": 36.958745,
+        "lon": -121.967475,
+        "stage_x_m": 776.7,
+        "stage_y_m": 517.0,
+        "heading_true_deg": 231.2,
+        "gps_horizontal_error_m": 2.8,
+        "focal_35mm_eq": 67,
+        "hfov_deg": 22.8,
+        "vfov_deg": 30.1,
+        "pixels": [
+          3024,
+          4032
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 10.5,
+        "ground_elev_navd88_m": 10.91,
+        "ground_elev_msl_m": 10.01,
+        "gps_minus_dem_m": 0.49,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 190.7,
+          "range_m": 141.6
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 77.2,
+          "range_m": 281.5
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 214.2,
+          "range_m": 433.6
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.5,
+          "range_m": 505.0
+        }
+      ],
+      "spots_in_frame": []
+    },
+    {
+      "file": "stairs-riprap-swash.jpg",
+      "group": "render",
+      "target": "Inshore boundary and human scale: concrete stairs, weathered rail, angular granite riprap with an algae line, whitewater running into the rocks; a surfer suiting up at the head of the steps.",
+      "photos_uuid": "A5CEAD90-7C18-45DA-98C6-4F4526B6A83F",
+      "local_time": "2026-09-05 11:12:35",
+      "orientation": "portrait",
+      "camera": {
+        "lat": 36.958775,
+        "lon": -121.96743,
+        "stage_x_m": 780.7,
+        "stage_y_m": 520.4,
+        "heading_true_deg": 134.8,
+        "gps_horizontal_error_m": 4.7,
+        "focal_35mm_eq": 67,
+        "hfov_deg": 22.8,
+        "vfov_deg": 30.1,
+        "pixels": [
+          3024,
+          4032
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 10.9,
+        "ground_elev_navd88_m": 11.34,
+        "ground_elev_msl_m": 10.44,
+        "gps_minus_dem_m": 0.46,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 192.0,
+          "range_m": 145.6
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 77.7,
+          "range_m": 276.9
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 214.4,
+          "range_m": 438.6
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.6,
+          "range_m": 499.9
+        }
+      ],
+      "spots_in_frame": []
+    },
+    {
+      "file": "stairs-into-whitewater.jpg",
+      "group": "render",
+      "target": "The stair descent framed landscape - the iconic Pleasure Point beach-access shot. Riprap, algae line, kelp wrack and a full-frame whitewater field, no horizon.",
+      "photos_uuid": "2B3BE211-7142-4E61-9DBF-963EFB4DC193",
+      "local_time": "2026-09-05 11:12:38",
+      "orientation": "landscape",
+      "camera": {
+        "lat": 36.958775,
+        "lon": -121.96743,
+        "stage_x_m": 780.7,
+        "stage_y_m": 520.4,
+        "heading_true_deg": 148.9,
+        "gps_horizontal_error_m": 4.7,
+        "focal_35mm_eq": 67,
+        "hfov_deg": 30.1,
+        "vfov_deg": 22.8,
+        "pixels": [
+          4032,
+          3024
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 10.9,
+        "ground_elev_navd88_m": 11.34,
+        "ground_elev_msl_m": 10.44,
+        "gps_minus_dem_m": 0.46,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 192.0,
+          "range_m": 145.6
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 77.7,
+          "range_m": 276.9
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 214.4,
+          "range_m": 438.6
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.6,
+          "range_m": 499.9
+        }
+      ],
+      "spots_in_frame": []
+    },
+    {
+      "file": "one-subject-peel.jpg",
+      "group": "render",
+      "target": "One dominant breaking subject: a single peeling right with a green unbroken face, whitewater to the left, a second line outside, crowd for scale. The 2026-08-15 least-faithful target #1.",
+      "photos_uuid": "E9983189-03B3-4832-9562-615AB4876F71",
+      "local_time": "2026-09-05 11:13:29",
+      "orientation": "landscape",
+      "camera": {
+        "lat": 36.95888,
+        "lon": -121.9672,
+        "stage_x_m": 801.1,
+        "stage_y_m": 532.1,
+        "heading_true_deg": 168.0,
+        "gps_horizontal_error_m": 4.7,
+        "focal_35mm_eq": 24,
+        "hfov_deg": 73.7,
+        "vfov_deg": 58.7,
+        "pixels": [
+          5712,
+          4284
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 12.4,
+        "ground_elev_navd88_m": 12.16,
+        "ground_elev_msl_m": 11.26,
+        "gps_minus_dem_m": 1.14,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 198.2,
+          "range_m": 162.3
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 79.3,
+          "range_m": 254.5
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 215.7,
+          "range_m": 459.9
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.7,
+          "range_m": 476.3
+        }
+      ],
+      "spots_in_frame": [
+        "38th"
+      ]
+    },
+    {
+      "file": "lineup-density.jpg",
+      "group": "render",
+      "target": "Rider scale and lineup density: ~30 sitting surfers as 2-10 px marks, small peeling line, inshore whitewater field.",
+      "photos_uuid": "9620E30E-EA74-47C3-803A-84E6DAEA046F",
+      "local_time": "2026-09-05 11:13:33",
+      "orientation": "landscape",
+      "camera": {
+        "lat": 36.95887,
+        "lon": -121.967195,
+        "stage_x_m": 801.6,
+        "stage_y_m": 530.9,
+        "heading_true_deg": 192.4,
+        "gps_horizontal_error_m": 6.1,
+        "focal_35mm_eq": 48,
+        "hfov_deg": 41.1,
+        "vfov_deg": 31.4,
+        "pixels": [
+          4032,
+          3024
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 12.0,
+        "ground_elev_navd88_m": 11.62,
+        "ground_elev_msl_m": 10.72,
+        "gps_minus_dem_m": 1.28,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 198.5,
+          "range_m": 161.4
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 79.0,
+          "range_m": 254.3
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 215.8,
+          "range_m": 459.2
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.6,
+          "range_m": 476.5
+        }
+      ],
+      "spots_in_frame": [
+        "38th"
+      ]
+    },
+    {
+      "file": "up-coast-haze.jpg",
+      "group": "render",
+      "target": "Aerial perspective and the haze law: Monterey Bay hills dissolving over ~20 km, pocket beach, sun glitter on a sunny-day water surface.",
+      "photos_uuid": "C54E0E28-DEB7-4C22-B0AD-70DBA67BD86C",
+      "local_time": "2026-09-05 11:13:47",
+      "orientation": "portrait",
+      "camera": {
+        "lat": 36.958875,
+        "lon": -121.967195,
+        "stage_x_m": 801.6,
+        "stage_y_m": 531.5,
+        "heading_true_deg": 82.7,
+        "gps_horizontal_error_m": 5.1,
+        "focal_35mm_eq": 48,
+        "hfov_deg": 31.4,
+        "vfov_deg": 41.1,
+        "pixels": [
+          3024,
+          4032
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 12.0,
+        "ground_elev_navd88_m": 11.88,
+        "ground_elev_msl_m": 10.98,
+        "gps_minus_dem_m": 1.02,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 198.4,
+          "range_m": 161.9
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 79.1,
+          "range_m": 254.2
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 215.8,
+          "range_m": 459.7
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.6,
+          "range_m": 476.2
+        }
+      ],
+      "spots_in_frame": [
+        "The Hook"
+      ]
+    },
+    {
+      "file": "cliff-cam-reference.jpg",
+      "group": "render",
+      "target": "THE cliff-camera reference frame: post-and-rail fence and iceplant in the near field, coyote-brush clump, full lineup, horizon. What the Cliff preset should look like.",
+      "photos_uuid": "FDB2C580-9662-49C9-8AED-D7C0264977D7",
+      "local_time": "2026-09-05 11:14:15",
+      "orientation": "landscape",
+      "camera": {
+        "lat": 36.9589717,
+        "lon": -121.96702,
+        "stage_x_m": 817.1,
+        "stage_y_m": 542.3,
+        "heading_true_deg": 187.3,
+        "gps_horizontal_error_m": 3.3,
+        "focal_35mm_eq": 48,
+        "hfov_deg": 41.1,
+        "vfov_deg": 31.4,
+        "pixels": [
+          4032,
+          3024
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 12.4,
+        "ground_elev_navd88_m": 12.68,
+        "ground_elev_msl_m": 11.77,
+        "gps_minus_dem_m": 0.63,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 202.1,
+          "range_m": 177.4
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 81.0,
+          "range_m": 237.0
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.9,
+          "range_m": 457.4
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 216.5,
+          "range_m": 477.5
+        }
+      ],
+      "spots_in_frame": [
+        "38th"
+      ]
+    },
+    {
+      "file": "sign-tide-pools.jpg",
+      "group": "signage",
+      "target": "Interpretive sign: \"Welcome to Pleasure Point Tide Pools\" (Aptos High graphic design class, poster by Elizabeth Paradez, Save Our Shores).",
+      "photos_uuid": "29D6CD64-BD23-4B7A-8852-E22D944EBDF1",
+      "local_time": "2026-09-05 11:13:00",
+      "orientation": "portrait",
+      "camera": {
+        "lat": 36.9589,
+        "lon": -121.9673083,
+        "stage_x_m": 791.5,
+        "stage_y_m": 534.3,
+        "heading_true_deg": 201.1,
+        "gps_horizontal_error_m": 16.9,
+        "focal_35mm_eq": 24,
+        "hfov_deg": 58.7,
+        "vfov_deg": 73.7,
+        "pixels": [
+          4284,
+          5712
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 1.3,
+        "ground_elev_navd88_m": 12.53,
+        "ground_elev_msl_m": 11.62,
+        "gps_minus_dem_m": -10.32,
+        "gps_fix_rejected": true,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 194.8,
+          "range_m": 161.7
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 80.2,
+          "range_m": 263.6
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 214.5,
+          "range_m": 456.2
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 62.5,
+          "range_m": 483.8
+        }
+      ],
+      "spots_in_frame": [
+        "38th",
+        "Second Peak"
+      ]
+    },
+    {
+      "file": "sign-hazards.jpg",
+      "group": "signage",
+      "target": "Warning sign: \"Be Aware Of Changing Ocean Shore Hazards\" - falling rocks, high waves, changing currents, steep cliffs, incoming tides, unstable footing. Beside the stickered county-ordinance sign.",
+      "photos_uuid": "EF20548A-64E5-4BC9-9FBB-40FADDE70F24",
+      "local_time": "2026-09-05 11:13:05",
+      "orientation": "portrait",
+      "camera": {
+        "lat": 36.9588367,
+        "lon": -121.967255,
+        "stage_x_m": 796.3,
+        "stage_y_m": 527.2,
+        "heading_true_deg": 106.2,
+        "gps_horizontal_error_m": 5.0,
+        "focal_35mm_eq": 24,
+        "hfov_deg": 58.7,
+        "vfov_deg": 73.7,
+        "pixels": [
+          4284,
+          5712
+        ],
+        "device": "iPhone 15 Pro",
+        "altitude_m_gps_msl": 12.1,
+        "ground_elev_navd88_m": 11.04,
+        "ground_elev_msl_m": 10.13,
+        "gps_minus_dem_m": 1.97,
+        "gps_fix_rejected": false,
+        "fov_note": "long-axis FOV from the 35 mm equivalent; short axis from the frame aspect"
+      },
+      "nearest_spots": [
+        {
+          "name": "38th",
+          "bearing_deg": 197.1,
+          "range_m": 156.2
+        },
+        {
+          "name": "The Hook",
+          "bearing_deg": 78.4,
+          "range_m": 260.2
+        },
+        {
+          "name": "Second Peak",
+          "bearing_deg": 215.5,
+          "range_m": 453.1
+        },
+        {
+          "name": "Shark's Cove",
+          "bearing_deg": 61.5,
+          "range_m": 482.9
+        }
+      ],
+      "spots_in_frame": [
+        "The Hook"
+      ]
+    }
+  ],
+  "elevation_check": {
+    "dem": "data/bathy/pp_bathy.json (NOAA NCEI monterey_13_navd88_2012, 1/3 arc-second), bilinear at the camera stage position",
+    "msl_above_navd88_m": 0.905,
+    "gps_minus_dem_median_m": 0.75,
+    "gps_minus_dem_range_m": [
+      0.46,
+      1.97
+    ],
+    "gps_minus_dem_sd_m": 0.47,
+    "n_used": 9,
+    "n_rejected": 1,
+    "note": "One device, one datum, one afternoon: the agreement below is a consistency check, not an independent error estimate, and repeated fixes do not compound into confidence. The DEM value is the one a render camera should use - cliffStation() already reads it; the GPS altitude corroborates it. sign-tide-pools.jpg is rejected on its own 16.9 m horizontal error."
+  }
+}
