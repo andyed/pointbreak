@@ -289,6 +289,14 @@
     }
     .fig-wide + .fig-scroll-hint { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--mg-sand); margin: 0.5rem 0 0; }
   }
+  /* Photographic plates (2026-09-05). Every other figure in this essay is a
+     render and is labelled as one; these are photographs, so they are numbered
+     as Plates and keep the Fig. sequence meaning what it meant. No new colours
+     -- they reuse the audited figcaption treatment above. */
+  figure.plate { margin: 2rem 0; }
+  figure.plate img { display: block; width: 100%; height: auto; border-radius: 3px; }
+  .plate-2up { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+  @media (max-width: 640px) { .plate-2up { grid-template-columns: 1fr; } }
   figcaption {
     /* muriel audit #8: 0.92rem (~14.7px) was under the 16px caption floor for
        load-bearing content (the Bombora honesty note, the fig-week footnote
@@ -502,7 +510,7 @@
       California, at roughly 36.954&deg;N, 121.976&deg;W, where the coastline
       turns a corner and runs east toward Capitola. The shore is a low marine
       terrace: a cliff of about 10&ndash;12 m fronted by a shallow wave-cut
-      rock platform. The surf breaks over that platform, not over sand. Access is by stairs at 38th and 41st Avenues.
+      rock platform. The surf breaks over that platform, not over sand. Access is by stairs at 38th and 41st Avenues; the 41st Avenue stairs are <a href="https://parks.santacruzcountyca.gov/Home/ExploreOurParksBeaches/AllCountyParks/TheHookCountyPark.aspx" target="_blank" rel="noopener">The Hook County Park</a>, 511 41st Ave.
     </p>
     <p class="prose">
       Monterey Bay gives the point a wide swell window, so it works year
@@ -516,6 +524,38 @@
       The place was named in the 1920s for a Prohibition-era speakeasy above
       the break. The surfing association came later.
     </p>
+
+    <figure class="plate">
+      <img src="assets/field_stairs_2026-09-05.jpg" width="1400" height="1050"
+           alt="Concrete steps with weathered wooden handrails descend between large angular granite boulders into a frame filled with breaking whitewater. A dark algae band crosses the lower half of the boulders.">
+      <figcaption><span class="cap-label">Plate 1</span> &mdash; The 38th Avenue
+        stairs, 5&nbsp;September&nbsp;2026, 11:12&nbsp;PDT. The steps land on
+        placed granite riprap rather than sand, and the dark algal band across
+        the boulders marks the reach of ordinary high water. The tide here is
+        +0.32&nbsp;m above MSL and the swell 0.90&nbsp;m at 16.7&nbsp;s, both
+        measured &mdash; NOAA&nbsp;9413450 verified water level and the CDIP
+        SC116 nowcast. <strong>Photograph, not a render.</strong></figcaption>
+    </figure>
+
+    <figure class="plate">
+      <div class="plate-2up">
+        <img src="assets/field_sign_hazards_2026-09-05.jpg" width="675" height="900"
+             alt="A white warning placard headed &ldquo;Be Aware Of Changing Ocean Shore Hazards&rdquo; listing, with pictograms, falling rocks, high waves, changing currents, steep cliffs, incoming tides and unstable footing. Beside it a heavily stickered county ordinance sign; behind, the ocean and a wooden rail.">
+        <img src="assets/field_sign_tidepools_2026-09-05.jpg" width="675" height="900"
+             alt="An illustrated poster headed &ldquo;Welcome to Pleasure Point Tide Pools&rdquo; showing a nudibranch, sea cucumber, starfish, sculpin, limpet, black turban snail and hermit crab, with requests not to remove animals or shells. It is bolted to a weathered post above the cliff.">
+      </div>
+      <figcaption><span class="cap-label">Plate 2</span> &mdash; Two placards at
+        the head of the same stairs. Three of the county's six hazards &mdash;
+        high waves, steep cliffs, incoming tides &mdash; are quantities this
+        model carries; changing currents and falling rocks are not. The rock
+        platform that produces all three is the thing nobody has measured
+        (&sect;&nbsp;07). The tide-pool poster, made by an Aptos High graphic
+        design class, names that platform's inhabitants; the model sees it only
+        as a depth field. At this size the placards are illustrations rather
+        than documents &mdash; read them full size:
+        <a href="assets/field_sign_hazards_2026-09-05.jpg" target="_blank" rel="noopener">hazards &#8599;</a>,
+        <a href="assets/field_sign_tidepools_2026-09-05.jpg" target="_blank" rel="noopener">tide pools &#8599;</a>.</figcaption>
+    </figure>
   </section>
 
   <section class="essay-part">

@@ -346,12 +346,20 @@ parts.append(halo_text(ax - 10, ay + 20, "apex, u=0 m", size=16, weight=600,
 # floating label would collide with that spot's label; instead we mark the
 # access point with a small tick on the coast and fold the note into the
 # corresponding spot's stacked label below (avoids a duplicate crowded box).
-avenue_note = {}  # spot name -> access note text
+# NOTE: only the KEYS of this dict are read (see the caption block near the
+# end); the displayed text comes from the `short` dict there. Edit that one to
+# change what a reader sees.
+avenue_note = {}  # spot name -> access note text (values currently unused)
 access_tick_svg = []  # deferred: painted AFTER spot labels so a halo box can
                        # never occlude a tick (muriel audit #1 -- The Hook's
                        # label halo previously painted over the 41st Ave mark)
+# The 41st Avenue access is a named public park: The Hook County Park,
+# 511 41st Ave, Santa Cruz (Santa Cruz County Parks, "The Hook County Park" —
+# coastal access, vista point, stairs, restrooms, showers, small lot). Naming it
+# is more use to a reader standing on the cliff than "41st Ave access" was, and
+# it is the land counterpart of the surf spot the same tick sits beside.
 _AVE_TO_SPOT_NOTE = {"38th Avenue": ("38th", "38th Ave access"),
-                      "41st Avenue": ("The Hook", "41st Ave access, stairs")}
+                      "41st Avenue": ("The Hook", "The Hook County Park")}
 for avname, (spot_name, note) in _AVE_TO_SPOT_NOTE.items():
     av = GEO["avenues"].get(avname)
     if not av:
@@ -492,7 +500,8 @@ parts.append(halo_text(PAD_X, 66, "Coastline & spots: OpenStreetMap (ODbL 1.0). 
 # cliff access caption, bottom-left (the two sand ticks on the coast in the
 # 38th/Hook stretch) — kept off the crowded spot-label stack, see avenue_note
 if avenue_note:
-    short = {"38th": "38th Ave, u≈981 m", "The Hook": "41st Ave stairs, u≈1331 m"}
+    short = {"38th": "38th Ave, u≈981 m",
+             "The Hook": "The Hook County Park, 511 41st Ave, u≈1331 m"}
     av_bits = [short[k] for k in avenue_note if k in short]
     parts.append(halo_text(PAD_X, VB_H - 12, "✕ cliff access: " + "  ·  ".join(av_bits),
                             size=16, weight=500, cls="lbl-dim", anchor="start"))

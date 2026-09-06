@@ -67,3 +67,30 @@ contours, the OSM coastline, the seven canon spots, and a submerged-only
 CUDEM − NCEI difference at ±2 m. Data: NOAA NCEI (public domain) on an
 OSM-derived frame (ODbL; © OpenStreetMap contributors). Read with
 `docs/research/BATHY_SOURCES_2026-09-01.md`.
+
+## Photographs (2026-09-05)
+
+Three files in this directory are **photographs, not renders**, and the essay
+labels them as Plates rather than Figures so the Fig. sequence keeps meaning
+one thing:
+
+| file | frame |
+|---|---|
+| `field_stairs_2026-09-05.jpg` | the 38th Avenue stairs descending into riprap and whitewater |
+| `field_sign_hazards_2026-09-05.jpg` | the county "Changing Ocean Shore Hazards" placard beside the ordinance sign |
+| `field_sign_tidepools_2026-09-05.jpg` | the "Welcome to Pleasure Point Tide Pools" poster |
+
+Author's own, hand-held iPhone 15 Pro, cliff top at 38th Avenue,
+2026-09-05 11:12–11:13 PDT. Conditions at capture, both measured rather than
+estimated: tide +0.316 m above MSL (NOAA CO-OPS 9413450 verified water level)
+and SC116 nowcast Hs 0.902 m, Tp 16.7 s, Dp 188.5°.
+
+These are 1400 px (stairs) and 900 px (signs) JPEG derivatives with the EXIF
+rotation baked into the raster, so the stored pixels are the displayed pixels
+and the `width`/`height` attributes in the essay are honest. The full ten-frame
+capture, with each frame's camera pose — position in stage coordinates, GPS
+altitude, true heading, field of view, and the bearing and range to every canon
+spot — is the benchmark fixture at
+`docs/research/assets/pleasure-point-2026-09-05/`, whose README carries the
+method. Originals stay in the local Photos library; the `photos_uuid` in that
+fixture's `manifest.json` is the key to re-pull any of them.
