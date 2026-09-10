@@ -1,5 +1,141 @@
 # TODO
 
+## ▶ BACKLOG (2026-09-10) — the eikonal travel-time bake, the 2-D form of the reverted Ψ table
+
+`docs/research/EIKONAL_TRAVEL_TIME_2026-09-10.md`. Seen in
+`iamtechartist/ocean-simulation` (MIT): |∇T| = 1/c(h) solved once over the
+real bed by Godunov fast sweeping, baked to a phase-offset + direction +
+exposure texture, read by the wave phase every frame. It is the 2-D
+generalisation of MODEL.md §2.4's 1-D Ψ(contourZ) table, and it dies for the
+same reason that table died — every `rayPhase()` consumer assumes one φ — so
+it is filed behind `NEXT_INVESTMENTS.md` rank 4, as a candidate mechanism for
+rank 3. Not scheduled.
+
+### ▶ LIVE VERDICT QUEUE (2026-09-10) — four picture-side flags, all shipped ON, uncommitted
+
+Same day, picture-side, built and captured (Second Peak, card day, `sim=42`,
+185/185 tests, shader literals clean, no console errors). Each is ON by
+default with its own revert, rows in `docs/CONTROLS.md`:
+
+- `#fft=0` — two JONSWAP FFT wind-sea cascades (`web-three/js/fft-sea.js`,
+  211 m and 27.3 m tiles, 128², slope + height, mipmapped) replace the
+  four-octave value-noise ripple in both grid stages. **The visible one.**
+  Drone outside water goes from a sliding texture to a dispersing sea; the
+  cliff far band gains streaky glint. Cost ≈ 0.3–1 ms/frame on the M3 Max,
+  fitted by repeating the update N× per frame (headless rAF is 120 Hz
+  vsync-quantized; the ANGLE timer query reported 35 ms and is wrong).
+  Gain 2.0 on the slope and ×2 on the vertex bump are look calls, not
+  measurements; at `chop=0.1` (card) the wind sea may read too crisp for
+  a glassy morning. Not read by the zipper, carrier or any foam clock.
+- `#fpf=0` — foam noise octaves (`er`, `foamCell`, `ftex`) fade toward their
+  mean past ¼–0.6 of their lattice spacing in screen footprint (`octW()`).
+  Drone foam edges lose the per-pixel salt; 5% of drone pixels move >8.
+- `#path=0` — Beer-Lambert bed-return path is now depth × (1/cos refracted
+  sun ray + 1/cos refracted view ray) against the wave-scale normal instead of
+  `2·depth·(1 + k·steepF)`. Flat water barely moves (~2.1× depth); the face is
+  where the two disagree. <2% of pixels move >8 at every shipped camera.
+- `#sheen=0` — wet sand gets Schlick sky reflection (held to 0.55) and a sun
+  lobe, glossier in the draining film band. **Barely visible at any shipped
+  camera**: Fresnel on a wet film is a few percent unless grazing, and the
+  beach is a thin strip under a cliff seen from above. Honest, not
+  impressive; a low along-shore camera is where it would show.
+
+Also: `__pointbreak.fftSea` and `__pointbreak.setView(pos, target)` are
+exposed for instruments (the beach captures stood at `[60, 8, 130]` looking
+at `[-40, 0, 60]`). Captures and diffs in the session scratchpad only; no
+figure regenerated. `docs/WEB_THREE_SPEC.md` shading item 1 notes the FFT
+default.
+
+## ✔ SHIPPED (2026-09-10) — the "bug" was the structural impact mound; `moundh=0.5` ships
+
+**Live verdict (Andy, cliff, 10-s watch): "better, ship it."** `u_moundH` defaults to 0.5; `#moundh=1` is the pre-fix A/B. `frontw` stays 1.
+
+
+Elimination at `cam=Cliff`, Second Peak card day, sim 42, 4x head crops: the
+nub survives `#lip=0`, `#curtain=0`, `#splash=0`, `#curl=0`, `#crest=0`, and
+`#churn` (which boils the face foam around it but not it). It vanishes only
+under `#shape=legacy`. So it is `structuralMound = u_H0·(0.62·impactBand +
+0.27·boreBand)`: a ridge `frontWidth = 2.8 + 0.9·age` m wide in z, standing
+ABOVE the unbroken crest line at the moving front, painted white by the
+pocket floor. A real head collapses forward and down and never stands above
+its own crest; from a grazing camera a spike that does is an insect.
+
+Two instrument knobs (`#moundh=`, `#frontw=`; defaults are the shipped
+constants). Six-cell matrix at the cliff: **height is the knob, width is
+not** — `moundh=0.5` alone removes the flag and leaves a soft white peak,
+`moundh=0` leaves only the whitewater transition; widening at constant height
+just broadens the bump. Cost at the drone (the crash's own camera): `moundh=0.5`
+moves 0.03 % of pixels, `moundh=0` 0.04 %, at this sim time — the mound is
+height, and the nadir cannot see height. Lookout at 0.5 keeps a peak.
+
+Shipped at 0.5 on the live verdict above (stills alone were not trusted after the `#hump` lesson the same day). `#churn=1` ships
+ON independently: the head's texture boils at ~3 Hz instead of translating
+rigid; it does nothing to the geometry nub, which is why it was not enough.
+
+## ✔ MEASURED (2026-09-10) — the head's speed on the GPU line is realistic
+
+Before any more shape work on the "bug walking the wave tip" verdict, the
+tempo was measured on the SHIPPED shader (not the twin): `curlProbe` pocket
+argmax over x every 2 m, shore-normal transects, sim 40–47 s in 0.5 s steps
+(session scratchpad `headspeed.mjs`; a rendered frame must pass between
+`setSim` and the probe or `u_time` does not move). Second Peak, card day:
+x 38 → 66 m and z −92 → −60 m over 7 s — **~4 m/s alongshore, ~6 m/s along
+the line.** The JS twin's 49 m/s (φ 7.5°, `surferState`) is the constant-φ
+closed form and is wrong by ~8× about the drawn head; another entry for the
+CPU/GPU drift ledger (SCALE_AND_BROW §1b). The Hook and Sewers carry two
+heads on stage at once, so a single argmax hops between them; each segment
+is in the same few-m/s band. Consequence: the insect read is not speed. It
+is a rigid texture translating — hence `#churn` below.
+
+## ✗ JUDGED WORSE, STAYS OFF (2026-09-10) — `#hump=`: the breaking head gets a body
+
+**Live verdict (Andy, same day, on the 4x cliff crops): "way worse."** The
+goblet — a narrow white column with a forward-flared top — reads worse than
+the nub it replaced. Flag stays at 0; the mechanism (height at the head is
+what a cliff needs) is not refuted, the shape is. If it is picked up again:
+add the hump AFTER choppyPos's FD taps so it is not thrown like a lip, and
+make it a wide low pile (legacy-width bell), not a column.
+
+
+Cliff verdict (Andy, live): "foam still feels like a little bug walking the
+wave tip". Diagnosis, measured: every whitewater term at the head (pocket
+floor, fresh core, aerated lip) is PAINT and raises nothing, so from a
+grazing camera the head projects to a sliver. `#head=0` and `#roller=2` left
+the cliff head pixel-identical (the roller's mound sits on the impact band
+behind the line, water-coloured, and was judged from the drone). Head size is
+the compact pocket bell (σ 7.5·pockS m) on a 400 m stage; the JS twin's peel
+speed is 49 m/s at Second Peak (φ 7.5°), an upper bound the GPU line with the
+peel floor may undercut.
+
+Built (`shared/model-glsl.js`, after `foamPocket`; `u_hump`, rows in
+CONTROLS.md): raise the surface at the head by `0.45 · breakerCeilM/VIS ·
+u_hump` (physical metres, VIS-scaled with the wave), shaped as a steep-sided
+plateau (`smoothstep(0.12, 0.55, pocket·causalGate)`), textured two-octave,
+and force foam to 1 under it. Six iterations, each convicted by the curl
+probe (`__pointbreak.curlProbe`, hump 0 vs 1, height and foam along shore-
+normal transects every 10 m):
+
+1. linear-in-mask rise read as a smooth cusp and a dark dune → plateau + foam saturation;
+2. the lead gate raised an unbroken crest → crossed side only (`breakerCausalGate`);
+3. `brkW` gate (section gaps) — no effect on the dune, kept for honesty;
+4. `humpLine` (25 m window on the baked line, the fresh core's own gate) — no effect;
+5. **the probe found the dune**: x = 110, z₀ = −27, an inner crest AT the
+   line with pocket 0.33, brk 0.52, foam 0.60 either way — foam the fragment
+   renders as aftermath, not a live head. The head itself at x = 40, z₀ = −90:
+   foam 0.95, rise 2.2 m displayed;
+6. `humpLive = exp(−age/3.2)`, the fragment's own `liveHead` e-fold → the
+   x = 110 rise drops 0.80 → 0.35 m displayed, the head to 1.44 m at `hump=1`.
+
+**Result at `hump=1`**: the head is a white mass with height and a ragged
+top; the inner-crest dune is reduced, not gone (the lifecycle says that
+station is 2–3 s old, nearly live, while the fragment thins its foam). **Open
+look question**: the raised crest's top flares forward because `choppyPos`
+throws the hump's steep gradient like a lip — reads as a goblet at `hump=2`.
+Candidate fixes if the verdict is "right idea, wrong shape": exclude the
+hump from the choppy gradient (add it after the FD taps), or widen the body
+(legacy-width bell) so it is a pile, not a column. Not in the JS twin. Judge
+at `cam=Cliff`; the drone cannot see it (0.07% of pixels).
+
 ## 2026-09-05 — first photographic field capture
 
 - `docs/research/FIELD_CAPTURE_2026-09-05.md` — pre-registration for the trip

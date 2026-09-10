@@ -85,6 +85,30 @@ vec2 detailGrad(vec2 p, float t){
     detailH(p + vec2(e, 0.0), t) - detailH(p - vec2(e, 0.0), t),
     detailH(p + vec2(0.0, e), t) - detailH(p - vec2(0.0, e), t)) / (2.0 * e);
 }
+
+// ---- FFT wind sea (2026-09-10, #fft=0 reverts) ----
+// Two JONSWAP cascades from fft-sea.js, read as slope (xy) and height (z) in
+// metres. Tiles are in the WIND frame: the spectrum is seeded along +x and the
+// world xz is rotated into that frame here, using the same oblique wind DETAIL
+// drifts on, so the two paths describe the same sea from the same quarter.
+// Slope textures are mipmapped, so sampling at distance averages toward the
+// mean normal by itself — the FFT path does not apply detailVis.
+uniform float u_fft;
+uniform float u_fftGain;    // slope gain on the FFT path (#fftg=, default 2.0); a look knob, not a measurement
+uniform sampler2D u_fftSlope0, u_fftSlope1;
+const vec2 FFT_WIND = vec2(0.916, -0.402);
+const float FFT_LEN0 = 211.0, FFT_LEN1 = 27.3;
+vec2 fftWindCoords(vec2 p){ return vec2(dot(p, FFT_WIND), dot(p, vec2(-FFT_WIND.y, FFT_WIND.x))); }
+vec2 fftTurn(vec2 v){ return FFT_WIND*v.x + vec2(-FFT_WIND.y, FFT_WIND.x)*v.y; }
+vec2 fftSlope(vec2 p){
+  vec2 w = fftWindCoords(p);
+  vec2 s = texture2D(u_fftSlope0, w / FFT_LEN0).xy + texture2D(u_fftSlope1, w / FFT_LEN1).xy;
+  return fftTurn(s);
+}
+float fftHeight(vec2 p){
+  vec2 w = fftWindCoords(p);
+  return texture2D(u_fftSlope0, w / FFT_LEN0).z + texture2D(u_fftSlope1, w / FFT_LEN1).z;
+}
 `;
 
 // ---------- kelp canopy ----------
@@ -1269,7 +1293,11 @@ void main() {
   float vAmp = 0.16 * (0.5 + 0.5*u_chop)
              * (1.0 - 0.85*clamp(foam, 0.0, 1.0)) * (1.0 - 0.9*boil)
              * (1.0 - 0.55*kelp);
-  P.y += detailH(P.xz, u_time) * vAmp * fade * (1.0 - land);  // sand doesn't ripple
+  // FFT height is in metres (rms ~0.16 m in the wind band); x2.0 puts its
+  // vertex bump a little above the noise's ~2 cm rms so the near field has
+  // some real relief. The fragment slope carries the full field regardless.
+  float bump = mix(detailH(P.xz, u_time), fftHeight(P.xz) * 2.0, u_fft);
+  P.y += bump * vAmp * fade * (1.0 - land);  // sand doesn't ripple
 
   vWorldPos = P;
   vSourceXZ = xz;
@@ -1301,6 +1329,10 @@ uniform float u_matte;      // 1 = matte the unmodeled world (#matte=0 reverts)
 uniform float u_crestRead;  // Track 5 crest-first read (face darkening + fresh-foam core); #crest=0 reverts
 uniform float u_lipAer;     // aerated lip/curl whitening on the fold geometry; #lip=1 arms it (default OFF)
 uniform float u_fidelityLook; // 0 current, 1 foam material, 2 + lifecycle/face/lip (#look=)
+uniform float u_pathGeo;    // 1 = Beer-Lambert path along the refracted sun and view rays; #path=0 reverts to the steepF stretch
+uniform float u_sheen;      // 1 = wet sand reflects sky and sun; #sheen=0 reverts to Lambert-only sand
+uniform float u_fpf;        // 1 = foam noise octaves fade with pixel footprint; #fpf=0 reverts
+uniform float u_churn;      // head churn gain (2026-09-10): the live head boils at ~3 Hz; #churn=0 reverts
 
 // ---- modeled-domain provenance ----
 // 1 where the model has authority, ramping to 0 where it does not: outside
@@ -1346,6 +1378,24 @@ float foamBumpH(vec2 p, float t){
   return vnoise2(p*1.35 + vec2(t*0.25, -t*0.18)) * 0.65
        + vnoise2(p*3.30 - vec2(t*0.12,  t*0.09)) * 0.35;
 }
+// ---- footprint fade (2026-09-10) ----
+// A value-noise octave with lattice spacing 1/f metres is undersampled once a
+// pixel covers more than about half of that; past there it does not carve
+// structure, it dithers. Textures get this for free from mipmapping. Procedural
+// noise does not, and the drone frames (0.57 m/px) showed the ~1.1 m erosion
+// octave as per-pixel salt on every foam edge. Fade each octave toward its
+// mean as the footprint crosses its Nyquist band, so distant foam loses its
+// fine structure the way a mipmapped texture would, not by turning to grain.
+// fp is metres per pixel (max of the two screen derivatives of the sample
+// coordinate). u_fpf = 0 returns 1 everywhere: the pre-fix A/B.
+float octW(float f, float fp){
+  float lattice = 1.0 / max(f, 1e-4);
+  return mix(1.0, 1.0 - smoothstep(0.25*lattice, 0.60*lattice, fp), u_fpf);
+}
+float footprintM(vec2 p){
+  return max(length(dFdx(p)), length(dFdy(p)));
+}
+
 vec2 foamGrad(vec2 p, float t){
   float e = 0.12;
   return vec2(
@@ -1457,6 +1507,26 @@ void main() {
     vec3 Nl = normalize(vec3(-hxL, 2.0*eL, -hzL));
     float lamL = 0.42 + 0.58*clamp(dot(Nl, sunDir), 0.0, 1.0);
     landCol = albedo * lamL;
+    // WET SHEEN (2026-09-10, #sheen=0 reverts). Wetness so far only darkened
+    // the albedo. What makes a beach read wet in a photograph is that the
+    // saturated sand and the draining swash film REFLECT: a water-filled
+    // surface has water's Fresnel response, blurred by the grain. Two terms,
+    // both gated by the same wetness the albedo uses so no new boundary is
+    // drawn: a sky reflection through Schlick on the fragment-FD land normal,
+    // and a broad sun lobe. The film band (the lowest ~0.3 m above the lifted
+    // waterline, where the last swash is still draining) is glossier than the
+    // damp band above it: the reflection sharpens toward the water's edge, the
+    // way the repo we borrowed this from drops roughness from 0.24 to 0.12
+    // there. Real wet sand is a rough mirror, so the sky term is held to 0.55
+    // of a true Fresnel to keep the beach a surface and not a second sea.
+    float cosL  = max(dot(Nl, V), 0.0);
+    float fresL = 0.02 + 0.98*pow(1.0 - cosL, 5.0);
+    float film  = wetness * (1.0 - smoothstep(0.02, 0.30, above));
+    float gloss = mix(0.30, 0.80, film) * wetness * (1.0 - terrace) * u_sheen;
+    vec3 skyL = skyColor(reflect(-V, Nl), t) * 0.74;
+    landCol = mix(landCol, skyL, clamp(fresL * gloss * 0.55, 0.0, 0.6));
+    float RdotVL = max(dot(reflect(-sunDir, Nl), V), 0.0);
+    landCol += vec3(0.90, 0.88, 0.84) * pow(RdotVL, mix(18.0, 60.0, film)) * 0.22 * gloss;
   }
   if (landF > 0.997) {
     // solidly ashore: fog and return, skipping the whole water stack.
@@ -1521,8 +1591,10 @@ void main() {
   // mod() jump in tSince lands on the crest line, where foam is fresh and the
   // seam is repainted before it can read.
   vec2 axz = sourceXZ - vec2(0.0, 1.1)*min(tSince, 7.0);
-  float er = vnoise2(axz*0.35 + vec2(t*0.08, -t*0.05))*0.65
-           + vnoise2(axz*0.90 + vec2(t*0.10, -t*0.07))*0.35;
+  // footprint of the LAGRANGIAN coordinate: the erosion rides sourceXZ
+  float fpS = footprintM(sourceXZ);
+  float er = mix(0.5, vnoise2(axz*0.35 + vec2(t*0.08, -t*0.05)), octW(0.35, fpS))*0.65
+           + mix(0.5, vnoise2(axz*0.90 + vec2(t*0.10, -t*0.07)), octW(0.90, fpS))*0.35;
   // FIELD-VIDEO PROBE (2026-08-15): real whitewater is a perforated material,
   // not a smooth translucent blur. Domain-warp three isotropic scales into
   // clumps, cells and pores. Fresh foam keeps mostly connected white mass;
@@ -1539,9 +1611,9 @@ void main() {
       vnoise2(cellP*0.12 + vec2(8.3, t*0.035)),
       vnoise2(cellP*0.12 + vec2(-5.7, -t*0.028))) - 0.5;
     cellQ = cellP + 5.5*cellWarp;
-    foamCell = vnoise2(cellQ*0.24 + vec2(t*0.08, -t*0.04))*0.52
-             + vnoise2(cellQ*0.72 - vec2(t*0.05,  t*0.03))*0.32
-             + vnoise2(cellQ*1.85 + vec2(-t*0.03, t*0.02))*0.16;
+    foamCell = mix(0.5, vnoise2(cellQ*0.24 + vec2(t*0.08, -t*0.04)), octW(0.24, fpS))*0.52
+             + mix(0.5, vnoise2(cellQ*0.72 - vec2(t*0.05,  t*0.03)), octW(0.72, fpS))*0.32
+             + mix(0.5, vnoise2(cellQ*1.85 + vec2(-t*0.03, t*0.02)), octW(1.85, fpS))*0.16;
     float cellCut = mix(0.40, 0.60, ageK);
     float cellAA = max(fwidth(foamCell)*1.5, 0.018);
     float cellInk = smoothstep(cellCut - cellAA, cellCut + cellAA, foamCell);
@@ -1580,6 +1652,22 @@ void main() {
   float pocketGateF = max(breakerCausalGate(lifeC.x),
                           breakerLeadGate(lifeC.x, dSdxC));
   float foamPocketF = vPocket * pocketGateF;
+  // ---- HEAD CHURN (2026-09-10, #churn=0 reverts) ----
+  // Cliff verdict: the head read as "a little bug walking the wave tip". The
+  // head's speed was measured on the GPU line (curlProbe pocket argmax, Second
+  // Peak card day): ~4 m/s alongshore, ~6 m/s along the line — realistic, so
+  // tempo is not the defect. What is: every head term is a RIGID texture that
+  // translates with the head, and a rigid bright thing sliding along a line
+  // is an insect. A real head tumbles — its surface boils at a few Hz while
+  // the head itself moves slowly. Two value-noise octaves confined to the
+  // live pocket, drifting AGAINST the peel (+x is down-point, so the pattern
+  // runs toward -x) fast enough that a fixed point sees ~3 Hz: lattice 1.1 m
+  // at 3.3 m/s and 0.45 m at 3.5 m/s. It modulates the pocket floor's edge
+  // and the foam's brightness, so the outline and the interior both work.
+  // Confined by (1 - ageK) to the fresh head; the wake keeps its lace clock.
+  float churnZone = clamp(foamPocketF*1.4, 0.0, 1.0) * (1.0 - ageK) * u_crestRead * u_churn;
+  float churn = 0.6*vnoise2(sourceXZ*0.9 + vec2(t*3.3, -t*1.1))
+              + 0.4*vnoise2(sourceXZ*2.2 + vec2(t*3.5,  t*1.7));
   // Track 5 attachment: the zipper's active break is ALWAYS whitewater — the
   // pocket gets a foam floor the erosion cannot carve away, so the head at
   // the line never renders dimmer than its own trailing bore. vPocket is a
@@ -1598,6 +1686,7 @@ void main() {
   // foamSizeAt is exactly 1.0 at the 1.5 m card day, so the floor is unchanged
   // there and the relative claim is now true at every size instead of one.
   foamM = max(foamM, u_crestRead * 0.72 * mix(1.0, foamSizeAt(sourceXZ.x), u_lipSize)
+                     * mix(1.0, 0.80 + 0.40*churn, churnZone)
                      * clamp(foamPocketF*1.5, 0.0, 1.0));
   // COMET CARVE (2026-08-14, #head=0 A/B): direction from altitude. The
   // line-attached stripe's whitewater encodes when the zipper passed each
@@ -1743,7 +1832,13 @@ void main() {
   // nothing beyond the vDepth varying the vertex stage already interpolates.
   float kelpM  = kelpMask(worldXZ, vDepth);
   float damp = (1.0 - 0.85*foamM) * (1.0 - 0.9*boil) * (1.0 - 0.55*kelpM);
-  vec2 g = detailGrad(worldXZ, t) * (0.55 + 0.55*u_chop) * damp * detailVis;
+  // FFT path: no detailVis — the slope texture's mips average the far field
+  // toward the mean normal, which is the physically right fade (see fft-sea.js).
+  // Gain 2.0 puts the FFT slope energy near the noise's so u_chop and the
+  // glitter lobes keep their calibration.
+  vec2 gNoise = detailGrad(worldXZ, t) * detailVis;
+  vec2 gFft   = fftSlope(worldXZ) * u_fftGain;
+  vec2 g = mix(gNoise, gFft, u_fft) * (0.55 + 0.55*u_chop) * damp;
   // M2's folded lip shows its underside (material is DoubleSide); flip the
   // geometric normal for back faces so the curl shades as a surface, not a hole
   vec3 Ng = normalize(vNormal) * (gl_FrontFacing ? 1.0 : -1.0);   // wave-scale normal
@@ -1824,7 +1919,24 @@ void main() {
   // tone-inversion the 2026-08-11 audit measured). Light crossing a steep
   // face travels a longer diagonal path through more water — stretch the
   // Beer-Lambert path with steepness and the sand return dies on the face.
-  float pathM = max(vDepth, 0.0) * 2.0 * (1.0 + mix(2.5, 3.2, fullLook)*steepF);   // down and back up
+  float pathLegacy = max(vDepth, 0.0) * 2.0 * (1.0 + mix(2.5, 3.2, fullLook)*steepF);   // down and back up
+  // GEOMETRIC PATH (2026-09-10, #path=0 reverts). The steepF stretch above is
+  // a scalar stand-in for something the geometry already knows: light reaches
+  // the bed along the REFRACTED sun ray and returns along the REFRACTED view
+  // ray, and each leg is depth / cos of that ray's angle from vertical. On a
+  // steep face both refracted rays lean over, the legs lengthen, and the sand
+  // return dies on the face for the reason it does in a photograph, not by a
+  // tuned constant. Looking down at flat water the two legs sum to ~2.1x
+  // depth, so the calibrated shallows barely move; the face is where the
+  // two paths part. Snell has no total internal reflection air->water, so
+  // refract() never returns zero here; the 0.12 floor guards a ray skimming
+  // the surface, which would otherwise open the path to infinity.
+  vec3 rayV = refract(-V, Ng, 1.0/1.333);
+  vec3 rayS = refract(-sunDir, Ng, 1.0/1.333);
+  float legV = 1.0 / max(-rayV.y, 0.12);
+  float legS = 1.0 / max(-rayS.y, 0.12);
+  float pathGeo = max(vDepth, 0.0) * (legV + legS);
+  float pathM = mix(pathLegacy, pathGeo, u_pathGeo);
   // KELP polarity, part 2 (2026-08-18, #kelp=0 reverts; density half at
   // KELP_GLSL): the LANES between canopy clumps sit over the same mudstone
   // platform the kelp roots in, not over open beach sand — the Purisima
@@ -1912,7 +2024,7 @@ void main() {
                            * smoothstep(0.35, 1.35, vWorldPos.y));
   float lip = smoothstep(0.5, 1.5, u_xi)
             * mix(vPocket, connectedLip, fullLook);
-  float lipOld = vnoise2(sourceXZ*0.6 + t);
+  float lipOld = mix(vnoise2(sourceXZ*0.6 + t), churn, 0.6*churnZone);
   float lipTexture = 1.2*lipOld;
   if (fullLook > 0.5) {
     float lipCells = vnoise2(cellQ*0.58 + vec2(17.0, -9.0));
@@ -1931,8 +2043,8 @@ void main() {
   // sun shading multiplicatively dropped it to wet-grey (critique #1) — the
   // clump texture and sun term are narrow modulations on a white base now.
   // Structure (bore, streaks, lace, spray, crumb) arrives inside vFoam.
-  float ftex = 0.58 + 0.42*(vnoise2(sourceXZ*0.35 + vec2(t*0.15, -t*0.1))*0.6
-                          + vnoise2(sourceXZ*1.15 - vec2(t*0.08, t*0.05))*0.4);
+  float ftex = 0.58 + 0.42*(mix(0.5, vnoise2(sourceXZ*0.35 + vec2(t*0.15, -t*0.1)), octW(0.35, fpS))*0.6
+                          + mix(0.5, vnoise2(sourceXZ*1.15 - vec2(t*0.08, t*0.05)), octW(1.15, fpS))*0.4);
   ftex = mix(ftex, 0.42 + 0.58*foamCell, foamLook);
   float lamF = clamp(dot(Nf, sunDir), 0.0, 1.0);
   // fresh whitewater is the brightest thing in frame (tonal ceiling, raised
@@ -1940,6 +2052,7 @@ void main() {
   // thin blue-grey film that lets the darkened water body read through — the
   // bright->filmy gradient the aftermath was missing.
   vec3 foamCol = vec3(0.97, 0.98, 0.99) * (0.82 + 0.18*ftex) * (0.86 + 0.14*lamF);
+  foamCol *= mix(1.0, 0.68 + 0.46*churn, churnZone);   // head churn: interior boils
   // plate breaker (ice-floe critique, second half): exactly where the mask
   // saturates, deepen the clump-texture modulation so a dense sheet still
   // shows bubble structure instead of rendering as untextured paper white.

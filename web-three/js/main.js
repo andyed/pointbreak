@@ -34,6 +34,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
 import { makeSection } from './section.js';
 import { applyConditionDay, nextGoodDay, CONDITION_DAYS } from './conditions.js';
 import { burnoffFog } from './fog.js';
+import { createFftSea } from './fft-sea.js';
 import { MONTHLY_OCEAN, MONTHLY_OCEAN_PCT, getMonthlyOcean } from '../../data/climatology/pp_monthly_ocean.js';
 import { fetchTodaysOcean, cachedOcean, applyOcean, describeOcean } from '../../shared/cdip.js';
 import { readHashParams, shouldShowControls, parseSpeedParam, parseFidelityLook,
@@ -204,8 +205,17 @@ function makeWaterGeometry(segX, segZ) {
 // `const` and would be in the temporal dead zone at an earlier call site.
 let geo = makeWaterGeometry(SEG_X, SEG_Z);
 
+// FFT wind-sea substrate (2026-09-10): two JONSWAP cascades rendered to slope
+// and height textures every frame; the grid shaders read them in place of the
+// value-noise ripple when u_fft = 1. See fft-sea.js for why and provenance.
+const fftSea = createFftSea(THREE, renderer);
+
 const uniforms = {
   u_time:     { value: 0 },
+  u_fft:        { value: 1 },   // FFT wind-sea ripple; #fft=0 reverts to DETAIL_GLSL's value noise
+  u_fftGain:    { value: 2.0 }, // FFT slope gain, #fftg= (look knob; 2.0 matched the noise's slope energy by eye)
+  u_fftSlope0:  { value: fftSea.slope[0] },   // 211 m tile: (slope.x, slope.z, h)
+  u_fftSlope1:  { value: fftSea.slope[1] },   // 27.3 m tile
   // FD normal step = one CORE cell (the stretch leaves 80% of segments on the stage)
   u_cell:     { value: new THREE.Vector2(STAGE_W / (SEG_X * CORE), STAGE_D / (SEG_Z * CORE)) },
   u_T:        { value: state.T },
@@ -238,7 +248,10 @@ const uniforms = {
   u_headRead:   { value: 1 },   // comet-head aging ON — the first "#head=0 way better" verdict was
                                 // judged on a drifted OrbitControls camera; the clean-load rematch
                                 // (2026-08-14 night) went to #head=1. #head=0 stays the A/B revert.
-  u_pockSize:   { value: 1 },   // pocket footprint ~ H_eff ON; #pock=0 is the A/B revert
+  u_pockSize:   { value: 1 },
+  u_hump:       { value: 0 },   // head hump gain (EXPERIMENT 2026-09-10); #hump=<0..3> arms it
+  u_moundH:     { value: 0.5 }, // structural mound height; 0.5 shipped 2026-09-10 (cliff verdict), #moundh=1 is the pre-fix A/B
+  u_frontW:     { value: 1 },   // structural front band width multiplier, #frontw= (EXPERIMENT 2026-09-10)   // pocket footprint ~ H_eff ON; #pock=0 is the A/B revert
   u_lipSize:    { value: 1 },   // pocket->whitewater path carries the foam field's own size
                                 // factor (model-glsl foamSizeAt): lipFoam and GRID_FRAG's
                                 // pocket foam floor were the only two foam terms outside the
@@ -320,6 +333,10 @@ const uniforms = {
   // Field-video fidelity probe: 0 shipped/current, 1 foam material only,
   // 2 foam + per-wave hierarchy + tightened face/lip. #look= names the A/B.
   u_fidelityLook: { value: 0 },
+  u_pathGeo:    { value: 1 },   // Beer-Lambert path along refracted sun/view rays; #path=0 reverts (2026-09-10)
+  u_sheen:      { value: 1 },   // wet sand reflects sky and sun; #sheen=0 reverts (2026-09-10)
+  u_fpf:        { value: 1 },   // foam noise octaves fade with pixel footprint; #fpf=0 reverts (2026-09-10)
+  u_churn:      { value: 1 },   // head churn (live head boils at ~3 Hz); #churn=0 reverts (2026-09-10)
   // Lip overturn (shaders.js choppyPos). Promoted with lip/curtain/onset after
   // the 2026-08-26 all-preset matrix removed detached head plates on every
   // mapped drone view; #curl=0 restores the translated throw/drop path.
@@ -1962,6 +1979,7 @@ window.addEventListener('resize', resize);
 
 // ---------- loop ----------
 let simTime = 0;
+let fftLastT = NaN;   // sim time the FFT sea was last evolved to
 let last = performance.now();
 
 function frame(now) {
@@ -2303,6 +2321,9 @@ function frame(now) {
     updateAudio(camera, simTime, modelP(), uniforms.u_camUnder.value > 0.5);
   }
   
+  // the FFT sea is a pure function of sim time, so it advances only when the
+  // clock does and costs nothing on a paused frame
+  if (uniforms.u_fft.value > 0 && simTime !== fftLastT) { fftSea.update(simTime); fftLastT = simTime; }
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
@@ -2516,6 +2537,20 @@ function applyHashParams() {
   // the odd map and its q schedule together for the exact A/B
   if (h.get('pitch') === '0') uniforms.u_pitchOdd.value = 1;
   uniforms.u_fidelityLook.value = parseFidelityLook(h.get('look'));
+  // 2026-09-10 picture-side trio (see TODO.md BACKLOG 2026-09-10), each ON
+  // with its own revert: geometric Beer-Lambert path, wet-sand sheen, and
+  // footprint-faded foam octaves
+  if (h.get('path') === '0')  uniforms.u_pathGeo.value = 0;
+  if (h.get('sheen') === '0') uniforms.u_sheen.value = 0;
+  if (h.get('fpf') === '0')   uniforms.u_fpf.value = 0;
+  if (h.has('churn')) { const g = Number.parseFloat(h.get('churn')); if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_churn.value = g; }
+  if (h.get('fft') === '0')   uniforms.u_fft.value = 0;
+  // head hump experiment (2026-09-10): a foam-covered rise at the zipper head,
+  // default OFF pending the cliff verdict; #hump=1 is the nominal size
+  if (h.has('moundh')) { const g = Number.parseFloat(h.get('moundh')); if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_moundH.value = g; }
+  if (h.has('frontw')) { const g = Number.parseFloat(h.get('frontw')); if (Number.isFinite(g) && g >= 0.2 && g <= 6) uniforms.u_frontW.value = g; }
+  if (h.has('hump')) { const g = Number.parseFloat(h.get('hump')); if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_hump.value = g; }
+  if (h.has('fftg')) { const g = Number.parseFloat(h.get('fftg')); if (Number.isFinite(g) && g >= 0 && g <= 6) uniforms.u_fftGain.value = g; }
   // world-collision clamp defaults ON; #noclip=1 restores x-ray debugging
   if (h.get('noclip') === '1') noclipEnabled = true;
   // section-gap masking defaults ON; #gap=0 is the pre-fix A/B (the V returns)
@@ -2742,6 +2777,10 @@ requestAnimationFrame(frame);
 // reads rider state, and can jump the sim clock (e.g. straight to mid-ride)
 // through this. Not a public API — the UI stays keyboard-led.
 window.__pointbreak = {
+  // instruments: the FFT wind sea (fft-sea.js) and a free-camera setter so a
+  // headless capture can stand anywhere without a CAM_PRESETS entry
+  fftSea,
+  setView: (pos, target) => { camera.position.set(...pos); controls.target.set(...target); controls.update(); },
   camera, controls, state, surferGroup, sprayPoints, uniforms,
   sim: () => simTime,
   setSim: (t) => {

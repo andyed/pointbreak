@@ -51,6 +51,14 @@ then retires.
    (fragment-stage normal perturbation, not geometry). Two drift directions
    (swell-aligned + wind), amplitude damped inside foam and over the boil slick.
    This alone moves us from silk to water.
+   **2026-09-10:** the default detail field is now two JONSWAP FFT wind-sea
+   cascades (`web-three/js/fft-sea.js`, 211 m and 27.3 m tiles, slope +
+   height, mipmapped so distance averages the normal); the fbm octaves remain
+   as the `#fft=0` A/B. Every wavenumber runs at its own dispersion phase
+   speed with cos³ spread, which is what the noise could not do: the far
+   field decorrelates instead of sliding. Substrate only — the zipper,
+   carrier and foam clocks do not read it. Provenance and scope in the
+   module header; controls row `fft` in `docs/CONTROLS.md`.
 2. **Fresnel + glitter.** Schlick fresnel (F0 ≈ 0.02): near-black looking down,
    mirror at grazing. Sun glitter = specular from the detail normals with a
    tight highlight; thousands of sparkle hits in motion. Sky reflection from a

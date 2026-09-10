@@ -72,6 +72,9 @@ uniform float u_splash;     // #splash=1: concentrated impact spray + surface
 uniform float u_roller;
 #endif
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
+uniform float u_hump;       // head hump gain, #hump= (EXPERIMENT 2026-09-10, default 0 = off)
+uniform float u_moundH;     // structural impact/bore mound height multiplier, #moundh= (shipped 0.5 since 2026-09-10; 1 = pre-fix)
+uniform float u_frontW;     // structural front band width multiplier, #frontw= (EXPERIMENT 2026-09-10, default 1)
 uniform float u_lipSize;    // 1 = the pocket->whitewater path carries foamSizeAt() like the
                             // rest of the foam field, 0 = #lipn=0 A/B revert (size-free lip)
 uniform float u_stripeLife; // 1 = per-stripe along-crest lifecycle clock (#slife=1), default 0
@@ -1544,7 +1547,14 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float shape = clamp(u_breakShape, 0.0, 1.0);
   float boreBandLegacy = brk * env2 * exp(-abs(z - zb)/9.0);
   vec4 life = breakerLifecycleAtX(x, t);
-  float frontWidth = 2.8 + 0.90*life.x;
+  // #frontw / #moundh (EXPERIMENT 2026-09-10): from the cliff the mound at
+  // the head is a ridge a few metres wide standing ABOVE the unbroken crest
+  // line — the "bug" — where a real head collapses forward and down. These
+  // two knobs let the mound go wider and lower. Measured at the cliff: height
+  // is the knob, width is not; at the drone the mound is invisible either way
+  // (0.03% of pixels). Verdict "better, ship it": u_moundH ships at 0.5,
+  // #moundh=1 is the pre-fix A/B; u_frontW stays 1.
+  float frontWidth = (2.8 + 0.90*life.x) * max(u_frontW, 0.05);
   float frontBand = exp(-0.5*pow((z - life.y)/frontWidth, 2.0));
   float impactBand = frontBand*life.z;
   float boreBand = frontBand*life.w;
@@ -1553,7 +1563,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float trailBand = trailStart*trailEnd*life.w;
   float moundNoise = 0.75 + 0.25*vnoise2(vec2(x*0.2, t*0.8));
   float legacyMound = 0.30*u_H0*boreBandLegacy*moundNoise;
-  float structuralMound = u_H0*(0.62*impactBand + 0.27*boreBand)*moundNoise;
+  float structuralMound = u_H0*(0.62*impactBand + 0.27*boreBand)*moundNoise*u_moundH;
   h += mix(legacyMound, structuralMound, shape);
 
   // ---- the crash — impact aeration + ballistic spray (#splash=0 reverts) -
@@ -1856,6 +1866,57 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float pocketGate = max(breakerCausalGate(life.x),
                          breakerLeadGate(life.x, dSdxLine));
   float foamPocket = pocket * pocketGate;
+  // ---- HEAD HUMP (#hump=, EXPERIMENT 2026-09-10, default off) ----
+  // Cliff verdict: the breaking head reads as "a little bug walking the wave
+  // tip". Every whitewater term at the head is PAINT — the pocket floor, the
+  // fresh core, the aerated lip all whiten the crest and raise nothing, so
+  // from a grazing camera the head projects to a sliver. The structural mound
+  // above sits on the impact band behind the line and is water-coloured. A
+  // tumbling head has bulk: thrown water and aerated mass standing above the
+  // smooth crest line, and that silhouette is what a cliff sees. So raise the
+  // surface AT the head — the same crossed-side pocket the lip foam rides, so
+  // no new locus is introduced — by a fraction of the local breaking ceiling
+  // (physical metres; the trailing VIS multiply exaggerates it with the wave
+  // that carries it), textured so it is a mass and not a dome, and paint it
+  // white below. Gated on the mask the head already has, so a lull or an
+  // inactive reef raises nothing. Measured against #head=0 and #roller=2,
+  // both of which left the cliff head pixel-identical: the missing thing is
+  // height, not density. Not in the JS twin: the rider reads the GPU surface.
+  // Shape: a steep-sided plateau, not the bell itself. First cut raised
+  // h linearly in foamPocket and read as a smooth cusp at the head and a
+  // dark dune where the gate was partial, because height tracked the mask
+  // linearly while whiteness is thresholded downstream. Saturate both: any
+  // raised water is white, and the rise is a body with a ragged top.
+  // Crossed side ONLY. foamPocket unions a lead edge ahead of the curl for the
+  // lip; a hump there raised an unbroken crest into a dark dune, because the
+  // fragment carves foam ahead of the head. The mass is the collapsed water
+  // behind the breakpoint, so it takes the causal gate alone.
+  // ...and only where breaking is PERMITTED: brkW is depth's gate and the
+  // section mask without the inside ramp (the comet head's own factoring).
+  // Without it a crest crossing the line inside a section gap raised a dark
+  // dune — the foam is masked there in the fragment, the height was not.
+  // ...and only AT THE LINE. Inner crests re-break inshore and carry their
+  // own pocket, but the fragment's comet carve (behindC, keyed to the one
+  // traveling breakpoint's clock) dissolves their foam to film, so a hump on
+  // an inner head stood as a dark dune from the cliff. Same 25 m line window
+  // the fresh-foam core uses (GRID_FRAG nearLine): the mass is the primary
+  // head's, and inner re-breaks keep their painted head for now.
+  float humpLine = exp(-pow((z - zb)/25.0, 2.0));
+  // ...and only while the STATION is live. The probe (2026-09-10) found a
+  // second rise at x = 110 on a crest that is at the line but whose station
+  // the lifecycle clock aged past the live head: the fragment renders that
+  // foam as aftermath, so it stood as a dark dune. GRID_FRAG's liveHead is
+  // onStripe * exp(-age/3.2); take the same e-fold so the mass exists exactly
+  // where the fragment will paint a live head, and decays into the bore.
+  float humpLive = exp(-max(life.x, 0.0)/3.2);
+  float humpBody = smoothstep(0.12, 0.55, clamp(pocket * breakerCausalGate(life.x), 0.0, 1.0))
+                 * smoothstep(0.15, 0.60, brkW) * humpLine * humpLive;
+  float humpTex  = 0.55 + 0.45*(0.65*vnoise2(vec2(x*0.45 + t*0.9, z*0.35 - t*0.6))
+                                + 0.35*vnoise2(vec2(x*1.3 - t*0.7, z*1.1 + t*0.5)));
+  float humpMask = humpBody * humpTex;
+  float humpPhys = 0.45 * (breakerCeilM(xz)/VIS) * u_hump;
+  if (!(humpPhys == humpPhys)) humpPhys = 0.0;
+  h += humpPhys * humpMask;
   float lipFoam = foamPocket * (0.45 + 0.75*smoothstep(0.3, 1.4, u_xi));
   foam += lipFoam*mix(1.0, 0.52, shape)*mix(1.0, sizeFoam, u_lipSize);
 
@@ -1864,6 +1925,8 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
               * exp(-max(d, 0.0)/28.0) * smoothstep(0.55, 0.2, u_xi);
   foam += crumb * 0.6 * (0.6 + 0.4*vnoise2(xz*0.4 + vec2(t*0.3, 0.0)));
 
+  // the hump is whitewater: never let it stand as bare water
+  foam = max(foam, smoothstep(0.04, 0.30, humpMask) * step(0.001, u_hump));
   foam = clamp(foam, 0.0, 1.0);
 
   // along-crest texture so whitewater isn't a uniform bar
