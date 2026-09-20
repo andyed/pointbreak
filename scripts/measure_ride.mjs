@@ -1,6 +1,17 @@
 // M6 part 3 acceptance: does moving the phase field onto the baked Psi cost the
 // rider his wave?
 //
+// SCOPE NOTE (2026-09-19). The metric below is face height under the rider over
+// the best crest at his own station, which is MAXIMISED BY BREAKPOINT
+// ADHERENCE. That is correct for the psi=0 / psi=1 A/B this file exists to run
+// — both arms have the same kinematic rider, so adherence is the right control.
+// It is NOT the gate for a rider who is allowed to lose the wave: a correct
+// dynamic rider (GAME_PROJECTION Track A) drifts off the peel on purpose and
+// reads low here by construction. Use scripts/measure_rider_makeability.mjs
+// (and tests/rider-makeability-gate.test.js) for that question. Do not raise
+// or lower ACCEPT below to accommodate a rider change — the number is not
+// measuring what such a change alters.
+//
 // The metric is M4's, so the two are directly comparable: face height under the
 // rider as a fraction of the best crest available at his own station. M4 landed
 // at 0.81-0.87 across three spots x H0 in {0.7, 1.5, 2.5}; the spec's bar for

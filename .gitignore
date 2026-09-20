@@ -98,3 +98,9 @@ qa/reef-activation/*
 !qa/makeability/
 qa/makeability/*
 !qa/makeability/summary.json
+# Rider acceptance gate (scripts/measure_rider_makeability.mjs): the run is ~2 s
+# and tests/rider-makeability-gate.test.js re-derives it, but the summary is the
+# three-arm separation the research note cites, so it is committed.
+!qa/rider-makeability/
+qa/rider-makeability/*
+!qa/rider-makeability/summary.json
