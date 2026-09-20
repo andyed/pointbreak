@@ -7,14 +7,74 @@ no challenge; if every state reads closeout there is no ride. Either way there
 is no game in there, and porting to another engine would not put one there.
 
 **Answer: yes, and it is already shaped.** 315 states populate every rung of the
-skill ladder — 19.0% / 26.7% / 15.9% / 7.3% rideable at 6 / 8 / 10 / 12 m/s
-respectively, 31.1% giving no ride at any ladder speed. Spots keep distinct
+skill ladder — 54.3% / 17.5% / 12.4% / 2.5% rideable at 6 / 8 / 10 / 12 m/s
+respectively, 13.3% giving no ride at any ladder speed. Spots keep distinct
 personalities across the sweep, tide moves difficulty spot-specifically, and
 within a single wave the required speed varies smoothly enough to read as a
 level rather than as noise.
 
+**The difficulty signal is RIDE LENGTH, not the minimum skill.** At card state
+every spot is rideable at 6 m/s, and what separates them is how far that ride
+goes: 58 m at Privates against 196 m at The Hook, on the same day at the same
+board speed. See the supersession notice below — the figures in this paragraph
+are the corrected ones; the section tables further down are not all updated.
+
 Instrument: [`scripts/measure_makeability.mjs`](../../scripts/measure_makeability.mjs).
 Data: `qa/makeability/summary.json`.
+
+---
+
+> ## ⚠ SUPERSEDED IN PART — 2026-09-19, later the same day
+>
+> Every table below was computed with an **instantaneous** loss rule: a single
+> station where `V_peel > V_board` ended the ride. Building the actual rider
+> (Track A1/A2) showed that rule is too strict to be true. At Sewers the peel
+> touches 6.4 m/s against a 6 m/s board on **98 frames out of 5401** and the
+> total ground he gives up is **0.04 m** — a wave anyone makes, which the old
+> rule scored as a wipeout at the first sample over the line.
+>
+> Being beaten is a **distance**, not an instant. The rule is now an integrated,
+> **recoverable** pocket — he gives up ground where the peel is faster, takes it
+> back where it is slower, and is lost when the gap exceeds `RIDER_POCKET_M`
+> (18 m, shared with `model-js.js`, not restated). The field, the sections, the
+> reference rider and the real rider now use one rule and one constant.
+>
+> **What survives.** The lineup does contain a difficulty field; spots keep
+> distinct personalities; tide moves difficulty spot-specifically; Privates
+> still inverts; within one wave the required speed still ramps into an
+> impassable section and out again. §4's finding that the §4.6 peel collapse
+> *is* the closeout boundary is unaffected — it is about where the line exists,
+> not about who can ride it.
+>
+> **What changed, and it is not cosmetic.** The field is far more permissive and
+> the discriminator moved:
+>
+> | | old (instantaneous) | new (integrated pocket) |
+> |---|---|---|
+> | 315-state spread, min skill 6 / 8 / 10 / 12 / none | 19.0 / 26.7 / 15.9 / 7.3 / **31.1**% | **54.3** / 17.5 / 12.4 / 2.5 / 13.3% |
+> | card-state min skill | 6–10, varied by spot | **6 at every spot** |
+> | card-state ride at 6 m/s | 2–104 m | **58–196 m** |
+> | sections that never open | 3 of 12 | **0 of 12** (Sewers §0 at 10, Jack's §0 and Sharks §0 at 8) |
+> | tide at 6 m/s | Second Peak and Sharks **shut** | both open; only Privates still restricted (−0.18 → 0.76) |
+>
+> So `minSkillMps` against a 50 m bar has stopped discriminating, and **ride
+> length is now the difficulty signal** — 58 m at Privates against 196 m at The
+> Hook, at the same 6 m/s, on the same day. For a game that is arguably the
+> better currency anyway: not "can you ride here" but "how long a ride does this
+> place give you".
+>
+> One property the new rule brings that the old one did not: near the pocket
+> threshold the outcome is **knife-edge**. Measured, Jack's at 6 m/s peaks at
+> 17.4 m of lag against an 18 m pocket, and the station walk and the
+> time-stepped rider land on opposite sides of it — 68 m against 207 m of ride.
+> 66 of 140 state×board pairs graze the threshold that closely, and agreement
+> within them drops to 0.89 against 0.97 for pairs clear of it. Same shape as
+> MODEL.md §4.6: a branch decided by a criterion grazing zero.
+>
+> Regenerate with `node scripts/measure_makeability.mjs`; the committed
+> `qa/makeability/summary.json` already carries the new numbers.
+
+---
 
 ## 1. What is measured
 

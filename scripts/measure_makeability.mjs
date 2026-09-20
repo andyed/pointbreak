@@ -79,6 +79,9 @@ import { dirname, join } from 'node:path';
 const R = await import('./measure_break_activation.mjs');
 const bed = await import('../web-three/js/bed.js');
 const { PRESETS, PEEL_FLOOR } = await import('../shared/params.js');
+// The rider owns the loss rule; this instrument must not hold a second copy of
+// it (MODEL.md 4.5). model-js.js is THREE-free, so importing it here is free.
+const { RIDER_POCKET_M } = await import('../web-three/js/model-js.js');
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
@@ -159,22 +162,46 @@ export function stationsFor(key, state) {
 // A run is a maximal stretch of contiguous stations that are ungapped and
 // makeable at vBoard.  Length is arc length along the line, so a steeply
 // oblique section is not credited with only its x-extent.
+// A rider is beaten when he falls OUT OF THE POCKET, which is a distance, so
+// the loss condition is integrated along the line rather than thresholded at a
+// station.
+//
+// The first version of this was `ok = !gap && vReq <= v` per station: a single
+// sample over the board speed ended the ride. Measured against the real rider
+// that is far too strict -- at Sewers the peel touches 6.4 m/s against a 6 m/s
+// board on 98 frames of 5401 and the total lag that builds is 0.04 m, a wave
+// anyone makes. It also made this field disagree with the rider it is supposed
+// to predict: at one ladder rung BELOW the minSkill this function reported,
+// the dynamic rider still got a full ride in 85% of states.
+//
+// RIDER_POCKET_M is imported from model-js.js, not restated. One rule, one
+// constant, two consumers (MODEL.md 4.5).
+//
+// Lag is RECOVERABLE. It accumulates where the peel is faster than the board
+// and PAYS BACK where it is slower — a surfer who loses ground on a fast
+// section and then reaches a slow one catches up, which the time-stepped rider
+// does for free (his lag is breakX - xRider and that difference shrinks) and a
+// one-way max(0, ...) accumulator cannot. Measured: with the one-way form the
+// field called Jack's at 6 m/s lost after 68 m where the rider rode 207.
 export function scoreLadder(rows) {
   const per = {};
   for (const v of BOARD_SPEEDS) {
-    let bestM = 0, bestStartX = null, curM = 0, curStartX = null, okN = 0, n = 0;
+    let bestM = 0, bestStartX = null, curM = 0, curStartX = null, lag = 0, okN = 0, n = 0;
     for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      if (!Number.isFinite(r.vReqMps)) { curM = 0; curStartX = null; continue; }
+      const r = rows[i], p = rows[i - 1];
+      if (!Number.isFinite(r.vReqMps)) { curM = 0; curStartX = null; lag = 0; continue; }
       n++;
-      const ok = !r.gap && r.vReqMps <= v;
-      if (!ok) { curM = 0; curStartX = null; continue; }
+      if (r.gap) { curM = 0; curStartX = null; lag = 0; continue; }   // the wave ended
+      const seg = p && Number.isFinite(p.vReqMps) && !p.gap
+        ? Math.hypot(r.x - p.x, r.z - p.z) : 0;
+      // ground he gives up over this segment: the breakpoint covers it in
+      // seg/vReq, he needs seg/v, and the gap grows by the difference x vReq.
+      // see the note on recoverable lag below scoreLadder
+      if (seg > 0) lag = Math.max(0, lag + (seg / v - seg / Math.max(r.vReqMps, 1e-3)) * r.vReqMps);
+      if (lag > RIDER_POCKET_M) { curM = 0; curStartX = null; lag = 0; continue; }
       okN++;
       if (curStartX === null) { curStartX = r.x; curM = 0; }
-      const p = rows[i - 1];
-      if (p && Number.isFinite(p.vReqMps) && !p.gap && p.vReqMps <= v) {
-        curM += Math.hypot(r.x - p.x, r.z - p.z);
-      }
+      curM += seg;
       if (curM > bestM) { bestM = curM; bestStartX = curStartX; }
     }
     per[v] = { makeFrac: n ? okN / n : NaN, longestRunM: bestM, runStartX: bestStartX };
@@ -252,11 +279,13 @@ export function enumerateSections(rows) {
       cur.band = huttBand(cur.alphaMedianDeg);
       cur.runs = {};
       for (const vb of BOARD_SPEEDS) {
-        let best = 0, run = 0;
-        for (let j = 0; j < cur._pts.length; j++) {
-          const p = cur._pts[j];
-          if (p.v > vb) { run = 0; continue; }
-          if (j > 0 && cur._pts[j - 1].v <= vb) run += Math.hypot(p.x - cur._pts[j - 1].x, p.z - cur._pts[j - 1].z);
+        let best = 0, run = 0, lag = 0;
+        for (let j = 1; j < cur._pts.length; j++) {
+          const p = cur._pts[j], q = cur._pts[j - 1];
+          const seg = Math.hypot(p.x - q.x, p.z - q.z);
+          lag = Math.max(0, lag + (seg / vb - seg / Math.max(p.v, 1e-3)) * p.v);  // same pocket rule
+          if (lag > RIDER_POCKET_M) { run = 0; lag = 0; continue; }
+          run += seg;
           if (run > best) best = run;
         }
         cur.runs[vb] = best;

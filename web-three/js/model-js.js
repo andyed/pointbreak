@@ -390,6 +390,27 @@ export const RIDER_POCKET_M = 18;
 // as if it were elapsed ride time.
 const RIDER_MAX_DT_S = 0.1;
 
+// ---------- A2: what losing it looks like ----------
+// TODO.md's long-standing intent, "section outruns surfer -> fall + tumble in
+// whitewater", with the trigger now measured rather than authored.
+//
+// TWO FAILURE MODES, AND THEY ARE NOT THE SAME EVENT. The makeability field
+// already separates them and they deserve different outcomes:
+//   'outrun'   the peel beat him. He is behind the curl, the whitewater lands
+//              on him, and he goes over. A wipeout.
+//   'closeout' the wave shut down ahead of him -- a baked section gap. Nobody
+//              was beaten; the wave simply ended. A kickout, not a fall.
+// Losing a race is not the same as the race ending, and a model that renders
+// both as a tumble is telling the player something false about the water.
+//
+// The gap predicate is INJECTED as P.gapFn, the same contract as zbFn and
+// phaseFn and for the same reason: bed.js owns the bake and imports THREE,
+// this file must stay THREE-free so node can reach it. Absent -> closeouts are
+// simply not detected and every loss reads as an outrun.
+const TUMBLE_S = 2.0;        // how long the whitewater has him
+const TUMBLE_PUSH_M = 26;    // how far shoreward it carries him over that time
+const TUMBLE_DRIFT_FRAC = 0.35;  // of his last along-line speed, decaying
+
 // nearest sign change of S(x) - target to prevX (continuity, not global best),
 // bisected to sub-mm. Returns null when the crest is not on the line here.
 function crestCrossing(target, S, xLo, xHi, prevX) {
@@ -512,6 +533,7 @@ export function m4RideSolve(t, P, zbFn, st) {
   // pretending to be reversible, and a caller that jumps time (setSim) gets a
   // fresh ride, not a silently wrong one.
   let rx = x, rvx = vx, lagM = 0, fallen = false;
+  let lostTo = null, tumbling = false, tumbleZ = 0;
   const board = Number(P.boardMps);
   if (Number.isFinite(board) && board > 0) {
     const dtRaw = Number.isFinite(st.lastT) ? t - st.lastT : 0;
@@ -519,7 +541,8 @@ export function m4RideSolve(t, P, zbFn, st) {
     st.lastT = t;
     const newRide = !Number.isFinite(st.xRider) || st.rideN !== st.n || waiting || dt === 0;
     if (newRide) {
-      st.xRider = x; st.rideN = st.n; st.fallen = false;
+      st.xRider = x; st.rideN = st.n;
+      st.fallen = false; st.lostTo = null; st.fellT = null; st.fellX = null; st.fellVx = null;
     } else if (!st.fallen) {
       // the peel speed AT HIS station, not at the breakpoint's
       const ea = Math.max(st.xRider - e, xLo), eb = Math.min(st.xRider + e, xHi);
@@ -530,14 +553,46 @@ export function m4RideSolve(t, P, zbFn, st) {
       if (st.xRider > xHi) { st.xRider = x; st.rideN = st.n; }
     }
     lagM = x - st.xRider;
-    if (lagM > RIDER_POCKET_M) st.fallen = true;
+
+    // A2: decide IF and HOW this ride ends, before moving him any further.
+    if (!st.fallen && !waiting) {
+      const shutAhead = typeof P.gapFn === 'function' && P.gapFn(st.xRider);
+      if (shutAhead) {
+        st.fallen = true; st.lostTo = 'closeout'; st.fellT = t; st.fellX = st.xRider;
+        st.fellVx = rvx;
+      } else if (lagM > RIDER_POCKET_M) {
+        st.fallen = true; st.lostTo = 'outrun';   st.fellT = t; st.fellX = st.xRider;
+        st.fellVx = rvx;
+      }
+    }
     fallen = !!st.fallen && !waiting;
+    lostTo = fallen ? (st.lostTo || 'outrun') : null;
+
+    if (fallen) {
+      // Tumbling, then swimming. Only an OUTRUN tumbles: a closeout is a
+      // kickout and he simply stops where the wave stopped.
+      const since = Math.max(0, t - (st.fellT ?? t));
+      tumbling = lostTo === 'outrun' && since < TUMBLE_S;
+      if (tumbling) {
+        const u = since / TUMBLE_S;                  // 0 -> 1 through the tumble
+        const decay = (1 - u) * (1 - u);             // the soup lets go of him
+        // carried along-line at a fraction of his last speed, and SHOREWARD by
+        // the bore -- eased so the push is hardest right after he goes over
+        st.xRider = (st.fellX ?? st.xRider) + (st.fellVx ?? 0) * TUMBLE_DRIFT_FRAC
+                                              * TUMBLE_S * (u - u * u * 0.5) * 2;
+        tumbleZ = TUMBLE_PUSH_M * (1 - decay);
+      } else {
+        tumbleZ = lostTo === 'outrun' ? TUMBLE_PUSH_M : 0;
+      }
+    }
+
     rx = fallen ? st.xRider : Math.min(st.xRider, x);
     // his ground speed is what he is actually doing, not what the curl is doing
     const ra = Math.max(rx - e, xLo), rb = Math.min(rx + e, xHi);
     const rdS = (S(rb) - S(ra)) / Math.max(rb - ra, 1e-6);
     const rPeel = peelVelocity({ omega: w, phaseAlongDx: Math.max(rdS, 1e-4) }).xVelocityMps;
     rvx = waiting ? 2 : clamp(Math.min(Math.abs(rPeel ?? board), board), 2, 90);
+    if (fallen) rvx = clamp((st.fellVx ?? 2) * (tumbling ? TUMBLE_DRIFT_FRAC : 0.15), 2, 90);
   }
 
   const zbR = (Number.isFinite(board) && board > 0) ? zbFn(rx) : zb;
@@ -547,7 +602,8 @@ export function m4RideSolve(t, P, zbFn, st) {
 
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
   const faceOff = 11 + 5 * pump;       // shoreward/front face; same as authored path
-  const z  = zbR + faceOff;
+  // A2: the whitewater carries him shoreward off the face he was riding.
+  const z  = zbR + faceOff + tumbleZ;
   const vz = (waiting ? 0 : dzbdxR * rvx)
            + 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
   if (!Number.isFinite(rx) || !Number.isFinite(z)
@@ -556,5 +612,6 @@ export function m4RideSolve(t, P, zbFn, st) {
   // otherwise, so every existing consumer (mesh heading, POV gaze, follow cam)
   // keeps working and starts following the rider the moment he has a speed.
   // breakX/lagM/fallen are additive: nothing shipped reads them yet.
-  return { x: rx, z, vx: rvx, vz, pump, waiting, breakX: x, lagM, fallen };
+  return { x: rx, z, vx: rvx, vz, pump, waiting, breakX: x, lagM,
+           fallen, lostTo, tumbling };
 }
