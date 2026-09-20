@@ -89,7 +89,11 @@ test('a closeout is a kickout, not a wipeout', () => {
   assert.ok(rodeBefore > 3, 'the fixture must ride into the gap, not start inside it');
   assert.equal(lost, 'closeout', 'a gap under the rider must end the ride as a closeout');
   assert.equal(tumbled, 0, 'a kickout does not tumble');
-  assert.equal(maxPush, 0, 'and the whitewater does not carry him shoreward');
+  // < 1e-9, not === 0: the code forms z as zb + (11 + 5p) and this check as
+  // (zb + 11) + 5p, so the two associate differently and leave float residue.
+  // The exact-zero this once asserted was luck, not a stronger claim.
+  assert.ok(Math.abs(maxPush) < 1e-9,
+    `and the whitewater does not carry him shoreward (got ${maxPush})`);
 });
 
 test('RATE INDEPENDENT: the same ride at 60, 30, 12 and 4 fps', () => {
@@ -122,4 +126,117 @@ test('a clock JUMP restarts the ride rather than integrating it', () => {
   assert.ok(r.frames > 20, 'the fixture must still be marching');
   assert.equal(r.outruns, 0);
   assert.equal(r.maxLag, 0);
+});
+
+// ---------- A3: ride grammar ----------
+
+test('A3 takeoff: speed ramps instead of stepping', () => {
+  // He used to reach full peel speed on the first frame of a ride — an
+  // instantaneous step in vx, which is unphysical and snapped the mesh heading
+  // at every takeoff (surfer.js builds the forward vector from vx/vz).
+  const P = { ...P0, boardMps: 6 };
+  const st = { n: null, prevX: null };
+  const first = [];
+  for (let t = 0; t < 6; t += 1 / 30) {
+    const s = m4RideSolve(t, P, zbFn, st);
+    if (!s || s.waiting || s.fallen) continue;
+    first.push({ t, x: s.x, phase: s.phase });
+    if (first.length > 60) break;
+  }
+  assert.ok(first.length > 20, 'the fixture must ride');
+  assert.equal(first[0].phase, 'takeoff', 'a ride opens in the takeoff phase');
+  // Distance covered in the first half-second must be LESS than a rider
+  // already at trim would cover, and more than nothing.
+  const half = first.filter((f) => f.t - first[0].t <= 0.5);
+  const covered = half[half.length - 1].x - half[0].x;
+  assert.ok(covered > 0.1, `he must move off the takeoff (covered ${covered})`);
+  assert.ok(covered < 6 * 0.5,
+    `and must not already be at trim speed (covered ${covered} m in 0.5 s at a 6 m/s cap)`);
+  assert.ok(first.some((f) => f.phase === 'trim' || f.phase === 'racing'),
+    'and must leave the takeoff phase');
+});
+
+test('A3 phase partitions the ride by whether the pocket is being spent', () => {
+  // trim and racing are the same coordinates with different meanings: in trim
+  // the peel is slower than he is, racing it is faster and he is spending the
+  // pocket to stay on. Off the flag there is no phase to report.
+  const kin = m4RideSolve(20, { ...P0 }, zbFn, { n: null, prevX: null });
+  assert.equal(kin.phase, 'kinematic', 'no board speed, no ride grammar');
+
+  const P = { ...P0, boardMps: 6 };
+  const st = { n: null, prevX: null };
+  const seen = new Set();
+  let racingLag = 0, trimLag = 0, nTrim = 0, nRacing = 0;
+  for (let t = 0; t < 180; t += 1 / 30) {
+    const s = m4RideSolve(t, P, zbFn, st);
+    if (!s) continue;
+    seen.add(s.phase);
+    if (s.phase === 'trim') { trimLag += s.lagM; nTrim++; }
+    if (s.phase === 'racing') { racingLag += s.lagM; nRacing++; }
+  }
+  assert.ok(seen.has('takeoff') && seen.has('racing'),
+    `expected takeoff and racing among ${[...seen].join(', ')}`);
+  assert.ok(nRacing > 0 && nTrim >= 0);
+  if (nTrim > 0) {
+    assert.ok(racingLag / nRacing > trimLag / nTrim,
+      'racing must carry more lag than trim — that is what distinguishes them');
+  }
+});
+
+test('A3 kickout: a rider who reads the section exits instead of being pitched', () => {
+  const run = (lookaheadM) => {
+    const P = { ...P0, boardMps: 6, ...(lookaheadM ? { lookaheadM } : {}) };
+    const st = { n: null, prevX: null };
+    const ends = {};
+    let prev = false;
+    for (let t = 0; t < 180; t += 1 / 30) {
+      const s = m4RideSolve(t, P, zbFn, st);
+      if (!s) continue;
+      if (s.fallen && !prev) ends[s.lostTo] = (ends[s.lostTo] || 0) + 1;
+      prev = s.fallen;
+    }
+    return ends;
+  };
+  const blind = run(0);
+  const reader = run(25);
+  assert.ok((blind.outrun || 0) > 0, 'the blind rider must be getting pitched');
+  assert.ok((reader.kickout || 0) > 0, 'the reader must be kicking out');
+  assert.ok((reader.outrun || 0) < (blind.outrun || 0),
+    `reading the section must convert wipeouts into exits: `
+    + `blind ${blind.outrun} outruns, reader ${reader.outrun || 0}`);
+});
+
+test('A3 lookahead does not manufacture bails off the end of the stage', () => {
+  // peelAtX returns NaN outside [xLo, xHi]. It used to clamp the stencil
+  // endpoints but not the sample point, so past xHi both collapsed onto xHi,
+  // dS floored to 1e-4, and the peel read as an enormous speed — which made the
+  // lookahead call every ride hopeless near the stage end and kick out early
+  // (measured: Sewers 79 m -> 30 m with no gap and no lag near the pocket).
+  // Running off the end of the stage is a ride ending, not a section he cannot
+  // hold.
+  //
+  // Probed by absurdity: a lookahead longer than the whole stage samples almost
+  // nothing BUT off-stage water. With the defect that reads as a wall of
+  // infinite peel and bails on everything; correct, it reads as nothing to
+  // judge and behaves like a short lookahead. A first version of this test used
+  // a geometrically gentle line instead and was wrong about its own premise — a
+  // nearly straight line can have alpha -> 0, where V_peel = c/sin(alpha) is
+  // enormous, so "gentle" in shape is not gentle in peel.
+  const count = (lookaheadM) => {
+    const P = { ...P0, boardMps: 6, lookaheadM };
+    const st = { n: null, prevX: null };
+    let kicks = 0, prev = false;
+    for (let t = 0; t < 180; t += 1 / 30) {
+      const s = m4RideSolve(t, P, zbFn, st);
+      if (!s) continue;
+      if (s.fallen && !prev && s.lostTo === 'kickout') kicks++;
+      prev = s.fallen;
+    }
+    return kicks;
+  };
+  const near = count(25);
+  const absurd = count(400);          // longer than the stage itself
+  assert.ok(absurd <= near,
+    `a lookahead past the stage must not invent sections to bail on: `
+    + `25 m -> ${near} kickouts, 400 m -> ${absurd}`);
 });

@@ -659,10 +659,20 @@ let lastRiderSurface = null;
 // #board=8 turns it on; see docs/research/GAME_PROJECTION_2026-09-19.md Track A.
 let riderBoardMps = 0;
 let riderGapFn = null;
+// A3: how far ahead he reads the section, metres. 0 = he does not read it, and
+// rides into closeouts he could have seen — a legitimate skill level, not a
+// broken one. With it he pulls off the back instead of being pitched.
+let riderLookaheadM = 0;
 // Changing the board speed changes what kind of body the rider is, so the
 // ride state has to start over -- the same reset discipline preset / setM4 /
 // setPsi already use, and for the same reason: a carried-over xRider would
 // hand the new rider the old one's position and lag.
+function setRiderLook(v) {
+  const n = Math.max(0, Number(v) || 0);
+  if (n === riderLookaheadM) return;
+  riderLookaheadM = n;
+  refreshHUD();
+}
 function setRiderBoard(v) {
   const n = Math.max(0, Number(v) || 0);
   if (n === riderBoardMps) return;
@@ -694,6 +704,7 @@ function modelP() {
     // (wipeout), and those are not the same event.
     boardMps: riderBoardMps > 0 ? riderBoardMps : undefined,
     gapFn: riderGapFn,
+    lookaheadM: riderLookaheadM > 0 ? riderLookaheadM : undefined,
     // M6 part 3: the JS twin's phase field. Null off the Psi path, which makes
     // rayPhase() fall back to the frozen-LAM plane wave — the branch the twin
     // has always run. Set once per frame by the refraction bake below.
@@ -2371,6 +2382,7 @@ function frame(now) {
 // the reef and re-seed the clock, which is neither cheap nor idempotent.
 function applyLiveParams(h, { shapeChanged = false } = {}) {
   setRiderBoard(h.has('board') ? h.get('board') : 0);
+  setRiderLook(h.has('look') ? h.get('look') : 0);
   const p = h.get('preset');
   if (p && PRESETS[p]) applyPreset(state, p);
   // No preset in the hash means applyPreset never re-ran applyBed, so the bed
@@ -2451,6 +2463,7 @@ function applyLiveParams(h, { shapeChanged = false } = {}) {
   if (h.get('bed') === 'reef') state.bedShape = 0;
   if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
   if (h.has('board')) setRiderBoard(h.get('board'));
+  if (h.has('look')) setRiderLook(h.get('look'));
   if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.has('h0')) {
@@ -2747,6 +2760,7 @@ function currentHashSnapshot() {
     bed: ['reef', 'plane', 'measured'][state.bedShape || 0],
     surfer: state.surfer ? '1' : '0',
     board: riderBoardMps > 0 ? String(riderBoardMps) : '0',
+    look: riderLookaheadM > 0 ? String(riderLookaheadM) : '0',
     section: showSection ? '1' : '0',
     audio: isAudioEnabled() ? '1' : '0',
     speed: String(state.speed),

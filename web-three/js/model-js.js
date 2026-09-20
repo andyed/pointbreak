@@ -423,6 +423,39 @@ const TUMBLE_S = 2.0;        // how long the whitewater has him
 const TUMBLE_PUSH_M = 26;    // how far shoreward it carries him over that time
 const TUMBLE_DRIFT_FRAC = 0.35;  // of his last along-line speed, decaying
 
+// ---------- A3: ride grammar ----------
+// A ride is not one undifferentiated state between takeoff and loss. Three
+// things were missing, and only the first is a motion change:
+//
+// TAKEOFF. Until now he went from nothing to full peel speed on one frame — an
+// instantaneous step in vx, which is both unphysical and the reason the mesh
+// heading snapped at the start of every ride. He now accelerates from paddle
+// speed to trim over TAKEOFF_S, which is the second or so a surfer spends
+// getting to his feet and driving off the bottom.
+//
+// PHASE. 'trim' and 'racing' are the same position with different meanings: in
+// trim the peel is slower than he is and he is holding the pocket; racing, it
+// is faster and he is spending the pocket to stay on. The distinction is
+// already implied by lag, and naming it lets the camera, the mesh and a HUD
+// react to the ride rather than to the coordinates.
+//
+// KICKOUT. A competent surfer does not ride into a closeout and get pitched; he
+// sees it coming and pulls off the back. Given a lookahead he exits cleanly
+// where he would otherwise have been buried. This is the first thing the rider
+// DECIDES rather than suffers, and it is deliberately gated on P.lookaheadM
+// being supplied: a rider with no lookahead is a beginner who does not read the
+// section, and that is a legitimate skill level rather than a broken one.
+const TAKEOFF_S = 1.3;           // paddle speed -> trim
+const TAKEOFF_V0_FRAC = 0.30;    // of board speed, at the instant he stands up
+// Two different lookaheads, because they answer different questions. P.lookaheadM
+// is how far ahead he reads the SPEED of the section, which he must do early
+// because lag takes distance to shed. KICKOUT_EXIT_M is how late he leaves a
+// closeout he can see coming, and it is short on purpose: you spot the section
+// shutting down well in advance and ride at it anyway, pulling off at the last
+// moment. Bailing at the full read distance cost Sewers 62% of its ride (79 m
+// -> 30 m) for a closeout it never reached.
+const KICKOUT_EXIT_M = 6;
+
 // nearest sign change of S(x) - target to prevX (continuity, not global best),
 // bisected to sub-mm. Returns null when the crest is not on the line here.
 function crestCrossing(target, S, xLo, xHi, prevX) {
@@ -553,16 +586,35 @@ export function m4RideSolve(t, P, zbFn, st) {
     const dt = jumped ? 0 : Math.min(dtRaw, RIDER_MAX_DT_S);
     st.lastT = t;
     const newRide = !Number.isFinite(st.xRider) || st.rideN !== st.n || waiting || jumped;
+    // peel speed at an arbitrary station on the line, his own stencil
+    // NaN off the stage, deliberately. The endpoints clamp to [xLo, xHi] but
+    // the sample point did not, so past xHi both collapsed onto xHi, dS became
+    // 0 / 1e-6 -> floored to 1e-4, and the peel read as w/1e-4 -- an enormous
+    // speed that made the A3 lookahead call every ride hopeless near the stage
+    // end and kick out early (Sewers 79 m -> 30 m with no gap and no lag
+    // anywhere near the pocket). Running off the end of the stage is a ride
+    // ending, not a section he cannot hold, and the caller must tell them apart.
+    const peelAtX = (px) => {
+      if (!(px >= xLo && px <= xHi)) return NaN;
+      const a = Math.max(px - e, xLo), b = Math.min(px + e, xHi);
+      if (!(b - a > 1e-6)) return NaN;
+      const d = (S(b) - S(a)) / (b - a);
+      const v = peelVelocity({ omega: w, phaseAlongDx: Math.max(d, 1e-4) }).xVelocityMps;
+      return Number.isFinite(v) ? Math.abs(v) : NaN;
+    };
     if (newRide) {
-      st.xRider = x; st.rideN = st.n;
+      st.xRider = x; st.rideN = st.n; st.tookOffT = t;
       st.fallen = false; st.lostTo = null; st.fellT = null; st.fellX = null; st.fellVx = null;
     } else if (!st.fallen) {
-      // the peel speed AT HIS station, not at the breakpoint's
-      const ea = Math.max(st.xRider - e, xLo), eb = Math.min(st.xRider + e, xHi);
-      const dS = (S(eb) - S(ea)) / Math.max(eb - ea, 1e-6);
-      const vPeelHere = peelVelocity({ omega: w, phaseAlongDx: Math.max(dS, 1e-4) }).xVelocityMps;
-      const want = Number.isFinite(vPeelHere) ? Math.abs(vPeelHere) : board;
-      st.xRider += Math.min(want, board) * dt;
+      const vPeelHere = peelAtX(st.xRider);
+      const want = Number.isFinite(vPeelHere) ? vPeelHere : board;   // off-stage: no cap to fight
+      // A3 takeoff: he is not at trim speed the instant he stands up. Ramp from
+      // paddle speed over TAKEOFF_S, which also removes the one-frame step in
+      // vx that snapped the mesh heading at the start of every ride.
+      const since = t - (st.tookOffT ?? t);
+      const ramp = since >= TAKEOFF_S ? 1
+        : TAKEOFF_V0_FRAC + (1 - TAKEOFF_V0_FRAC) * (since / TAKEOFF_S);
+      st.xRider += Math.min(want, board * ramp) * dt;
       if (st.xRider > xHi) { st.xRider = x; st.rideN = st.n; }
     }
     lagM = x - st.xRider;
@@ -570,8 +622,39 @@ export function m4RideSolve(t, P, zbFn, st) {
     // A2: decide IF and HOW this ride ends, before moving him any further.
     if (!st.fallen && !waiting) {
       const shutAhead = typeof P.gapFn === 'function' && P.gapFn(st.xRider);
+      // A3 kickout: read the section ahead and pull off the back rather than
+      // ride into it. Only with a declared lookahead — no lookahead is a rider
+      // who does not read the wave, which is a skill level, not a bug.
+      const look = Number(P.lookaheadM);
+      let bail = false;
+      if (!shutAhead && Number.isFinite(look) && look > 0) {
+        const ahead = st.xRider + look;
+        const gapAhead = typeof P.gapFn === 'function'
+          && P.gapFn(st.xRider + KICKOUT_EXIT_M);
+        // ... or a stretch he plainly cannot hold. PROJECT the lag over the
+        // lookahead the same way it is actually integrated -- stepwise and
+        // RECOVERABLE -- rather than from one sample at x + look.
+        //
+        // The one-sample form read the peel at the far end and applied it over
+        // the whole distance, which made him bail on water he was about to
+        // recover in: Sewers at 6 m/s has no racing frames and no outruns at
+        // all, and the one-sample lookahead still had him kick out 12 times and
+        // cost 62% of his ride (79 m -> 30 m). Same one-sided error as the
+        // first pocket rule, in a new place.
+        const STEPS = 6, ds = look / STEPS;
+        let proj = lagM;
+        for (let k = 1; k <= STEPS && proj <= RIDER_POCKET_M; k++) {
+          const vk = peelAtX(st.xRider + k * ds);
+          if (!Number.isFinite(vk)) break;   // off the stage: stop reading, do not judge
+          proj = Math.max(0, proj + (ds / board - ds / Math.max(vk, 1e-3)) * vk);
+        }
+        bail = gapAhead || proj > RIDER_POCKET_M;
+      }
       if (shutAhead) {
         st.fallen = true; st.lostTo = 'closeout'; st.fellT = t; st.fellX = st.xRider;
+        st.fellVx = rvx;
+      } else if (bail) {
+        st.fallen = true; st.lostTo = 'kickout'; st.fellT = t; st.fellX = st.xRider;
         st.fellVx = rvx;
       } else if (lagM > RIDER_POCKET_M) {
         st.fallen = true; st.lostTo = 'outrun';   st.fellT = t; st.fellX = st.xRider;
@@ -585,7 +668,7 @@ export function m4RideSolve(t, P, zbFn, st) {
       // Tumbling, then swimming. Only an OUTRUN tumbles: a closeout is a
       // kickout and he simply stops where the wave stopped.
       const since = Math.max(0, t - (st.fellT ?? t));
-      tumbling = lostTo === 'outrun' && since < TUMBLE_S;
+      tumbling = lostTo === 'outrun' && since < TUMBLE_S;   // only a wipeout tumbles
       if (tumbling) {
         const u = since / TUMBLE_S;                  // 0 -> 1 through the tumble
         const decay = (1 - u) * (1 - u);             // the soup lets go of him
@@ -608,6 +691,17 @@ export function m4RideSolve(t, P, zbFn, st) {
     if (fallen) rvx = clamp((st.fellVx ?? 2) * (tumbling ? TUMBLE_DRIFT_FRAC : 0.15), 2, 90);
   }
 
+  // A3 phase. Derived, never stored: the same position means different things
+  // depending on whether the pocket is being held or spent.
+  let phase = 'kinematic';
+  if (Number.isFinite(board) && board > 0) {
+    if (waiting) phase = 'waiting';
+    else if (fallen) phase = tumbling ? 'tumbling'
+      : (lostTo === 'outrun' ? 'swimming' : lostTo);       // 'closeout' | 'kickout'
+    else if (t - (st.tookOffT ?? t) < TAKEOFF_S) phase = 'takeoff';
+    else phase = lagM > 1 ? 'racing' : 'trim';
+  }
+
   const zbR = (Number.isFinite(board) && board > 0) ? zbFn(rx) : zb;
   const rxa = Math.max(rx - e, xLo), rxb = Math.min(rx + e, xHi);
   const dzbdxR = (Number.isFinite(board) && board > 0)
@@ -626,5 +720,5 @@ export function m4RideSolve(t, P, zbFn, st) {
   // keeps working and starts following the rider the moment he has a speed.
   // breakX/lagM/fallen are additive: nothing shipped reads them yet.
   return { x: rx, z, vx: rvx, vz, pump, waiting, breakX: x, lagM,
-           fallen, lostTo, tumbling };
+           fallen, lostTo, tumbling, phase };
 }
