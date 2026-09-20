@@ -178,7 +178,69 @@ breaking outward from a point, an A-frame closeout — and V_req spikes through
 This is a level: an easy entry, a section that only an expert makes, a payoff
 stretch after it. Nobody authored it.
 
-## 6. What this does and does not settle
+## 6. Sections are already a progression ladder
+
+A **section** is a maximal stretch of line between physical dividers: a baked
+gap, or the peel passing through alpha = 0 (the wave breaking outward from a
+point, where V_peel is unbounded and the direction flips). Both are features of
+the water, so a section keeps its identity at every skill level.
+
+> A first cut split sections wherever V_req exceeded a ceiling. That made every
+> section end at a near-ceiling station and drove its difficulty metric to the
+> ceiling by construction — the instrument was measuring its own cut. The
+> dividers are now speed-independent for that reason.
+
+A rider does not traverse a section end to end; he takes off inside it and holds
+on until he is beaten. So difficulty is not one number: per board speed, the
+table gives the longest makeable stretch **within** the section, and `opens at`
+is the slowest ladder speed yielding at least 15 m of it.
+
+| spot | # | x range m | length m | V_req p10/med/p90 | α° med | Hutt | ride m @6/8/10/12 | opens at |
+|---|---|---|---|---|---|---|---|---|
+| Sewers | 0 | −191 → −147 | 45 | 8.3 / 39.5 / 50.0 | 8.1 | pro | 0 / 2 / 6 / 6 | never |
+| | 1 | −89 → 65 | 218 | 5.0 / 9.3 / 13.5 | 45.2 | advanced | 72 / 102 / 138 / 159 | 6 |
+| First Peak | 0 | −24 → 46 | 127 | 5.1 / 6.3 / 12.8 | 62.5 | intermediate | 61 / 108 / 111 / 111 | 6 |
+| Second Peak | 0 | −45 → −25 | 27 | 6.0 / 8.2 / 28.5 | 34.6 | expert | 4 / 14 / 19 / 19 | 10 |
+| | 1 | −3 → 123 | 158 | 6.1 / 7.4 / 26.4 | 42.8 | advanced | 0 / 100 / 114 / 120 | 8 |
+| Jack's (38th) | 0 | −147 → −119 | 28 | 7.2 / 16.3 / 33.6 | 14.1 | pro | 0 / 2 / 4 / 4 | never |
+| | 1 | −75 → 153 | 277 | 6.1 / 7.0 / 19.6 | 40.5 | advanced | 5 / 192 / 221 / 233 | 8 |
+| The Hook | 0 | −165 → −101 | 68 | 5.4 / 6.8 / 9.7 | 38.3 | expert | 13 / 37 / 52 / 68 | 8 |
+| | 1 | −41 → 123 | 213 | 5.0 / 6.4 / 13.2 | 50.5 | advanced | 104 / 160 / 180 / 190 | 6 |
+| Sharks | 0 | −124 → −92 | 32 | 5.5 / 14.9 / 18.7 | 15.5 | pro | 2 / 6 / 6 / 8 | never |
+| | 1 | −44 → 164 | 237 | 6.2 / 7.0 / 27.2 | 37.3 | expert | 0 / 162 / 182 / 193 | 8 |
+| Privates | 0 | −180 → 48 | 232 | 6.7 / 14.0 / 20.6 | 15.7 | pro | 6 / 33 / 52 / 66 | 8 |
+
+**12 sections at card state, and they stage themselves**: 3 open at 6 m/s, 5
+more at 8, 1 more at 10, and 3 never open at card state. The three that never
+open are all far-outside stretches (Sewers −191, Jack's −147, Sharks −124) where
+the peel is in the `pro` band — the outside bowl that only turns on in other
+conditions. That is an unlock table nobody wrote.
+
+## 7. Tide is a timeout on where a session can be spent
+
+The tide band at card H0/T over which a ride of ≥ 50 m exists, at each board
+speed, from a 13-step sweep of the full range:
+
+| spot | 6 m/s | 8 m/s | 10 m/s | 12 m/s |
+|---|---|---|---|---|
+| Sewers | −0.46 → 0.22 | −0.86 → 0.22 | −0.86 → 0.63 | −0.86 → 0.76 |
+| First Peak | −0.59 → 0.09 | −0.86 → 0.22 | −0.86 → 0.22 | −0.86 → 0.22 |
+| Second Peak | **closed** | −0.86 → 0.63 | −0.86 → 0.63 | −0.86 → 0.63 |
+| Jack's (38th) | −0.86 → −0.59 | −0.86 → 0.36 | −0.86 → 0.36 | −0.86 → 0.36 |
+| The Hook | −0.86 → 0.63 | −0.86 → 0.63 | −0.86 → 0.63 | −0.86 → 0.76 |
+| Sharks | **closed** | −0.86 → 0.22 | −0.86 → 0.76 | −0.86 → 0.76 |
+| Privates | 0.49 → 0.76 | 0.36 → 0.76 | −0.86 → 0.76 | −0.86 → 0.76 |
+
+At 6 m/s the world is small and specific: The Hook is open almost always, Sewers
+and First Peak are mid-tide only, Jack's has a narrow low-tide window three
+steps wide, **Privates is high-tide only** — the one spot that inverts — and two
+spots are shut entirely. By 12 m/s almost everything is open almost always.
+
+**Skill buys time and place before it buys speed.** The constraint the game
+needs — "you cannot surf there right now" — is already in the bathymetry, spot
+by spot, and it resolves as the rider improves. No timer had to be invented.
+
+## 8. What this does and does not settle
 
 **Settled.** The lineup contains a difficulty field. It is varied across spots,
 across tide, and along a single wave. The measurement is cheap (10 s for 315
