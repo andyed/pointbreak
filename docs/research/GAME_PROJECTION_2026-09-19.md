@@ -32,44 +32,66 @@ kinematic formula. Both are false the moment `vx` is a state.
 **Nothing in Track A can start until the instruments are replaced.** This is
 Phase 0 and it is not optional.
 
-### 0.2 The giant wave is not available at this stage, and that is bathymetry
+### 0.2 ~~The giant wave is not available at this stage~~ — CORRECTED 2026-09-19
 
-Measured today: the depth under the baked break line at card state, and the
-depth-limited breaking ceiling `γ·h` at γ = 0.78.
+> **This section was wrong and is kept, struck through, because the error is
+> instructive.** `scripts/measure_size_headroom.mjs` measured it and overturned
+> it the same day. The corrected reading follows; §C3 is updated to match.
 
-| spot | card H₀ | depth under line, median | γ·h = max breaking height | ceiling ÷ card H₀ |
-|---|---|---|---|---|
-| Sewers | 2.2 | 4.04 m | **3.15 m** | 1.43 |
-| First Peak | 1.8 | 3.27 m | 2.55 m | 1.42 |
-| Second Peak | 1.5 | 2.78 m | 2.17 m | 1.44 |
-| Jack's (38th) | 1.1 | 2.11 m | 1.65 m | 1.50 |
-| The Hook | 1.5 | 2.77 m | 2.16 m | 1.44 |
-| Sharks | 1.0 | 1.95 m | 1.52 m | 1.52 |
-| Privates | 0.7 | 1.49 m | **1.17 m** | 1.66 |
+**What I claimed.** That γ·h at the card break line is a ceiling, that the
+1.43–1.66 ratio to card H₀ is headroom, and that the tight spread of that ratio
+across all seven spots was an unplanned regularity worth noting.
 
-The largest breaking wave anywhere in this lineup is **3.15 m at Sewers**. A 6 m
-swell does not make a 6 m wave here — it exceeds `γ·h` far seaward, breaks out
-there, and arrives as a wide field of whitewater. `bed.js`'s own
-`depthBreakOffset` saturates against its +160 m clamp
-([`bed.js:853`](../../web-three/js/bed.js:853)) when this happens.
+**Why it is wrong.** The break line is *defined* as the zero crossing of
+`H₀·Ks − γ·h`. So at the line `H₀·Ks = γ·h` identically, and therefore
+`γ·h / H₀ = Ks`. The "regularity" was the shoaling coefficient wearing a
+disguise (measured Ks at the line: 1.385–1.578). And γ·h is not a ceiling — it
+is the height the card wave **already breaks at**. Sewers at H₀ 2.2 does not
+break at 2.2 m. It breaks at 3.15 m.
 
-The unplanned regularity is worth noting: **the ratio is 1.43–1.66 across all
-seven spots.** Every card H₀ sits at roughly two-thirds of its own reef's
-ceiling. There is real headroom — about 1.5× — and then a wall that is made of
-measured bathymetry, not of code.
+**What is true instead.** Raising H₀ migrates the line seaward into deeper
+water and the breaking height rides up with it:
 
-Supporting facts: `#h0=` and the slider clamp to 3.0 m
-([`params.js:42`](../../shared/params.js:42),
-[`main.js:2434`](../../web-three/js/main.js:2434)); `breakerCeilM` clamps to 14 m
-displayed = 4.375 m physical
-([`model-glsl.js:948`](../../shared/model-glsl.js:948)); the lip throw caps face
-height at 3.5 m ([`shaders.js:718`](../../web-three/js/shaders.js:718)). Those
-three are one-line constants. The fourth is not.
+| spot | Hb @ card | Hb @ H₀ 3.0 | d ln Hb / d ln H₀ |
+|---|---|---|---|
+| Sewers | 3.15 m | 4.09 m (+30%) | 0.81–0.84 |
+| First Peak | 2.55 m | 3.91 m (+53%) | (all seven spots |
+| Second Peak | 2.17 m | 3.80 m (+75%) | fall in this band; |
+| Jack's (38th) | 1.65 m | 3.77 m (+128%) | flat would be 0) |
+| The Hook | 2.15 m | 3.83 m (+78%) | |
+| Sharks | 1.52 m | 3.74 m (+146%) | |
+| Privates | 1.17 m | 3.80 m (+225%) | |
 
-And a trap: **bigger H₀ *lowers* measured Iribarren** (ξ = tanβ/√(H/L₀) on a
-fixed shelf slope), so size makes the model classify the wave as *more spilling*
-([`shaders.js:713-717`](../../web-three/js/shaders.js:713)). Size buys violence,
-not barrel. Hollowness stays an authored knob.
+Sewers 2.2 → 3.0 concretely: the line moves 40 m seaward, broken area +20%,
+**gap fraction falls 0.22 → 0.15**, and subtended crest height from the
+aim-following cameras +29%. Card → ×2 is 1.73–1.77× on the Lineup camera at
+every spot. That is several times a size JND — not a number without a sensation.
+
+**Where the real wall is.** H₀ ≈ 8.8, when the line reaches the depth-grid
+edge — four times the card day. Everything that binds before it is a one-line
+constant: the 3.0 slider (binds 3.08–4.00), `hM`'s 3.5 m face cap (3.30–4.40),
+`breakerCeilM` (4.40–6.00), the 500 m stage (7.50–9.00). A new bed is **not**
+needed for size.
+
+**What actually blocks "giant", and it is not depth.** The skew clamp is
+already saturated at the **card** state on 91–100% of stations at every spot:
+`skew = clamp(excess·0.82, 0, 0.8)`, and `excess ≡ 1.0` at the line by the same
+definition above, so 0.82 > 0.80 always. Size therefore buys scale and never
+form. That is why §C3(2) is now the *only* remaining lever rather than one of
+three.
+
+**One surviving fragment, narrowed.** `iribarrenMeasured` does fall as
+H₀^−½ on a fixed slope — but `u_xi` reads the **authored** preset, so it reaches
+no pixel; nothing in the renderer classifies breaker type from it. Local ξ built
+on the bed slope *at* the line actually **rises** at 5 of 7 spots as the line
+migrates onto steeper bed. The claim "size makes the wave read more spilling" is
+false in the shipped renderer.
+
+Also corrected: the `depthBreakOffset` clamp that binds is **−60, not +160**.
+
+**The lesson worth keeping.** A ratio that is suspiciously tight across seven
+independent spots is more likely to be an identity than a discovery. I should
+have divided it out before calling it a finding.
 
 ### 0.3 Sections and tide are half-built already, in the right direction
 
@@ -93,10 +115,29 @@ CDIP nowcast cache ([`cdip.js:54`](../../shared/cdip.js:54)).
 
 ---
 
-## Phase 0 — Unblock the instruments
+## Phase 0 — Unblock the instruments — **DONE 2026-09-19** (`aa5795e`, `7386022`)
 
 No game work is safe until these land. All four are small and none change
-behaviour.
+behaviour. What the doing changed, beyond the table:
+
+- **0.3 did not collapse to one stencil, and must not.** The two forms disagree
+  by 0.13–1.1% at the rider's 1.5 m stencil and **6.6–51%** at bed.js's 14.06 m
+  one; measured again per-station along the stage, the spread reaches **280%
+  (Second Peak) and 487% (Sewers)**. They share one `peelVelocity()` now, with
+  the stencil passed per call site. Sharing a stencil would have moved the rider
+  by up to half his speed while looking like a tidy-up.
+  *But*: both stencils produce **identical** arm scores in the new gate. Peel
+  speed is wildly stencil-dependent; outrun classification is not. So A1 does
+  **not** have to settle the stencil first — that was the wrong worry.
+- **0.1's arm 1 is a regression guard, not a discriminator.** At unbounded board
+  speed nothing can outrun the rider, so it can only catch a hallucinated loss.
+  Arms 2 and 3 carry the weight: same spot, same speed, same field, shipped
+  rider **0.00–0.14** against reference dynamic rider **1.00**.
+- Two of my own design errors, both caught by the instrument failing rather than
+  by review: scoring completion against an arbitrary `stageEnd − 14`, and
+  running every spot at one 6 m/s ladder rung when the field says three of them
+  need 8–10 and cannot be taken off on at 6.
+- `GAP_SLOPE` collapsed from three copies of a bare `2.9` to one export.
 
 | # | Step | Why | Gate |
 |---|---|---|---|
@@ -280,17 +321,24 @@ Independent of A and B. Scoped honestly against §0.2.
 
 ### C3. What "giant" could actually mean
 
-Three readings, in increasing cost:
+Three readings, re-ranked by the §0.2 correction:
 
-1. **Run the existing spots nearer their ceiling.** ~1.5× on card H₀, free, and
-   §0.2 says the ceiling is real. Cheapest, and it is a real perceptual change.
-2. **Fix the face-angle deficit.** Re-budget the bend rather than the carrier —
-   the carrier is at its structural limit. Bounded work, real payoff, and it is
-   what "more dramatic" mostly means.
-3. **A different bed.** A genuinely giant wave needs deeper water at the break,
-   which means new NCEI depth patches for a different place. That is a data
-   pipeline task with a builder that already exists — not a model change. It is
-   also the only path that does not fight §0.2.
+1. **Run the existing spots nearer their ceiling — confirmed free and confirmed
+   perceptual.** +30% to +225% of breaking height inside the existing 3.0
+   slider, +20% broken area, and the peel gets *better* (gap fraction falls).
+   The slider clamp binds before any physics does at 5 of 7 spots, so raising
+   it buys the rest; `hM`'s 3.5 m face cap is the next thing to meet, not a
+   depth wall. One line, `params.js:42`. **This is a shipped product change —
+   it widens what a user can dial — so it is proposed, not assumed.**
+2. **Fix the face-angle deficit — this is what "giant" means, and the blocker
+   is now named.** The skew clamp is not approaching its ceiling with size; it
+   is already there at the card state on every spot. That is exactly why (1)
+   gives a taller, wider, longer-breaking wave that is *the same shape*.
+   Everything (1) buys is scale; nothing it buys is form. The carrier's skew is
+   at a structural limit (s > 1 goes multivalued), so the work is re-budgeting
+   the bend — and it is the only remaining lever, not one of three.
+3. **A different bed is not needed for size.** Keep it for a genuinely
+   different *place*, not for a bigger wave here.
 
 **One piece of good news:** §4.6's peel collapse is a *low*-H₀ pathology. The
 floors are 0.78–1.62 m. Going bigger moves **away** from the repo's hardest open
