@@ -91,3 +91,10 @@ data/bathy/pp_bathy_csmp_aptos.json
 !qa/reef-activation/
 qa/reef-activation/*
 !qa/reef-activation/summary.json
+# Makeability field (scripts/measure_makeability.mjs): 315 states in ~10 s, so
+# the run is cheap to repeat — but summary.json carries the per-state ladder the
+# research note cites, and diffing it across commits is how a tuning change is
+# shown to have moved the difficulty field rather than only the pixels.
+!qa/makeability/
+qa/makeability/*
+!qa/makeability/summary.json
