@@ -21,7 +21,7 @@ import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contou
          rayS, oceanH as oceanHJS, surferState as surferStateJS,
          SET_DEPTH, SET_DEPTH_LEGACY, LAM, SET_ANCHOR_S, setEnv, reefWindow, sectionShift,
          setVis } from './model-js.js';
-import { iribarrenMeasured } from './bed.js';
+import { iribarrenMeasured, GAP_SLOPE } from './bed.js';
 import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          bakeBreakLine, breakZAt, derivedAlphaDeg, breakGapAt, BREAK_Z_MIN, BREAK_Z_MAX,
          reefFitFor, reefActivationH0, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
@@ -3137,7 +3137,7 @@ window.__pointbreak = {
     // (SLEW_PINNED = 2.9). `median` stays all-stations for continuity with
     // recorded ensemble/reef-shape sweeps; medianClean is the honest number.
     const pinned = xs.map((x, i) =>
-      i > 0 && Math.abs((zs[i] - zs[i - 1]) / (xs[i] - xs[i - 1])) >= 2.9);
+      i > 0 && Math.abs((zs[i] - zs[i - 1]) / (xs[i] - xs[i - 1])) >= GAP_SLOPE);
     const med = (v) => { const s = [...v].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
     const clean = as.filter((_, i) => !pinned[i]);
     const inFit = as.filter((_, i) => Math.abs(xs[i]) <= 16 && !pinned[i]);

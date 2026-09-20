@@ -13,6 +13,7 @@
 // geoMix, contourX2, contourX3, stageStart, stageEnd }.
 
 import { GAMMA, G } from './dispersion.js';   // one JS home for the physics constants
+import { peelVelocity } from './peel-geometry.js';  // one definition of the peel speed
 
 const PI  = Math.PI;
 // MODEL-TWIN: display wavelength, m. Exported as the ONE JS definition
@@ -363,6 +364,9 @@ export function surferState(t, P) {
 // keeping it a callback keeps this file pure/node-testable and bed.js the
 // only owner of the bake.
 const RIDE_EDGE = 10;   // m inside the stage bounds — same margin the old scan used
+// The rider's own phase stencil. Deliberately NOT shared with bed.js's wider
+// one: see peelVelocity() in peel-geometry.js for the measured divergence.
+const RIDE_PHASE_STENCIL_M = 1.5;
 
 // nearest sign change of S(x) - target to prevX (continuity, not global best),
 // bisected to sub-mm. Returns null when the crest is not on the line here.
@@ -450,15 +454,26 @@ export function m4RideSolve(t, P, zbFn, st) {
   // that is identically the old (LAM/T)/(dS_metres/dx). Floored: a
   // near-shore-parallel emergent line (derived alpha -> 0) is a closeout, not a
   // divide by zero, and the clamp below is what actually bounds it.
-  const e = 1.5;
+  const e = RIDE_PHASE_STENCIL_M;
   const xa = Math.max(x - e, xLo), xb = Math.min(x + e, xHi);
   const dSdx = (S(xb) - S(xa)) / Math.max(xb - xa, 1e-6);
+  const zb = zbFn(x);
+  const dzbdx = (zbFn(xb) - zbFn(xa)) / Math.max(xb - xa, 1e-6);
+  // peelVelocity() is the ONE definition of w/(dPhi/dx) and of the along-line
+  // conversion (peel-geometry.js); bed.js derivedPeelGeometry reaches the same
+  // function by the other route. The stencil above stays this call site's own —
+  // see the note there, the two forms disagree by up to 51% at bed.js's wider
+  // stencil, so sharing a stencil would move the rider, not just the code.
+  const peel = peelVelocity({ omega: w, phaseAlongDx: Math.max(dSdx, 1e-4), dzdx: dzbdx });
   // waiting keeps a token down-point heading: with vx = 0 the board's forward
   // vector is the pump term alone, which flips sign every half cycle and spun
   // the mesh 180 degrees on the spot. He faces the ride he is waiting for.
-  const vx = waiting ? 2 : clamp(w / Math.max(dSdx, 1e-4), 2, 90);
-  const zb = zbFn(x);
-  const dzbdx = (zbFn(xb) - zbFn(xa)) / Math.max(xb - xa, 1e-6);
+  // ?? NaN, not ?? 0: a non-finite dSdx used to make vx NaN and drop the whole
+  // solve through the isFinite guard below, returning null. peelVelocity()
+  // reports that case as null instead, and defaulting it to a number would turn
+  // a refused solve into a 2 m/s ride — a behaviour change this refactor is not
+  // allowed to make.
+  const vx = waiting ? 2 : clamp(peel.xVelocityMps ?? NaN, 2, 90);
 
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
   const faceOff = 11 + 5 * pump;       // shoreward/front face; same as authored path

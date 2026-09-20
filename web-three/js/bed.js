@@ -862,6 +862,13 @@ export function depthBreakOffset(spotName, x, breakLineZ, { H0, T, tide = 0, bed
 // closed form: solving it per fragment costs ~140 texture fetches, while the
 // answer is one-dimensional and only changes when the site, swell or tide does.
 const BREAK_N = 128;
+// The section-gap threshold, m of shore-normal z per m of alongshore x. Was a
+// bare literal here and a named copy in measure_break_activation.mjs bound by a
+// source-text regex; exported 2026-09-19 because a game layer reading section
+// boundaries needs the number, not a second copy of it (MODEL.md 4.5).
+// 2.9 catches the slew-clamp-pinned run without catching an honest steep
+// stretch: Privates' 70 deg target is tan(70) = 2.75.
+export const GAP_SLOPE = 2.9;
 export const BREAK_Z_MIN = -400, BREAK_Z_MAX = 400;
 // Along-shore smoothing length for the break locus, metres — roughly a
 // wavelength, the scale below which a crest cannot resolve the seabed.
@@ -1247,7 +1254,7 @@ export function bakeBreakLine(spotName, xRange, opts) {
   {
     const dxTex = (x1 - x0) / (BREAK_N - 1);
     for (let i = 1; i < BREAK_N; i++)
-      if (Math.abs(breakArr[i] - breakArr[i - 1]) / dxTex >= 2.9) { gapArr[i] = 1; gapArr[i - 1] = 1; }
+      if (Math.abs(breakArr[i] - breakArr[i - 1]) / dxTex >= GAP_SLOPE) { gapArr[i] = 1; gapArr[i - 1] = 1; }
   }
   // Feather the mask over ~3 texels (~14 m on a 600 m bake): a 0/255 step
   // interpolates across ONE texel and prints a razor vertical cut where the

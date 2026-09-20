@@ -12,6 +12,36 @@
 
 const HALF_PI = Math.PI * 0.5;
 
+// The peel speed, from an along-line phase derivative. ONE definition, because
+// two consumers need it and MODEL.md 4.5 does not allow two derivations of one
+// quantity: signedPeelGeometryFromDerivatives below, and m4RideSolve, which
+// arrives at dPhi/dx as a single total difference along the line rather than by
+// recombining partials.
+//
+// The two are the same statement -- dPhi/dx along z = zb(x) is
+// Phi_x + Phi_z*zb' either way -- but they are NOT numerically interchangeable,
+// and the gap is not rounding. Measured on the card bake, max relative
+// disagreement between the total-difference and recombined forms:
+//
+//   stencil 1.5 m (the rider's):     0.13% Sewers, 0.9% Second Peak, 1.1% Hook
+//   stencil 14.06 m (bed.js's):      6.6% Sewers,   51% Second Peak,  37% Hook
+//
+// They converge as the stencil narrows and diverge as it widens, because the
+// total difference smooths the line's curvature and the phase field's together
+// over one baseline while the recombined form gives each its own. So the
+// stencil is a property of the CALL SITE, passed in, never defaulted here --
+// a shared default would move the rider by up to half his speed.
+export function peelVelocity({ omega = null, phaseAlongDx = null, dzdx = null } = {}) {
+  const none = { xVelocityMps: null, lineVelocityMps: null };
+  if (!Number.isFinite(omega) || !(omega > 0)) return none;
+  if (!Number.isFinite(phaseAlongDx) || Math.abs(phaseAlongDx) <= 1e-10) return none;
+  const xVelocityMps = omega / phaseAlongDx;
+  return {
+    xVelocityMps,
+    lineVelocityMps: Number.isFinite(dzdx) ? xVelocityMps * Math.hypot(1, dzdx) : null,
+  };
+}
+
 function principalLineAngle(a) {
   // A crest is an unoriented line: angles separated by pi are identical.
   while (a > HALF_PI) a -= Math.PI;
@@ -33,16 +63,11 @@ export function signedPeelGeometryFromDerivatives({
   const alphaRad = principalLineAngle(breakBearingRad - crestBearingRad);
   const phaseAlongDx = phaseDx + phaseDz * dzdx;
 
-  let xVelocityMps = null;
-  let lineVelocityMps = null;
   let phaseSpeedMps = null;
-  if (Number.isFinite(omega) && omega > 0) {
-    phaseSpeedMps = omega / gradMag;
-    if (Math.abs(phaseAlongDx) > 1e-10) {
-      xVelocityMps = omega / phaseAlongDx;
-      lineVelocityMps = xVelocityMps * Math.hypot(1, dzdx);
-    }
-  }
+  if (Number.isFinite(omega) && omega > 0) phaseSpeedMps = omega / gradMag;
+  // Recombined partials: this call site's stencil is the one signedPeelGeometryAt
+  // was given (lineStep for dzdx, phaseStep for the partials).
+  const { xVelocityMps, lineVelocityMps } = peelVelocity({ omega, phaseAlongDx, dzdx });
 
   return {
     alphaRad,

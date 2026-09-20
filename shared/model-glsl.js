@@ -619,6 +619,20 @@ float modelDepthM(vec2 xz){
 // The zipper position is closed-form (theta = 2*pi*n at z = z_b), so the surfer
 // needs no state: ride the shoreward/front face of the crest, pumping between
 // bottom turn and top turn. Returns (x, z, vx, vz).
+//
+// LEGACY CALLERS ONLY (2026-09-19). web-three splices MODEL_GLSL wholesale, so
+// this function is COMPILED into its shaders, but nothing there calls it: its
+// only call sites are the web/ raymarcher (web/js/shaders.js:117, :141, :159).
+// web-three reads the rider through u_surferPos, which main.js uploads every
+// frame from the one JS solve (m4RideSolve).
+//
+// WHY THAT MATTERS, and why tests/glsl-rider-authority.test.js pins it: the
+// arm below u_breakMix > 0.5 is a KINEMATIC twin — it puts the rider on the
+// breakpoint by closed form. That is true today only because the JS rider is
+// also kinematic. Once the rider has his own velocity state and can fall behind
+// the peel, this body becomes a SECOND, DISAGREEING source for "where is the
+// surfer" (MODEL.md 4.5). It is dormant, not safe. A new web-three call site
+// would wake it, so the test forbids one.
 vec4 surferState(float t){
   // With an emergent break line the zipper position has no closed form; main.js
   // solves it against the same baked array and passes it in.

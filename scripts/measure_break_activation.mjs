@@ -102,7 +102,8 @@ export const BREAK_N = 128;          // bed.js BREAK_N
 export const MARCH_DZ = 2;           // bed.js MARCH_DZ
 export const REEF_ANCHOR_X = 24;     // bed.js REEF_ANCHOR_X
 export const SLEW_M_PER_M = 3.0;     // bed.js SLEW_M_PER_M
-export const GAP_SLOPE = 2.9;        // bed.js gap threshold / stageAlpha pinned
+// Re-exported, not re-declared: bed.js owns the number since 2026-09-19.
+export const GAP_SLOPE = bed.GAP_SLOPE;
 export const BEACH_DEPTH_M = 0.35;   // bed.js breakExcess: depth <= 0.35 -> null
 export const X_RANGE = [-300, 300];  // main.js [-STAGE_W/2, STAGE_W/2], STAGE_W = 600
 export const READBACK_DX = 2;        // main.js stageAlpha(2) / measure_branch_flip lineProbe(2)

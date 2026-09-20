@@ -32,8 +32,12 @@ test('the instrument mirrors the bake constants it cannot import', () => {
   has(BED, new RegExp(`const MARCH_DZ = ${I.MARCH_DZ};`), 'MARCH_DZ');
   has(BED, new RegExp(`const REEF_ANCHOR_X = ${I.REEF_ANCHOR_X};`), 'REEF_ANCHOR_X');
   has(BED, new RegExp(`const SLEW_M_PER_M = ${I.SLEW_M_PER_M.toFixed(1)};`), 'SLEW_M_PER_M');
-  has(BED, new RegExp(`\\) / dxTex >= ${I.GAP_SLOPE}\\)`), 'gap slope threshold');
-  has(MAIN, new RegExp(`>= ${I.GAP_SLOPE}\\)`), 'stageAlpha pinned threshold');
+  // GAP_SLOPE moved from three copies of a bare 2.9 (bed.js, main.js, the
+  // instrument) to one export on bed.js, so the pin is on the declaration and
+  // the two consumers are checked for USING it rather than for repeating it.
+  has(BED, new RegExp(`export const GAP_SLOPE = ${I.GAP_SLOPE};`), 'GAP_SLOPE declaration');
+  has(BED, /\) \/ dxTex >= GAP_SLOPE\)/, 'the bake uses the exported gap slope');
+  has(MAIN, />= GAP_SLOPE\)/, 'stageAlpha uses the exported gap slope');
   has(BED, new RegExp(`if \\(depth <= ${I.BEACH_DEPTH_M}\\) return null;`), 'beach cutoff');
   has(BED, /breakArr = new Float32Array\(BREAK_N\)/, 'the bake stores float32; the replica must too');
   has(SRC, /new Float32Array\(BREAK_N\)/, 'replica float32 storage');
