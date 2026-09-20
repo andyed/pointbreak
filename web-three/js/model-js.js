@@ -368,6 +368,28 @@ const RIDE_EDGE = 10;   // m inside the stage bounds — same margin the old sca
 // one: see peelVelocity() in peel-geometry.js for the measured divergence.
 const RIDE_PHASE_STENCIL_M = 1.5;
 
+// ---------- A1: the rider's own velocity (default OFF) ----------
+// Until now the rider WAS the breakpoint: x was the exact phase root on the
+// break line and vx was the peel speed, so the gap between his speed and
+// V_peel was zero by construction and he could not be beaten. These give him a
+// speed of his own, so the peel can leave him.
+//
+// Gated on P.boardMps. Absent -> every line below is skipped and the solve is
+// bit-identical to the shipped kinematic rider, which is what the active user
+// base keeps getting until this is proven. Track A1 of
+// docs/research/GAME_PROJECTION_2026-09-19.md.
+//
+// RIDER_POCKET_M is the declared parameter: how far behind the breakpoint a
+// surfer can sit and still be in the curl rather than in the whitewater behind
+// it. It is a property of a person on a board, not of this bathymetry, so it
+// cannot be measured off the bed and is stated here rather than buried. 18 m
+// is a little over one board-and-pocket at this scale; the authored face offset
+// (11 + 5*pump) is the shoreward companion to it.
+export const RIDER_POCKET_M = 18;
+// A sim-clock jump (setSim, a tab wake, a preset rebake) must not be integrated
+// as if it were elapsed ride time.
+const RIDER_MAX_DT_S = 0.1;
+
 // nearest sign change of S(x) - target to prevX (continuity, not global best),
 // bisected to sub-mm. Returns null when the crest is not on the line here.
 function crestCrossing(target, S, xLo, xHi, prevX) {
@@ -475,12 +497,64 @@ export function m4RideSolve(t, P, zbFn, st) {
   // allowed to make.
   const vx = waiting ? 2 : clamp(peel.xVelocityMps ?? NaN, 2, 90);
 
+  // ---------- A1: let the peel leave him ----------
+  // Everything above solved for the BREAKPOINT. If a board speed is declared,
+  // the rider is a second body that chases it and can lose.
+  //
+  // He holds the pocket while the peel is slower than he is; where it is
+  // faster he does his best and the breakpoint pulls away. `lag` is that gap,
+  // and RIDER_POCKET_M is how much of it he survives.
+  //
+  // Path dependence is the real cost, and it is new: the shipped solve is a
+  // pure function of (t, P) given the crest index, which is what makes it
+  // seek-safe and screenshot-testable. A rider with momentum cannot be. The
+  // integration therefore resets on any clock discontinuity rather than
+  // pretending to be reversible, and a caller that jumps time (setSim) gets a
+  // fresh ride, not a silently wrong one.
+  let rx = x, rvx = vx, lagM = 0, fallen = false;
+  const board = Number(P.boardMps);
+  if (Number.isFinite(board) && board > 0) {
+    const dtRaw = Number.isFinite(st.lastT) ? t - st.lastT : 0;
+    const dt = (dtRaw > 0 && dtRaw <= RIDER_MAX_DT_S) ? dtRaw : 0;
+    st.lastT = t;
+    const newRide = !Number.isFinite(st.xRider) || st.rideN !== st.n || waiting || dt === 0;
+    if (newRide) {
+      st.xRider = x; st.rideN = st.n; st.fallen = false;
+    } else if (!st.fallen) {
+      // the peel speed AT HIS station, not at the breakpoint's
+      const ea = Math.max(st.xRider - e, xLo), eb = Math.min(st.xRider + e, xHi);
+      const dS = (S(eb) - S(ea)) / Math.max(eb - ea, 1e-6);
+      const vPeelHere = peelVelocity({ omega: w, phaseAlongDx: Math.max(dS, 1e-4) }).xVelocityMps;
+      const want = Number.isFinite(vPeelHere) ? Math.abs(vPeelHere) : board;
+      st.xRider += Math.min(want, board) * dt;
+      if (st.xRider > xHi) { st.xRider = x; st.rideN = st.n; }
+    }
+    lagM = x - st.xRider;
+    if (lagM > RIDER_POCKET_M) st.fallen = true;
+    fallen = !!st.fallen && !waiting;
+    rx = fallen ? st.xRider : Math.min(st.xRider, x);
+    // his ground speed is what he is actually doing, not what the curl is doing
+    const ra = Math.max(rx - e, xLo), rb = Math.min(rx + e, xHi);
+    const rdS = (S(rb) - S(ra)) / Math.max(rb - ra, 1e-6);
+    const rPeel = peelVelocity({ omega: w, phaseAlongDx: Math.max(rdS, 1e-4) }).xVelocityMps;
+    rvx = waiting ? 2 : clamp(Math.min(Math.abs(rPeel ?? board), board), 2, 90);
+  }
+
+  const zbR = (Number.isFinite(board) && board > 0) ? zbFn(rx) : zb;
+  const rxa = Math.max(rx - e, xLo), rxb = Math.min(rx + e, xHi);
+  const dzbdxR = (Number.isFinite(board) && board > 0)
+    ? (zbFn(rxb) - zbFn(rxa)) / Math.max(rxb - rxa, 1e-6) : dzbdx;
+
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
   const faceOff = 11 + 5 * pump;       // shoreward/front face; same as authored path
-  const z  = zb + faceOff;
-  const vz = (waiting ? 0 : dzbdx * vx)
+  const z  = zbR + faceOff;
+  const vz = (waiting ? 0 : dzbdxR * rvx)
            + 5 * (2 * PI / PUMP_PERIOD) * Math.cos(t * 2 * PI / PUMP_PERIOD);
-  if (!Number.isFinite(x) || !Number.isFinite(z)
-      || !Number.isFinite(vx) || !Number.isFinite(vz)) return null;
-  return { x, z, vx, vz, pump, waiting };
+  if (!Number.isFinite(rx) || !Number.isFinite(z)
+      || !Number.isFinite(rvx) || !Number.isFinite(vz)) return null;
+  // x/vx are the RIDER's when a board speed is declared and the breakpoint's
+  // otherwise, so every existing consumer (mesh heading, POV gaze, follow cam)
+  // keeps working and starts following the rider the moment he has a speed.
+  // breakX/lagM/fallen are additive: nothing shipped reads them yet.
+  return { x: rx, z, vx: rvx, vz, pump, waiting, breakX: x, lagM, fallen };
 }

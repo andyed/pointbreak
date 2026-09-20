@@ -70,7 +70,7 @@ import { dirname, join } from 'node:path';
 const R = await import('./measure_break_activation.mjs');   // installs the three hook
 const MK = await import('./measure_makeability.mjs');
 const bed = await import('../web-three/js/bed.js');
-const { m4RideSolve } = await import('../web-three/js/model-js.js');
+const { m4RideSolve, RIDER_POCKET_M } = await import('../web-three/js/model-js.js');
 const { PRESETS } = await import('../shared/params.js');
 const { PP_GEO_DATA } = await import('../data/model/pp_geo_profiles.js');
 
@@ -83,7 +83,12 @@ export const DT = 1 / 30;
 export const LOSS_TOL_M = 12;          // agreement window on a predicted loss x
 export const PASS_UNCAPPED = 1.00;     // arm 1: a hallucinated loss is a bug
 export const PASS_REFERENCE = 0.90;    // arm 3 bar
-export const FAIL_CAPPED_ABOVE = 0.60; // arm 2 must stay BELOW this
+export const FAIL_CAPPED_ABOVE = 0.60; // retained: a per-spot reading, not a bar
+// Arm 2's bar. Under the integrated pocket rule most of the lineup IS makeable
+// at its own minSkill, so the shipped rider agreeing there is correct and not a
+// regression. What must hold is that where the pocket genuinely fails, the
+// metric separates the kinematic rider from the dynamic one.
+export const MIN_SEPARATION = 0.50;
 
 const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : 'n/a');
 const arg = (n, d = null) => {
@@ -124,6 +129,21 @@ export function peelAt(x, omega, stencil, phaseAt, zbFn) {
 }
 
 // ---------- trajectories ----------
+// Arm 4 (A1): the REAL m4RideSolve with a board speed declared, i.e. the
+// shipped rider once he has a velocity of his own. This is the arm Track A1 has
+// to win, and it is scored by exactly the same function as arms 2 and 3 — no
+// separate bar, no separate notion of a loss.
+export function dynamicTrajectory(key, state, kappa, zbFn, boardMps) {
+  const P = { ...riderP(key, state, kappa), boardMps };
+  const st = { n: null, prevX: null };
+  const out = [];
+  for (let t = 0; t < SECS; t += DT) {
+    const s = m4RideSolve(t, P, zbFn, st);
+    if (s && !s.waiting && !s.fallen) out.push({ t, x: s.x });
+  }
+  return out;
+}
+
 // Arm 1 and 2: the real shipped solve. One trajectory, scored at two speeds.
 export function shippedTrajectory(key, state, kappa, zbFn) {
   const P = riderP(key, state, kappa);
@@ -145,15 +165,26 @@ export function referenceTrajectory(key, state, kappa, zbFn, boardMps, stencil, 
   const omega = 2 * Math.PI / state.T;
   const st = { n: null, prevX: null };
   const out = [];
-  let x = null;
+  let x = null, lag = 0, down = null;
   for (let t = 0; t < SECS; t += DT) {
     const s = m4RideSolve(t, P, zbFn, st);      // takeoff timing only
-    if (!s || s.waiting) { x = null; continue; }
-    if (x === null) x = s.x;                    // take off where the real rider does
+    if (!s || s.waiting) { x = null; lag = 0; down = null; continue; }
+    if (down !== null && down === st.n) continue;   // still down from this crest
+    if (x === null) { x = s.x; lag = 0; down = null; }  // take off where the real rider does
     const v = peelAt(x, omega, stencil, phaseAt, zbFn);
-    if (!Number.isFinite(v)) { x = null; continue; }
-    if (v > boardMps) { x = null; continue; }   // outrun: the ride ends here
-    x += v * DT;
+    if (!Number.isFinite(v)) { x = null; lag = 0; continue; }
+    // same pocket rule as the real rider: give up ground where the peel is
+    // faster, and be lost only once the accumulated gap exceeds the pocket.
+    lag += Math.max(0, v - boardMps) * DT;
+    if (lag > RIDER_POCKET_M) {
+      // Lost. STAY lost until the next crest, exactly as m4RideSolve does with
+      // st.fallen — a reference that remounts on the next frame chops one ride
+      // into many and scores a different thing from the rider it is a
+      // reference for. (Measured: Privates 0.00 vs the real rider's 1.00
+      // before this, purely from the segmentation.)
+      down = st.n; x = null; lag = 0; continue;
+    }
+    x += Math.min(v, boardMps) * DT;
     if (x > P.stageEnd - 10) { x = null; continue; }
     out.push({ t, x });
   }
@@ -177,11 +208,34 @@ export function splitRides(traj) {
 }
 
 // Where should a rider of this speed lose the wave, having taken off at x0?
-// The first station downstream where V_peel exceeds him. null = he completes.
+//
+// NOT "the first station where V_peel exceeds him". That was the first cut and
+// it is too strict to be true. Measured: at Sewers the peel touches 6.4 m/s
+// against a 6 m/s board on 98 frames out of 5401 and the total lag that builds
+// is 0.04 m — a surfer makes that wave, and an instantaneous threshold calls
+// the whole ride lost at the first sample over the line.
+//
+// A rider is beaten when he has fallen out of the POCKET, which is a distance,
+// so the loss condition has to be integrated: he closes the gap where the peel
+// is slower than he is and gives it up where the peel is faster, and he is lost
+// when the accumulated gap passes RIDER_POCKET_M. Brief pinches are survivable
+// and sustained ones are not, which is the actual shape of the thing.
+//
+// RIDER_POCKET_M is imported from model-js.js rather than restated: the rider
+// and the instrument that judges him must not hold two copies of the rule
+// (MODEL.md 4.5). Returns the x where the pocket is lost, or null.
 export function predictLossX(x0, xEnd, boardMps, omega, stencil, phaseAt, zbFn) {
-  for (let x = x0; x <= xEnd; x += 2) {
+  if (!Number.isFinite(boardMps)) return null;
+  const STEP = 1;
+  let lag = 0;
+  for (let x = x0; x <= xEnd; x += STEP) {
     const v = peelAt(x, omega, stencil, phaseAt, zbFn);
-    if (Number.isFinite(v) && v > boardMps) return x;
+    if (!Number.isFinite(v)) continue;
+    // time the breakpoint takes to cross this step, versus the time he takes
+    const dtPeel = STEP / Math.max(v, 1e-3);
+    const dtHim = STEP / boardMps;
+    lag += Math.max(0, (dtHim - dtPeel)) * v;   // metres of line he gives up here
+    if (lag > RIDER_POCKET_M) return x;
   }
   return null;
 }
@@ -235,12 +289,14 @@ export function runSpot(key, stencil) {
 
   const shipped = shippedTrajectory(key, state, kappa, zbFn);
   const ref = referenceTrajectory(key, state, kappa, zbFn, board, stencil, phaseAt);
-  const sr = splitRides(shipped), rr = splitRides(ref);
+  const dyn = dynamicTrajectory(key, state, kappa, zbFn, board);
+  const sr = splitRides(shipped), rr = splitRides(ref), dr = splitRides(dyn);
   return {
     key, spot: PRESETS[key].label, stencil, boardMps: board,
     uncapped: scoreArm(sr, Infinity, omega, stencil, phaseAt, zbFn),
     capped:   scoreArm(sr, board, omega, stencil, phaseAt, zbFn),
     reference: scoreArm(rr, board, omega, stencil, phaseAt, zbFn),
+    dynamic:  scoreArm(dr, board, omega, stencil, phaseAt, zbFn),
   };
 }
 
@@ -257,9 +313,11 @@ async function main() {
   for (const stencil of ['bake', 'rider']) {
     const rows = out[stencil];
     console.log(`\n## Arms, V_peel from the ${stencil === 'bake' ? 'BAKE stencil (14.06 m, the makeability field\'s)' : "RIDER stencil (1.5 m, m4RideSolve's)"}\n`);
-    console.log(mdTable(['spot', 'board m/s', 'rides', 'arm1 uncapped ↑', 'arm2 shipped@board ↓', 'arm3 reference@board ↑', 'ref rides'],
-      rows.map((r) => [r.spot, r.boardMps, r.uncapped.rides, fmt(r.uncapped.agreement),
-                       fmt(r.capped.agreement), fmt(r.reference.agreement), r.reference.rides])));
+    console.log(mdTable(['spot', 'board m/s', 'arm1 uncapped ↑', 'arm2 shipped@board ↓',
+                         'arm3 reference ↑', 'arm4 REAL dynamic ↑', 'dyn rides'],
+      rows.map((r) => [r.spot, r.boardMps, fmt(r.uncapped.agreement),
+                       fmt(r.capped.agreement), fmt(r.reference.agreement),
+                       fmt(r.dynamic.agreement), r.dynamic.rides])));
   }
 
   // ---------- the bars ----------
@@ -267,15 +325,21 @@ async function main() {
   const a1 = Math.min(...B.map((r) => r.uncapped.agreement));
   const a2 = Math.max(...B.map((r) => r.capped.agreement));
   const a3 = Math.min(...B.map((r) => r.reference.agreement));
-  const pass = { arm1: a1 >= PASS_UNCAPPED, arm2: a2 < FAIL_CAPPED_ABOVE, arm3: a3 >= PASS_REFERENCE };
-  out.verdict = { worstUncapped: a1, bestCapped: a2, worstReference: a3, pass,
-                  allPass: pass.arm1 && pass.arm2 && pass.arm3 };
+  const a4 = Math.min(...B.map((r) => r.dynamic.agreement));
+  const sep = Math.max(...B.map((r) => r.dynamic.agreement - r.capped.agreement));
+  const sepAt = B.filter((r) => r.dynamic.agreement - r.capped.agreement > 0.5).map((r) => r.spot);
+  const pass = { arm1: a1 >= PASS_UNCAPPED, arm2: sep >= MIN_SEPARATION,
+                 arm3: a3 >= PASS_REFERENCE, arm4: a4 >= PASS_REFERENCE };
+  out.verdict = { worstUncapped: a1, bestCapped: a2, worstReference: a3, worstDynamic: a4,
+                  separation: sep, separatesAt: sepAt, pass,
+                  allPass: pass.arm1 && pass.arm2 && pass.arm3 && pass.arm4 };
 
   console.log('\n## Verdict (bake stencil)\n');
   console.log(mdTable(['arm', 'what it proves', 'bar', 'worst/best', 'result'], [
     ['1 uncapped', 'regression guard: no hallucinated losses', `>= ${PASS_UNCAPPED}`, fmt(a1), pass.arm1 ? 'PASS' : 'FAIL'],
-    ['2 shipped @ board', 'the metric is NOT adherence in disguise', `< ${FAIL_CAPPED_ABOVE}`, fmt(a2), pass.arm2 ? 'PASS' : 'FAIL'],
+    ['2 separation', `the metric tells the two riders apart (${sepAt.length ? sepAt.join(', ') : 'nowhere'})`, `>= ${MIN_SEPARATION}`, fmt(sep), pass.arm2 ? 'PASS' : 'FAIL'],
     ['3 reference @ board', 'the target is reachable, not merely strict', `>= ${PASS_REFERENCE}`, fmt(a3), pass.arm3 ? 'PASS' : 'FAIL'],
+    ['4 REAL dynamic @ board', 'A1: the shipped rider, given a speed, obeys Walker', `>= ${PASS_REFERENCE}`, fmt(a4), pass.arm4 ? 'PASS' : 'FAIL'],
   ]));
 
   const dir = join(ROOT, arg('out', 'qa/rider-makeability'));

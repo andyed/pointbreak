@@ -239,20 +239,23 @@ test('KINEMATIC FIXTURE — the authored closed-form rider (surferState with no 
   assert.match(modelJs, /zcCrest \+ faceOff - coastCurve\(xs, P\)/);
 });
 
-test('MODEL-TWIN source pins awaiting the Phase 0.4 rider-authority decision', () => {
-  // FLAGGED, left unchanged. These three regexes pin closed-form rider source
-  // text that A1 and Phase 0.4 are both about to move, but WHERE it moves to
-  // is the open question — 0.4 says the GLSL surferState body is either
-  // deleted or becomes the single channel behind u_surferPos, and that has
-  // not been decided. Rewriting them now would be guessing at the answer.
+test('MODEL-TWIN source pins — the rider stands on the line, at HIS station', () => {
+  // Re-keyed by A1 (2026-09-19), which was the event this test was flagged and
+  // left standing for. It was `const z = zb + faceOff`, where zb is the line
+  // under the BREAKPOINT. A1 gives the rider a speed of his own, so he can sit
+  // behind the breakpoint and the line under HIM is a different z — hence zbR.
   //
-  // What breaks, and when:
-  //   - `const z = zb + faceOff` is m4RideSolve's entire z model. A1 deletes
-  //     it. Its behavioural replacements already landed above: the 6-16 m
-  //     front-face bound and the dz/dt derivative check.
-  //   - the two model-glsl pins ride on the GLSL surferState body that 0.4
-  //     may remove outright.
-  assert.match(modelJs, /const z\s*= zb \+ faceOff/);
+  // The pin is kept rather than deleted because what it guards did not go away:
+  // z must stay the baked line plus the authored face offset, so that nobody
+  // decouples the rider's height from the wave he is supposed to be on. The
+  // behavioural statements carry the rest — the 6-16 m front-face bound and the
+  // dz/dt check above, both of which now exercise the dynamic rider too.
+  assert.match(modelJs, /const z\s*= zbR \+ faceOff/,
+    'the rider\'s z must remain the baked line under HIM plus the face offset');
+  assert.match(modelJs, /const zbR = \(Number\.isFinite\(board\)/,
+    'zbR must be gated on a declared board speed, so the kinematic path is untouched');
+  // Phase 0.4 resolved by DOCUMENTING and GUARDING the GLSL body rather than
+  // deleting it (tests/glsl-rider-authority.test.js), so these two still stand.
   assert.match(modelGlsl, /zcCrest \+ faceOff - coastCurve\(xs\)/);
   assert.match(modelGlsl, /\+ 5\.0\*\(2\.0\*PI\/6\.0\)\*cos/);
 });

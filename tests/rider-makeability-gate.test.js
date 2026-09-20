@@ -39,18 +39,26 @@ for (const key of SPOTS) {
     assert.ok(r.reference.agreement >= G.PASS_REFERENCE,
       `arm 3: reference agreement ${r.reference.agreement} < ${G.PASS_REFERENCE}`);
 
-    // Arm 2 — the load-bearing one. The shipped rider IS the breakpoint, so at
-    // this spot's own minimum board speed he rides straight through pinches
-    // that beat a real surfer. If this ever passes the high bar, the metric has
-    // stopped measuring agreement and gone back to measuring adherence.
-    assert.ok(r.capped.agreement < G.FAIL_CAPPED_ABOVE,
-      `arm 2: shipped rider scored ${r.capped.agreement} at ${r.boardMps} m/s, `
-      + `which is NOT below ${G.FAIL_CAPPED_ABOVE}. Either the rider became dynamic `
-      + `(then move this bar deliberately) or the metric regressed to adherence.`);
-
-    // The separation itself, stated as one assertion so a reader sees the claim.
-    assert.ok(r.reference.agreement - r.capped.agreement > 0.5,
-      `the two riders must land on opposite sides: reference ${r.reference.agreement} `
-      + `vs shipped ${r.capped.agreement} at the same speed on the same field`);
+    // Arm 4 — A1. The REAL m4RideSolve with a board speed declared must obey
+    // the same criterion the reference does. This is the assertion Track A1
+    // exists to satisfy.
+    assert.ok(r.dynamic.rides > 0, 'arm 4: the dynamic rider never rode');
+    assert.ok(r.dynamic.agreement >= G.PASS_REFERENCE,
+      `arm 4: the real dynamic rider scored ${r.dynamic.agreement} < ${G.PASS_REFERENCE} — `
+      + `he is not obeying the loss rule the field predicts`);
   });
 }
+
+// Arm 2 — separation, asserted once rather than per spot. Under the integrated
+// pocket rule most of the lineup genuinely IS makeable at its own minSkill, so
+// the kinematic rider agreeing there is correct. The claim that matters is that
+// where the pocket really fails, the metric can tell the two riders apart —
+// which is the property rideMetric cannot have at any threshold.
+test('rider gate — the metric separates a kinematic rider from a dynamic one', () => {
+  const r = G.runSpot('privates', 'bake');   // median V_peel 14 m/s: the knife-edge
+  const sep = r.dynamic.agreement - r.capped.agreement;
+  assert.ok(sep >= G.MIN_SEPARATION,
+    `at ${r.boardMps} m/s the dynamic rider scored ${r.dynamic.agreement} and the kinematic one `
+    + `${r.capped.agreement}; separation ${sep.toFixed(2)} < ${G.MIN_SEPARATION}. `
+    + `If this regressed to ~0 the metric has gone back to measuring adherence.`);
+});
