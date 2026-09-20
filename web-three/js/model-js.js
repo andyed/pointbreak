@@ -447,6 +447,35 @@ const TUMBLE_DRIFT_FRAC = 0.35;  // of his last along-line speed, decaying
 // section, and that is a legitimate skill level rather than a broken one.
 const TAKEOFF_S = 1.3;           // paddle speed -> trim
 const TAKEOFF_V0_FRAC = 0.30;    // of board speed, at the instant he stands up
+
+// ---------- A4: one axis, and it is where you sit on the face ----------
+// The whole game on one input, and it is not a throttle. On a wave face your
+// speed IS your position: high and tight in the pocket the water is steep and
+// you are fast, out on the shoulder it is gentle and you are slow. So the
+// player picks a LINE, and the speed follows from it.
+//
+// The geometry already says which way is which. z = zb + faceOff with +z
+// shoreward, so a SMALL faceOff sits close to the breaking line (tight, steep,
+// fast) and a LARGE one sits out toward the flats (wide, gentle, slow). The
+// 6..16 m band is not invented here either -- it is the bound
+// tests/m4-rider.test.js has always asserted on the authored rider.
+//
+// The tension is two-sided, which is what makes it a thing to play rather than
+// a thing to hold down:
+//   sit too WIDE  -> slow, the peel outruns you, the whitewater lands on you
+//   sit too TIGHT -> fast, you run out in FRONT of the curl onto the shoulder
+//                    and the wave dies behind you
+// Both are real, both end the ride, and the band between them narrows exactly
+// where the peel is fastest -- which the makeability field says swings from
+// 5 to 16 m/s along a single line.
+//
+// Absent P.trimInput the rider pumps himself on the old automatic cycle and
+// nothing below runs.
+const TRIM_FACE_WIDE = 16;   // m shoreward of the line: the shoulder
+const TRIM_FACE_TIGHT = 6;   // m: in the pocket
+const TRIM_SPEED_WIDE = 0.72;  // x board speed out on the shoulder
+const TRIM_SPEED_TIGHT = 1.20; // x board speed in the pocket
+const AHEAD_M = 22;          // how far in front of the curl before it is gone
 // Two different lookaheads, because they answer different questions. P.lookaheadM
 // is how far ahead he reads the SPEED of the section, which he must do early
 // because lag takes distance to shed. KICKOUT_EXIT_M is how late he leaves a
@@ -579,6 +608,10 @@ export function m4RideSolve(t, P, zbFn, st) {
   // fresh ride, not a silently wrong one.
   let rx = x, rvx = vx, lagM = 0, fallen = false;
   let lostTo = null, tumbling = false, tumbleZ = 0;
+  // A4: the player's line. clamp rather than trust the caller.
+  const hasTrim = Number.isFinite(Number(P.trimInput));
+  const trim = hasTrim ? clamp(Number(P.trimInput), 0, 1) : 0;
+  const trimSpeed = hasTrim ? mix(TRIM_SPEED_WIDE, TRIM_SPEED_TIGHT, trim) : 1;
   const board = Number(P.boardMps);
   if (Number.isFinite(board) && board > 0) {
     const dtRaw = Number.isFinite(st.lastT) ? t - st.lastT : 0;
@@ -614,8 +647,25 @@ export function m4RideSolve(t, P, zbFn, st) {
       const since = t - (st.tookOffT ?? t);
       const ramp = since >= TAKEOFF_S ? 1
         : TAKEOFF_V0_FRAC + (1 - TAKEOFF_V0_FRAC) * (since / TAKEOFF_S);
-      st.xRider += Math.min(want, board * ramp) * dt;
-      if (st.xRider > xHi) { st.xRider = x; st.rideN = st.n; }
+      // A4: with a line, his speed IS his line and is NOT capped by the local
+      // peel — that cap is what made the tight side free. Capped, he could
+      // never move faster than the curl, so lag could never go negative, the
+      // 'ahead' ending never fired once across three spots, and pinning trim
+      // to 1.0 was strictly better than playing. Uncapped, holding tight runs
+      // him out in FRONT of the curl onto the shoulder, which is the real
+      // punishment for over-pumping and what makes the axis two-sided.
+      //
+      // Without a line he keeps the old behaviour exactly: match the peel, up
+      // to the board ceiling.
+      st.xRider += (hasTrim ? board * ramp * trimSpeed
+                            : Math.min(want, board * ramp)) * dt;
+      if (st.xRider > xHi) {
+        // Ran out of stage. With a line that is a COMPLETED ride and has to
+        // end as one; without, keep the old silent re-anchor so nothing on the
+        // A1/A2 path moves.
+        if (hasTrim) { st.fallen = true; st.lostTo = 'completed'; st.fellT = t; st.fellX = st.xRider; }
+        else { st.xRider = x; st.rideN = st.n; }
+      }
     }
     lagM = x - st.xRider;
 
@@ -659,6 +709,11 @@ export function m4RideSolve(t, P, zbFn, st) {
       } else if (lagM > RIDER_POCKET_M) {
         st.fallen = true; st.lostTo = 'outrun';   st.fellT = t; st.fellX = st.xRider;
         st.fellVx = rvx;
+      } else if (hasTrim && lagM < -AHEAD_M) {
+        // Out in front of the curl. Nobody is pitching you; the wave simply
+        // is not under you any more. A clean end, like a closeout.
+        st.fallen = true; st.lostTo = 'ahead';    st.fellT = t; st.fellX = st.xRider;
+        st.fellVx = rvx;
       }
     }
     fallen = !!st.fallen && !waiting;
@@ -697,9 +752,11 @@ export function m4RideSolve(t, P, zbFn, st) {
   if (Number.isFinite(board) && board > 0) {
     if (waiting) phase = 'waiting';
     else if (fallen) phase = tumbling ? 'tumbling'
-      : (lostTo === 'outrun' ? 'swimming' : lostTo);       // 'closeout' | 'kickout'
+      : (lostTo === 'outrun' ? 'swimming' : lostTo);  // closeout | kickout | ahead
     else if (t - (st.tookOffT ?? t) < TAKEOFF_S) phase = 'takeoff';
-    else phase = lagM > 1 ? 'racing' : 'trim';
+    else if (lagM > 1) phase = 'racing';
+    else if (hasTrim && lagM < -AHEAD_M * 0.6) phase = 'outfront';
+    else phase = 'trim';
   }
 
   const zbR = (Number.isFinite(board) && board > 0) ? zbFn(rx) : zb;
@@ -708,7 +765,10 @@ export function m4RideSolve(t, P, zbFn, st) {
     ? (zbFn(rxb) - zbFn(rxa)) / Math.max(rxb - rxa, 1e-6) : dzbdx;
 
   const pump    = Math.sin(t * 2 * PI / PUMP_PERIOD);
-  const faceOff = 11 + 5 * pump;       // shoreward/front face; same as authored path
+  // A4: the player's line when he has one, the automatic pump otherwise. Both
+  // stay inside the 6..16 m band the front-face bound has always asserted.
+  const faceOff = hasTrim ? mix(TRIM_FACE_WIDE, TRIM_FACE_TIGHT, trim)
+                          : 11 + 5 * pump;
   // A2: the whitewater carries him shoreward off the face he was riding.
   const z  = zbR + faceOff + tumbleZ;
   const vz = (waiting ? 0 : dzbdxR * rvx)
@@ -720,5 +780,12 @@ export function m4RideSolve(t, P, zbFn, st) {
   // keeps working and starts following the rider the moment he has a speed.
   // breakX/lagM/fallen are additive: nothing shipped reads them yet.
   return { x: rx, z, vx: rvx, vz, pump, waiting, breakX: x, lagM,
-           fallen, lostTo, tumbling, phase };
+           fallen, lostTo, tumbling, phase, faceOff,
+           // null, not 0, when nobody is steering: the HUD must be able to say
+           // "auto" rather than report a line that is not being held.
+           trim: hasTrim ? trim : null,
+           // how much of the pocket is left, signed: +1 about to be caught,
+           // -1 about to run out in front. The one number a HUD needs.
+           pocket: hasTrim
+             ? clamp(lagM > 0 ? lagM / RIDER_POCKET_M : lagM / AHEAD_M, -1, 1) : 0 };
 }

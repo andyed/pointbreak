@@ -168,3 +168,35 @@ datum or representation repair.
 read, so the knob looked wired and was not. `#direction=` is not a rename: it
 implements the MODEL.md §2.6 ownership split, carries the CDIP **from** bearing
 through measured spot geometry, and uses the stated 15 m reference depth.
+
+## Riding it: W / S (2026-09-20)
+
+With `#board=` set, **W** and **S** steer the rider up and down the wave face.
+That is the whole input, and it is not a throttle — on a wave your speed *is*
+your position. Tight in the pocket the water is steep and you are fast; out on
+the shoulder it is gentle and you are slow. The 6–16 m band the line sweeps is
+the same one `tests/m4-rider.test.js` has always asserted on the front face.
+
+The tension is two-sided, which is what makes it playable rather than a key to
+hold down:
+
+| you sit | you are | and | ends as |
+|---|---|---|---|
+| **wide** (S) | slow | the peel outruns you and the whitewater lands on you | `outrun` — a wipeout, tumble and swim |
+| **tight** (W) | fast | you run out in *front* of the curl onto the shoulder | `ahead` — the wave dies behind you, clean |
+
+Both are real endings, and the band between them narrows exactly where the peel
+is fastest — which the makeability field measures swinging from 5 to 16 m/s
+along a single line.
+
+**No fixed line wins.** Measured at 8 m/s over 240 s: at Jack's, sitting wide
+gives 247 m and tight gives 48 m; at Privates it inverts, wide 29 m and tight
+80 m, because the peel there runs at a median 14 m/s. A rider who reacts to the
+pocket beats every fixed line at Second Peak (103 m) and Jack's (254 m) and
+loses to committed-tight at Privates (65 m against 80 m) — so reading the spot
+matters, and the right read is different per spot.
+
+The HUD's `ride` row shows the pocket as a signed bar: the marker drifts right
+as the curl catches you and left as you run out in front, with `auto` until you
+first touch W or S. Off the flag the rider pumps himself on the old automatic
+cycle and nothing above applies.

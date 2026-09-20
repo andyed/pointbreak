@@ -663,6 +663,12 @@ let riderGapFn = null;
 // rides into closeouts he could have seen — a legitimate skill level, not a
 // broken one. With it he pulls off the back instead of being pitched.
 let riderLookaheadM = 0;
+// A4: the player's line on the face, 0 = out on the shoulder, 1 = in the
+// pocket. null until someone actually steers, so the rider keeps his automatic
+// pump and every default-path behaviour stays exactly as it was.
+let riderTrim = null;
+let trimKeyUp = false, trimKeyDown = false;
+const TRIM_RATE = 1.9;    // full sweep of the face in about half a second
 // Changing the board speed changes what kind of body the rider is, so the
 // ride state has to start over -- the same reset discipline preset / setM4 /
 // setPsi already use, and for the same reason: a carried-over xRider would
@@ -672,6 +678,16 @@ function setRiderLook(v) {
   if (n === riderLookaheadM) return;
   riderLookaheadM = n;
   refreshHUD();
+}
+// Held keys, integrated per frame rather than stepped per keydown: a surfer
+// moves up and down the face continuously, and key REPEAT rate is an OS
+// setting, so stepping on repeat would make the control feel different on
+// different machines.
+function tickTrim(dt) {
+  if (!trimKeyUp && !trimKeyDown) return;
+  if (riderTrim === null) riderTrim = 0.5;
+  riderTrim = Math.min(1, Math.max(0, riderTrim
+    + (trimKeyUp ? TRIM_RATE * dt : 0) - (trimKeyDown ? TRIM_RATE * dt : 0)));
 }
 function setRiderBoard(v) {
   const n = Math.max(0, Number(v) || 0);
@@ -705,6 +721,7 @@ function modelP() {
     boardMps: riderBoardMps > 0 ? riderBoardMps : undefined,
     gapFn: riderGapFn,
     lookaheadM: riderLookaheadM > 0 ? riderLookaheadM : undefined,
+    trimInput: riderTrim === null ? undefined : riderTrim,
     // M6 part 3: the JS twin's phase field. Null off the Psi path, which makes
     // rayPhase() fall back to the frozen-LAM plane wave — the branch the twin
     // has always run. Set once per frame by the refraction bake below.
@@ -1170,6 +1187,8 @@ function updatePovCam(sWorld, ride, surface, simDt) {
 const hudPreset = document.getElementById('hudPreset');
 const hudCam = document.getElementById('hudCam');
 const hudSurfer = document.getElementById('hudSurfer');
+const hudRide = document.getElementById('hudRide');
+const hudRideKey = document.getElementById('hudRideKey');
 const hudGeo = document.getElementById('hudGeo');
 const hudAudio = document.getElementById('hudAudio');
 const hudAlpha = document.getElementById('hudAlpha');
@@ -1287,6 +1306,36 @@ function syncControlUI() {
   if (sectionPositionControl) sectionPositionControl.hidden = !showSection;
   if (sectionPosition) sectionPosition.value = String(sectionX);
   if (sectionPositionValue) sectionPositionValue.textContent = `${sectionX >= 0 ? '+' : ''}${sectionX} m`;
+}
+
+// The ride line changes every frame, so it cannot live in refreshHUD(), which
+// only runs when state changes. One string, no new overlay: the HUD row that
+// already exists gains a slot and hides itself again when nobody is steering.
+let _lastRideHud = '';
+function updateRideHud() {
+  if (!hudRide || !hudRideKey) return;
+  const on = riderBoardMps > 0;
+  if (hudRideKey.hidden === on) { hudRideKey.hidden = !on; hudRide.hidden = !on; }
+  if (!on) return;
+  const r = m4Ride;
+  let txt;
+  if (!r) txt = '—';
+  else if (r.waiting) txt = 'waiting';
+  else if (r.fallen) txt = r.lostTo === 'outrun' ? 'CAUGHT'
+    : r.lostTo === 'ahead' ? 'wave gone (too tight)'
+    : r.lostTo === 'closeout' ? 'closed out' : 'kicked out';
+  else {
+    // pocket is signed: +1 the whitewater is on you, -1 you are out in front.
+    const p = r.pocket ?? 0;
+    const n = 11, i = Math.round((p + 1) / 2 * (n - 1));
+    const bar = '·'.repeat(i) + '◆' + '·'.repeat(n - 1 - i);
+    if (r.trim === null) { txt = `${bar}  auto (W/S to steer)  ${r.phase}`; }
+    else {
+      const line = r.trim > 0.66 ? 'tight' : r.trim < 0.33 ? 'wide' : 'trim';
+      txt = `${bar}  ${line} ${Math.round(r.trim * 100)}%  ${r.phase}`;
+    }
+  }
+  if (txt !== _lastRideHud) { hudRide.textContent = txt; _lastRideHud = txt; }
 }
 
 function refreshHUD() {
@@ -1750,7 +1799,21 @@ function runShortcut(key) {
 
 // ---------- keyboard (parity with web/) ----------
 const presetKeys = Object.keys(PRESETS);
+// A4 steering. Only while a board speed is declared, so #board=0 leaves the
+// arrow keys to whatever else wants them.
+function trimKey(e, down) {
+  if (!(riderBoardMps > 0)) return false;
+  if (e.metaKey || e.ctrlKey || e.altKey) return false;
+  const k = e.key;
+  if (k === 'ArrowUp' || k === 'w' || k === 'W') { trimKeyUp = down; return true; }
+  if (k === 'ArrowDown' || k === 's' || k === 'S') { trimKeyDown = down; return true; }
+  return false;
+}
+window.addEventListener('keyup', (e) => { if (trimKey(e, false)) e.preventDefault(); });
+window.addEventListener('blur', () => { trimKeyUp = false; trimKeyDown = false; });
+
 window.addEventListener('keydown', (e) => {
+  if (trimKey(e, true)) { e.preventDefault(); return; }
   if (e.key === 'Escape' && document.body.classList.contains('menu-open')) {
     setMenuOpen(false);
     return;
@@ -2029,6 +2092,8 @@ function frame(now) {
   last = now;
   if (Number.isFinite(dtMs) && dtMs > 0) considerQuality(dtMs);
   if (!state.paused && Number.isFinite(dt)) simTime += dt * state.speed;
+  if (Number.isFinite(dt)) tickTrim(Math.min(dt, 0.1));
+  updateRideHud();
 
   // Conditions drift: one hard switch to the next surf-worthy day at each
   // DRIFT_PERIOD_S boundary of SIM time. Interval index, not an accumulator,
