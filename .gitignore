@@ -104,3 +104,9 @@ qa/makeability/*
 !qa/rider-makeability/
 qa/rider-makeability/*
 !qa/rider-makeability/summary.json
+# Size headroom (scripts/measure_size_headroom.mjs): 109 states in ~7 min. The
+# summary carries the Hb-vs-H0 elasticity and the clamp-binding ladder the
+# research note cites, so it is committed; the run is not cheap to repeat.
+!qa/size-headroom/
+qa/size-headroom/*
+!qa/size-headroom/summary.json
