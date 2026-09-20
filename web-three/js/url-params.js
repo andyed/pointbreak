@@ -59,7 +59,7 @@ export function wrapWidthSeconds(spec, T, LAM) {
 // on the same screen produce different links and neither can tell why.
 export const ROUND_TRIP_PARAMS = [
   'preset', 'cam', 'day', 'month', 'h0', 'tide', 'fog', 'bank', 'burnoff',
-  'bed', 'surfer', 'section', 'audio', 'speed', 'controls',
+  'bed', 'surfer', 'board', 'section', 'audio', 'speed', 'controls',
 ];
 
 // Values equal to these are omitted: a default-state view must serialise to a
@@ -71,6 +71,9 @@ export const ROUND_TRIP_PARAMS = [
 // keep writing the value explicitly rather than relying on the default.
 // Month is deliberately NOT in this table — see the note inside it.
 const OMIT_WHEN = {
+  // board=0 is the shipped kinematic rider: he IS the breakpoint and cannot be
+  // beaten. Any non-zero value is a reader's choice and must survive a link.
+  board: '0',
   surfer: '0', section: '0', audio: '0', speed: '1', bed: 'reef',
   preset: 'secondpeak', cam: 'free',
   // fog=1 IS the shipped image (a pure multiplier on the aerial-perspective

@@ -386,9 +386,21 @@ const RIDE_PHASE_STENCIL_M = 1.5;
 // is a little over one board-and-pocket at this scale; the authored face offset
 // (11 + 5*pump) is the shoreward companion to it.
 export const RIDER_POCKET_M = 18;
-// A sim-clock jump (setSim, a tab wake, a preset rebake) must not be integrated
-// as if it were elapsed ride time.
-const RIDER_MAX_DT_S = 0.1;
+// Two different things, and conflating them cost a silent revert to the
+// kinematic rider. A SLOW FRAME is still elapsed ride time and must be
+// integrated (clamped, for stability); only a genuine clock DISCONTINUITY —
+// setSim, a tab wake, a preset rebake — may restart the ride.
+//
+// The first version used one threshold for both: any dt over 0.1 s became
+// dt = 0, and dt = 0 counted as a new ride, which re-pinned the rider onto the
+// breakpoint. In the app at speed 8 with a throttled pane the per-frame dt is
+// ~0.27 s, so EVERY frame reset him and he never accumulated a metre of lag —
+// he looked exactly like the old kinematic rider while reporting a board
+// speed. Any device dipping under 10 fps would have done the same thing
+// silently. Found by running it in the renderer; headless, where dt is a fixed
+// 1/30, could not see it.
+const RIDER_MAX_DT_S = 0.1;    // integration step clamp
+const RIDER_JUMP_S = 1.0;      // above this the clock has jumped, not lagged
 
 // ---------- A2: what losing it looks like ----------
 // TODO.md's long-standing intent, "section outruns surfer -> fall + tumble in
@@ -537,9 +549,10 @@ export function m4RideSolve(t, P, zbFn, st) {
   const board = Number(P.boardMps);
   if (Number.isFinite(board) && board > 0) {
     const dtRaw = Number.isFinite(st.lastT) ? t - st.lastT : 0;
-    const dt = (dtRaw > 0 && dtRaw <= RIDER_MAX_DT_S) ? dtRaw : 0;
+    const jumped = !Number.isFinite(st.lastT) || dtRaw < 0 || dtRaw > RIDER_JUMP_S;
+    const dt = jumped ? 0 : Math.min(dtRaw, RIDER_MAX_DT_S);
     st.lastT = t;
-    const newRide = !Number.isFinite(st.xRider) || st.rideN !== st.n || waiting || dt === 0;
+    const newRide = !Number.isFinite(st.xRider) || st.rideN !== st.n || waiting || jumped;
     if (newRide) {
       st.xRider = x; st.rideN = st.n;
       st.fallen = false; st.lostTo = null; st.fellT = null; st.fellX = null; st.fellVx = null;

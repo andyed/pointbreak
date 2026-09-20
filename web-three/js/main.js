@@ -652,6 +652,26 @@ scene.add(surferGroup);
 const surfaceQuery = makeSurfaceQuery(renderer, uniforms, ROLLER_BUILD ? { ROLLER: 1 } : {});
 let riderSurfaceAuthoritative = true;
 let lastRiderSurface = null;
+// A1/A2: the rider's board speed, m/s. 0 / null = OFF, which is the shipped
+// kinematic rider (he IS the breakpoint and cannot be beaten) and is
+// bit-identical to the pre-A1 solve. Set it and he becomes a second body that
+// can fall behind the peel, be caught by the whitewater, and lose the wave.
+// #board=8 turns it on; see docs/research/GAME_PROJECTION_2026-09-19.md Track A.
+let riderBoardMps = 0;
+let riderGapFn = null;
+// Changing the board speed changes what kind of body the rider is, so the
+// ride state has to start over -- the same reset discipline preset / setM4 /
+// setPsi already use, and for the same reason: a carried-over xRider would
+// hand the new rider the old one's position and lag.
+function setRiderBoard(v) {
+  const n = Math.max(0, Number(v) || 0);
+  if (n === riderBoardMps) return;
+  riderBoardMps = n;
+  m4RideState.n = null; m4RideState.prevX = null;
+  m4RideState.xRider = null; m4RideState.rideN = null;
+  m4RideState.fallen = false; m4RideState.lastT = null;
+  refreshHUD();
+}
 
 // snapshot of the model uniforms for the JS twin (alpha already in radians).
 // m4Ride is the frame's emergent-line rider solve (null off the M4 path): the
@@ -667,6 +687,13 @@ function modelP() {
     reefWin: reefWindowKnots(state.stageStart, state.stageEnd),
     rideOffset: uniforms.u_rideOffset.value,
     m4Ride,
+    // A1/A2. boardMps absent -> every dynamic line in m4RideSolve is skipped.
+    // gapFn is the closeout predicate, injected on the same contract as zbFn
+    // and phaseFn because bed.js owns the bake: with it the rider can tell a
+    // wave that SHUT DOWN ahead of him (kickout) from one that OUTRAN him
+    // (wipeout), and those are not the same event.
+    boardMps: riderBoardMps > 0 ? riderBoardMps : undefined,
+    gapFn: riderGapFn,
     // M6 part 3: the JS twin's phase field. Null off the Psi path, which makes
     // rayPhase() fall back to the frozen-LAM plane wave — the branch the twin
     // has always run. Set once per frame by the refraction bake below.
@@ -2124,6 +2151,7 @@ function frame(now) {
       m4RideState.n = null; m4RideState.prevX = null;
       m4RideState.preset = state.preset;
     }
+    riderGapFn = (x) => breakGapAt(x, baked.x0, baked.x1);
     m4Ride = null;   // solve against the authored-path P (m4Ride: null)
     m4Ride = m4RideSolve(simTime, modelP(),
         (x) => breakZAt(x, baked.x0, baked.x1), m4RideState);
@@ -2131,6 +2159,7 @@ function frame(now) {
     uniforms.u_surferPos.value.set(s.x, s.z, s.vx, s.vz);
   } else {
     m4Ride = null;
+    riderGapFn = null;
   }
   // ---- set-envelope anchor: where the LIVE line sits in ray coordinate ----
   // Stage-median rayS along the shipped break line. The baked emergent line
@@ -2341,6 +2370,7 @@ function frame(now) {
 // reverts, feature flags, #sim) stays boot-only: re-running it would re-bake
 // the reef and re-seed the clock, which is neither cheap nor idempotent.
 function applyLiveParams(h, { shapeChanged = false } = {}) {
+  setRiderBoard(h.has('board') ? h.get('board') : 0);
   const p = h.get('preset');
   if (p && PRESETS[p]) applyPreset(state, p);
   // No preset in the hash means applyPreset never re-ran applyBed, so the bed
@@ -2420,6 +2450,7 @@ function applyLiveParams(h, { shapeChanged = false } = {}) {
   if (h.get('bed') === 'measured') state.bedShape = 2;
   if (h.get('bed') === 'reef') state.bedShape = 0;
   if (h.has('surfer')) state.surfer = h.get('surfer') === '1' ? 1 : 0;
+  if (h.has('board')) setRiderBoard(h.get('board'));
   if (h.get('section') === '1') { showSection = true; section.el.style.display = ''; }
   if (h.get('audio') === '1') setAudioEnabled(true);   // needs a gesture; honoured once one lands
   if (h.has('h0')) {
@@ -2715,6 +2746,7 @@ function currentHashSnapshot() {
     burnoff: state.burnoff ? '1' : '0',
     bed: ['reef', 'plane', 'measured'][state.bedShape || 0],
     surfer: state.surfer ? '1' : '0',
+    board: riderBoardMps > 0 ? String(riderBoardMps) : '0',
     section: showSection ? '1' : '0',
     audio: isAudioEnabled() ? '1' : '0',
     speed: String(state.speed),
