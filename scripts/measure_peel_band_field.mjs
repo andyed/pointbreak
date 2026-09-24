@@ -40,90 +40,21 @@
 //   node scripts/measure_peel_band_field.mjs                 # everything, ~3 min
 //   node scripts/measure_peel_band_field.mjs --mode=map|observed|profile|solve|consistency|plot|all
 //   --out=docs/research/assets/peel-band-2026-09-24   --bed=cudem19   --fast
-import { registerHooks } from 'node:module';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute } from 'node:path';
 import { bedSourceTag, registerBedSource } from './lib/bed-source.mjs';
+// The knob patches and the load hook live in scripts/lib/reef-knobs.mjs
+// (extracted 2026-09-24, unchanged, so scripts/score_reef_fit.mjs serves the
+// same knobs to every instrument); re-exported here under their old names.
+import { PATCHES, countOccurrences, patchBedSource, bedFor } from './lib/reef-knobs.mjs';
+export { PATCHES, countOccurrences, patchBedSource, bedFor };
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 // The bed source must be chosen before the first import that reaches bed.js.
 export const BED_SOURCE = registerBedSource(bedSourceTag());
-
-const BED_URL = new URL('../web-three/js/bed.js', import.meta.url).href;
-const THREE_URL = new URL('../web-three/vendor/three.module.js', import.meta.url).href;
-const BED_SRC = readFileSync(fileURLToPath(BED_URL), 'utf8');
-
-// ---------- the two patches ----------
-// Each `find` must occur exactly once in bed.js; a drift there fails here
-// rather than silently sweeping a constant that moved.
-export const PATCHES = [
-  { name: 'crest depth (per spot)',
-    find: 'const crestDepth = Math.min(Math.max(0.75 * hb, 1.2), 3.0);',
-    replace: 'const crestDepth = Math.min(Math.max(0.75 * hb, 1.2), 3.0) + __bandCrest(name);' },
-  { name: 'crest target ceiling (per spot, hypothetical)',
-    find: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, REEF_CEIL_EL - 0.2);',
-    replace: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, REEF_CEIL_EL + __bandCeil(name) - 0.2);' },
-  { name: 'post ceiling (per spot, hypothetical)',
-    find: 'return Math.max(Math.min(em + lift, REEF_CEIL_EL) - em, 0);',
-    replace: 'return Math.max(Math.min(em + lift, REEF_CEIL_EL + __bandCeil(__reefSpotName)) - em, 0);' },
-  { name: 'reef fn spot name (for the post ceiling)',
-    find: 'function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {',
-    replace: 'function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin, __reefSpotName = null) {' },
-  { name: 'reef fn call site',
-    find: 'const fn = makeReefFn(b, targetEl, zRef, seed, reefWin);',
-    replace: 'const fn = makeReefFn(b, targetEl, zRef, seed, reefWin, name);' },
-  { name: 'beta override (per spot)',
-    find: '  const fit = {\n    spot: name, synthetic: true,',
-    replace: '  if (Number.isFinite(__bandBeta(name))) { beta = __bandBeta(name); const __r = evaluate(beta); derived = __r.derived; reefFn = __r.reefFn; signViolations = __r.viol; }\n'
-           + '  const fit = {\n    spot: name, synthetic: true,' },
-];
-export function countOccurrences(src, needle) {
-  let n = 0, i = 0;
-  while ((i = src.indexOf(needle, i)) !== -1) { n++; i += needle.length; }
-  return n;
-}
-// knobs = { crest: { [spotName]: metres }, beta: { [spotName]: degrees }, ceil: { [spotName]: metres } }
-export function patchBedSource(src, knobs) {
-  const k = { crest: {}, beta: {}, ceil: {}, ...knobs };
-  let out = src;
-  for (const p of PATCHES) {
-    const n = countOccurrences(out, p.find);
-    if (n !== 1) throw new Error(`patch "${p.name}": expected exactly one match in bed.js, found ${n}`);
-    out = out.replace(p.find, p.replace);
-  }
-  const prelude = `const __BAND = ${JSON.stringify(k)};\n`
-    + `function __bandCrest(name) { const v = __BAND.crest[name]; return Number.isFinite(v) ? v : 0; }\n`
-    + `function __bandBeta(name) { const v = __BAND.beta[name]; return Number.isFinite(v) ? v : NaN; }\n`
-    + `function __bandCeil(name) { const v = __BAND.ceil[name]; return Number.isFinite(v) ? v : 0; }\n`;
-  return prelude + out;
-}
-
-registerHooks({
-  resolve(specifier, context, nextResolve) {
-    if (specifier === 'three') return { url: THREE_URL, shortCircuit: true };
-    return nextResolve(specifier, context);
-  },
-  load(url, context, nextLoad) {
-    if (url.startsWith(BED_URL + '?band=')) {
-      const knobs = JSON.parse(decodeURIComponent(url.slice(BED_URL.length + '?band='.length)));
-      return { format: 'module', source: patchBedSource(BED_SRC, knobs), shortCircuit: true };
-    }
-    return nextLoad(url, context);
-  },
-});
-
-const instances = new Map();
-export async function bedFor(knobs = {}) {
-  const k = { crest: knobs.crest || {}, beta: knobs.beta || {}, ceil: knobs.ceil || {} };
-  const key = JSON.stringify(k);
-  if (instances.has(key)) return instances.get(key);
-  const mod = await import(`${BED_URL}?band=${encodeURIComponent(key)}`);
-  instances.set(key, mod);
-  return mod;
-}
 
 const bedShipped = await import('../web-three/js/bed.js');
 const { PRESETS } = await import('../shared/params.js');
