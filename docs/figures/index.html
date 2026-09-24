@@ -722,10 +722,9 @@
     </p>
     <p class="prose">
       Private's and Sharks sit in the most sheltered water and
-      require both swell and a low tide to activate at all (the model agrees in
-      kind: its own peel floors, re-measured 24 September, put Sharks at
-      0.46&nbsp;m and Private's at 0.64&nbsp;m of swell, holding only at or
-      below mean sea level); the Hook and 38th
+      require both swell and a low tide to activate at all (the model agrees in kind: its re-measured peel floors put Sharks at
+      0.46&nbsp;m and Private's at 0.64&nbsp;m of swell, holding only at or below
+      mean sea level); the Hook and 38th
       occupy intermediate exposure; Second Peak sits on a low-gradient shelf
       and produces the long, roughly 90 m peel the site is best known for;
       First Peak's steeper profile yields tapered, faster walls; and Sewers,
@@ -911,26 +910,26 @@ depth and exposure.</desc>
   <section class="essay-part">
     <h2><span class="num">04</span> Breaking character along the point</h2>
     <p class="prose">
-      The first two figures come from survey data. The third is renders
-      &mdash; and it is kept deliberately as a <em>before</em> picture. The
-      frames below run the original peel-angle bank, translated from
-      surf-guide language (&ldquo;mellow&rdquo;, &ldquo;softer-breaking&rdquo;,
+      The first two figures come from survey data. The third is renders,
+      regenerated on 24 September with the current preset bank. The frames
+      first ran the original peel-angle bank, translated from surf-guide
+      language (&ldquo;mellow&rdquo;, &ldquo;softer-breaking&rdquo;,
       &ldquo;longboard-favored&rdquo; became &alpha; = 58&ndash;70&deg; at the
-      down-point spots) because no one has ever published a measured peel
-      angle for this coastline &mdash; or, it turns out, for any Santa Cruz
-      break. Checked against the refraction physics the model itself
-      implements, five of those seven numbers were too high to be real, and
-      in mid-August 2026 the bank was retargeted to each spot&rsquo;s own
-      physical ceiling &mdash; the current bank runs 31&ndash;50&deg;, and
-      the mellowness the guides describe now rides in an explicit sheltering
-      field rather than the angle. Section 07 walks through the whole arc,
-      from translation to refutation to retarget.
+      down-point spots) because no one had published a measured peel angle
+      for this coastline, or for any Santa Cruz break. Checked against the
+      refraction physics the model itself implements, five of those seven
+      numbers were too high to be real, and in mid-August 2026 the bank was
+      retargeted to each spot&rsquo;s own physical ceiling: the current bank
+      runs 31&ndash;50&deg;, and the mellowness the guides describe now rides
+      in an explicit sheltering field rather than the angle. Section 07 walks
+      through the whole arc, from translation to refutation to retarget.
     </p>
     <p class="prose">
-      Six of the seven run on surveyed NCEI bathymetry through their OSM surf
-      node. Private's is the exception. Its stretch of coast defeats the cubic
-      contour fit (16.5 m RMS), so it runs on a synthetic stage and the app
-      says so rather than borrowing a neighbour's seabed.
+      All seven run on surveyed NCEI bathymetry through their OSM surf node.
+      Private&rsquo;s was the exception until 2 September: its stretch of coast
+      defeats the cubic contour fit over the full stage (16.5&nbsp;m RMS), so it
+      now runs on a truncated contour window (1.87&nbsp;m RMS) rather than a
+      synthetic stage, and the app names the window.
     </p>
     <figure class="fig-wrap">
       <div class="fig-frame fig-wide">
@@ -1272,8 +1271,8 @@ depth and exposure.</desc>
       fitted &mdash; over its crest depth and its strike &mdash; toward that
       site&rsquo;s target character. Since 24 September the crest may sit in
       the intertidal (a shelf that dries at the lowest tides, as the real
-      platform does), because the one day of measured peel kinematics the
-      project has broke in water the old submerged-only rule could not reach.
+      platform does), because the only measured peel the project has (15 August) broke in
+      water the old submerged-only rule could not reach.
       The declaration is bounded &mdash; the physics still proposes every
       candidate break position; the wedge only chooses among them &mdash;
       and the plane counterfactual below removes it along with every other
@@ -1313,9 +1312,9 @@ depth and exposure.</desc>
       depth contours make with the arriving crest &mdash; 6&deg; on the
       survey's own plane, per Fig.&nbsp;4 &mdash; and the plane preserves
       that angle by construction: same mean depth, slope and orientation.
-      What the counterfactual removes is the relief, and at this site the
-      10&nbsp;m grid carries only 0.32&nbsp;m of it, which is why the survey
-      alone never made the wave peel. The declared wedge is the relief the
+      The counterfactual removes the relief, and at this site the 10&nbsp;m grid
+      carries only 0.32&nbsp;m of it, which is why the survey alone never made
+      the wave peel. The declared wedge is the relief the
       grid cannot see: a crest 0.86&nbsp;m under the surface, struck 44&deg;
       off the shore, that bends the contours where the point actually is.
       Removing it is what turns the peel back into rows.
@@ -1365,10 +1364,16 @@ depth and exposure.</desc>
 
     <h3 class="sub">Known limitations</h3>
     <ul class="limits">
-      <li><strong>Not validated.</strong> No comparison against measured wave
-        heights, breaking positions, or imagery of this break has been made
-        &mdash; and section 07 explains why the usual reference data does not
-        exist to compare against.</li>
+      <li><strong>Not validated.</strong> Until 23 September no comparison
+        against a measurement of this break had been made. The first ones now
+        exist and are recorded in the repository&rsquo;s fidelity audit: four
+        Sentinel-2 frames against the baked break line, one photograph at a
+        solved camera pose, and one afternoon of surf-cam peel kinematics.
+        They found the mirrored scene and the too-deep wedge that section 05
+        describes, and they fall short of validation: no measured wave height,
+        no breaking position at known forcing on more than one day, and a
+        camera focal length nobody has solved. Section 07 explains why the
+        usual reference data does not exist to compare against.</li>
       <li><strong>All seven sites are mapped, on an interpolated seabed.</strong>
         Sewers, First Peak, Second Peak, Jack's (38th), The Hook, Sharks and
         (since 2 September, on a truncated contour window) Private's use
@@ -1824,9 +1829,8 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
       4.7&ndash;6.7&nbsp;m/s down the line at Second Peak, where the model
       then drew a closeout) showed the wedge could not reach the water the
       real wave broke in. The refit is over crest depth and strike, scored on
-      the signed crest-relative peel, and it reproduces that day; the one
-      thing it cannot give is Second Peak's full 41&deg; at the card state
-      (32&deg;), and the essay says so rather than tuning it away.
+      the signed crest-relative peel, and it reproduces that day; what it cannot give is Second Peak&rsquo;s full 41&deg; at the card state:
+      32&deg;, the most the wedge that carries the field day allows.
     </p>
     <p class="prose">
       The measurement itself is now tractable, which is the invitation this
@@ -1839,10 +1843,14 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
       at Manu Bay
       (<a href="https://icce-ojs-tamu.tdl.org/icce/article/view/12664" target="_blank" rel="noopener">Atkin,
       McIntosh &amp; Bryan 2022</a>). The USGS archive pairs a year of
-      Pleasure Point shore-camera imagery with surveyed bathymetry &mdash;
-      the raw material for the first measured peel angle in Santa Cruz is
-      sitting in public archives. Until someone runs it, every &alpha; on
-      this page is a hypothesis, and is labelled as one.
+      Pleasure Point shore-camera imagery with surveyed bathymetry; the raw
+      material for a measured peel-angle distribution in Santa Cruz is sitting
+      in public archives. This project&rsquo;s own first measurement is one
+      afternoon of a fixed surf cam (15 August 2026): peel speed
+      4.7&ndash;6.7&nbsp;m/s at Second Peak, with the angle bracketed
+      55&ndash;73&deg; by a focal length no one has solved. Until the archive
+      is run, every &alpha; on this page is a hypothesis, and is labelled as
+      one.
     </p>
   </section>
 
@@ -1854,7 +1862,7 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
     <div class="credit-row"><span class="credit-label">Ground-truth guides:</span> <a href="https://www.surfer.com/culture/a-visitors-guide-to-longboarding-pleasure-point" target="_blank" rel="noopener">Surfer.com, &ldquo;A Visitor's Guide to Longboarding Pleasure Point&rdquo;</a> &middot; <a href="https://sunnycalifornia.com/blogs/news/beginners-guide-surfing-pleasure-point" target="_blank" rel="noopener">Sunny California, &ldquo;A Beginner's Guide to Surfing Pleasure Point&rdquo;</a>.</div>
     <div class="credit-row"><span class="credit-label">Surf science:</span> Walker (1974, Look Laboratory TR-30) &middot; Hutt, Black &amp; Mead (2001, <em>JCR</em> SI&nbsp;29) &middot; Mead (2000, PhD, Waikato) &middot; Henriquez (2004, MSc, TU Delft) &middot; Scarfe, Healy &amp; Rennie (2009, <em>JCR</em> 25(3)) &middot; Thompson et al. (2021, <em>Remote Sensing</em> 13:3372) &middot; Atkin, McIntosh &amp; Bryan (2022, ICCE) &middot; Integral Consulting (2023, Topanga Surf Quality Impact Assessment). Full citations, verbatim-checked quotes and the search record: <span class="mono">docs/research/SURF_SCIENCE_REFS.md</span> in the repository.</div>
     <div class="credit-row"><span class="credit-label">Licence:</span> Code, writing and figures MIT; OpenStreetMap-derived data ODbL 1.0; NOAA NCEI bathymetry public domain. Source and the full breakdown in the <span class="mono">pointbreak</span> repository.</div>
-    <div class="credit-row"><span class="credit-label">Renders:</span> the pointbreak wave-model renderer. The seven-site figure and live embeds use the current 2026-08-26 default: bend, aerated lip, connected curtain, causal onset and <span class="mono">S<sub>app</sub>&nbsp;0.22</span>; they do not enable the optional <span class="mono">look=foam</span> material.</div>
+    <div class="credit-row"><span class="credit-label">Renders:</span> the pointbreak wave-model renderer. The seven-site figure and live embeds use the current 2026-09-24 default (site unmirrored, reef refit against the field data): bend, aerated lip, connected curtain, causal onset and <span class="mono">S<sub>app</sub>&nbsp;0.22</span>; they do not enable the optional <span class="mono">look=foam</span> material.</div>
     <div class="colophon"><a href="https://mindbendingpixels.com/">Mind Bending Pixels</a> &middot; an adventure in experiential science</div>
   </footer>
 
