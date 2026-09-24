@@ -10,8 +10,10 @@ look.
 [![Pleasure Point — the measured coastline, the seabed under it, and the model built on both](docs/figures/og-card.png)](https://mindbendingpixels.com/pleasurepoint/)
 
 **[Visual essay (live)](https://mindbendingpixels.com/pleasurepoint/)** — last
-updated 28 August 2026; the geography, the data behind it, and the model
-embedded and labelled work in progress.
+updated 24 September 2026 (the embedded model: site no longer mirrored, reef
+refit against the field data — `docs/research/FIDELITY_AUDIT_2026-09-23.md`);
+the geography, the data behind it, and the model embedded and labelled work
+in progress. The essay's rendered figures predate the mirror fix.
 
 ## The product definition
 

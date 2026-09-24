@@ -63,6 +63,7 @@ ITEMS = [
     ('shared/cdip.js',                 'sim/shared/cdip.js'),
     ('data/model/pp_geo_profiles.js',  'sim/data/model/pp_geo_profiles.js'),
     ('data/model/pp_depth_patches.js', 'sim/data/model/pp_depth_patches.js'),
+    ('data/model/pp_reef_fit.json',    'sim/data/model/pp_reef_fit.json'),   # bed.js JSON import (2026-09-24 refit)
     ('data/climatology/pp_monthly_ocean.js',
      'sim/data/climatology/pp_monthly_ocean.js'),
 ]
