@@ -1,0 +1,930 @@
+{
+ "provenance": {
+  "url": "https://pubs.usgs.gov/of/2007/1270/of2007-1270.pdf",
+  "doi": "10.3133/ofr20071270",
+  "sha256": "b3041d8f01edf88ee4b43de4d4d2491d06905d04500029055c50f736bcd0f56b",
+  "bytes": 3385322,
+  "pdf_pages": 29,
+  "title": "High-Resolution Topographic, Bathymetric, and Oceanographic Data for the Pleasure Point Area, Santa Cruz County, California: 2005-2007",
+  "authors": "Curt D. Storlazzi, Patrick L. Barnard, Brian D. Collins, David P. Finlayson, Nadine E. Golden, Gerry A. Hatcher, Robert E. Kayen, and Peter Ruggiero",
+  "pdf_creation": "Thu Sep  6 15:48:46 2007 PDT",
+  "printed_page_offset": 6,
+  "fetched": "2026-09-23"
+ },
+ "stage_projection": {
+  "origin_lat": 36.954095,
+  "origin_lon": -121.976216,
+  "metres_per_deg_lon": 88857.8,
+  "metres_per_deg_lat": 111193.2,
+  "note": "least-squares fit to the 12 named spots in data/osm/pp_geometry.json",
+  "max_residual_m": 0.06
+ },
+ "datums": {
+  "MLLW_above_NAVD88_m": 0.043,
+  "MSL_above_NAVD88_m": 0.905,
+  "note": "CO-OPS 9413450 epoch 1983-2001; the report converts MLLW->NAVD88 with the same 0.043 m (App. 3)"
+ },
+ "awac": {
+  "Hs_m": {
+   "min": 0.34,
+   "mean": 0.92,
+   "sd": 0.27,
+   "max": 5.1,
+   "pdf_page": 17,
+   "printed_page": 11,
+   "source": "printed",
+   "note": "significant wave height at the AWAC, 13 m transducer depth, 8,927 hourly bursts 2006-05-19 .. 2007-06-05"
+  },
+  "Tp_s": {
+   "min": 3.2,
+   "mean": 12.3,
+   "sd": 2.1,
+   "max": 23.8,
+   "pdf_page": 17,
+   "printed_page": 11,
+   "source": "printed"
+  },
+  "Dp_deg_true": {
+   "mean": 211.3,
+   "sd": 8.6,
+   "min": 182.7,
+   "max": 240.6,
+   "pdf_page": 17,
+   "printed_page": 11,
+   "source": "printed",
+   "note": "the report calls the printed statistic \"mean wave direction\"; Fig. 11 bottom panel is \"Mean Wave Direction [deg]\""
+  },
+  "bursts": {
+   "wave_bursts": 8927,
+   "individual_waves": ">400,000",
+   "current_profiles": 26794,
+   "pdf_page": 16,
+   "printed_page": 10,
+   "source": "printed"
+  },
+  "deployments": [
+   {
+    "n": 1,
+    "deployed": "2006-05-19",
+    "recovered": "2006-08-21",
+    "current": 6769,
+    "wave": 2255
+   },
+   {
+    "n": 2,
+    "deployed": "2006-08-24",
+    "recovered": "2006-11-29",
+    "current": 6985,
+    "wave": 2327
+   },
+   {
+    "n": 3,
+    "deployed": "2007-12-04 [sic; 2006-12-04]",
+    "recovered": "2007-03-12",
+    "current": 7059,
+    "wave": 2352
+   },
+   {
+    "n": 4,
+    "deployed": "2007-03-14",
+    "recovered": "2007-06-05",
+    "current": 5981,
+    "wave": 1993
+   }
+  ],
+  "deployments_source": {
+   "pdf_page": 16,
+   "printed_page": 10,
+   "source": "printed",
+   "note": "Table 1"
+  },
+  "instrument": {
+   "model": "Nortek 1 MHz AWAC (S/N 2074)",
+   "transducer_depth_m": 13,
+   "lat": 36.94845,
+   "lon": -121.9787,
+   "lat_dms": "N 36 56.907'",
+   "lon_dms": "W 121 58.722'",
+   "position_fix": "Garmin GPS-76 (consumer GPS)",
+   "bins": 34,
+   "bin_size_m": 0.5,
+   "first_bin_above_bed_m": 1.0,
+   "blanking_m": 0.4,
+   "wave_ensemble": "1 h, 1024 samples at 2 Hz surface tracking (8.5 min)",
+   "current_ensemble": "20 min, 6 min average at 1 Hz",
+   "compass_offset_deg_magnetic": -10,
+   "pdf_page": 27,
+   "printed_page": 21,
+   "source": "printed",
+   "note": "Appendix 4; Fig. 10 caption says \"deployed at a depth of 13 m\"; Task 2 text says \"a depth of 14 m\""
+  },
+  "surf_zone_heights": null,
+  "surf_zone_note": "The report prints no surf-zone wave height. The only breaking-wave sizes are the two figure captions: \"small (0.5 m) waves (08/15/2006)\" (Fig. 14) and \"larger (1.5 m) waves (09/20/2006)\" (Fig. 15), unattributed to an instrument."
+ },
+ "camera": {
+  "lat": 36.956783333333334,
+  "lon": -121.9709,
+  "lat_dms": "N 36 57.407'",
+  "lon_dms": "W 121 58.254'",
+  "position_fix": "Garmin GPS-76 (consumer GPS)",
+  "hardware": "Erdman Video Systems C5050-PT; Olympus SP-350 still; Sony FCB-EX480A block video camera",
+  "still_scenes": 9,
+  "still_rate": "1 per hour",
+  "video_scenes": 4,
+  "video_rate": "5 frames/s for 10 min",
+  "host": "a private residence on East Cliff Drive",
+  "pdf_page": 28,
+  "printed_page": 22,
+  "source": "printed",
+  "note": "Appendix 5 (the same printed page as the AWAC location; App. 5 is the next page)"
+ },
+ "table2": {
+  "rows": [
+   {
+    "scene": "p1",
+    "type": "Still",
+    "description": "Hook",
+    "images": 3027
+   },
+   {
+    "scene": "p2",
+    "type": "Still",
+    "description": "38th Avenue",
+    "images": 3027
+   },
+   {
+    "scene": "p3",
+    "type": "Still",
+    "description": "Jack's",
+    "images": 3027
+   },
+   {
+    "scene": "p4",
+    "type": "Still",
+    "description": "Pleasure Point 3rd peak",
+    "images": 3027
+   },
+   {
+    "scene": "p5",
+    "type": "Still",
+    "description": "Pleasure Point 1st peak",
+    "images": 3027
+   },
+   {
+    "scene": "p10",
+    "type": "Still",
+    "description": "Hook zoom",
+    "images": 1326
+   },
+   {
+    "scene": "p11",
+    "type": "Still",
+    "description": "38th Avenue zoom",
+    "images": 1355
+   },
+   {
+    "scene": "p20",
+    "type": "Still",
+    "description": "Pleasure Point 3rd peak zoom",
+    "images": 1355
+   },
+   {
+    "scene": "p21",
+    "type": "Still",
+    "description": "Pleasure Point 1st peak zoom",
+    "images": 1398
+   },
+   {
+    "scene": "d12",
+    "type": "Still",
+    "description": "Pleasure Point composite",
+    "images": 3443
+   },
+   {
+    "scene": "d14",
+    "type": "Still",
+    "description": "Hook-38th Avenue composite",
+    "images": 3427
+   },
+   {
+    "scene": "d38",
+    "type": "Still",
+    "description": "Study Area panoramic",
+    "images": 2878
+   },
+   {
+    "scene": "s5",
+    "type": "Video",
+    "description": "Pleasure Point 1st peak",
+    "images": 3257
+   },
+   {
+    "scene": "s18",
+    "type": "Video",
+    "description": "Pleasure Point 3rd peak",
+    "images": 3173
+   },
+   {
+    "scene": "s23",
+    "type": "Video",
+    "description": "38th Avenue-Jack's",
+    "images": 3166
+   },
+   {
+    "scene": "s32",
+    "type": "Video",
+    "description": "Hook-38th Avenue",
+    "images": 3148
+   }
+  ],
+  "totals": {
+   "still": 30317,
+   "video": 12744
+  },
+  "pdf_page": 18,
+  "printed_page": 12,
+  "source": "printed"
+ },
+ "timex_figures": [
+  {
+   "figure": 14,
+   "date_local": "2006-08-15 12:20:23",
+   "frames": 3003,
+   "rate_hz": 5.01,
+   "window_min": 10,
+   "caption_wave_height_m": 0.5,
+   "caption": "Video camera data from a period with small (0.5 m) waves (08/15/2006). LEFT: Average of more than 3,000 images taken at 5 Hz. RIGHT: Variance of more than 3,000 images taken at 5 Hz. Note that, due to the sun angle, it is difficult to delineate the region of wave breaking and whitewater (wave bores); however, these areas are easily identifiable as white regions in the variance data.",
+   "timestamp_source": "figure-raster (burned-in header \"Aug 15 06 12:20:23 3003 images averaged over 10.minutes, 5.01 frames/sec.\")",
+   "pdf_page": 19,
+   "printed_page": 13,
+   "source": "printed"
+  },
+  {
+   "figure": 15,
+   "date_local": "2006-09-20 11:41:26",
+   "frames": 3002,
+   "rate_hz": 5.0,
+   "window_min": 10,
+   "caption_wave_height_m": 1.5,
+   "caption": "Video camera data from a period with larger (1.5 m) waves (09/20/2006). LEFT: Average of more than 3,000 images taken at 5 Hz. RIGHT: Variance of more than 3,000 images taken at 5 Hz. Note the much larger regions of wave breaking and whitewater (wave bores) as compared to the period of smaller waves shown above in FIGURE 14.",
+   "timestamp_source": "figure-raster (burned-in header \"Sep 20 06 11:41:26 3002 images averaged over 10.minutes, 5.0 frames/sec.\")",
+   "pdf_page": 19,
+   "printed_page": 13,
+   "source": "printed"
+  },
+  {
+   "figure": 13,
+   "date_local": "2006-08-02 15:49:17 and 15:50:05",
+   "type": "two merged 8 MP stills",
+   "caption": "Two merged 8 mega-pixel digital still photographs taken of the Pleasure Point surf breaks.",
+   "timestamp_source": "figure-raster (burned-in headers \"Aug 02 06 15:49:17\" / \"Aug 02 06 15:50:05\")",
+   "pdf_page": 19,
+   "printed_page": 13,
+   "source": "printed"
+  }
+ ],
+ "breaking_pattern_statements": [
+  {
+   "text": "The spatial and temporal variation in waves and their breaking patterns at the study site were documented.",
+   "source": "printed",
+   "pdf_page": 7,
+   "printed_page": 1
+  },
+  {
+   "text": "Large winter swells typically arrive from the northwest and west; however, this area also experiences un-refracted waves out of the southwest during the summer.",
+   "source": "printed",
+   "pdf_page": 8,
+   "printed_page": 2
+  },
+  {
+   "text": "The Pleasure Point area in northern Monterey Bay is a complex coastal setting of sea cliffs and small pocket beaches that are influenced by a variable wave climate due to its south-facing orientation.",
+   "source": "printed",
+   "pdf_page": 7,
+   "printed_page": 1
+  },
+  {
+   "text": "Wave breaking patterns were documented using a web-based camera system deployed at a private residence on East Cliff Drive.",
+   "source": "printed",
+   "pdf_page": 9,
+   "printed_page": 3
+  },
+  {
+   "text": "This video monitoring made it possible to track wave breaking patterns, rip-channel development and potentially infer rock reef and/or sand-bar location(s) under a range of wave and tide conditions.",
+   "source": "printed",
+   "pdf_page": 9,
+   "printed_page": 3
+  },
+  {
+   "text": "The video monitoring makes it possible to track wave breaking patterns (FIGURE 13-15), rip channel development and potentially infer sand-bar location(s) under a range of wave conditions.",
+   "source": "printed",
+   "pdf_page": 17,
+   "printed_page": 11
+  },
+  {
+   "text": "Note the much larger regions of wave breaking and whitewater (wave bores) as compared to the period of smaller waves shown above in FIGURE 14.",
+   "source": "printed",
+   "pdf_page": 19,
+   "printed_page": 13
+  },
+  {
+   "text": "They also provide a basis for calculating potential changes to wave transformations into the shore at Pleasure Point.",
+   "source": "printed",
+   "pdf_page": 7,
+   "printed_page": 1
+  }
+ ],
+ "breaking_pattern_negative": {
+  "peel_occurrences": 0,
+  "breaking_position_numbers": 0,
+  "note": "No peel angle, peel direction, peel speed, breaking position, breaker depth or surf-zone width is printed anywhere in the report. The words \"peel\", \"breaker depth\", \"surf zone width\" do not occur. The breaking record is the imagery itself, which the PDF reproduces only as Figs. 13-15."
+ },
+ "geometry_statements": [
+  {
+   "text": "This provided broad spatial coverage from approximately 0.5 km offshore into water depths of 3-4 m; the shallower portion of the swath bathymetry thus overlapped the deeper portion of the CPS survey.",
+   "source": "printed",
+   "pdf_page": 9,
+   "printed_page": 3
+  },
+  {
+   "text": "In total, more than 3,242,199 soundings were acquired during this survey, extending from water depths just less 2 m to more than 21 m (FIGURE 9).",
+   "source": "printed",
+   "pdf_page": 16,
+   "printed_page": 10
+  },
+  {
+   "text": "Twenty-five shore-normal and 23 shore-parallel track lines were collected (FIGURE 6). ... Data was collected into water depths less than 1 m and out into depths of more than 12 m.",
+   "source": "printed",
+   "pdf_page": 12,
+   "printed_page": 6
+  },
+  {
+   "text": "In total, more than 103,033 data points were acquired during the one day of surveying, extending from mean sea level down to water depths just less than 12 m.",
+   "source": "printed",
+   "pdf_page": 14,
+   "printed_page": 8
+  },
+  {
+   "text": "No direct vertical control was available in the study area during the survey. Instead, vertical control was established using observed water levels from the National Ocean Service (NOS, 2007) Tide Station #9413450 located in Monterey Harbor ... the maximum deviation between the reference station and Santa Cruz is approximately 10 cm at full tide range.",
+   "source": "printed",
+   "pdf_page": 14,
+   "printed_page": 8
+  },
+  {
+   "text": "These data were then entered into the SEA Swath Processor acquisition software to establish Mean Lower Low Water (MLLW) as the vertical datum of the survey.",
+   "source": "printed",
+   "pdf_page": 14,
+   "printed_page": 8
+  },
+  {
+   "text": "For reference, NAVD 88 is 0.04 cm below MLLW at the benchmark. [sic: 0.04 m; App. 3 adds 0.043 m]",
+   "source": "printed",
+   "pdf_page": 15,
+   "printed_page": 9
+  },
+  {
+   "text": "added 0.043 to grid depth in order to correct for difference between MLLW and NAVD 88.",
+   "source": "printed",
+   "pdf_page": 25,
+   "printed_page": 19
+  },
+  {
+   "text": "In January, 2006, data were collected from the intertidal bedrock platform during a period of extremely low tides. This field effort collected data of the seacliff, beach, and intertidal reef.",
+   "source": "printed",
+   "pdf_page": 11,
+   "printed_page": 5
+  },
+  {
+   "text": "Because ground-based lidar scanning can be performed with a horizontal look angle, not only is the cliff topography point density much higher that from an airborne platform, but geologic features such as sea caves and wave cut notches can also be captured.",
+   "source": "printed",
+   "pdf_page": 8,
+   "printed_page": 2
+  },
+  {
+   "text": "SWATHplus ... Accuracy: 0.1 m or 1% accuracy versus water depth ... Spatial Resolution: 0.2 m raw, 1.0 m processed ... Quantitative Horizontal Positional Accuracy Assessment: +-0.2 m; Quantitative Vertical Positional Accuracy Assessment: +-0.3 m",
+   "source": "printed",
+   "pdf_page": 25,
+   "printed_page": 19
+  },
+  {
+   "text": "CPS ... Quantitative Horizontal Positional Accuracy Assessment: +-0.05 m; Quantitative Vertical Positional Accuracy Assessment: +-0.15 m; reasonable variations in water temperature and salinity (not measured), however, can affect depth estimates by as much as 3% of the water depth.",
+   "source": "printed",
+   "pdf_page": 12,
+   "printed_page": 6
+  },
+  {
+   "text": "Survey: 10/13/2005 YD286 - 10/14/2005 YD287, 10/17/2005 YD290 - 10/19/005 YD292; Number of Lines: 97 (89 ~straight, 8 shore-parallel); Water depths: 1-22 m",
+   "source": "printed",
+   "pdf_page": 25,
+   "printed_page": 19
+  },
+  {
+   "text": "Terrestrial lidar ... Georeferenced Horizontal and Vertical Positional Accuracy Assessment: +-0.50 m; final DEM point spacing 20 cm.",
+   "source": "printed",
+   "pdf_page": 23,
+   "printed_page": 17
+  }
+ ],
+ "geometry_negative": {
+  "note": "No reef-crest elevation, bench elevation, seawall elevation, profile depth or slope is printed. Figs. 4, 6 and 9 are coverage maps; no cross-shore profile is drawn anywhere in the report. The only bathymetric picture with a depth scale is Fig. 9."
+ },
+ "fig11_monthly": {
+  "source": "figure-raster",
+  "figure": 11,
+  "printed_page": 11,
+  "method": "red error bar column at each monthly tick; mean = bar midpoint, sd = half-span; y scaled by the panel frame (axis min at frame bottom, max at frame top)",
+  "frame_px": {
+   "x_axis": 73,
+   "x_right": 845,
+   "month_px": 55.14,
+   "panels": [
+    [
+     7.0,
+     172.5
+    ],
+    [
+     237.5,
+     403.0
+    ],
+    [
+     468.0,
+     633.0
+    ]
+   ]
+  },
+  "months": [
+   {
+    "month": "2006-05",
+    "x_px": 128,
+    "Hs_m": {
+     "mean": 0.95,
+     "sd": 0.19
+    },
+    "Tp_s": {
+     "mean": 11.53,
+     "sd": 2.75
+    },
+    "Dp_deg": {
+     "mean": 198.73,
+     "sd": 14.55
+    }
+   },
+   {
+    "month": "2006-06",
+    "x_px": 183,
+    "Hs_m": {
+     "mean": 0.81,
+     "sd": 0.14
+    },
+    "Tp_s": {
+     "mean": 13.53,
+     "sd": 2.51
+    },
+    "Dp_deg": {
+     "mean": 190.91,
+     "sd": 11.09
+    }
+   },
+   {
+    "month": "2006-07",
+    "x_px": 238,
+    "Hs_m": {
+     "mean": 0.73,
+     "sd": 0.14
+    },
+    "Tp_s": {
+     "mean": 12.89,
+     "sd": 2.36
+    },
+    "Dp_deg": {
+     "mean": 192.36,
+     "sd": 13.27
+    }
+   },
+   {
+    "month": "2006-08",
+    "x_px": 293,
+    "Hs_m": {
+     "mean": 0.75,
+     "sd": 0.23
+    },
+    "Tp_s": {
+     "mean": 13.41,
+     "sd": 2.81
+    },
+    "Dp_deg": {
+     "mean": 189.64,
+     "sd": 12.0
+    }
+   },
+   {
+    "month": "2006-09",
+    "x_px": 349,
+    "Hs_m": {
+     "mean": 0.82,
+     "sd": 0.21
+    },
+    "Tp_s": {
+     "mean": 13.26,
+     "sd": 1.93
+    },
+    "Dp_deg": {
+     "mean": 201.09,
+     "sd": 9.27
+    }
+   },
+   {
+    "month": "2006-10",
+    "x_px": 404,
+    "Hs_m": {
+     "mean": 0.75,
+     "sd": 0.24
+    },
+    "Tp_s": {
+     "mean": 12.98,
+     "sd": 1.84
+    },
+    "Dp_deg": {
+     "mean": 205.27,
+     "sd": 8.0
+    }
+   },
+   {
+    "month": "2006-11",
+    "x_px": 459,
+    "Hs_m": {
+     "mean": 0.86,
+     "sd": 0.21
+    },
+    "Tp_s": {
+     "mean": 10.75,
+     "sd": 1.3
+    },
+    "Dp_deg": {
+     "mean": 215.82,
+     "sd": 10.55
+    }
+   },
+   {
+    "month": "2006-12",
+    "x_px": 514,
+    "Hs_m": {
+     "mean": 1.46,
+     "sd": 0.66
+    },
+    "Tp_s": {
+     "mean": 11.96,
+     "sd": 1.42
+    },
+    "Dp_deg": {
+     "mean": 216.18,
+     "sd": 4.0
+    }
+   },
+   {
+    "month": "2007-01",
+    "x_px": 569,
+    "Hs_m": {
+     "mean": 0.95,
+     "sd": 0.27
+    },
+    "Tp_s": {
+     "mean": 12.02,
+     "sd": 1.78
+    },
+    "Dp_deg": {
+     "mean": 215.45,
+     "sd": 4.36
+    }
+   },
+   {
+    "month": "2007-02",
+    "x_px": 625,
+    "Hs_m": {
+     "mean": 1.11,
+     "sd": 0.44
+    },
+    "Tp_s": {
+     "mean": 11.05,
+     "sd": 1.66
+    },
+    "Dp_deg": {
+     "mean": 214.0,
+     "sd": 5.45
+    }
+   },
+   {
+    "month": "2007-03",
+    "x_px": 680,
+    "Hs_m": {
+     "mean": 0.86,
+     "sd": 0.25
+    },
+    "Tp_s": {
+     "mean": 11.81,
+     "sd": 1.69
+    },
+    "Dp_deg": {
+     "mean": 204.0,
+     "sd": 8.55
+    }
+   },
+   {
+    "month": "2007-04",
+    "x_px": 735,
+    "Hs_m": {
+     "mean": 1.13,
+     "sd": 0.31
+    },
+    "Tp_s": {
+     "mean": 12.65,
+     "sd": 2.84
+    },
+    "Dp_deg": {
+     "mean": 201.82,
+     "sd": 10.73
+    }
+   },
+   {
+    "month": "2007-05",
+    "x_px": 790,
+    "Hs_m": {
+     "mean": 0.78,
+     "sd": 0.21
+    },
+    "Tp_s": {
+     "mean": 11.84,
+     "sd": 2.33
+    },
+    "Dp_deg": {
+     "mean": 197.27,
+     "sd": 14.18
+    }
+   }
+  ],
+  "px_resolution": {
+   "Hs_m": 0.012,
+   "Tp_s": 0.06,
+   "Dp_deg": 0.364
+  },
+  "check": {
+   "mean_of_monthly_Hs_means": 0.92,
+   "printed_overall_mean_Hs": 0.92,
+   "note": "not the same statistic (monthly means are unweighted by burst count) but should agree to ~0.05 m"
+  }
+ },
+ "timex_geometry": {
+  "camera_height_above_msl_m_assumed": 13.2,
+  "ground_elev_navd88_m": 11.07037227889981,
+  "panel_px": [
+   400,
+   300
+  ],
+  "lens": "Sony FCB-EX480A, 18x zoom, HFOV 48-2.8 deg; zoom state per scene not printed",
+  "per_spot": [
+   {
+    "spot": "Sewer Peak",
+    "range_m": 403.0,
+    "bearing_true_deg": 206.2,
+    "depression_deg": 1.87,
+    "m_per_px_wide_36deg_vfov": 25.8,
+    "m_per_px_tele_10deg_vfov": 7.2
+   },
+   {
+    "spot": "First Peak",
+    "range_m": 244.0,
+    "bearing_true_deg": 181.5,
+    "depression_deg": 3.08,
+    "m_per_px_wide_36deg_vfov": 9.5,
+    "m_per_px_tele_10deg_vfov": 2.6
+   },
+   {
+    "spot": "Second Peak",
+    "range_m": 153.0,
+    "bearing_true_deg": 156.7,
+    "depression_deg": 4.92,
+    "m_per_px_wide_36deg_vfov": 3.7,
+    "m_per_px_tele_10deg_vfov": 1.0
+   },
+   {
+    "spot": "38th",
+    "range_m": 289.0,
+    "bearing_true_deg": 74.1,
+    "depression_deg": 2.61,
+    "m_per_px_wide_36deg_vfov": 13.3,
+    "m_per_px_tele_10deg_vfov": 3.7
+   },
+   {
+    "spot": "The Hook",
+    "range_m": 643.0,
+    "bearing_true_deg": 64.1,
+    "depression_deg": 1.17,
+    "m_per_px_wide_36deg_vfov": 65.8,
+    "m_per_px_tele_10deg_vfov": 18.3
+   },
+   {
+    "spot": "Shark's Cove",
+    "range_m": 878.0,
+    "bearing_true_deg": 58.5,
+    "depression_deg": 0.86,
+    "m_per_px_wide_36deg_vfov": 122.6,
+    "m_per_px_tele_10deg_vfov": 34.0
+   },
+   {
+    "spot": "Private's",
+    "range_m": 1186.0,
+    "bearing_true_deg": 52.9,
+    "depression_deg": 0.64,
+    "m_per_px_wide_36deg_vfov": 223.6,
+    "m_per_px_tele_10deg_vfov": 62.1
+   }
+  ],
+  "controls_available": "none in the water plane; the horizon fixes tilt and roll given f; pan and f need >= 2 surveyed land points in frame; the OSM coastline is the bluff base, hidden from a bluff-top camera",
+  "verdict": "not digitised: at 250-650 m range the 300-row panel resolves 6-60 m per pixel cross-shore before any pose error, and no control point in the water plane is printed"
+ },
+ "fig9": {
+  "georeference": {
+   "ticks_x_px": [
+    14.0,
+    154.0,
+    294.5,
+    435.0,
+    575.0
+   ],
+   "ticks_y_px": [
+    155.5,
+    331.0,
+    506.5
+   ],
+   "tick_lons": [
+    -121.99166666666666,
+    -121.98333333333333,
+    -121.975,
+    -121.96666666666667,
+    -121.95833333333333
+   ],
+   "tick_lats": [
+    36.958333333333336,
+    36.95,
+    36.94166666666667
+   ],
+   "affine": {
+    "x_of_lon": [
+     16836.00000000162,
+     2053865.6000001975
+    ],
+    "y_of_lat": [
+     -21060.000000023756,
+     778498.0000008774
+    ]
+   },
+   "tick_fit_residual_px": {
+    "x": 0.2,
+    "y": 0.0
+   },
+   "m_per_px": {
+    "x": 5.289,
+    "y": 5.28
+   },
+   "frame_px": {
+    "right": 689,
+    "bottom": 514
+   },
+   "image_px": [
+    701,
+    527
+   ]
+  },
+  "legend": {
+   "bar_px": {
+    "x": [
+     20,
+     37
+    ],
+    "y": [
+     348,
+     479
+    ]
+   },
+   "note": "legend labels 1m/3ft (top), 5m/16ft, 10m/33ft, 15m/49ft, 20m/66ft (bottom); label rows equally spaced -> linear",
+   "rows": 132
+  },
+  "calibration": {
+   "n_pairs": 5824,
+   "ramp_fit": {
+    "a": 1.4016240673154485,
+    "b": -2.875120141531352,
+    "fit_domain_ref_depth_m": ">= 10.0",
+    "n": 3181,
+    "rms_after_m": 0.28,
+    "ramp_floor_m": 2.76,
+    "ramp_ceiling_m": 16.32,
+    "refit_3_8m_a_b": [
+     1.213,
+     -1.878
+    ]
+   },
+   "by_ncei_depth_bin": {
+    "0-3 m": {
+     "n": 202,
+     "raw_mean_resid_m": -0.99,
+     "raw_rms_m": 1.12,
+     "n_unclipped": 103,
+     "cal_mean_resid_m": 0.69,
+     "cal_rms_m": 0.79
+    },
+    "3-5 m": {
+     "n": 634,
+     "raw_mean_resid_m": -1.14,
+     "raw_rms_m": 1.47,
+     "n_unclipped": 582,
+     "cal_mean_resid_m": 0.15,
+     "cal_rms_m": 0.64
+    },
+    "5-8 m": {
+     "n": 985,
+     "raw_mean_resid_m": -0.55,
+     "raw_rms_m": 1.01,
+     "n_unclipped": 985,
+     "cal_mean_resid_m": -0.12,
+     "cal_rms_m": 0.61
+    },
+    "8-10 m": {
+     "n": 662,
+     "raw_mean_resid_m": 1.16,
+     "raw_rms_m": 1.34,
+     "n_unclipped": 662,
+     "cal_mean_resid_m": 0.17,
+     "cal_rms_m": 0.55
+    },
+    "10-12 m": {
+     "n": 1729,
+     "raw_mean_resid_m": 1.48,
+     "raw_rms_m": 1.54,
+     "n_unclipped": 1729,
+     "cal_mean_resid_m": -0.03,
+     "cal_rms_m": 0.27
+    },
+    "12-14 m": {
+     "n": 882,
+     "raw_mean_resid_m": 2.47,
+     "raw_rms_m": 2.51,
+     "n_unclipped": 882,
+     "cal_mean_resid_m": 0.11,
+     "cal_rms_m": 0.31
+    },
+    "14-16 m": {
+     "n": 496,
+     "raw_mean_resid_m": 3.04,
+     "raw_rms_m": 3.05,
+     "n_unclipped": 496,
+     "cal_mean_resid_m": -0.03,
+     "cal_rms_m": 0.14
+    },
+    "16-22 m": {
+     "n": 234,
+     "raw_mean_resid_m": 3.08,
+     "raw_rms_m": 3.11,
+     "n_unclipped": 74,
+     "cal_mean_resid_m": -0.31,
+     "cal_rms_m": 0.52
+    }
+   },
+   "residual_sign": "fig9 - ncei, both metres below MLLW; raw = legend reading, cal = through the ramp fit",
+   "note": "NCEI matches the CSMP 2 m soundings to 0.076 m RMS from the 10 m isobath out (BATHY_SOURCES_2026-09-01 \u00a73), so the >= 10 m zone calibrates the digitiser; the ramp fit is then applied unchanged shoreward, where the residual is swath vs interpolant. Readings on a ramp end are bounds, not values."
+  },
+  "sites": {
+   "AWAC": {
+    "lat": 36.94845,
+    "lon": -121.9787,
+    "stage_xy": [
+     -220.7,
+     -627.7
+    ],
+    "printed_depth_m": 13.0,
+    "printed_depth_note": "transducer depth, App. 4; tide state not stated (+-0.9 m about MSL)",
+    "fig9_legend_read_m": 12.46,
+    "fig9_depth_mllw_m": 10.94,
+    "fig9_clipped": null,
+    "ncei_depth_mllw_m": 11.45,
+    "cudem19_depth_mllw_m": 11.43
+   },
+   "camera": {
+    "lat": 36.956783333333334,
+    "lon": -121.9709,
+    "stage_xy": [
+     472.4,
+     298.9
+    ],
+    "ground_elev_navd88_m": {
+     "ncei": 11.265520708152431,
+     "cudem19": 11.07037227889981
+    },
+    "nearest_coast_m": 28.1
+   }
+  },
+  "source": "figure-raster",
+  "figure": 9,
+  "printed_page": 9,
+  "method": "graticule-tick affine (5 lon x 3 lat ticks), hue -> depth through the legend bar, 3x3 median, sampled along the OSM shore-normal through each spot node from the nearest coastline point"
+ }
+}
