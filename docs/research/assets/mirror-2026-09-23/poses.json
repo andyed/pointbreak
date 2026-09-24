@@ -1,0 +1,89 @@
+[
+ {
+  "name": "jacks_lookout_sim42",
+  "hash": "preset=jacks&cam=lookout&controls=0&speed=0&sim=42",
+  "preset": "jacks",
+  "geoSpot": "38th",
+  "sim": 42,
+  "speed": 0,
+  "eye": [
+   153.34,
+   13.28,
+   89.23
+  ],
+  "target": [
+   57.37,
+   0,
+   -6.67
+  ],
+  "forward": [
+   -0.704,
+   -0.0974,
+   -0.7035
+  ],
+  "right": [
+   0.7069,
+   0,
+   -0.7074
+  ],
+  "fov": 31.4
+ },
+ {
+  "name": "secondpeak_cliff_sim42",
+  "hash": "preset=secondpeak&cam=cliff&controls=0&speed=0&sim=42",
+  "preset": "secondpeak",
+  "geoSpot": "Second Peak",
+  "sim": 42,
+  "speed": 0,
+  "eye": [
+   156.6,
+   14.86,
+   141.33
+  ],
+  "target": [
+   55.04,
+   2,
+   -62.58
+  ],
+  "forward": [
+   -0.4451,
+   -0.0564,
+   -0.8937
+  ],
+  "right": [
+   0.8951,
+   0,
+   -0.4458
+  ],
+  "fov": 30
+ },
+ {
+  "name": "secondpeak_cliff_sim45",
+  "hash": "preset=secondpeak&cam=cliff&controls=0&speed=0&sim=42 +setSim(45)",
+  "preset": "secondpeak",
+  "geoSpot": "Second Peak",
+  "sim": 45,
+  "speed": 0,
+  "eye": [
+   156.6,
+   14.86,
+   141.33
+  ],
+  "target": [
+   55.04,
+   2,
+   -62.58
+  ],
+  "forward": [
+   -0.4451,
+   -0.0564,
+   -0.8937
+  ],
+  "right": [
+   0.8951,
+   0,
+   -0.4458
+  ],
+  "fov": 30
+ }
+]
