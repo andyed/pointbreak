@@ -1489,9 +1489,13 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   //   crest and tSince/crestNear below keep their meaning), and satisfies
   //   theta'(theta + 2pi) = theta'(theta) + 2pi, so the field stays periodic.
   //
-  // The 0.8 clamp is a hard guard, not taste: dtheta'/dtheta = 1 - s*sin(theta),
-  // so s = 1 is a vertical face and s > 1 makes the map non-monotonic — h would
-  // go MULTIVALUED in the height field itself, not merely folded in choppyPos.
+  // The 0.8 clamp is a hard guard, not taste: dtheta'/dtheta = 1 - s*sin(theta).
+  // Ahead of the crest (theta < 0) phase is stretched and the front face
+  // steepens by at most 1 + s; behind it phase is compressed, and at s = 1
+  // the BACK face gets a flat spot at theta = pi/2. s > 1 makes the map
+  // non-monotonic in theta (the profile folds in phase), but h is one
+  // evaluation per x and stays single-valued for any s. (Corrected 2026-09-23;
+  // the old comment said "vertical face" and "multivalued" — both wrong.)
   //
   // s and q were retuned together against Ruessink et al. (2012) Sk/As at the
   // local Ursell number (the audit's own per-gauge targets, stats_gauges.csv).

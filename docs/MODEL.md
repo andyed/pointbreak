@@ -162,10 +162,12 @@ and both vehicles bind it as `u_bed`.
   publishes none). The ~40 km extrapolation is carried explicitly in
   `mslSource`, not baked into a bare constant. This resolves the datum TODO
   that §2.1 deliberately refused to guess.
-- **Shoaling** is Green's law, `Ks = √(cg₀/cg)` with the finite-depth linear
-  group velocity `cg = ½(1 + 2kh/sinh(2kh))·ω/k`, evaluated from the same Guo
-  wavenumber authority as Ψ. `√(gh)` is now only the shallow asymptote, not the
-  group speed substituted at every modeled depth.
+- **Shoaling** is the full linear-theory coefficient, `Ks = √(cg₀/cg)` with
+  the finite-depth group velocity `cg = ½(1 + 2kh/sinh(2kh))·ω/k`, evaluated
+  from the same Guo wavenumber authority as Ψ. Green's law `H ∝ h^(−1/4)` is
+  its shallow asymptote, not what is evaluated (the two differ by 1–2 % at the
+  shipped lines; PHYSICS_CORE_AUDIT_2026-09-23 R2). `√(gh)` is likewise only
+  the shallow asymptote, not the group speed substituted at every depth.
 - **Depth-limited breaking.** `H = min(H₀·Ks, γh)` with γ = 0.78 (McCowan;
   field values ~0.7–0.9). Past the limit a wave is a bore whose height is set
   by the water it is in. Breaking is flagged where `H₀·Ks` exceeds `γh`.
@@ -185,8 +187,13 @@ and both vehicles bind it as `u_bed`.
   which vanishes at the crest (θ = 0 stays the crest, so the pocket and foam
   clocks downstream keep their meaning) and satisfies `θ′(θ+2π) = θ′(θ)+2π`, so
   the field stays periodic. The 0.8 clamp is a hard guard, not taste:
-  `dθ′/dθ = 1 − s·sin θ`, so `s = 1` is a vertical face and `s > 1` makes the
-  map non-monotonic — the height field itself would go multivalued.
+  `dθ′/dθ = 1 − s·sin θ`. Ahead of the crest (θ < 0) the map stretches phase,
+  so the front face steepens by at most `1 + s`; behind it (θ > 0) it
+  compresses, and at `s = 1` the *back* face acquires a flat spot at θ = π/2.
+  `s > 1` makes the map non-monotonic in θ, so the profile folds in phase —
+  but `h(x)` is one evaluation per x and stays single-valued for any s. (The
+  earlier wording, "s = 1 is a vertical face … multivalued", was wrong on both
+  counts; corrected 2026-09-23, PHYSICS_CORE_AUDIT R5.)
   Crest peakedness `q` is a separate knob and was re-flattened with the fix
   (`2.2 + 1.5·e^(−|d|/55)·(0.6 + 0.5ξ)`); see the acceptance numbers in §2.2a.
   The skew transforms the *shape* of `h` only: the crest's **locus** — `tSince`
