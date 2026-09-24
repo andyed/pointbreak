@@ -1,0 +1,38 @@
+{
+ "built": "2026-09-24T04:33:42Z",
+ "script": "scripts/audit_forcing.py",
+ "hindcast_cache": "data/climatology/.cache/sc116_hindcast_bulk.npz",
+ "hindcast_records": 221328,
+ "nowcast_records": 12988,
+ "nowcast_coverage": [
+  "2025-03-31T23:30:00Z",
+  "2026-09-24T03:30:00Z"
+ ],
+ "mop_site_depth_m": 15.03,
+ "mop_shore_normal_deg": 136.46,
+ "sources": [
+  "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/MOP_alongshore/SC116_hindcast.nc (.dds, .das, .ascii bulk in 20k chunks via build_cdip_climatology._pull)",
+  "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/MOP_alongshore/SC116_nowcast.nc (.dds, .das, .ascii bulk, .ascii waveEnergyDensity[all][20], metaWaterDepth, metaShoreNormal)",
+  "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9413450/datums.json?units=metric",
+  "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9413745/datums.json?units=metric",
+  "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9413745.json",
+  "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9413745/tidepredoffsets.json",
+  "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=9413450&product=predictions&datum=MSL&units=metric&interval=6&time_zone=lst_ldt (2026-08-15, 2026-09-05)",
+  "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=9413450&product=water_level&datum=MSL&units=metric&interval=6&time_zone=lst_ldt (2026-08-15, 2026-09-05)",
+  "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=9413450|9413745&product=predictions&datum=MLLW&units=english&interval=hilo (2026-08-15, 2026-09-05)",
+  "http://cdip.ucsd.edu/MOP_v1.1/CA_v1.1_transect_definitions.txt",
+  "https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/model/MOP_alongshore/catalog.html (SC116 product list)",
+  "https://vdatum.noaa.gov/vdatumweb/api/convert (NAVD88->LMSL at Pleasure Point; returned errorCode 412, unresolved)"
+ ],
+ "urls_fetched_this_run": [],
+ "raw_dir": "qa/forcing-audit",
+ "outputs": [
+  "q1_deshoal.json",
+  "q2_cards.json",
+  "q3_days.json",
+  "q4_sets.json",
+  "q5_datums.json",
+  "q6_direction.json",
+  "summary.json"
+ ]
+}

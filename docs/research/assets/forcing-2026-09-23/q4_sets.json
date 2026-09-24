@@ -1,0 +1,147 @@
+{
+ "question": "Does the authored dF sit inside the bandwidth the spectra support, and is the modulation-depth floor still consistent with the current (2025-04..2026-09) spectra?",
+ "nowcast_spectra_used": 12988,
+ "hm0_closure_max_abs_m": 0.0,
+ "grid": {
+  "spacing_at_swell_peak_hz": 0.005,
+  "smallest_resolvable_df_hz": 0.01,
+  "authored_df_hz": [
+   0.006,
+   0.007,
+   0.008
+  ],
+  "authored_set_period_s": [
+   166.7,
+   142.9,
+   125.0
+  ],
+  "verdict": "every authored dF (0.006-0.008) is below the 0.010 Hz resolution floor of both the MOP grid and buoy 156; the spectra can neither confirm nor refute it (PP_SPECTRAL_SETS 1, 8)"
+ },
+ "spectral_width_by_cutoff": [
+  {
+   "cutoff_hz": 0.09,
+   "sigma_f_all_hz": 0.0099,
+   "set_period_all_s": 100.9,
+   "sigma_f_hs_ge_1_hz": 0.01,
+   "set_period_hs_ge_1_s": 100.1,
+   "hindcast_sigma_f_hz": 0.0082,
+   "hindcast_set_period_s": 121.7
+  },
+  {
+   "cutoff_hz": 0.1,
+   "sigma_f_all_hz": 0.0124,
+   "set_period_all_s": 80.7,
+   "sigma_f_hs_ge_1_hz": 0.0123,
+   "set_period_hs_ge_1_s": 81.1,
+   "hindcast_sigma_f_hz": 0.0104,
+   "hindcast_set_period_s": 95.8
+  },
+  {
+   "cutoff_hz": 0.11,
+   "sigma_f_all_hz": 0.0145,
+   "set_period_all_s": 69.0,
+   "sigma_f_hs_ge_1_hz": 0.0144,
+   "set_period_hs_ge_1_s": 69.5,
+   "hindcast_sigma_f_hz": 0.0154,
+   "hindcast_set_period_s": 65.1
+  },
+  {
+   "cutoff_hz": 0.125,
+   "sigma_f_all_hz": 0.0176,
+   "set_period_all_s": 56.8,
+   "sigma_f_hs_ge_1_hz": 0.0173,
+   "set_period_hs_ge_1_s": 57.8,
+   "hindcast_sigma_f_hz": 0.0187,
+   "hindcast_set_period_s": 53.4
+  },
+  {
+   "cutoff_hz": 0.16,
+   "sigma_f_all_hz": 0.0261,
+   "set_period_all_s": 38.4,
+   "sigma_f_hs_ge_1_hz": 0.0255,
+   "set_period_hs_ge_1_s": 39.2,
+   "hindcast_sigma_f_hz": 0.0275,
+   "hindcast_set_period_s": 36.3
+  },
+  {
+   "cutoff_hz": 0.25,
+   "sigma_f_all_hz": 0.0487,
+   "set_period_all_s": 20.6,
+   "sigma_f_hs_ge_1_hz": 0.0456,
+   "set_period_hs_ge_1_s": 21.9,
+   "hindcast_sigma_f_hz": 0.0441,
+   "hindcast_set_period_s": 22.7
+  },
+  {
+   "cutoff_hz": 0.4,
+   "sigma_f_all_hz": 0.0706,
+   "set_period_all_s": 14.2,
+   "sigma_f_hs_ge_1_hz": 0.0618,
+   "set_period_hs_ge_1_s": 16.2,
+   "hindcast_sigma_f_hz": 0.05,
+   "hindcast_set_period_s": 20.0
+  }
+ ],
+ "honest_range": {
+  "swell_band_only_0.09_to_0.10_hz_cutoff": {
+   "sigma_f_hz": [
+    0.0099,
+    0.0124
+   ],
+   "set_period_s": [
+    80.7,
+    100.9
+   ]
+  },
+  "all_defensible_cutoffs": {
+   "sigma_f_hz": [
+    0.0099,
+    0.0706
+   ],
+   "set_period_s": [
+    14.2,
+    100.9
+   ]
+  },
+  "swing": 7.13
+ },
+ "envelope_floor_estimator_A_hs_ge_1m": [
+  {
+   "step": 1,
+   "df_hz_nominal": 0.005,
+   "floor_strong_p50": 0.038,
+   "floor_weak_p50": 0.1684,
+   "hindcast_strong": 0.0575,
+   "hindcast_weak": 0.1341
+  },
+  {
+   "step": 2,
+   "df_hz_nominal": 0.01,
+   "floor_strong_p50": 0.1539,
+   "floor_weak_p50": 0.3653,
+   "hindcast_strong": 0.1427,
+   "hindcast_weak": 0.2805
+  },
+  {
+   "step": 3,
+   "df_hz_nominal": 0.015,
+   "floor_strong_p50": 0.2092,
+   "floor_weak_p50": 0.5553,
+   "hindcast_strong": 0.2099,
+   "hindcast_weak": 0.439
+  }
+ ],
+ "floor_at_df_0.006": {
+  "nowcast_bracket": [
+   0.0612,
+   0.2078
+  ],
+  "hindcast_bracket": [
+   0.075,
+   0.163
+  ],
+  "shipped_floor": 0.15,
+  "shipped_m": 0.425,
+  "duty_cycle_fit_hindcast": 0.143
+ }
+}

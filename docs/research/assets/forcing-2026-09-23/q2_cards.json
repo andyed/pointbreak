@@ -1,0 +1,678 @@
+{
+ "question": "Where do the seven cards and the twelve month entries sit in the SC116 hindcast distribution (2000-2024, flag==1, n=218975)?",
+ "month_floor_verdicts": {
+  "flips": [],
+  "tightest_clears_after_correction": [
+   {
+    "month": "October",
+    "spot": "jacks",
+    "floor": 0.78,
+    "H0_shipped": 0.801,
+    "H0_corrected": 0.785,
+    "clears_shipped": true,
+    "clears_corrected": true,
+    "flips": false,
+    "margin_corrected_m": 0.005
+   },
+   {
+    "month": "February",
+    "spot": "secondpeak",
+    "floor": 1.11,
+    "H0_shipped": 1.189,
+    "H0_corrected": 1.136,
+    "clears_shipped": true,
+    "clears_corrected": true,
+    "flips": false,
+    "margin_corrected_m": 0.026
+   },
+   {
+    "month": "April",
+    "spot": "sharks",
+    "floor": 0.81,
+    "H0_shipped": 0.857,
+    "H0_corrected": 0.839,
+    "clears_shipped": true,
+    "clears_corrected": true,
+    "flips": false,
+    "margin_corrected_m": 0.029
+   }
+  ],
+  "n_checked": 72
+ },
+ "frame": "card H0 is deep-water; it is carried to 15.03 m with the model's own Ks(T) and to SC116 with the spot transect's hour-matched year p50 ratio (pp_mop_alongshore.json). Ranks are % of hours strictly below; exceedance is % of hours at or above.",
+ "tp_caveat": "waveTp is band-quantised (0.005 Hz bands: 14.29, 15.38, 16.67, 18.18 s); tp_rank is % of hours whose band centre is below the card T. ta is the continuous mean period and runs 4-5 s shorter than Tp at this site.",
+ "cards": [
+  {
+   "preset": "sewers",
+   "label": "Sewers",
+   "H0_card": 2.2,
+   "T_card": 15,
+   "Ks_15m_at_T": 1.0464,
+   "Hs_equiv_at_15m": 2.302,
+   "transect": "SC117",
+   "transect_ratio_to_SC116_p50": 1.08,
+   "Hs_equiv_at_SC116": 2.132,
+   "hs_rank_pct": {
+    "all": 98.97,
+    "DJF": 96.55,
+    "MAM": 99.6,
+    "JJA": 100.0,
+    "SON": 99.7
+   },
+   "hs_exceed_pct": {
+    "all": 1.03,
+    "DJF": 3.45,
+    "MAM": 0.4,
+    "JJA": 0.0,
+    "SON": 0.3
+   },
+   "hs_exceed_hours_per_year": {
+    "all": 90.1,
+    "DJF": 74.8,
+    "MAM": 8.8,
+    "JJA": 0.0,
+    "SON": 6.5
+   },
+   "tp_rank_pct": {
+    "all": 57.41,
+    "DJF": 56.36,
+    "MAM": 57.82,
+    "JJA": 57.28,
+    "SON": 58.16
+   },
+   "ta_rank_pct": {
+    "all": 98.87,
+    "DJF": 97.25,
+    "MAM": 99.5,
+    "JJA": 99.82,
+    "SON": 98.86
+   },
+   "joint_exceed_pct": {
+    "all": 0.71,
+    "DJF": 2.46,
+    "MAM": 0.17,
+    "JJA": 0.0,
+    "SON": 0.24
+   },
+   "hs_rank_pct_if_H0_read_as_Hs": 99.13
+  },
+  {
+   "preset": "firstpeak",
+   "label": "First Peak",
+   "H0_card": 1.8,
+   "T_card": 14,
+   "Ks_15m_at_T": 1.0212,
+   "Hs_equiv_at_15m": 1.838,
+   "transect": "SC116",
+   "transect_ratio_to_SC116_p50": 1.0,
+   "Hs_equiv_at_SC116": 1.838,
+   "hs_rank_pct": {
+    "all": 98.01,
+    "DJF": 93.56,
+    "MAM": 99.06,
+    "JJA": 100.0,
+    "SON": 99.33
+   },
+   "hs_exceed_pct": {
+    "all": 1.99,
+    "DJF": 6.44,
+    "MAM": 0.94,
+    "JJA": 0.0,
+    "SON": 0.67
+   },
+   "hs_exceed_hours_per_year": {
+    "all": 174.6,
+    "DJF": 139.5,
+    "MAM": 20.6,
+    "JJA": 0.0,
+    "SON": 14.5
+   },
+   "tp_rank_pct": {
+    "all": 33.0,
+    "DJF": 34.13,
+    "MAM": 33.22,
+    "JJA": 29.92,
+    "SON": 34.77
+   },
+   "ta_rank_pct": {
+    "all": 97.56,
+    "DJF": 94.79,
+    "MAM": 98.82,
+    "JJA": 99.18,
+    "SON": 97.39
+   },
+   "joint_exceed_pct": {
+    "all": 1.37,
+    "DJF": 4.54,
+    "MAM": 0.48,
+    "JJA": 0.0,
+    "SON": 0.51
+   },
+   "hs_rank_pct_if_H0_read_as_Hs": 97.81
+  },
+  {
+   "preset": "secondpeak",
+   "label": "Second Peak",
+   "H0_card": 1.5,
+   "T_card": 14,
+   "Ks_15m_at_T": 1.0212,
+   "Hs_equiv_at_15m": 1.532,
+   "transect": "SC116",
+   "transect_ratio_to_SC116_p50": 1.0,
+   "Hs_equiv_at_SC116": 1.532,
+   "hs_rank_pct": {
+    "all": 95.96,
+    "DJF": 87.74,
+    "MAM": 97.55,
+    "JJA": 99.99,
+    "SON": 98.45
+   },
+   "hs_exceed_pct": {
+    "all": 4.04,
+    "DJF": 12.26,
+    "MAM": 2.45,
+    "JJA": 0.01,
+    "SON": 1.55
+   },
+   "hs_exceed_hours_per_year": {
+    "all": 353.9,
+    "DJF": 265.6,
+    "MAM": 54.1,
+    "JJA": 0.3,
+    "SON": 33.8
+   },
+   "tp_rank_pct": {
+    "all": 33.0,
+    "DJF": 34.13,
+    "MAM": 33.22,
+    "JJA": 29.92,
+    "SON": 34.77
+   },
+   "ta_rank_pct": {
+    "all": 97.56,
+    "DJF": 94.79,
+    "MAM": 98.82,
+    "JJA": 99.18,
+    "SON": 97.39
+   },
+   "joint_exceed_pct": {
+    "all": 2.7,
+    "DJF": 8.41,
+    "MAM": 1.28,
+    "JJA": 0.0,
+    "SON": 1.18
+   },
+   "hs_rank_pct_if_H0_read_as_Hs": 95.66
+  },
+  {
+   "preset": "jacks",
+   "label": "Jack's (38th)",
+   "H0_card": 1.1,
+   "T_card": 13,
+   "Ks_15m_at_T": 0.9966,
+   "Hs_equiv_at_15m": 1.096,
+   "transect": "SC114",
+   "transect_ratio_to_SC116_p50": 0.97,
+   "Hs_equiv_at_SC116": 1.13,
+   "hs_rank_pct": {
+    "all": 89.42,
+    "DJF": 71.99,
+    "MAM": 91.35,
+    "JJA": 99.73,
+    "SON": 94.34
+   },
+   "hs_exceed_pct": {
+    "all": 10.58,
+    "DJF": 28.01,
+    "MAM": 8.65,
+    "JJA": 0.27,
+    "SON": 5.66
+   },
+   "hs_exceed_hours_per_year": {
+    "all": 927.1,
+    "DJF": 606.8,
+    "MAM": 190.9,
+    "JJA": 6.0,
+    "SON": 123.4
+   },
+   "tp_rank_pct": {
+    "all": 22.22,
+    "DJF": 23.61,
+    "MAM": 22.74,
+    "JJA": 19.23,
+    "SON": 23.34
+   },
+   "ta_rank_pct": {
+    "all": 94.84,
+    "DJF": 90.69,
+    "MAM": 96.96,
+    "JJA": 97.38,
+    "SON": 94.26
+   },
+   "joint_exceed_pct": {
+    "all": 8.14,
+    "DJF": 21.66,
+    "MAM": 6.27,
+    "JJA": 0.22,
+    "SON": 4.59
+   },
+   "hs_rank_pct_if_H0_read_as_Hs": 88.53
+  },
+  {
+   "preset": "thehook",
+   "label": "The Hook",
+   "H0_card": 1.5,
+   "T_card": 13,
+   "Ks_15m_at_T": 0.9966,
+   "Hs_equiv_at_15m": 1.495,
+   "transect": "SC112",
+   "transect_ratio_to_SC116_p50": 0.92,
+   "Hs_equiv_at_SC116": 1.625,
+   "hs_rank_pct": {
+    "all": 96.74,
+    "DJF": 89.91,
+    "MAM": 98.17,
+    "JJA": 99.99,
+    "SON": 98.8
+   },
+   "hs_exceed_pct": {
+    "all": 3.26,
+    "DJF": 10.09,
+    "MAM": 1.83,
+    "JJA": 0.01,
+    "SON": 1.2
+   },
+   "hs_exceed_hours_per_year": {
+    "all": 285.5,
+    "DJF": 218.7,
+    "MAM": 40.5,
+    "JJA": 0.1,
+    "SON": 26.2
+   },
+   "tp_rank_pct": {
+    "all": 22.22,
+    "DJF": 23.61,
+    "MAM": 22.74,
+    "JJA": 19.23,
+    "SON": 23.34
+   },
+   "ta_rank_pct": {
+    "all": 94.84,
+    "DJF": 90.69,
+    "MAM": 96.96,
+    "JJA": 97.38,
+    "SON": 94.26
+   },
+   "joint_exceed_pct": {
+    "all": 2.34,
+    "DJF": 7.4,
+    "MAM": 1.05,
+    "JJA": 0.0,
+    "SON": 0.98
+   },
+   "hs_rank_pct_if_H0_read_as_Hs": 95.66
+  },
+  {
+   "preset": "sharks",
+   "label": "Sharks",
+   "H0_card": 1.0,
+   "T_card": 13,
+   "Ks_15m_at_T": 0.9966,
+   "Hs_equiv_at_15m": 0.997,
+   "transect": "SC111",
+   "transect_ratio_to_SC116_p50": 0.917,
+   "Hs_equiv_at_SC116": 1.087,
+   "hs_rank_pct": {
+    "all": 88.12,
+    "DJF": 69.53,
+    "MAM": 89.76,
+    "JJA": 99.59,
+    "SON": 93.35
+   },
+   "hs_exceed_pct": {
+    "all": 11.88,
+    "DJF": 30.47,
+    "MAM": 10.24,
+    "JJA": 0.41,
+    "SON": 6.65
+   },
+   "hs_exceed_hours_per_year": {
+    "all": 1040.2,
+    "DJF": 660.2,
+    "MAM": 225.9,
+    "JJA": 9.1,
+    "SON": 145.0
+   },
+   "tp_rank_pct": {
+    "all": 22.22,
+    "DJF": 23.61,
+    "MAM": 22.74,
+    "JJA": 19.23,
+    "SON": 23.34
+   },
+   "ta_rank_pct": {
+    "all": 94.84,
+    "DJF": 90.69,
+    "MAM": 96.96,
+    "JJA": 97.38,
+    "SON": 94.26
+   },
+   "joint_exceed_pct": {
+    "all": 9.22,
+    "DJF": 23.76,
+    "MAM": 7.57,
+    "JJA": 0.36,
+    "SON": 5.42
+   },
+   "hs_rank_pct_if_H0_read_as_Hs": 84.91
+  },
+  {
+   "preset": "privates",
+   "label": "Privates",
+   "H0_card": 0.7,
+   "T_card": 12,
+   "Ks_15m_at_T": 0.9731,
+   "Hs_equiv_at_15m": 0.681,
+   "transect": "SC109",
+   "transect_ratio_to_SC116_p50": 0.9,
+   "Hs_equiv_at_SC116": 0.757,
+   "hs_rank_pct": {
+    "all": 67.5,
+    "DJF": 41.59,
+    "MAM": 63.94,
+    "JJA": 91.17,
+    "SON": 72.94
+   },
+   "hs_exceed_pct": {
+    "all": 32.5,
+    "DJF": 58.41,
+    "MAM": 36.06,
+    "JJA": 8.83,
+    "SON": 27.06
+   },
+   "hs_exceed_hours_per_year": {
+    "all": 2846.3,
+    "DJF": 1265.7,
+    "MAM": 795.8,
+    "JJA": 194.8,
+    "SON": 590.0
+   },
+   "tp_rank_pct": {
+    "all": 16.72,
+    "DJF": 16.57,
+    "MAM": 17.95,
+    "JJA": 15.19,
+    "SON": 17.18
+   },
+   "ta_rank_pct": {
+    "all": 89.92,
+    "DJF": 83.38,
+    "MAM": 93.13,
+    "JJA": 94.13,
+    "SON": 88.91
+   },
+   "joint_exceed_pct": {
+    "all": 26.91,
+    "DJF": 48.06,
+    "MAM": 29.23,
+    "JJA": 7.77,
+    "SON": 22.91
+   },
+   "hs_rank_pct_if_H0_read_as_Hs": 60.5
+  }
+ ],
+ "months": [
+  {
+   "month": "January",
+   "hsP75_SC116": 1.215,
+   "H0_shipped": 1.245,
+   "H0_shipped_check": 1.245,
+   "hs_p75_rank_check_pct": 74.98,
+   "H0_deshoaled_at_card_T": {
+    "12": 1.249,
+    "13": 1.219,
+    "14": 1.19,
+    "15": 1.161
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 9.86
+  },
+  {
+   "month": "February",
+   "hsP75_SC116": 1.16,
+   "H0_shipped": 1.189,
+   "H0_shipped_check": 1.189,
+   "hs_p75_rank_check_pct": 75.01,
+   "H0_deshoaled_at_card_T": {
+    "12": 1.192,
+    "13": 1.164,
+    "14": 1.136,
+    "15": 1.109
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 9.11
+  },
+  {
+   "month": "March",
+   "hsP75_SC116": 1.012,
+   "H0_shipped": 1.037,
+   "H0_shipped_check": 1.037,
+   "hs_p75_rank_check_pct": 75.02,
+   "H0_deshoaled_at_card_T": {
+    "12": 1.04,
+    "13": 1.015,
+    "14": 0.991,
+    "15": 0.967
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 8.81
+  },
+  {
+   "month": "April",
+   "hsP75_SC116": 0.836,
+   "H0_shipped": 0.857,
+   "H0_shipped_check": 0.857,
+   "hs_p75_rank_check_pct": 74.95,
+   "H0_deshoaled_at_card_T": {
+    "12": 0.859,
+    "13": 0.839,
+    "14": 0.819,
+    "15": 0.799
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 8.39
+  },
+  {
+   "month": "May",
+   "hsP75_SC116": 0.736,
+   "H0_shipped": 0.754,
+   "H0_shipped_check": 0.754,
+   "hs_p75_rank_check_pct": 74.94,
+   "H0_deshoaled_at_card_T": {
+    "12": 0.756,
+    "13": 0.739,
+    "14": 0.721,
+    "15": 0.703
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 8.08
+  },
+  {
+   "month": "June",
+   "hsP75_SC116": 0.689,
+   "H0_shipped": 0.706,
+   "H0_shipped_check": 0.706,
+   "hs_p75_rank_check_pct": 74.99,
+   "H0_deshoaled_at_card_T": {
+    "12": 0.708,
+    "13": 0.691,
+    "14": 0.675,
+    "15": 0.658
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 7.88
+  },
+  {
+   "month": "July",
+   "hsP75_SC116": 0.603,
+   "H0_shipped": 0.618,
+   "H0_shipped_check": 0.618,
+   "hs_p75_rank_check_pct": 74.92,
+   "H0_deshoaled_at_card_T": {
+    "12": 0.62,
+    "13": 0.605,
+    "14": 0.59,
+    "15": 0.576
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 8.13
+  },
+  {
+   "month": "August",
+   "hsP75_SC116": 0.571,
+   "H0_shipped": 0.585,
+   "H0_shipped_check": 0.585,
+   "hs_p75_rank_check_pct": 74.98,
+   "H0_deshoaled_at_card_T": {
+    "12": 0.587,
+    "13": 0.573,
+    "14": 0.559,
+    "15": 0.546
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 8.18
+  },
+  {
+   "month": "September",
+   "hsP75_SC116": 0.676,
+   "H0_shipped": 0.693,
+   "H0_shipped_check": 0.693,
+   "hs_p75_rank_check_pct": 74.99,
+   "H0_deshoaled_at_card_T": {
+    "12": 0.695,
+    "13": 0.678,
+    "14": 0.662,
+    "15": 0.646
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 8.77
+  },
+  {
+   "month": "October",
+   "hsP75_SC116": 0.782,
+   "H0_shipped": 0.801,
+   "H0_shipped_check": 0.801,
+   "hs_p75_rank_check_pct": 75.0,
+   "H0_deshoaled_at_card_T": {
+    "12": 0.804,
+    "13": 0.785,
+    "14": 0.766,
+    "15": 0.747
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 9.25
+  },
+  {
+   "month": "November",
+   "hsP75_SC116": 0.886,
+   "H0_shipped": 0.908,
+   "H0_shipped_check": 0.908,
+   "hs_p75_rank_check_pct": 75.02,
+   "H0_deshoaled_at_card_T": {
+    "12": 0.91,
+    "13": 0.889,
+    "14": 0.868,
+    "15": 0.847
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 9.11
+  },
+  {
+   "month": "December",
+   "hsP75_SC116": 1.185,
+   "H0_shipped": 1.214,
+   "H0_shipped_check": 1.214,
+   "hs_p75_rank_check_pct": 74.96,
+   "H0_deshoaled_at_card_T": {
+    "12": 1.218,
+    "13": 1.189,
+    "14": 1.16,
+    "15": 1.132
+   },
+   "overforce_pct_at_card_T": {
+    "12": -0.29,
+    "13": 2.12,
+    "14": 4.64,
+    "15": 7.22
+   },
+   "tp_p50_s": 14.29,
+   "ta_p50_s": 9.42
+  }
+ ]
+}
