@@ -1,0 +1,439 @@
+{
+ "generated_utc": "2026-09-24T04:41:01Z",
+ "bed_source": "shipped (NCEI 1/3\" 2012)",
+ "sc116": "CDIP MOP v1.1 SC116_hindcast.nc (THREDDS .ascii), record nearest the acquisition second (always the following :00 hour, 99-509 s later)",
+ "tide": "NOAA CO-OPS 9413450 (Monterey) verified water level, datum MSL, metric, 6-min product linearly interpolated to the acquisition second",
+ "h0": "hs = SC116 Hs; deshoaled = Hs / Ks(12 m, Tp) with dispersion.js Green's-law Ks; h10 = 1.27 Hs (Rayleigh H1/10). All clamped to the h0 control's 0.4-3.0 m; tide clamped to [-0.862, 0.764] m",
+ "scenes": [
+  {
+   "id": "S2A_MSIL2A_20230926T185131_R113_T10SEF_20230927T023437",
+   "supplementary": false,
+   "reject_reason": "",
+   "acquired_utc": "2023-09-26T18:51:31.024000Z",
+   "acquired_local": "2023-09-26 11:51:31 PDT",
+   "platform": "Sentinel-2A",
+   "tile": "10SEF",
+   "processing_baseline": "05.09",
+   "scene_cloud_pct": 48.720542,
+   "sun_elevation_deg": 48.6,
+   "sun_azimuth_deg": 153.9,
+   "stac_item": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20230926T185131_R113_T10SEF_20230927T023437",
+   "cog_hrefs": {
+    "B02": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/09/26/S2A_MSIL2A_20230926T185131_N0509_R113_T10SEF_20230927T023437.SAFE/GRANULE/L2A_T10SEF_A043153_20230926T185713/IMG_DATA/R10m/T10SEF_20230926T185131_B02_10m.tif",
+    "B03": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/09/26/S2A_MSIL2A_20230926T185131_N0509_R113_T10SEF_20230927T023437.SAFE/GRANULE/L2A_T10SEF_A043153_20230926T185713/IMG_DATA/R10m/T10SEF_20230926T185131_B03_10m.tif",
+    "B04": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/09/26/S2A_MSIL2A_20230926T185131_N0509_R113_T10SEF_20230927T023437.SAFE/GRANULE/L2A_T10SEF_A043153_20230926T185713/IMG_DATA/R10m/T10SEF_20230926T185131_B04_10m.tif",
+    "B08": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/09/26/S2A_MSIL2A_20230926T185131_N0509_R113_T10SEF_20230927T023437.SAFE/GRANULE/L2A_T10SEF_A043153_20230926T185713/IMG_DATA/R10m/T10SEF_20230926T185131_B08_10m.tif",
+    "SCL": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/09/26/S2A_MSIL2A_20230926T185131_N0509_R113_T10SEF_20230927T023437.SAFE/GRANULE/L2A_T10SEF_A043153_20230926T185713/IMG_DATA/R20m/T10SEF_20230926T185131_SCL_20m.tif"
+   },
+   "raster_window": {
+    "path": "qa/sentinel2-locus/S2A_MSIL2A_20230926T185131_R113_T10SEF_20230927T023437/window.tif",
+    "sha256": "a63dfbc70b3e9766e95471bf4d09d4478d9a9c73ceaf6871ec4a3ccf8b75d4a0",
+    "crs": "EPSG:32610",
+    "transform": [
+     10.0,
+     0.0,
+     590800.0,
+     0.0,
+     -10.0,
+     4091390.0
+    ],
+    "shape": [
+     180,
+     225
+    ],
+    "reflectance_offset": -1000.0
+   },
+   "scl_window": {
+    "window_inside": true,
+    "win_px": 10080,
+    "win_cloudy_frac": 0.0,
+    "surf_strip_cloudy_frac": 0.0,
+    "surf_strip_nodata_frac": 0.0,
+    "win_water_frac": 0.686,
+    "win_nodata_frac": 0.0,
+    "win_snow_px": 351
+   },
+   "sc116": {
+    "hs": 1.505,
+    "tp": 15.38,
+    "dp": 208.0,
+    "record_utc": "2023-09-26T19:00:00+00:00"
+   },
+   "tide_msl_m": 0.221,
+   "tide_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=20230926%2018:21&end_date=20230926%2019:21&station=9413450&product=water_level&datum=MSL&time_zone=gmt&units=metric&format=json",
+   "model_forcing": {
+    "T_s": 15.38,
+    "Ks12": 1.1029,
+    "tide_m": 0.221,
+    "tide_clamped": false,
+    "H0_hs": 1.505,
+    "H0_deshoaled": 1.365,
+    "H0_h10": 1.911
+   },
+   "mask_calibration": {
+    "nir_median": 0.005,
+    "nir_mad": 0.004,
+    "red_median": 0.014,
+    "red_mad": 0.0129,
+    "n_calib_px": 27684,
+    "foam_nir_thresholds": {
+     "4.0": 0.02101,
+     "6.0": 0.02902,
+     "9.0": 0.04103
+    },
+    "foam_mask_px": {
+     "4.0": 3446,
+     "6.0": 2835,
+     "9.0": 2371
+    },
+    "dense_red_threshold": 0.09139,
+    "dense_mask_px": 2089
+   },
+   "sun_note": "computed from acquisition time at 36.955N 121.965W (NOAA solar equations); not carried by the STAC item"
+  },
+  {
+   "id": "S2A_MSIL2A_20231125T185721_R113_T10SEF_20241111T023436",
+   "supplementary": false,
+   "reject_reason": "",
+   "acquired_utc": "2023-11-25T18:57:21.024000Z",
+   "acquired_local": "2023-11-25 10:57:21 PST",
+   "platform": "Sentinel-2A",
+   "tile": "10SEF",
+   "processing_baseline": "05.10",
+   "scene_cloud_pct": 0.031198,
+   "sun_elevation_deg": 30.7,
+   "sun_azimuth_deg": 164.3,
+   "stac_item": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20231125T185721_R113_T10SEF_20241111T023436",
+   "cog_hrefs": {
+    "B02": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/11/25/S2A_MSIL2A_20231125T185721_N0510_R113_T10SEF_20241111T023436.SAFE/GRANULE/L2A_T10SEF_A044011_20231125T185715/IMG_DATA/R10m/T10SEF_20231125T185721_B02_10m.tif",
+    "B03": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/11/25/S2A_MSIL2A_20231125T185721_N0510_R113_T10SEF_20241111T023436.SAFE/GRANULE/L2A_T10SEF_A044011_20231125T185715/IMG_DATA/R10m/T10SEF_20231125T185721_B03_10m.tif",
+    "B04": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/11/25/S2A_MSIL2A_20231125T185721_N0510_R113_T10SEF_20241111T023436.SAFE/GRANULE/L2A_T10SEF_A044011_20231125T185715/IMG_DATA/R10m/T10SEF_20231125T185721_B04_10m.tif",
+    "B08": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/11/25/S2A_MSIL2A_20231125T185721_N0510_R113_T10SEF_20241111T023436.SAFE/GRANULE/L2A_T10SEF_A044011_20231125T185715/IMG_DATA/R10m/T10SEF_20231125T185721_B08_10m.tif",
+    "SCL": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2023/11/25/S2A_MSIL2A_20231125T185721_N0510_R113_T10SEF_20241111T023436.SAFE/GRANULE/L2A_T10SEF_A044011_20231125T185715/IMG_DATA/R20m/T10SEF_20231125T185721_SCL_20m.tif"
+   },
+   "raster_window": {
+    "path": "qa/sentinel2-locus/S2A_MSIL2A_20231125T185721_R113_T10SEF_20241111T023436/window.tif",
+    "sha256": "26416d901090542adb2985ebb28fba6b9ff44bcad32109d41e81c310fde56c85",
+    "crs": "EPSG:32610",
+    "transform": [
+     10.0,
+     0.0,
+     590800.0,
+     0.0,
+     -10.0,
+     4091390.0
+    ],
+    "shape": [
+     180,
+     225
+    ],
+    "reflectance_offset": -1000.0
+   },
+   "scl_window": {
+    "window_inside": true,
+    "win_px": 10080,
+    "win_cloudy_frac": 0.0,
+    "surf_strip_cloudy_frac": 0.0,
+    "surf_strip_nodata_frac": 0.0,
+    "win_water_frac": 0.728,
+    "win_nodata_frac": 0.0,
+    "win_snow_px": 34
+   },
+   "sc116": {
+    "hs": 1.411,
+    "tp": 20.0,
+    "dp": 184.8,
+    "record_utc": "2023-11-25T19:00:00+00:00"
+   },
+   "tide_msl_m": 0.472,
+   "tide_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=20231125%2018:27&end_date=20231125%2019:27&station=9413450&product=water_level&datum=MSL&time_zone=gmt&units=metric&format=json",
+   "model_forcing": {
+    "T_s": 20,
+    "Ks12": 1.2325,
+    "tide_m": 0.472,
+    "tide_clamped": false,
+    "H0_hs": 1.411,
+    "H0_deshoaled": 1.145,
+    "H0_h10": 1.792
+   },
+   "mask_calibration": {
+    "nir_median": 0.0012,
+    "nir_mad": 0.00133,
+    "red_median": 0.0075,
+    "red_mad": 0.00356,
+    "n_calib_px": 29366,
+    "foam_nir_thresholds": {
+     "4.0": 0.00654,
+     "6.0": 0.00921,
+     "9.0": 0.01321
+    },
+    "foam_mask_px": {
+     "4.0": 1490,
+     "6.0": 1261,
+     "9.0": 1078
+    },
+    "dense_red_threshold": 0.02885,
+    "dense_mask_px": 1097
+   },
+   "sun_note": "computed from acquisition time at 36.955N 121.965W (NOAA solar equations); not carried by the STAC item"
+  },
+  {
+   "id": "S2A_MSIL2A_20240104T185801_R113_T10SEF_20240104T231055",
+   "supplementary": false,
+   "reject_reason": "",
+   "acquired_utc": "2024-01-04T18:58:01.024000Z",
+   "acquired_local": "2024-01-04 10:58:01 PST",
+   "platform": "Sentinel-2A",
+   "tile": "10SEF",
+   "processing_baseline": "05.10",
+   "scene_cloud_pct": 12.883721,
+   "sun_elevation_deg": 27.8,
+   "sun_azimuth_deg": 160.5,
+   "stac_item": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20240104T185801_R113_T10SEF_20240104T231055",
+   "cog_hrefs": {
+    "B02": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/01/04/S2A_MSIL2A_20240104T185801_N0510_R113_T10SEF_20240104T231055.SAFE/GRANULE/L2A_T10SEF_A044583_20240104T185757/IMG_DATA/R10m/T10SEF_20240104T185801_B02_10m.tif",
+    "B03": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/01/04/S2A_MSIL2A_20240104T185801_N0510_R113_T10SEF_20240104T231055.SAFE/GRANULE/L2A_T10SEF_A044583_20240104T185757/IMG_DATA/R10m/T10SEF_20240104T185801_B03_10m.tif",
+    "B04": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/01/04/S2A_MSIL2A_20240104T185801_N0510_R113_T10SEF_20240104T231055.SAFE/GRANULE/L2A_T10SEF_A044583_20240104T185757/IMG_DATA/R10m/T10SEF_20240104T185801_B04_10m.tif",
+    "B08": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/01/04/S2A_MSIL2A_20240104T185801_N0510_R113_T10SEF_20240104T231055.SAFE/GRANULE/L2A_T10SEF_A044583_20240104T185757/IMG_DATA/R10m/T10SEF_20240104T185801_B08_10m.tif",
+    "SCL": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/01/04/S2A_MSIL2A_20240104T185801_N0510_R113_T10SEF_20240104T231055.SAFE/GRANULE/L2A_T10SEF_A044583_20240104T185757/IMG_DATA/R20m/T10SEF_20240104T185801_SCL_20m.tif"
+   },
+   "raster_window": {
+    "path": "qa/sentinel2-locus/S2A_MSIL2A_20240104T185801_R113_T10SEF_20240104T231055/window.tif",
+    "sha256": "25f5106e0d77186e7755d0bf515d7df7a65eb6a219fdfe3a3f88e7ea53f10c5d",
+    "crs": "EPSG:32610",
+    "transform": [
+     10.0,
+     0.0,
+     590800.0,
+     0.0,
+     -10.0,
+     4091390.0
+    ],
+    "shape": [
+     180,
+     225
+    ],
+    "reflectance_offset": -1000.0
+   },
+   "scl_window": {
+    "window_inside": true,
+    "win_px": 10080,
+    "win_cloudy_frac": 0.0,
+    "surf_strip_cloudy_frac": 0.0,
+    "surf_strip_nodata_frac": 0.0,
+    "win_water_frac": 0.69,
+    "win_nodata_frac": 0.0,
+    "win_snow_px": 407
+   },
+   "sc116": {
+    "hs": 1.374,
+    "tp": 14.29,
+    "dp": 209.5,
+    "record_utc": "2024-01-04T19:00:00+00:00"
+   },
+   "tide_msl_m": -0.264,
+   "tide_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=20240104%2018:28&end_date=20240104%2019:28&station=9413450&product=water_level&datum=MSL&time_zone=gmt&units=metric&format=json",
+   "model_forcing": {
+    "T_s": 14.29,
+    "Ks12": 1.0717,
+    "tide_m": -0.264,
+    "tide_clamped": false,
+    "H0_hs": 1.374,
+    "H0_deshoaled": 1.282,
+    "H0_h10": 1.745
+   },
+   "mask_calibration": {
+    "nir_median": 0.0038,
+    "nir_mad": 0.00237,
+    "red_median": 0.0212,
+    "red_mad": 0.00934,
+    "n_calib_px": 27856,
+    "foam_nir_thresholds": {
+     "4.0": 0.01329,
+     "6.0": 0.01803,
+     "9.0": 0.02515
+    },
+    "foam_mask_px": {
+     "4.0": 2967,
+     "6.0": 2768,
+     "9.0": 2579
+    },
+    "dense_red_threshold": 0.07724,
+    "dense_mask_px": 2288
+   },
+   "sun_note": "computed from acquisition time at 36.955N 121.965W (NOAA solar equations); not carried by the STAC item"
+  },
+  {
+   "id": "S2A_MSIL2A_20210109T185751_R113_T10SEF_20210110T053434",
+   "supplementary": false,
+   "reject_reason": "",
+   "acquired_utc": "2021-01-09T18:57:51.024000Z",
+   "acquired_local": "2021-01-09 10:57:51 PST",
+   "platform": "Sentinel-2A",
+   "tile": "10SEF",
+   "processing_baseline": "02.12",
+   "scene_cloud_pct": 3.640313,
+   "sun_elevation_deg": 28.3,
+   "sun_azimuth_deg": 159.6,
+   "stac_item": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20210109T185751_R113_T10SEF_20210110T053434",
+   "cog_hrefs": {
+    "B02": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2021/01/09/S2A_MSIL2A_20210109T185751_N0212_R113_T10SEF_20210110T053434.SAFE/GRANULE/L2A_T10SEF_A028996_20210109T185931/IMG_DATA/R10m/T10SEF_20210109T185751_B02_10m.tif",
+    "B03": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2021/01/09/S2A_MSIL2A_20210109T185751_N0212_R113_T10SEF_20210110T053434.SAFE/GRANULE/L2A_T10SEF_A028996_20210109T185931/IMG_DATA/R10m/T10SEF_20210109T185751_B03_10m.tif",
+    "B04": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2021/01/09/S2A_MSIL2A_20210109T185751_N0212_R113_T10SEF_20210110T053434.SAFE/GRANULE/L2A_T10SEF_A028996_20210109T185931/IMG_DATA/R10m/T10SEF_20210109T185751_B04_10m.tif",
+    "B08": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2021/01/09/S2A_MSIL2A_20210109T185751_N0212_R113_T10SEF_20210110T053434.SAFE/GRANULE/L2A_T10SEF_A028996_20210109T185931/IMG_DATA/R10m/T10SEF_20210109T185751_B08_10m.tif",
+    "SCL": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2021/01/09/S2A_MSIL2A_20210109T185751_N0212_R113_T10SEF_20210110T053434.SAFE/GRANULE/L2A_T10SEF_A028996_20210109T185931/IMG_DATA/R20m/T10SEF_20210109T185751_SCL_20m.tif"
+   },
+   "raster_window": {
+    "path": "qa/sentinel2-locus/S2A_MSIL2A_20210109T185751_R113_T10SEF_20210110T053434/window.tif",
+    "sha256": "77dc0952a1b982f2b646da37649f4d541ea4a7b52b6b982619dfe9758120a9e6",
+    "crs": "EPSG:32610",
+    "transform": [
+     10.0,
+     0.0,
+     590800.0,
+     0.0,
+     -10.0,
+     4091390.0
+    ],
+    "shape": [
+     180,
+     225
+    ],
+    "reflectance_offset": 0.0
+   },
+   "scl_window": {
+    "window_inside": true,
+    "win_px": 10080,
+    "win_cloudy_frac": 0.021,
+    "surf_strip_cloudy_frac": 0.025,
+    "surf_strip_nodata_frac": 0.0,
+    "win_water_frac": 0.715,
+    "win_nodata_frac": 0.0,
+    "win_snow_px": 94
+   },
+   "sc116": {
+    "hs": 1.321,
+    "tp": 15.38,
+    "dp": 206.6,
+    "record_utc": "2021-01-09T19:00:00+00:00"
+   },
+   "tide_msl_m": -0.3,
+   "tide_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=20210109%2018:27&end_date=20210109%2019:27&station=9413450&product=water_level&datum=MSL&time_zone=gmt&units=metric&format=json",
+   "model_forcing": {
+    "T_s": 15.38,
+    "Ks12": 1.1029,
+    "tide_m": -0.3,
+    "tide_clamped": false,
+    "H0_hs": 1.321,
+    "H0_deshoaled": 1.198,
+    "H0_h10": 1.678
+   },
+   "mask_calibration": {
+    "nir_median": 0.002,
+    "nir_mad": 0.00237,
+    "red_median": 0.0122,
+    "red_mad": 0.00385,
+    "n_calib_px": 28826,
+    "foam_nir_thresholds": {
+     "4.0": 0.01149,
+     "6.0": 0.01623,
+     "9.0": 0.02335
+    },
+    "foam_mask_px": {
+     "4.0": 3032,
+     "6.0": 2761,
+     "9.0": 2491
+    },
+    "dense_red_threshold": 0.03533,
+    "dense_mask_px": 2924
+   },
+   "sun_note": "computed from acquisition time at 36.955N 121.965W (NOAA solar equations); not carried by the STAC item"
+  },
+  {
+   "id": "S2B_MSIL2A_20240218T185439_R113_T10SEF_20240218T223624",
+   "supplementary": true,
+   "reject_reason": "surf-strip cloud 10%",
+   "acquired_utc": "2024-02-18T18:54:39.024000Z",
+   "acquired_local": "2024-02-18 10:54:39 PST",
+   "platform": "Sentinel-2B",
+   "tile": "10SEF",
+   "processing_baseline": "05.10",
+   "scene_cloud_pct": 60.259163,
+   "sun_elevation_deg": 37.3,
+   "sun_azimuth_deg": 152.8,
+   "stac_item": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20240218T185439_R113_T10SEF_20240218T223624",
+   "cog_hrefs": {
+    "B02": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/02/18/S2B_MSIL2A_20240218T185439_N0510_R113_T10SEF_20240218T223624.SAFE/GRANULE/L2A_T10SEF_A036318_20240218T190309/IMG_DATA/R10m/T10SEF_20240218T185439_B02_10m.tif",
+    "B03": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/02/18/S2B_MSIL2A_20240218T185439_N0510_R113_T10SEF_20240218T223624.SAFE/GRANULE/L2A_T10SEF_A036318_20240218T190309/IMG_DATA/R10m/T10SEF_20240218T185439_B03_10m.tif",
+    "B04": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/02/18/S2B_MSIL2A_20240218T185439_N0510_R113_T10SEF_20240218T223624.SAFE/GRANULE/L2A_T10SEF_A036318_20240218T190309/IMG_DATA/R10m/T10SEF_20240218T185439_B04_10m.tif",
+    "B08": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/02/18/S2B_MSIL2A_20240218T185439_N0510_R113_T10SEF_20240218T223624.SAFE/GRANULE/L2A_T10SEF_A036318_20240218T190309/IMG_DATA/R10m/T10SEF_20240218T185439_B08_10m.tif",
+    "SCL": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/10/S/EF/2024/02/18/S2B_MSIL2A_20240218T185439_N0510_R113_T10SEF_20240218T223624.SAFE/GRANULE/L2A_T10SEF_A036318_20240218T190309/IMG_DATA/R20m/T10SEF_20240218T185439_SCL_20m.tif"
+   },
+   "raster_window": {
+    "path": "qa/sentinel2-locus/S2B_MSIL2A_20240218T185439_R113_T10SEF_20240218T223624/window.tif",
+    "sha256": "ac66fbeab61251e4ad85fd932bd6a71518da29c2570d509169d969edec3a4856",
+    "crs": "EPSG:32610",
+    "transform": [
+     10.0,
+     0.0,
+     590800.0,
+     0.0,
+     -10.0,
+     4091390.0
+    ],
+    "shape": [
+     180,
+     225
+    ],
+    "reflectance_offset": -1000.0
+   },
+   "scl_window": {
+    "window_inside": true,
+    "win_px": 10080,
+    "win_cloudy_frac": 0.053,
+    "surf_strip_cloudy_frac": 0.097,
+    "surf_strip_nodata_frac": 0.0,
+    "win_water_frac": 0.658,
+    "win_nodata_frac": 0.0,
+    "win_snow_px": 113
+   },
+   "sc116": {
+    "hs": 1.835,
+    "tp": 16.67,
+    "dp": 202.0,
+    "record_utc": "2024-02-18T19:00:00+00:00"
+   },
+   "tide_msl_m": -0.428,
+   "tide_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=20240218%2018:24&end_date=20240218%2019:24&station=9413450&product=water_level&datum=MSL&time_zone=gmt&units=metric&format=json",
+   "model_forcing": {
+    "T_s": 16.67,
+    "Ks12": 1.1397,
+    "tide_m": -0.428,
+    "tide_clamped": false,
+    "H0_hs": 1.835,
+    "H0_deshoaled": 1.61,
+    "H0_h10": 2.33
+   },
+   "mask_calibration": {
+    "nir_median": 0.0334,
+    "nir_mad": 0.02372,
+    "red_median": 0.0628,
+    "red_mad": 0.01927,
+    "n_calib_px": 26526,
+    "foam_nir_thresholds": {
+     "4.0": 0.12829,
+     "6.0": 0.17573,
+     "9.0": 0.24689
+    },
+    "foam_mask_px": {
+     "4.0": 1119,
+     "6.0": 668,
+     "9.0": 380
+    },
+    "dense_red_threshold": 0.17844,
+    "dense_mask_px": 1066
+   },
+   "sun_note": "computed from acquisition time at 36.955N 121.965W (NOAA solar equations); not carried by the STAC item"
+  }
+ ]
+}
