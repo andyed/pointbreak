@@ -483,6 +483,78 @@ old held bend with its legacy splash behavior. This is still a kinematic event
 layer rather than a fluid solve: it establishes ordering and attachment, not
 transported water mass or impact pressure.
 
+#### Classic-wave silhouette experiment (2026-09-14)
+
+`#classic=1` explores the hooked crest and open hollow familiar from
+[Hokusai's Great Wave](https://www.metmuseum.org/art/collection/search/45434)
+and [Clark Little's inside-wave photographs](https://clarklittlephotography.com/pages/clark-little-the-art-of-waves).
+These are visual references, not measurements of Pleasure Point.
+
+The existing `choppyPos` bend owns the experiment. With weight equal to the
+site's plunging blend, the crown band widens by `0.12*hCrest`, curvature grows
+by up to 32%, and horizontal arc reach grows by up to 35%. The resulting arc
+is elliptical: the horizontal stretch deliberately gives up arc-length
+preservation, but never lifts a water vertex. The 132-degree mesh backstop,
+depth-derived crest reference and wave-derived horizontal offset bound remain.
+The bend releases through 1.40 s instead of 0.72 s at full plunge, blended by
+the same site character. Birth and impact remain on the existing clock, and
+foam, splash and spray retain their timings. Pure spilling character receives
+zero change; `#curl=0` still selects the old throw/drop path.
+
+**Coherent shoulder (follow-up).** Increasing the bend alone amplified the
+existing white plate. Controlled renders with the falling curtain disabled,
+the bend disabled, aeration disabled and four times as many grid vertices
+isolated the main driver: horizontal convergence used the gradient of the
+entire `oceanH` field, including foam mounds and chop. On the classic arm,
+convergence now blends toward `S/k * sin(phase)` along the gradient of the
+existing `rayPhase`, reaching full weight at plunging blend 0.45. It retains
+the contour/Psi phase authority and the final wave-derived offset bound.
+This changes horizontal positions across the plunging site's wave shoulder,
+not just at the lip; the underlying height and break fields are untouched.
+
+**Opt-in, not promoted.** Matched 1440 x 900 Sewers renders at 48–49 s show a
+cleaner shoulder and a much smaller projecting plate with the stronger hook
+retained. Fixed-camera captures at 46, 50, 52, 54 and 60 s also expose a
+remaining jagged lip at close range, especially 52 s. Wider bend bands,
+weaker convergence, denser meshes and aeration shading did not resolve it.
+The result is an improvement to this experiment, not a convincing continuous
+barrel or physical validation. The unflagged view retains the previous shape.
+
+Verification at 48 s: 41,472 GPU samples per site across all seven presets
+were finite, with no raised water vertices and unchanged sampled depth,
+crest reference, break route, section mask, reef window and impact peak.
+Sharks and Privates were geometry-identical between arms, as was the legacy
+`curl=0` path on every site. Sewers' maximum sampled bend at valid breaking
+stations increased from 87.1 to 114.2 degrees. The matched unflagged Sewers
+profile PNG was byte-identical to its pre-edit capture, and all 185 tests
+passed after the shoulder change. Those seven-site invariants were sampled
+at one clock; they are not a device performance audit.
+
+A later Sewers sweep sampled 40–56 s every 0.25 s: 698,880 GPU points across
+default, first classic and revised classic. Across the same 27 active-curl
+station/time pairs, median projected upper-fold reach fell from 9.56 to 2.42
+model m and its nearly flat portion from 5.82 to 0.51 m. Vertical extent
+stayed near 1.3 m, with unchanged classic bend output and crest heights.
+These are model geometry diagnostics, not field-video residuals or a realism
+score. See [the progress record](research/CLASSIC_WAVE_PROGRESS_2026-09-15.md)
+for definitions, rejected trials, compact evidence and reproduction scripts.
+The backup video was subsequently restored and hash-verified. A
+[fresh field-motion analysis](research/FIELD_WAVE_MOTION_2026-09-15.md) supports
+approximately 16 s recurrence and a quick local curtain-to-impact-plume
+transition. This makes post-impact persistence of the 1.40 s classic release
+a useful next test, without equating the field's visual events to model age.
+
+**Descent/contact follow-up (2026-09-15).** `#classic=1&descent=1` keeps this
+grid bend and tests a separate curtain handoff. Its leading edge advances on
+local age to the existing 0.42 s impact; its upper edge then clears by 0.72 s.
+Curl/section strength controls visibility rather than shortening flight. The
+shared `breakerLandingFrameAt` receiver extends to 1.6 crest heights at full
+plunge, blended from 0.9 by the existing character, to sit ahead of the extended
+hook. This is authored contact tuning, not field calibration. Optional impact
+consumers read the same source-space landing. Grid recovery and attachment to
+the optional roller-raised surface remain unresolved; see the
+[experiment and verification](research/LIP_DESCENT_EXPERIMENT_2026-09-15.md).
+
 ### 2.3 The swell gets a direction (2026-08-10)
 
 §1.2 says crests refract and "the crest sweeps around the point." The runtime
@@ -753,6 +825,8 @@ Implementation (`setupLiftM` in the shared GLSL):
   during a set) and to the *surface height* itself. The renderers already
   take `max(bed, water)`, so the shoreline advances and retreats for free —
   no repainted texture, no second waterline.
+
+
 
 
 #### 2.5.1 Reading Δf: two numbers, not one

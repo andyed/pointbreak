@@ -1,0 +1,57 @@
+{
+  "verified_at_utc": "2026-09-15T02:29:26Z",
+  "files": [
+    {
+      "path": "/Volumes/andyed/Movies/desktop-captures-2026-09/pointbreak-pleasure-point-2026-08-15-1528-unique-clean.mp4",
+      "bytes": 56658381,
+      "sha256": "11428e3fa283bea0834c724c7a6c79d6bb6b506ae9e0885525d43ee08e962695",
+      "hash_match": true,
+      "media": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 2288,
+          "height": 1286,
+          "avg_frame_rate": "30/1",
+          "nb_frames": "1825",
+          "duration": "60.833333"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "width": null,
+          "height": null,
+          "avg_frame_rate": "0/0",
+          "nb_frames": "2851",
+          "duration": "60.800000"
+        }
+      ]
+    },
+    {
+      "path": "/Volumes/andyed/Movies/desktop-captures-2026-09/Screen Recording 2026-08-15 at 3.28.48\u202fPM.mov",
+      "bytes": 1334915124,
+      "sha256": "adab8793bab2b2e4dc7687eded12101d94606168e39f853449d7265d59255f92",
+      "hash_match": true,
+      "media": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 2288,
+          "height": 1286,
+          "avg_frame_rate": "1509300/48073",
+          "nb_frames": "10062",
+          "duration": "320.461667"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "width": null,
+          "height": null,
+          "avg_frame_rate": "0/0",
+          "nb_frames": "15023",
+          "duration": "320.459250"
+        }
+      ]
+    }
+  ]
+}

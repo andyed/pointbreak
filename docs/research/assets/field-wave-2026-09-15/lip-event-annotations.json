@@ -1,0 +1,43 @@
+{
+  "source_sha256": "11428e3fa283bea0834c724c7a6c79d6bb6b506ae9e0885525d43ee08e962695",
+  "kind": "manual visual event brackets, not automatic tracking or parcel fall time",
+  "crop_xyxy": [
+    450,
+    680,
+    1250,
+    880
+  ],
+  "source_fps": 30,
+  "sampled_frames": [
+    330,
+    337,
+    344,
+    351,
+    358,
+    365,
+    372,
+    379,
+    386,
+    393,
+    400,
+    407
+  ],
+  "source_time_offset_s": 40.9,
+  "curtain_visible_between_frames": [
+    351,
+    358
+  ],
+  "impact_plume_visible_between_frames": [
+    365,
+    372
+  ],
+  "transition_duration_bounds_s": [
+    0.23333333333333334,
+    0.7
+  ],
+  "definitions": {
+    "curtain": "distinct bright curtain below the crest in the center-left patch",
+    "impact": "broad white plume at the foot of that collapsing patch"
+  },
+  "limitation": "One selected local collapse; brackets include sampling ambiguity but not a statistical confidence interval or all visual annotation error."
+}

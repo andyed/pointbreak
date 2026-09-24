@@ -5,6 +5,22 @@ social capture, the larger afternoon field recording, and the first reversible
 renderer comparison derived from it. The renders are reproducible model
 configurations, not validation results.
 
+## Availability update — 2026-09-14/15
+
+The backup is now available. Both the afternoon original and clean clip were
+found in `/Volumes/andyed/Movies/desktop-captures-2026-09/`; their hashes and
+byte sizes match the record below. The former Desktop paths remain absent.
+The [fresh field-motion analysis](FIELD_WAVE_MOTION_2026-09-15.md) obtains
+16.0 s unfiltered / 16.2 s filtered recurrence at the previously selected row,
+and records one local curtain-to-impact-plume transition. It is a newly
+specified measurement, not an exact numerical replay of the historical
+16.25-second estimate below.
+
+The [classic-wave progress record](CLASSIC_WAVE_PROGRESS_2026-09-15.md#video-availability-and-limits)
+preserves filenames, hashes, the unique clean interval, current renderer
+measurements and next tests. The source remains on the backup; a verified
+local clean copy supports analysis without modifying the original.
+
 ## Morning observation supplied with the social capture
 
 The field reference was a screen recording titled

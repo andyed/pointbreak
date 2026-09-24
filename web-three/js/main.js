@@ -341,6 +341,8 @@ const uniforms = {
   // the 2026-08-26 all-preset matrix removed detached head plates on every
   // mapped drone view; #curl=0 restores the translated throw/drop path.
   u_curl:       { value: 1 },
+  u_classicWave: { value: 0 }, // #classic=1: hooked-lip experiment; pending visual acceptance
+  u_lipDescent: { value: 0 }, // #classic=1&descent=1: local-age curtain/impact experiment
   // #earn=0 reverts: inside the #curl bend, over-ceiling breaking water earns
   // the arc angle that returns its apex to the ceiling (the head-block fix and
   // the "reference height, not a clamp" decision — see choppyPos). Ships ON as
@@ -2737,6 +2739,8 @@ function applyHashParams() {
   // Lip overturn ships with the anatomy bundle; #curl=0 restores the old
   // translated throw/drop pair. Existing #curl=1 links remain compatible.
   if (h.get('curl') === '0') uniforms.u_curl.value = 0;
+  if (h.get('classic') === '1') uniforms.u_classicWave.value = 1;
+  if (h.get('descent') === '1') uniforms.u_lipDescent.value = 1;
   // #earn is the revert arm for the over-fill bend floor (default on; only
   // reachable through the curl branch, so #earn=0 is the pre-floor bend).
   if (h.get('earn') === '0') uniforms.u_earn.value = 0;

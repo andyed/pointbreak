@@ -1,0 +1,96 @@
+{
+  "reports": [
+    {
+      "preset": "sewers",
+      "xi": 1.15,
+      "flag": 1,
+      "samples": 41472,
+      "changed": 25625,
+      "raised": 0,
+      "nonfinite": 0,
+      "fieldChanges": 0,
+      "maxOldDeg": 87.11223721504211,
+      "maxNewDeg": 114.17719602584839,
+      "throwIdentical": true
+    },
+    {
+      "preset": "firstpeak",
+      "xi": 0.85,
+      "flag": 1,
+      "samples": 41472,
+      "changed": 13496,
+      "raised": 0,
+      "nonfinite": 0,
+      "fieldChanges": 0,
+      "maxOldDeg": 14.046037942171097,
+      "maxNewDeg": 16.2953183054924,
+      "throwIdentical": true
+    },
+    {
+      "preset": "secondpeak",
+      "xi": 0.65,
+      "flag": 1,
+      "samples": 41472,
+      "changed": 21450,
+      "raised": 0,
+      "nonfinite": 0,
+      "fieldChanges": 0,
+      "maxOldDeg": 14.142515659332275,
+      "maxNewDeg": 14.850141406059265,
+      "throwIdentical": true
+    },
+    {
+      "preset": "jacks",
+      "xi": 0.5,
+      "flag": 1,
+      "samples": 41472,
+      "changed": 21637,
+      "raised": 0,
+      "nonfinite": 0,
+      "fieldChanges": 0,
+      "maxOldDeg": 18.268402218818665,
+      "maxNewDeg": 18.289417326450348,
+      "throwIdentical": true
+    },
+    {
+      "preset": "thehook",
+      "xi": 0.8,
+      "flag": 1,
+      "samples": 41472,
+      "changed": 27592,
+      "raised": 0,
+      "nonfinite": 0,
+      "fieldChanges": 0,
+      "maxOldDeg": 43.52003753185272,
+      "maxNewDeg": 51.33869826793671,
+      "throwIdentical": true
+    },
+    {
+      "preset": "sharks",
+      "xi": 0.45,
+      "flag": 1,
+      "samples": 41472,
+      "changed": 0,
+      "raised": 0,
+      "nonfinite": 0,
+      "fieldChanges": 0,
+      "maxOldDeg": 6.368058398365974,
+      "maxNewDeg": 6.368058398365974,
+      "throwIdentical": true
+    },
+    {
+      "preset": "privates",
+      "xi": 0.35,
+      "flag": 1,
+      "samples": 41472,
+      "changed": 0,
+      "raised": 0,
+      "nonfinite": 0,
+      "fieldChanges": 0,
+      "maxOldDeg": 21.06708213686943,
+      "maxNewDeg": 21.06708213686943,
+      "throwIdentical": true
+    }
+  ],
+  "errors": []
+}

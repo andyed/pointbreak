@@ -544,3 +544,24 @@ luck, and while anchored in the wrong place, which is the whole point: a span
 that happens to be the right length around the wrong instant still shows
 nothing, and only the pictures said so.
 
+## 16. A stronger bend angle does not establish a deeper curl
+
+The [classic-wave experiment](CLASSIC_WAVE_PROGRESS_2026-09-15.md) retained a
+median bend output of 108.7 degrees while changing median upper-fold reach
+from 9.56 to 2.42 model m. Its vertical extent stayed near 1.3 m. An angle
+alone had hidden the broad, nearly flat shelf; measure horizontal reach,
+vertical extent and attachment as separate questions.
+
+Use the same source stations and clocks in every arm. Here the first classic
+selected 27 active-curl samples, and all three arms used those same samples;
+an arm cannot improve its score by dropping its difficult cases. Dense GPU
+transects are the surface authority, but their z/height projections do not
+prove a 3-D intersection: horizontal displacement can also move x.
+
+Projected fold reach divided by mesh spacing is not a source-grid cell count.
+Use the source-coordinate span of the actual reverse run to assess sampling.
+The examined lip spans roughly three source intervals, a reason to inspect
+mesh chords and normals, not proof that density alone explains its shape.
+Keep these model diagnostics separate from field-video calibration. Saved
+stills support appearance judgments; an unavailable continuous clip cannot
+support a fresh claim about lip fall or impact continuity.

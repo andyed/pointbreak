@@ -1,5 +1,29 @@
 # TODO
 
+## ▶ CLASSIC WAVE (2026-09-14/15) — measured improvement, opt-in
+
+`#classic=1` adds a wider hooked lip, longer release, and smooth carrier-phase
+convergence. The follow-up reduces median upper-fold reach by 75% and its
+nearly flat portion by 91% across 27 matched Sewers samples; vertical curl
+extent remains about 1.3 model m. The angular lip is unresolved and the flag
+remains off by default. Implementation and documentation are uncommitted.
+
+[Changes, diagnosis, evidence and reproduction](docs/research/CLASSIC_WAVE_PROGRESS_2026-09-15.md).
+Next: coherent falling-lip attachment; compare actual mesh chords/normals
+against the dense GPU curve; preserve a dark face and thin irregular crest.
+The backup video is now restored and both source hashes verified. The
+[fresh field-motion pass](docs/research/FIELD_WAVE_MOTION_2026-09-15.md) finds
+approximately 16 s recurrence and brackets one local curtain-to-impact-plume
+transition at 0.23–0.70 s. Next compare the classic 1.40 s release with its
+0.42 s impact clock; these field/model event definitions are not yet aligned.
+No field speed or set-cadence validation is claimed.
+The [descent/contact experiment](docs/research/LIP_DESCENT_EXPERIMENT_2026-09-15.md)
+is now available under `#classic=1&descent=1`: age-driven flight, clearing from
+the upper edge after impact, and a shared extended receiver. Three Sewers
+station events pass the GPU lifecycle checks; the grid recovery, jagged lip
+and exact attachment to the optional roller-raised surface remain open. Keep
+the experiment off by default pending ordered visual review.
+
 ## ▶ BACKLOG (2026-09-10) — the eikonal travel-time bake, the 2-D form of the reverted Ψ table
 
 `docs/research/EIKONAL_TRAVEL_TIME_2026-09-10.md`. Seen in

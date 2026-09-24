@@ -349,16 +349,12 @@ export const SURFACE_PRELUDE = `
 uniform float u_time;   // simulation seconds (speed-scaled, pausable, JS-side)
 uniform vec2  u_cell;   // core grid cell size in metres (x, z) — normal FD step
 uniform float u_fidelityLook; // 0 current, 1 foam, 2 connected face/lip probe
-uniform float u_curl;   // #curl=1: lip overturn (rotation, not throw). Default 0.
 uniform float u_earn;   // #earn=0 reverts: over-fill earns bend (floor on the
                         // arc angle inside the #curl branch). Default 1; inert
                         // unless u_curl is on.
 uniform float u_sApp;   // #sapp=: approach-term strength, unbundled from
                         // #look=full. Default 0.42 (shipped); the full look's
                         // own 0.22 still wins on that arm.
-uniform float u_onset;  // #onset=1: the overturn develops behind the zipper
-                        // head instead of leading it. Default 0 (shipped look)
-                        // pending a live verdict.
 uniform float u_legacyDrop; // #drop=legacy: restore the pre-2026-08-18 dropMag
                             // (the one that flattened the pocket). A/B only.
 uniform float u_offKnee;    // #knee: soft knee as a FRACTION of the live offset
@@ -619,6 +615,14 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     aheadCut = 1.0 - smoothstep(0.72*u_T, 0.90*u_T, ageB);
     float devRamp = smoothstep(0.0, 0.20*u_T, ageB + 0.05*u_T);
     bendOnset = aheadCut * breakerCurlCycle(ageB);
+    // Let the hooked crown finish falling while impact foam is born. The
+    // short 0.72 s release can leave little along-crest room for a hook on
+    // a slow peel. Keep the same birth/impact; soften only the release
+    // of plunging character, ending well before the 2.6 s bore fade.
+    float hookRise = clamp(ageB/CRASH_PEAK_S, 0.0, 1.0);
+    float hookCycle = hookRise*hookRise
+                    * (1.0 - smoothstep(CRASH_PEAK_S, 1.40, ageB));
+    bendOnset = mix(bendOnset, aheadCut*hookCycle, clamp(u_classicWave, 0.0, 1.0)*plunge);
     if (!(bendOnset == bendOnset)) { bendOnset = 1.0; aheadCut = 1.0; }
     Sover *= devRamp * aheadCut;
   }
@@ -664,6 +668,24 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float lam    = S / (aEst * kk * kk);
 
   vec2 off = lam * grad;
+
+  // The classic bend needs a coherent shoulder to turn over. Applying
+  // lam*grad to oceanH also amplifies the foam mound and chop gradients;
+  // those local slopes pulled the lip into broad, intersecting white plates.
+  // Use the smooth carrier phase for convergence on this experimental arm.
+  // S/k is already the displacement's wave-derived length. The direction
+  // comes from rayPhase itself, so contour bowing and the optional Psi bake
+  // stay authoritative. The bend below remains the owner of the overhang.
+  // Blend by plunging character: pure spillers and #curl=0 remain identical.
+  if (u_classicWave > 0.5 && u_curl > 0.5 && plunge > 0.0) {
+    vec2 phaseGrad = vec2(
+      rayPhase(xz0 + vec2(e, 0.0)) - rayPhase(xz0 - vec2(e, 0.0)),
+      rayPhase(xz0 + vec2(0.0, e)) - rayPhase(xz0 - vec2(0.0, e))) / (2.0*e);
+    vec2 waveDir = phaseGrad / max(length(phaseGrad), 1e-4);
+    float phase = 2.0*PI/u_T*t - rayPhase(xz0);
+    vec2 carrierOff = (S / max(kk, 1e-4))*sin(phase)*waveDir;
+    off = mix(off, carrierOff, smoothstep(0.0, 0.45, plunge));
+  }
 
   // Structural face anatomy. On the shoreward/front quadrant of the carrier,
   // pull the face down into a concavity before throwing the crest ribbon over
@@ -863,6 +885,12 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // with the crest-height instrument and with dropMag's bend line above
   // (crestCeilM). No new authority: the same KsQ/depQ the excess gate uses.
   float hCrest = crestCeilM(depQ, KsQ);
+  // Classic surf silhouette: a broader crown turns into an elliptical hook.
+  // Character only: the same depth ceiling, pocket and impact clock still
+  // decide its height, position and life. Pure spillers stay exactly circular.
+  // No extra surface or independent crest; aeration still respects section gaps.
+  float classicLip = clamp(u_classicWave, 0.0, 1.0)
+                   * plunge;
   // WHERE THE BEND STARTS. Below this the face is untouched, so it keeps
   // standing while the lip goes over it; above it the water curves forward.
   float yBend  = 0.35*hCrest;
@@ -882,7 +910,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     // of the lip machinery uses. Scaled BY THE CREST HEIGHT rather than fixed
     // in metres — a jet is a fraction of the wave it comes off, so a small day
     // must not throw a curtain sized for a big one.
-    float sigZ  = clamp(mix(0.85, 0.50, plunge)*hCrest, 2.5, 10.0);
+    float sigZ  = clamp((mix(0.85, 0.50, plunge) + 0.12*classicLip)*hCrest, 2.5, 10.0);
     float bandZ = exp(-(dzC*dzC)/(2.0*sigZ*sigZ));
     // HOW HARD it bends. 1/R in units of the crest height, so the barrel
     // radius scales with the wave: 0.30 at pure spilling (a crest that rounds
@@ -906,6 +934,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     // #onset=0 revert this remains 1.0 (the old held-pose bend).
     float kEff = (mix(0.30, 2.60, plunge)/max(hCrest, 0.5))
                * overGate * pocket * bandZ * (0.80 + 0.30*lipJit) * bendOnset;
+    kEff *= 1.0 + 0.32*classicLip;
     float th   = clamp(dyB*kEff, 0.0, 2.30);   // 132 deg; the mesh backstop
     // ---- over-fill earns overturn (#earn=0 reverts; 2026-08-25) ----------
     // THE DECISION on "crestCeilM is a reference height, not a clamp"
@@ -947,7 +976,10 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     // over th, not over kEff, so kEff -> 0 is the identity with no divide.
     float sTh = th > 1e-4 ? sin(th)/th : 1.0;
     float cTh = th > 1e-4 ? (1.0 - cos(th))/th : 0.0;
-    off.y += dyB*cTh;
+    // Widen the opening without lifting the crest. This authored ellipse
+    // stretches the circular arc horizontally; it does not preserve arc length.
+    // The existing wave-derived offset bound below still limits the mesh.
+    off.y += dyB*cTh*(1.0 + 0.35*classicLip);
     h      = yBend + dyB*sTh;
     curl   = th/PI;   // hook for the lip-aeration path: turns of overturn
   }
@@ -2418,6 +2450,50 @@ void main(){
   // A young jet is still water, not gauze: opacity rises much faster than
   // geometric reach (sqrt), so what exists reads solid.
   vCurtA  = sqrt(gate);
+  // The opt-in handoff gives progress and visibility separate jobs. A weak
+  // section can carry less visible water without shortening its flight, and
+  // the top edge clears toward the landing after impact instead of retrieving
+  // the bottom edge when curl fades. Every value is a function of local age;
+  // no accumulated state, new event clock, or retiming of splash/foam.
+  if (classicDescentWeight() > 0.0) {
+    vec4 landing = breakerLandingFrameAt(x0, u_time);
+    float age = landing.z + CRASH_PEAK_S;
+    float endAge = CRASH_PEAK_S + 1.5*CRASH_SIGMA_S;
+    vCurtA = 0.0;
+    vG = age >= endAge ? 1.0 : 0.0;
+    if (age > 0.0 && age < endAge) {
+      // Once the source has released, sample its impact pose. The current
+      // grid's later unbending must not pull an airborne sheet back uphill.
+      float sourceTime = u_time - max(landing.z, 0.0);
+      float sourceZ = age < CRASH_PEAK_S ? zc : landing.w;
+      Ptip = surfacePos(vec2(x0, sourceZ), sourceTime,
+                        f1, p1, b1, c1, l1, a1, curlT);
+      Pland = surfacePos(vec2(x0, landing.x), u_time,
+                         f2, p2, b2, c2, l2, a2, k2);
+      float head = clamp(age/CRASH_PEAK_S, 0.0, 1.0);
+      head *= head;
+      float tail = smoothstep(CRASH_PEAK_S, endAge, age);
+      vG = mix(tail, head, v);
+      thTip = curlT*PI;
+      // Follow both displaced endpoints in all three axes. A source x is not
+      // necessarily the drawn surface x after horizontal displacement.
+      vec3 tangent = vec3(0.0, min(cos(thTip), 0.0), sin(thTip));
+      vec3 control = Ptip + tangent*0.45*distance(Ptip, Pland);
+      control.y = clamp(control.y, min(Pland.y, Ptip.y), Ptip.y);
+      control.z = clamp(control.z, Ptip.z, max(Pland.z, Ptip.z));
+      float u = 1.0 - vG;
+      P = u*u*Ptip + 2.0*u*vG*control + vG*vG*Pland;
+      gate = smoothstep(0.30, 0.55, curlT) * breakMask(x0)
+           * (1.0-l1) * (1.0-l2) * farFadeAt(vec2(x0, zc));
+      // An overturned source map can put its nominal foot above or behind
+      // its tip. Such a span cannot depict a falling forward sheet. Fade it
+      // at contact instead of drawing an upward/backward curtain.
+      float contact = smoothstep(0.0, 0.08*landing.y, Ptip.y-Pland.y)
+                    * smoothstep(0.0, 0.08*landing.y, Pland.z-Ptip.z);
+      vCurtA = sqrt(gate)*contact*(1.0-smoothstep(0.5, 1.0, tail));
+    }
+    if (!(P.x == P.x && P.y == P.y && P.z == P.z)) { P = Ptip; vCurtA = 0.0; }
+  }
   vCurtUV = vec2(x0, v);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
 }

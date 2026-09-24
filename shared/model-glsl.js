@@ -14,6 +14,11 @@
 
 export const MODEL_GLSL = `
 // ---------- model uniforms ----------
+// Renderer anatomy flags also gate the shared experimental impact landing.
+uniform float u_curl;        // on by default; #curl=0 restores throw/drop
+uniform float u_onset;       // causal overturn; #onset=0 restores held pose
+uniform float u_classicWave; // #classic=1 authored hook, default off
+uniform float u_lipDescent;  // #classic=1&descent=1 contact experiment, default off
 uniform float u_T;        // swell period, s
 uniform float u_H0;       // deep-water height, m
 uniform float u_alpha;    // peel angle, radians (break-line slope m = tan(alpha))
@@ -961,6 +966,39 @@ float breakerCeilM(vec2 xz0){
   return breakerCeilM(dep, shoalingKsAt(dep));
 }
 
+// The contact experiment follows the same plunging character as the classic
+// crown and ellipse. All consumers must agree when it is enabled, including
+// MODEL_GLSL-only fragment passes that place the transported foam.
+float classicDescentWeight(){
+  if (u_lipDescent <= 0.5 || u_classicWave <= 0.5 ||
+      u_onset <= 0.5 || u_curl <= 0.5) return 0.0;
+  return clamp(u_classicWave, 0.0, 1.0)*smoothstep(0.45, 1.25, u_xi);
+}
+
+// Geometry and clock of the existing impact event, available to the falling
+// curtain even when the optional transported roller is not compiled.
+// (landing source z, displayed ceiling, seconds since impact, crest source z).
+// impactLandingAt adds roller strength; it does not derive a second landing.
+vec4 breakerLandingFrameAt(float x, float t){
+  float w    = 2.0*PI/u_T;
+  float phi  = swellPhi();
+  float zb   = breakLine(x);
+  float kk   = kLocalAt(vec2(x, zb));
+  float kz   = max(kk*cos(phi), 0.25*kk);
+  float zc   = zb + (w/kz)*CRASH_PEAK_S;
+  float hC   = breakerCeilM(vec2(x, zc));
+  float zL   = zc + CURT_REACH*hC;
+  // The classic hook reaches past the old 0.9-height contact. The opt-in
+  // receiver is 1.6 crest heights ahead at full plunge, blended by character.
+  // Authored in the wave's length and tested on the displaced surface; this
+  // is not a physical ratio inferred from the uncalibrated field video.
+  float classic = classicDescentWeight();
+  if (classic > 0.0) zL += (1.6 - CURT_REACH)*hC*classic;
+  float ageHere = mod(w*t - rayPhase(vec2(x, breakLine(x))), 2.0*PI)/w;
+  float tauD = ageHere - CRASH_PEAK_S;
+  return vec4(zL, hC, tauD, zc);
+}
+
 #ifdef ROLLER
 // The lifecycle's impact channel AT ITS PEAK (impactAge = 1): how hard THIS
 // station's crest crashes, independent of where in the impact bell we are
@@ -1055,22 +1093,13 @@ float rollerContactGain(){
   return u_roller * clamp(u_breakShape, 0.0, 1.0) * contact;
 }
 vec4 impactLandingAt(float x, float t){
-  float w    = 2.0*PI/u_T;
-  float phi  = swellPhi();
-  float zb   = breakLine(x);
-  float kk   = kLocalAt(vec2(x, zb));
-  float kz   = max(kk*cos(phi), 0.25*kk);
-  float zc   = zb + (w/kz)*CRASH_PEAK_S;            // crest source at impact
-  float hC   = breakerCeilM(vec2(x, zc));
-  float zL   = zc + CURT_REACH*hC;                   // the curtain's landing
-  // This station's own clock: the breakerLifecycleAtX idiom, impact at CRASH_PEAK_S.
-  float ageHere = mod(w*t - rayPhase(vec2(x, breakLine(x))), 2.0*PI)/w;
-  float tauD = ageHere - CRASH_PEAK_S;
+  vec4 frame = breakerLandingFrameAt(x, t);
+  float zL = frame.x, hC = frame.y, tauD = frame.z;
   float gain = rollerContactGain();
   float strength = 0.0;
   if (gain > 0.0 && tauD > 0.0 && tauD < ROLLER_END_S) strength = gain * breakerImpactPeakAtX(x, t - tauD);
   vec4 o = vec4(zL, hC, tauD, strength);
-  if (!(o.x == o.x)) o.x = zb;              // NaN guards (house rule)
+  if (!(o.x == o.x)) o.x = breakLine(x);    // NaN guards (house rule)
   if (!(o.y == o.y)) o.y = 0.5;
   if (!(o.z == o.z)) o.z = -1.0;
   if (!(o.w == o.w)) o.w = 0.0;

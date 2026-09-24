@@ -1,0 +1,151 @@
+{
+  "source_sha256": "11428e3fa283bea0834c724c7a6c79d6bb6b506ae9e0885525d43ee08e962695",
+  "source_name": "field-clean.mp4",
+  "protocol": {
+    "original_source_offset_s": 40.9,
+    "source_fps": 30.0,
+    "source_frames": 1825,
+    "sample_stride_frames": 3,
+    "carrier_rows": [
+      560,
+      580,
+      600,
+      620,
+      640,
+      660
+    ],
+    "carrier_x_range": [
+      400,
+      2000
+    ],
+    "row_half_width": 3,
+    "filter": "third-order Butterworth, 9\u201324 seconds, zero-phase sosfiltfilt",
+    "peak_rule": "distance >=11 s; prominence >=0.65 filtered SD; retain t=4..54 s",
+    "motion_roi_original": [
+      0,
+      680,
+      2288,
+      880
+    ],
+    "motion_downsample": 2
+  },
+  "sample_fps": 10,
+  "samples": 609,
+  "frame_motion": {
+    "median_luma_change": 3.566271853146853,
+    "p10": 2.5071652097902097,
+    "steps_above_1_5": 608,
+    "total_steps": 608
+  },
+  "background_translation": {
+    "roi_original": [
+      600,
+      1140,
+      1100,
+      1240
+    ],
+    "units": "half-resolution image pixels per 0.1 s",
+    "response_above_0_5": 608,
+    "total": 608,
+    "absolute_xy_p95": [
+      0.08846721670634633,
+      0.13884290735902574
+    ]
+  },
+  "carrier": [
+    {
+      "y": 560,
+      "peak_times_clean_s": [
+        21.1,
+        41.6,
+        53.4
+      ],
+      "intervals_s": [
+        20.5,
+        11.799999999999997
+      ],
+      "filtered_recurrence_s": 19.1,
+      "filtered_recurrence_r": 0.5966938476049666,
+      "unfiltered_recurrence_s": 15.0,
+      "unfiltered_recurrence_r": 0.21387561088686372
+    },
+    {
+      "y": 580,
+      "peak_times_clean_s": [
+        9.6,
+        25.5,
+        41.4
+      ],
+      "intervals_s": [
+        15.9,
+        15.899999999999999
+      ],
+      "filtered_recurrence_s": 16.2,
+      "filtered_recurrence_r": 0.8703010588766078,
+      "unfiltered_recurrence_s": 16.0,
+      "unfiltered_recurrence_r": 0.8896988776360256
+    },
+    {
+      "y": 600,
+      "peak_times_clean_s": [
+        12.0,
+        30.9,
+        46.2
+      ],
+      "intervals_s": [
+        18.9,
+        15.300000000000004
+      ],
+      "filtered_recurrence_s": 17.5,
+      "filtered_recurrence_r": 0.8234983533311283,
+      "unfiltered_recurrence_s": 17.0,
+      "unfiltered_recurrence_r": 0.7475954454116258
+    },
+    {
+      "y": 620,
+      "peak_times_clean_s": [
+        9.8,
+        27.4,
+        43.3
+      ],
+      "intervals_s": [
+        17.599999999999998,
+        15.899999999999999
+      ],
+      "filtered_recurrence_s": 16.9,
+      "filtered_recurrence_r": 0.8391192760100312,
+      "unfiltered_recurrence_s": 16.5,
+      "unfiltered_recurrence_r": 0.7459741791102339
+    },
+    {
+      "y": 640,
+      "peak_times_clean_s": [
+        22.9,
+        41.6
+      ],
+      "intervals_s": [
+        18.700000000000003
+      ],
+      "filtered_recurrence_s": 19.0,
+      "filtered_recurrence_r": 0.9032224741712812,
+      "unfiltered_recurrence_s": 18.0,
+      "unfiltered_recurrence_r": 0.46951493092496804
+    },
+    {
+      "y": 660,
+      "peak_times_clean_s": [
+        21.9,
+        33.2,
+        52.9
+      ],
+      "intervals_s": [
+        11.300000000000004,
+        19.699999999999996
+      ],
+      "filtered_recurrence_s": 20.7,
+      "filtered_recurrence_r": 0.31404878410849946,
+      "unfiltered_recurrence_s": 21.3,
+      "unfiltered_recurrence_r": -0.06751225664547271
+    }
+  ]
+}
