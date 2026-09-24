@@ -1,0 +1,59 @@
+{
+  "source": "docs/research/assets/pleasure-point-2026-09-05/cliff-cam-reference.jpg",
+  "source_pixels": [1280, 960],
+  "kind": "manual visual annotations in the 1280x960 fixture derivative; (col, row) with row 0 at the top",
+  "annotated": "2026-09-23, from 2x crops with a 20 px row grid (scripts/measure_lookout_locus.py --crops reproduces them)",
+  "horizon_row_manual": 313,
+  "features": {
+    "crest_wave_a": {
+      "role": "b: the active breaking crest carrying two riders; the top edge of the green face, seaward-most unbroken water of this wave",
+      "type": "polyline",
+      "points": [[100, 445], [200, 438], [300, 432], [400, 428], [500, 421], [600, 412], [700, 399], [800, 398], [900, 399], [1000, 402], [1050, 404]],
+      "note": "left of col 640 the wave is unbroken swell nearer the camera; it breaks from col ~1050 rightward"
+    },
+    "riders_wave_a": {
+      "role": "b: the two riders on wave A (dark marks on the face just under the lip)",
+      "type": "points",
+      "points": [[847, 410], [990, 407]]
+    },
+    "peel_head_wave_a": {
+      "role": "b: where the green face meets the whitewater (the zipper head) on wave A",
+      "type": "points",
+      "points": [[1050, 403]]
+    },
+    "crest_wave_b": {
+      "role": "d: the outer unbroken line - the next wave of the set, green face, breaking from col ~1130 rightward",
+      "type": "polyline",
+      "points": [[700, 377], [800, 374], [900, 372], [1000, 371], [1100, 370], [1130, 369]],
+      "note": "not discernible left of col ~700 at this exposure"
+    },
+    "peel_head_wave_b": {
+      "role": "d: green-to-whitewater transition on wave B",
+      "type": "points",
+      "points": [[1130, 367]]
+    },
+    "lineup_cluster": {
+      "role": "c: sitting surfers (2-10 px dark marks) - the lineup, sampled",
+      "type": "points",
+      "points": [[118, 447], [143, 447], [165, 447], [220, 458], [333, 460], [447, 447], [455, 462], [538, 455], [560, 470], [615, 455], [625, 462], [720, 455], [740, 478], [838, 462], [870, 470], [910, 468], [1090, 455]]
+    },
+    "outer_dark_band": {
+      "role": "reference only: a dark shore-parallel band far outside both waves (kelp canopy or wind shadow); not a break, excluded from the residual",
+      "type": "polyline",
+      "points": [[0, 340], [640, 337], [1280, 335]]
+    },
+    "inshore_foam_field": {
+      "role": "reference only: residual foam and sun glitter inshore, no crest, no coherent seaward edge; excluded from the residual",
+      "type": "box",
+      "box_xyxy": [0, 560, 350, 720]
+    }
+  },
+  "whitewater_auto": {
+    "method": "luma > 195 and HSV saturation < 60 inside ROI rows [340, 520), all columns; then per column the seaward-most (minimum) masked row, split into wave B (rows < 392) and wave A (rows >= 392)",
+    "roi_rows": [340, 520],
+    "split_row": 392,
+    "band_columns": [1100, 1280],
+    "why_this_roi": "above row 340 is sky/cloud (white, unsaturated - the same signature as foam); below row 520 is sun glitter on the inside water, also white"
+  },
+  "distinguishing_break_from_reform": "Both whitewater bands terminate leftward in a clean green face carrying a rider (wave A) or a clean green line (wave B); a reformed inner bore has no unbroken face ahead of it. The inshore foam field at rows 560-720 is the residue of earlier waves - texture without a crest - and is the only candidate for an inner reform; it is annotated and excluded."
+}
