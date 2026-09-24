@@ -896,3 +896,109 @@
              pp\_mop\_alongshore.json. A linear refraction model on the 10--15 m
              contour, not a measurement at the break.}
 }
+
+% ---- added 2026-09-23 for PHYSICS_CORE_AUDIT_2026-09-23.md; every DOI below
+% ---- was resolved against api.crossref.org on 2026-09-23 (title, authors,
+% ---- container and year returned as cited).
+
+@inproceedings{komargaughan1972breaker,
+  author    = {Komar, Paul D. and Gaughan, Michael K.},
+  title     = {Airy Wave Theory and Breaker Height Prediction},
+  booktitle = {Proceedings of the 13th International Conference on Coastal Engineering},
+  address   = {Vancouver},
+  publisher = {ASCE},
+  pages     = {405--418},
+  year      = {1972},
+  doi       = {10.9753/icce.v13.20},
+  note      = {VERIFIED CrossRef 2026-09-23. H_b = 0.56 H_0 (H_0/L_0)^(-1/5),
+             equivalently 0.39 g^(1/5) (T H_0^2)^(2/5); the coefficient is an
+             empirical fit, and under linear shoaling to the break point it
+             corresponds to H_b/h_b ~ 1.4 rather than McCowan's 0.78 (the audit
+             derives this in R1). Page range from secondary sources.}
+}
+
+@article{weggel1972breaker,
+  author  = {Weggel, J. Richard},
+  title   = {Maximum Breaker Height},
+  journal = {Journal of the Waterways, Harbors and Coastal Engineering Division},
+  volume  = {98},
+  number  = {WW4},
+  pages   = {529--548},
+  year    = {1972},
+  doi     = {10.1061/AWHCAR.0000166},
+  note    = {VERIFIED CrossRef 2026-09-23. Breaker index as a function of beach
+             slope m and H_b/(g T^2): H_b/h_b = b(m) - a(m) H_b/(g T^2), with
+             a = 43.75 (1 - e^(-19 m)), b = 1.56 / (1 + e^(-19.5 m)). Also
+             reproduced in Komar (1998) and Dean and Dalrymple (1991).}
+}
+
+@article{battjesstive1985dissipation,
+  author  = {Battjes, J. A. and Stive, M. J. F.},
+  title   = {Calibration and Verification of a Dissipation Model for Random Breaking Waves},
+  journal = {Journal of Geophysical Research: Oceans},
+  volume  = {90},
+  number  = {C5},
+  pages   = {9159--9167},
+  year    = {1985},
+  doi     = {10.1029/JC090iC05p09159},
+  note    = {VERIFIED CrossRef 2026-09-23. gamma = 0.5 + 0.4 tanh(33 H_0/L_0),
+             defined on H_rms inside a random-wave dissipation model -- a
+             different quantity from the monochromatic McCowan index, reported
+             in the audit as the third standard form, not as a target.}
+}
+
+@article{bowen1968setup,
+  author  = {Bowen, A. J. and Inman, D. L. and Simmons, V. P.},
+  title   = {Wave `Set-Down' and Set-Up},
+  journal = {Journal of Geophysical Research},
+  volume  = {73},
+  number  = {8},
+  pages   = {2569--2577},
+  year    = {1968},
+  doi     = {10.1029/JB073i008p02569},
+  note    = {VERIFIED CrossRef 2026-09-23. Laboratory confirmation of the
+             radiation-stress setup: inside the surf zone d eta/dx = -K dh/dx,
+             K = (3 gamma^2/8)/(1 + 3 gamma^2/8), set-down at the break point
+             -gamma^2 h_b/16.}
+}
+
+@article{guzathornton1981setup,
+  author  = {Guza, R. T. and Thornton, E. B.},
+  title   = {Wave Set-Up on a Natural Beach},
+  journal = {Journal of Geophysical Research: Oceans},
+  volume  = {86},
+  number  = {C5},
+  pages   = {4133--4137},
+  year    = {1981},
+  doi     = {10.1029/JC086iC05p04133},
+  note    = {VERIFIED CrossRef 2026-09-23. Field regression: shoreline setup
+             ~0.17 x offshore significant wave height (Torrey Pines).}
+}
+
+@article{longuethiggins1964radiation,
+  author  = {Longuet-Higgins, M. S. and Stewart, R. W.},
+  title   = {Radiation Stresses in Water Waves; a Physical Discussion, with Applications},
+  journal = {Deep Sea Research and Oceanographic Abstracts},
+  volume  = {11},
+  number  = {4},
+  pages   = {529--562},
+  year    = {1964},
+  doi     = {10.1016/0011-7471(64)90001-4},
+  note    = {VERIFIED CrossRef 2026-09-23. The radiation-stress derivation of
+             wave setup that Bowen et al. (1968) test.}
+}
+
+@article{carini2021breakertype,
+  author  = {Carini, Roxanne J. and Chickadel, C. Chris and Jessup, Andrew T.},
+  title   = {Surf Zone Waves at the Onset of Breaking: 2. Predicting Breaking and Breaker Type},
+  journal = {Journal of Geophysical Research: Oceans},
+  volume  = {126},
+  number  = {5},
+  year    = {2021},
+  doi     = {10.1029/2020JC016935},
+  note    = {VERIFIED CrossRef 2026-09-23 (part 1, LIDAR and IR data fusion, is
+             10.1029/2020JC016934). Source of the 22 deg spilling / 30 deg
+             plunging front-face angle at breaking onset that MODEL.md 2.2a and
+             GAME_PROJECTION C2 cite. The audit takes those two numbers from the
+             repo's existing citation; the article was not re-read for them.}
+}
