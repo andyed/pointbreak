@@ -1,5 +1,51 @@
 # TODO
 
+## ▶ FIDELITY AUDIT (2026-09-23) — seven tracks against the truth data, nothing wired
+
+[Index and cross-track reading](docs/research/FIDELITY_AUDIT_2026-09-23.md).
+The physics core is right and invisible (Ks to 0.3 %, Hb 6–12 % under
+Komar–Gaughan, γ inside Weggel); the picture is decided by three authored
+quantities the data now contradicts:
+
+- **Peel.** The 2026-08-15 Surfline clip peels at Vp 4.7–6.7 m/s, α 55–73°
+  (focal-length bracketed; Vp is f-free) while the model closes out on every
+  bed at that forcing (α 3.9°, Vp 37 m/s; crest speed agrees to 10 %). The day
+  is above `PEEL_FLOOR.secondpeak`'s tide band (+0.36 vs +0.01 m) — the band,
+  measured on the model against itself, is too tight by ≥ 0.35 m.
+  `SURFLINE_CAM_POSE_2026-09-23.md`.
+- **Locus.** Four Sentinel-2 frames retire `#bed=plane` at the apex and
+  confirm the reef there (plane fails 9/9 non-lull apex cells); no frame
+  supports the down-point reef (38th → Private's seaward of the foam in
+  13/16 cells), on NCEI or CUDEM. The Lookout photograph puts the drawn Hs
+  line 62–91 m inside the set wave the surfers ride, on every bed; 1.3–1.5×Hs
+  lands on it. `SENTINEL2_LOCUS_2026-09-23.md`, `LOOKOUT_LOCUS_RESIDUAL_2026-09-23.md`.
+- **Breaker type / face.** Bed ξ₀ 0.11–0.44 (spilling everywhere) vs authored
+  ξ plunging at five spots; `u_xi` draws the lip, `iribarrenMeasured` reaches
+  nothing. Front face 10–15° physical vs Carini 22–30°, ~1° of phase-map
+  budget left. Authored α is met only inside a spot-specific H0 window
+  because the line bearing slides 36° → 8° off the wedge.
+  `PHYSICS_CORE_AUDIT_2026-09-23.md`.
+- **Forcing.** `#day=live` and `#month=` shoal SC116's 15.03 m Hs twice
+  (+5 to +10 % at 15–17 s); both field days ran 0.13–0.18 m above predicted
+  tide. Day hashes for 08-15 and 09-05 with observed tide are in
+  `FORCING_AUDIT_2026-09-23.md` §3; `#deshoal=1` and `#T=` designed, twin +
+  tests ship (`scripts/lib/deshoal.mjs`).
+- **Bed.** OFR 2007-1270's Fig. 9 swath (110–500 m out) is the first
+  sounding-vs-interpolant residual: CUDEM's −0.10 m sheet is 1.1–2.3 m too
+  shallow 38th → Shark's; NCEI ~0.8 m too deep at Sewers. The Hook's line
+  breaks in 2.78 m of interpolant where the swath reads 5.09 m.
+  `OFR_2007_1270_EVIDENCE_2026-09-23.md`. Data request still unsent.
+- **Side findings.** Every `#cam=` render may be the horizontal mirror of the
+  site (T3 §6; independent verification in `MIRROR_VERIFICATION_2026-09-23.md`
+  if present). Camera submersion and the audio zipper still read the
+  synthetic twin / authored contour (FIDELITY_AUDIT T7).
+
+Ranked next actions are in the audit's last section; the first is to
+re-measure the peel floor's tide band against the 08-15 day. Two MODEL.md
+wording errors were corrected (`e51ff93`: shoaling is the full linear Ks,
+not Green's law; the skew map steepens the front by at most 1+s and h(x) is
+single-valued).
+
 ## ▶ CLASSIC WAVE (2026-09-14/15) — measured improvement, opt-in
 
 `#classic=1` adds a wider hooked lip, longer release, and smooth carrier-phase
