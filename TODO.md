@@ -1,5 +1,39 @@
 # TODO
 
+## ▶ OPEN AFTER THE 2026-09-24 DEPLOY — product calls and loose ends
+
+Shipped that day: the unmirror (604ea6a), the reef refit with the intertidal
+crest (56219d7), regenerated figures and QA galleries, the essay prose pass,
+and the og hero (now the unmirrored refit capture). Left open, in order:
+
+- [ ] **Second Peak reef-window feather.** The card reads 32.1° against 41 and
+      the line reverses at the up-point stage head above 1.1× the card
+      (x −47…−33 m) — the window's feather, REEF_FIT_SIGNED §6 item 3, the
+      extent decision that is Andy's. `scripts/score_reef_fit.mjs` is the gate.
+- [ ] **Sewers stays deep** (crest 2.76 m): every shallower crest turns its
+      0.7–0.9× rungs into lefts; August p75 unreachable by the fit, not the cap.
+- [ ] **Sharks' tide band is a one-rung knife-edge** [0, 0]; the floor holds
+      only at tide 0.
+- [ ] **Fig. 4 caption says 0.50 m RMS about the plane; the essay text says
+      0.32 m.** Probably two fit windows (whole grid vs submerged platform);
+      say which in both places (`docs/figures/gen_floor.py`, `index.html` §04).
+- [ ] **The og hero's lip facets** — bright polygons on the two heads at card
+      size (the shipped lip at Sewers from the Drone camera). A renderer
+      question, not a capture one; the classic/descent experiments are the
+      open thread (`CLASSIC_WAVE_PROGRESS_2026-09-15.md`).
+- [ ] **Sun azimuth after the unmirror** — authored in stage space, so it now
+      lights from the other side of every preset camera; look call.
+- [ ] **`u_camUnder` and the audio zipper still read the CPU twin / authored
+      contour** (FIDELITY_AUDIT T7); wiring, not model.
+- [ ] **`#deshoal=1` and `#T=`** (FORCING_AUDIT §7): twin and tests ship, flag
+      not wired.
+- [ ] **Surfline cam focal length** — one capture with the 38th Ave stair head
+      in frame turns T6's bracket into a PnP solve and pins observed α.
+- [ ] **OFR 2007-1270 data request** still unsent (`docs/drafts/`).
+- [ ] The main `mindbendingpixels-www` checkout holds another session's
+      uncommitted homepage draft and is behind origin; deploys run from the
+      `mindbendingpixels-www-deploy` worktree until that is reconciled.
+
 ## ▶ FIDELITY AUDIT (2026-09-23) — seven tracks against the truth data, nothing wired
 
 [Index and cross-track reading](docs/research/FIDELITY_AUDIT_2026-09-23.md).

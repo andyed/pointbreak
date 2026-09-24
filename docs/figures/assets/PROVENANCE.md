@@ -72,20 +72,19 @@ What changed in the pictures:
 The spec line under each panel is read from `shared/params.js` as before, so
 it now carries the retargeted peel bank (α 38/50/41/37/41/36/31).
 
-The og hero was **not** replaced. A review candidate was captured with
-`capture_og_hero.mjs` at the same commit and saved beside the accepted asset
-as `og_hero_candidate_2026-09-24.png`; the accepted `og_hero.png` (2026-08-10,
-`38e67ad`, which is the mirror image of the site) was restored from git. The
-candidate is unmirrored but shows bright lip-geometry artefacts on the two
-breaking heads at card size, so it is not offered as a replacement without a
-visual pass.
+The og hero **was replaced on 2026-09-24** (Andy's call) with the capture made at
+b78be48 by `capture_og_hero.mjs`: Sewers, Drone camera, unmirrored, on the refit
+reef. It carries bright lip-geometry facets on the two breaking heads at card
+size; that is the shipped renderer's lip, not a capture defect, and it is on the
+TODO. `og-card.svg`/`.png` were regenerated from it (`gen_og.py`,
+`render_check.mjs`). The 2026-08-10 asset it replaced was the mirror image of
+the site.
 
 ## Social-preview inset
 
 `og_hero.png` is a 1280×752 crop of the renderer at Sewers, Drone camera. The
-accepted asset remains the 2026-08-10 capture from commit `38e67ad`. A
-2026-08-26 recapture with the promoted anatomy default looked worse at card size
-and was deliberately deferred. `gen_og.py` embeds the accepted capture and
+accepted asset is the 2026-09-24 capture at b78be48 (see above); the 2026-08-10
+capture from commit `38e67ad` it replaced was mirrored. `gen_og.py` embeds the accepted capture and
 `render_check.mjs` rasterises the card at 2×:
 
 ```bash
