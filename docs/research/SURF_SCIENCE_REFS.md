@@ -257,6 +257,18 @@ station **9413450 (Monterey)** — the same station this model extrapolates its
 MSL − NAVD88 = 0.905 m datum from. Any comparison inherits one datum assumption rather
 than two.
 
+*2026-09-23.* The PDF itself was mined for everything quantitative it carries —
+the AWAC statistics and Fig. 11 monthly series, the Fig. 9 swath map
+georeferenced and colour-inverted into per-spot depth profiles, the verbatim
+breaking-pattern and datum statements, and the timex-camera geometry — and
+compared with the bake: [OFR_2007_1270_EVIDENCE_2026-09-23.md](OFR_2007_1270_EVIDENCE_2026-09-23.md).
+Short form: the published swath stops 110–220 m from the coastline at every
+canon spot, seaward of the model's line at all but one window; where it
+overlaps the interpolants it finds the shipped NCEI grid within ±0.5 m at five
+of seven spots and the CUDEM's −0.10 m sheet 1.1–2.3 m too shallow from 38th
+to Shark's Cove. "Peel" still occurs zero times. The data-release status above
+is unchanged.
+
 The one published per-wave series at a point break — Raglan "The Ledge", NZ, one ride,
 30 July 2001, α at 1 s intervals (Scarfe 2008 PhD, Univ. of Waikato, Table 2-3 p.44,
 from Scarfe 2002a MSc; reproduced as Fig. 12 in Scarfe, Healy & Rennie 2009):
