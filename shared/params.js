@@ -171,37 +171,35 @@ export const DEFAULT_PRESET = 'secondpeak';
 // to 5.9, turning two healthy states into closeouts. So `basisT`/`basisTideM`
 // are checked before the floor is allowed to bind.
 //
-// Privates stays null, MEASURED (2026-09-02, `--mode=floor --preset=privates`
-// on tree 4412eaa): the criterion has no domain there. Its card ocean (0.70 m,
-// T 12, tide 0) sits BELOW its own wedge's activation H0 (0.721 m), so at every
-// one of the 31 rungs 0.40 -> 0.70 the shipped line has 0 % of stage stations
-// on the reef — it is the DEM platform's line, a right-hand 15.7-26.2 deg peel
-// with 0 reversals and 0 pinned stations (gate 0, replica bit-identical) — and
-// "every rung up to the card is healthy" fails at the card itself (instrument
-// note: "the card state itself is not healthy"). Not a closeout: alpha never
-// drops below 12.8 deg and never changes sign anywhere on 0.40 -> 3.00 m at
-// any sample tide. The line DOES sit on the wedge above the card — healthy at
-// every rung 0.76 -> 1.43 m at tide 0 (alpha 12.8-28.6, on-reef 0.52-0.99) —
-// and off it again seaward above 1.43 m; and the card itself is a peel on the
-// wedge at tides <= -0.09 m, where a floor exists (0.70 at -0.09, 0.61 at
-// -0.25, 0.48 at -0.50, the 0.40 ladder bottom below -0.66; MLLW activation
-// 0.269). A tide-0 floor would have to be 0.76 m, above the authored card,
-// which the table's own invariant (no card at or below its floor) forbids. So:
-// no floor, no clamp, derived oceans pass through raw — Jun-Sep p75
-// 0.585-0.706 m draw on the platform at 15.7-18.7 deg, the other eight months
-// on the wedge at 13.3-27.3 deg, all twelve right-handed. The decision that
-// would create a floor is authorship's — a card H0 >= 0.76 m, or a card tide
-// <= -0.09 m — and is not taken here. Docs: MODEL.md 4.6 "Privates",
-// research/PRIVATES_CONTOUR_2026-09-01.md "Peel floor and tide band".
-// tests/peel-floor.test.js re-bakes the verdict (activation above the card,
-// 0 % on reef at the card, measurePeelFloor finding no floor) so a bake that
-// makes a Privates floor possible fails the suite instead of inheriting this.
+// THE REFIT (2026-09-24, research/REEF_REFIT_2026-09-24.md). Every row below
+// was re-measured on the table-arm bake (bed.js data/model/pp_reef_fit.json
+// under the MLLW + 0.1 m crest cap); the c85bf62 rows are kept as
+// PEEL_FLOOR_LEGACY for the #reef=legacy arm. What moved: the shallower
+// wedges activate lower (0.29-1.21 m against 0.62-1.24), so every floor
+// dropped (Sewers 1.62 -> 1.54, First Peak 1.38 -> 1.20, Second Peak 1.11 ->
+// 0.47, Jack's 0.78 -> 0.47, The Hook 1.09 -> 0.92, Sharks 0.81 -> 0.46) and
+// Second Peak's ladder has NO branch flip any more (flipLo/flipHi null: the
+// floor there is the peel returning on the reef, not a branch changing).
+// Privates, null since 2026-09-02 (its legacy wedge activated at 0.721 m,
+// above its 0.70 m card, so no rung up to the card was on the reef), now
+// carries a floor: the table wedge (crest 0.912 m, beta 65.5) activates at
+// 0.305 m, the card line sits on it (59 %, alpha 30.4 against 31) and the
+// peel returns at 0.63 -> 0.64 (on-reef 0.00 -> 0.55). Its tide band is
+// [MLLW, 0]: at +0.01 m the floor rung is off the wedge again.
+// Sharks' tide band is [0, 0] by the criterion's own letter: the tide-0
+// floor holds at every rung from MLLW to -0.02 m and at 0, and FAILS at
+// -0.01 m alone (H0 0.61 m there sits 37 % on the reef — a one-rung
+// knife-edge, MEASUREMENT_LESSONS 14); the band is the contiguous interval
+// around 0, so it is a point, and peelFloorH0 declines at every other tide.
+// Months sit at tide 0 and are unaffected; a reader dragging the tide sees
+// the "NOT applied" line, which is the honest one.
 //
 // Everything below was read off ONE run of the instrument; every field is
 // checked against a fresh headless measurement by tests/peel-floor.test.js.
 export const PEEL_FLOOR_BASIS = {
-  measured: '2026-09-01',
-  modelCommit: 'c85bf62',   // the tree the floors were read off (bake inputs last moved 1a0b17e, thresholds 09c7f4a)
+  measured: '2026-09-24',
+  modelCommit: '12ffab7',   // the tree the floors were read off: the refit (bed.js table arm + data/model/pp_reef_fit.json)
+  tabulatedIn: 'docs/research/REEF_REFIT_2026-09-24.md',   // where the current floors and tide bands are tabulated (MODEL.md 4.6 carries the c85bf62 table until the coordinator folds this in)
   instrument: 'scripts/measure_break_activation.mjs --mode=floor',
   tideM: 0,                 // every spot: tide 0
   periodS: 'card',          // every spot: the site card's own T (basisT per row)
@@ -225,7 +223,7 @@ export const PEEL_FLOOR_BASIS = {
   // table was measured and not adopted — TIDE_FLOOR §4: above +0.33..+0.66 m
   // (spot-dependent) the CARD itself is off the reef and no floor exists, so
   // the table would have holes across a third to half of the accepted range.
-  tideMeasured: '2026-09-01',
+  tideMeasured: '2026-09-24',
   tideInstrument: 'scripts/measure_break_activation.mjs --mode=tide',
   tideStepM: 0.01, tideRangeM: [-0.862, 0.764],
   tideCriterion: 'contiguous interval of 0.01 m tide rungs around 0 at which floorH0(tide) <= floorH0(0) and the card H0 is a peel; the tide-0 floor is returned inside it and null outside',

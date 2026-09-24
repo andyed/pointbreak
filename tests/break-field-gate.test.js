@@ -84,11 +84,14 @@ test('the shipped representation is the bake, and the others are not it', () => 
     assert.ok(I.maxAbsDiff(rs[name].zStage, inst.real.z) > 1, `${name} is indistinguishable from the shipped line`);
 });
 
-test('the reef fit the replica anchors on is still the legacy one', () => {
-  // Slice 4 (canonical refit) has not happened; the instrument must be reading
-  // the bake as shipped, not a refit.
+test('the reef fit the replica anchors on is the shipped table wedge (the canonical refit landed 2026-09-24)', () => {
+  // Slice 4 (the canonical refit) happened: the shipped wedge is the baked
+  // (crest, beta) table scored on the canonical stage alpha
+  // (research/REEF_REFIT_2026-09-24.md), and the instrument must be reading
+  // that bake, not the legacy fit — which stays available as #reef=legacy.
   const inst = I.instrumentState('sewers', I.cardOf('sewers'));
-  assert.equal(inst.fit.fitMetric, 'legacy-break-line-bearing');
-  assert.equal(inst.fit.canonicalFitDeferred, true);
+  assert.equal(inst.fit.fitMetric, 'canonical-stage-alpha-table');
+  assert.equal(inst.fit.canonicalFitDeferred, false);
+  assert.equal(inst.fit.source, 'data/model/pp_reef_fit.json');
   assert.equal(PRESETS.sewers.geoSpot, inst.spot);
 });

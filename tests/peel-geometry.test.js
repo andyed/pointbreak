@@ -69,11 +69,15 @@ test('a crest tangent to the break line reports a closeout, not a huge finite sp
   assert.equal(g.lineVelocityMps, null);
 });
 
-test('runtime readout is canonical while legacy reef calibration is explicit and deferred', () => {
+test('runtime readout is canonical; the reef fit is canonical on the shipped arm and the legacy metric stays explicit on its own arm', () => {
   const bed = readFileSync(new URL('../web-three/js/bed.js', import.meta.url), 'utf8');
   assert.match(bed, /export function derivedPeelGeometry\(/);
   assert.match(bed, /return signedPeelGeometryAt\(/);
   assert.match(bed, /export function derivedAlphaDeg[\s\S]*derivedPeelGeometry\(x, x0, x1\)/);
-  assert.match(bed, /fitMetric: 'legacy-break-line-bearing'/);
-  assert.match(bed, /canonicalFitDeferred: true/);
+  // Since the 2026-09-24 refit the shipped wedge is scored on the canonical
+  // stage alpha (the table); the legacy line-bearing metric is still named,
+  // carried as legacyDerivedDeg on both arms and the fit metric on #reef=legacy.
+  assert.match(bed, /fitMetric: row \? 'canonical-stage-alpha-table' : 'legacy-break-line-bearing'/);
+  assert.match(bed, /canonicalFitDeferred: !row/);
+  assert.match(bed, /legacyDerivedDeg: derived/);
 });

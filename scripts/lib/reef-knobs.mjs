@@ -4,15 +4,18 @@
 // the scorecard (scripts/score_reef_fit.mjs) and the field instrument share
 // ONE patch set and ONE hook. Nothing shipped is edited: the knob arms
 // parameterise three constants of bed.js in memory, per spot:
-//   crest   metres added to the wedge crest depth clamp(0.75*h_b, 1.2, 3.0)
-//           (positive = deeper); same patch site as
+//   crest   metres added to the wedge crest depth — the table row's on the
+//           shipped arm since 2026-09-24, clamp(0.75*h_b, 1.2, 3.0) on
+//           #reef=legacy (positive = deeper); same patch site as
 //           measure_reef_activation_sensitivity.mjs, keyed by spot
 //   beta    the wedge strike angle off shore-parallel, overriding the fitted
 //           value AFTER the fit loop (the reef function is rebuilt at that
 //           angle through the fit's own evaluate(), so its derived line
 //           bearing against the card is carried too)
-//   ceil    HYPOTHETICAL: metres added to the -0.5 m NAVD88 reef ceiling at
-//           the crest target and the post clamp (the dry-post gate stays, so
+//   ceil    HYPOTHETICAL: metres added to the arm's crest cap (since the
+//           2026-09-24 refit REEF_CREST_CEIL_EL = MLLW + 0.1 m on the shipped
+//           table arm; the old -0.5 m NAVD88 cap on #reef=legacy) at the
+//           crest target and the post clamp (the dry-post gate stays, so
 //           land is never touched). The shipped invariant (reef-audit.test.js
 //           aboveCeil = 0) forbids it; it exists to show what the observed
 //           peel would need when the ceiling is what binds, and every such
@@ -46,21 +49,24 @@ const BED_SRC = readFileSync(fileURLToPath(BED_URL), 'utf8');
 // Each `find` must occur exactly once in bed.js; a drift there fails here
 // rather than silently sweeping a constant that moved.
 export const PATCHES = [
+  // Since 2026-09-24 (the refit) bed.js resolves the crest depth and the crest
+  // cap per arm on one line each (the table row on the shipped arm, the
+  // legacy rule on #reef=legacy), so the crest and ceiling knobs reach both.
   { name: 'crest depth (per spot)',
-    find: 'const crestDepth = Math.min(Math.max(0.75 * hb, 1.2), 3.0);',
-    replace: 'const crestDepth = Math.min(Math.max(0.75 * hb, 1.2), 3.0) + __bandCrest(name);' },
+    find: 'const crestDepth = row ? row.crestDepthM : Math.min(Math.max(0.75 * hb, 1.2), 3.0);',
+    replace: 'const crestDepth = (row ? row.crestDepthM : Math.min(Math.max(0.75 * hb, 1.2), 3.0)) + __bandCrest(name);' },
   { name: 'crest target ceiling (per spot, hypothetical)',
-    find: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, REEF_CEIL_EL - 0.2);',
-    replace: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, REEF_CEIL_EL + __bandCeil(name) - 0.2);' },
+    find: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, crestCeil - crestMargin);',
+    replace: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, crestCeil + __bandCeil(name) - crestMargin);' },
   { name: 'post ceiling (per spot, hypothetical)',
-    find: 'return Math.max(Math.min(em + lift, REEF_CEIL_EL) - em, 0);',
-    replace: 'return Math.max(Math.min(em + lift, REEF_CEIL_EL + __bandCeil(__reefSpotName)) - em, 0);' },
+    find: 'return Math.max(Math.min(em + lift, ceilEl) - em, 0);',
+    replace: 'return Math.max(Math.min(em + lift, ceilEl + __bandCeil(__reefSpotName)) - em, 0);' },
   { name: 'reef fn spot name (for the post ceiling)',
-    find: 'function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {',
-    replace: 'function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin, __reefSpotName = null) {' },
+    find: 'function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin, ceilEl) {',
+    replace: 'function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin, ceilEl, __reefSpotName = null) {' },
   { name: 'reef fn call site',
-    find: 'const fn = makeReefFn(b, targetEl, zRef, seed, reefWin);',
-    replace: 'const fn = makeReefFn(b, targetEl, zRef, seed, reefWin, name);' },
+    find: 'const fn = makeReefFn(b, targetEl, zRef, seed, reefWin, crestCeil);',
+    replace: 'const fn = makeReefFn(b, targetEl, zRef, seed, reefWin, crestCeil, name);' },
   { name: 'beta override (per spot)',
     find: '  const fit = {\n    spot: name, synthetic: true,',
     replace: '  if (Number.isFinite(__bandBeta(name))) { beta = __bandBeta(name); const __r = evaluate(beta); derived = __r.derived; reefFn = __r.reefFn; signViolations = __r.viol; }\n'

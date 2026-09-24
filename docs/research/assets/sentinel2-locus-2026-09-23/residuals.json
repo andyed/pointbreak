@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-09-24T13:09:10Z",
+ "generated_utc": "2026-09-24T04:41:01Z",
  "bed_source": "shipped (NCEI 1/3\" 2012)",
  "sign": "offset = z_model - z_obs (stage m, shore normal); positive = model shoreward of the observed outer whitewater edge",
  "pixel_reg_sigma_m": 8,
@@ -103,35 +103,35 @@
        },
        "h10": {
         "H0": 1.911,
-        "zModelMedian": -137.4,
+        "zModelMedian": -138.6,
         "gapFrac": 0.35,
         "offsets": {
          "k4": {
           "n": 26,
-          "median": -41.5,
+          "median": -53.8,
           "mean": -30.3,
-          "q25": -98,
+          "q25": -96.4,
           "q75": 34,
-          "absMedian": 41.5
+          "absMedian": 53.9
          },
          "k6": {
           "n": 26,
-          "median": -51.5,
+          "median": -60.6,
           "mean": -35.3,
-          "q25": -98,
+          "q25": -97.4,
           "q75": 31,
-          "absMedian": 51.5
+          "absMedian": 60.6
          },
          "k9": {
           "n": 26,
-          "median": -78.3,
+          "median": -74,
           "mean": -43,
-          "q25": -108,
+          "q25": -106.4,
           "q75": 31,
-          "absMedian": 78.3
+          "absMedian": 74
          }
         },
-        "offEnvelope": 6.6
+        "offEnvelope": 5.4
        }
       },
       "plane": {
@@ -353,99 +353,99 @@
       "reef": {
        "hs": {
         "H0": 1.505,
-        "zModelMedian": -73.1,
-        "gapFrac": 0.55,
+        "zModelMedian": -58.2,
+        "gapFrac": 0.45,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": -1.1,
-          "mean": 1.5,
-          "q25": -29.2,
-          "q75": 32.8,
-          "absMedian": 1.1
+          "median": 13.8,
+          "mean": 16.6,
+          "q25": -13.5,
+          "q75": 51.5,
+          "absMedian": 13.8
          },
          "k6": {
           "n": 11,
-          "median": -3.1,
-          "mean": -5.2,
-          "q25": -42.2,
-          "q75": 28.8,
-          "absMedian": 3.1
+          "median": 11.8,
+          "mean": 9.9,
+          "q25": -26.5,
+          "q75": 43.7,
+          "absMedian": 11.8
          },
          "k9": {
           "n": 11,
-          "median": -7.1,
-          "mean": -8.3,
-          "q25": -42.3,
-          "q75": 22.8,
-          "absMedian": 7.1
+          "median": 11.8,
+          "mean": 6.8,
+          "q25": -26.5,
+          "q75": 41.5,
+          "absMedian": 11.8
          }
         },
-        "offEnvelope": -1.1
+        "offEnvelope": 13.8
        },
        "deshoaled": {
         "H0": 1.365,
-        "zModelMedian": -62.9,
-        "gapFrac": 0.64,
+        "zModelMedian": -18.6,
+        "gapFrac": 0.45,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": 9.1,
-          "mean": 11.6,
-          "q25": -21.9,
-          "q75": 44.3,
-          "absMedian": 9.1
+          "median": 57.4,
+          "mean": 44.9,
+          "q25": 18.2,
+          "q75": 73.1,
+          "absMedian": 57.4
          },
          "k6": {
           "n": 11,
-          "median": 9.1,
-          "mean": 4.9,
-          "q25": -32.2,
-          "q75": 40.3,
-          "absMedian": 9.1
+          "median": 47.4,
+          "mean": 38.2,
+          "q25": 13.2,
+          "q75": 68.1,
+          "absMedian": 47.4
          },
          "k9": {
           "n": 11,
-          "median": 1.1,
-          "mean": 1.8,
-          "q25": -36.9,
-          "q75": 34.3,
-          "absMedian": 1.1
+          "median": 47.4,
+          "mean": 35.1,
+          "q25": 6.2,
+          "q75": 64.6,
+          "absMedian": 47.4
          }
         },
-        "offEnvelope": 9.1
+        "offEnvelope": 53.4
        },
        "h10": {
         "H0": 1.911,
-        "zModelMedian": -110.2,
+        "zModelMedian": -100.8,
         "gapFrac": 0.27,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": -36.7,
-          "mean": -30.1,
-          "q25": -51.4,
-          "q75": -10.5,
-          "absMedian": 36.7
+          "median": -26.9,
+          "mean": -24.4,
+          "q25": -47.5,
+          "q75": -1,
+          "absMedian": 26.9
          },
          "k6": {
           "n": 11,
-          "median": -44.2,
-          "mean": -36.9,
-          "q25": -62.4,
-          "q75": -17.5,
-          "absMedian": 44.2
+          "median": -34.8,
+          "mean": -31.1,
+          "q25": -59.1,
+          "q75": -8,
+          "absMedian": 34.8
          },
          "k9": {
           "n": 11,
-          "median": -50.7,
-          "mean": -39.9,
-          "q25": -62.4,
-          "q75": -21.5,
-          "absMedian": 50.7
+          "median": -40.9,
+          "mean": -34.2,
+          "q25": -59.1,
+          "q75": -12,
+          "absMedian": 40.9
          }
         },
-        "offEnvelope": -38.2
+        "offEnvelope": -28.8
        }
       },
       "plane": {
@@ -667,99 +667,99 @@
       "reef": {
        "hs": {
         "H0": 1.505,
-        "zModelMedian": -69.2,
+        "zModelMedian": -52,
         "gapFrac": 0.11,
         "offsets": {
          "k4": {
           "n": 19,
-          "median": 39.5,
-          "mean": 35.6,
-          "q25": 12.1,
-          "q75": 55.7,
-          "absMedian": 39.5
+          "median": 54.3,
+          "mean": 46.5,
+          "q25": 23.6,
+          "q75": 65.2,
+          "absMedian": 54.3
          },
          "k6": {
           "n": 19,
-          "median": 24.8,
-          "mean": 21.4,
-          "q25": -1.6,
-          "q75": 43.8,
-          "absMedian": 24.8
+          "median": 45.3,
+          "mean": 32.3,
+          "q25": 11.4,
+          "q75": 56.3,
+          "absMedian": 45.3
          },
          "k9": {
           "n": 18,
-          "median": 4.5,
-          "mean": 5.3,
-          "q25": -11.4,
-          "q75": 21.4,
-          "absMedian": 4.5
+          "median": 22.9,
+          "mean": 16.8,
+          "q25": -2.1,
+          "q75": 34.8,
+          "absMedian": 22.9
          }
         },
-        "offEnvelope": 36.8
+        "offEnvelope": 54
        },
        "deshoaled": {
         "H0": 1.365,
-        "zModelMedian": -63.4,
-        "gapFrac": 0.16,
+        "zModelMedian": -33.2,
+        "gapFrac": 0.11,
         "offsets": {
          "k4": {
           "n": 19,
-          "median": 45.1,
-          "mean": 43,
-          "q25": 18.1,
-          "q75": 67.6,
-          "absMedian": 45.1
+          "median": 68.6,
+          "mean": 60.6,
+          "q25": 39.1,
+          "q75": 77.4,
+          "absMedian": 68.6
          },
          "k6": {
           "n": 19,
-          "median": 35.6,
-          "mean": 28.8,
-          "q25": 6.4,
-          "q75": 48.1,
-          "absMedian": 35.6
+          "median": 62.1,
+          "mean": 46.4,
+          "q25": 25,
+          "q75": 69.7,
+          "absMedian": 62.1
          },
          "k9": {
           "n": 18,
-          "median": 8.7,
-          "mean": 12.5,
-          "q25": -5.4,
-          "q75": 28.5,
-          "absMedian": 8.7
+          "median": 40.2,
+          "mean": 31,
+          "q25": 8.2,
+          "q75": 51.2,
+          "absMedian": 40.2
          }
         },
-        "offEnvelope": 42.6
+        "offEnvelope": 72.8
        },
        "h10": {
         "H0": 1.911,
-        "zModelMedian": -86,
-        "gapFrac": 0,
+        "zModelMedian": -83,
+        "gapFrac": 0.05,
         "offsets": {
          "k4": {
           "n": 19,
-          "median": 23.1,
-          "mean": 17.9,
-          "q25": -4.1,
-          "q75": 33.5,
-          "absMedian": 23.1
+          "median": 24.1,
+          "mean": 16.5,
+          "q25": -5,
+          "q75": 37.6,
+          "absMedian": 24.1
          },
          "k6": {
           "n": 19,
-          "median": 9.1,
-          "mean": 3.6,
-          "q25": -13.6,
-          "q75": 22.8,
-          "absMedian": 9.1
+          "median": 10.1,
+          "mean": 2.3,
+          "q25": -19.6,
+          "q75": 25.9,
+          "absMedian": 10.1
          },
          "k9": {
           "n": 18,
-          "median": -9.4,
-          "mean": -11.7,
-          "q25": -20.2,
-          "q75": 4.1,
-          "absMedian": 9.5
+          "median": -6.6,
+          "mean": -13.1,
+          "q25": -32.6,
+          "q75": 7.3,
+          "absMedian": 6.7
          }
         },
-        "offEnvelope": 20
+        "offEnvelope": 23
        }
       },
       "plane": {
@@ -981,99 +981,99 @@
       "reef": {
        "hs": {
         "H0": 1.505,
-        "zModelMedian": -86.4,
+        "zModelMedian": -78.9,
         "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": 197.8,
-          "mean": 187.5,
-          "q25": 178.1,
-          "q75": 246.8,
-          "absMedian": 197.8
+          "median": 201.1,
+          "mean": 187.8,
+          "q25": 159.3,
+          "q75": 248.9,
+          "absMedian": 201.1
          },
          "k6": {
           "n": 31,
-          "median": 142.6,
-          "mean": 94.7,
-          "q25": -9.4,
-          "q75": 176.1,
-          "absMedian": 142.6
+          "median": 145.1,
+          "mean": 95.1,
+          "q25": -14.3,
+          "q75": 170.1,
+          "absMedian": 145.1
          },
          "k9": {
           "n": 30,
-          "median": -98.9,
-          "mean": -62.6,
-          "q25": -157.5,
-          "q75": 10.1,
-          "absMedian": 99
+          "median": -95.4,
+          "mean": -62,
+          "q25": -160.7,
+          "q75": 37.3,
+          "absMedian": 95.4
          }
         },
-        "offEnvelope": 225.6
+        "offEnvelope": 233.1
        },
        "deshoaled": {
         "H0": 1.365,
-        "zModelMedian": -76.6,
-        "gapFrac": 0.1,
+        "zModelMedian": -66.2,
+        "gapFrac": 0.13,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": 201.9,
-          "mean": 194,
-          "q25": 180.1,
-          "q75": 253.3,
-          "absMedian": 201.9
+          "median": 214.7,
+          "mean": 197.6,
+          "q25": 163.8,
+          "q75": 256.5,
+          "absMedian": 214.7
          },
          "k6": {
           "n": 31,
-          "median": 147.3,
-          "mean": 101.2,
-          "q25": -2.6,
-          "q75": 178.1,
-          "absMedian": 147.3
+          "median": 150.7,
+          "mean": 104.8,
+          "q25": -9.7,
+          "q75": 189.3,
+          "absMedian": 150.7
          },
          "k9": {
           "n": 30,
-          "median": -94,
-          "mean": -56.1,
-          "q25": -153.3,
-          "q75": 33.4,
-          "absMedian": 94
+          "median": -87.7,
+          "mean": -52.1,
+          "q25": -152.4,
+          "q75": 56,
+          "absMedian": 87.8
          }
         },
-        "offEnvelope": 235.4
+        "offEnvelope": 245.8
        },
        "h10": {
         "H0": 1.911,
-        "zModelMedian": -103.9,
-        "gapFrac": 0,
+        "zModelMedian": -107.5,
+        "gapFrac": 0.03,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": 188,
-          "mean": 173.3,
-          "q25": 172.2,
+          "median": 179,
+          "mean": 166.6,
+          "q25": 148.9,
           "q75": 226.3,
-          "absMedian": 188
+          "absMedian": 179
          },
          "k6": {
           "n": 31,
-          "median": 128.8,
-          "mean": 80.5,
-          "q25": -19.7,
-          "q75": 170.2,
-          "absMedian": 128.8
+          "median": 129.6,
+          "mean": 73.8,
+          "q25": -31.5,
+          "q75": 147,
+          "absMedian": 129.6
          },
          "k9": {
           "n": 30,
           "median": -117,
-          "mean": -77.1,
-          "q25": -169.2,
-          "q75": -12.8,
+          "mean": -83.6,
+          "q25": -175.5,
+          "q75": -23.2,
           "absMedian": 117
          }
         },
-        "offEnvelope": 208.1
+        "offEnvelope": 204.5
        }
       },
       "plane": {
@@ -1295,99 +1295,99 @@
       "reef": {
        "hs": {
         "H0": 1.505,
-        "zModelMedian": -106.5,
+        "zModelMedian": -88.2,
         "gapFrac": 0.14,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": 260.5,
-          "mean": 186,
-          "q25": 116,
-          "q75": 275.1,
-          "absMedian": 260.5
+          "median": 264.4,
+          "mean": 194,
+          "q25": 106.7,
+          "q75": 274,
+          "absMedian": 264.4
          },
          "k6": {
           "n": 29,
-          "median": 244,
-          "mean": 142.3,
-          "q25": -36.8,
-          "q75": 266.4,
-          "absMedian": 244
+          "median": 250.3,
+          "mean": 150.3,
+          "q25": -35,
+          "q75": 263.8,
+          "absMedian": 250.3
          },
          "k9": {
           "n": 29,
-          "median": -107.5,
-          "mean": -87.5,
-          "q25": -185.8,
-          "q75": -43.2,
-          "absMedian": 107.5
+          "median": -99.8,
+          "mean": -79.5,
+          "q25": -170.5,
+          "q75": -37.8,
+          "absMedian": 99.8
          }
         },
-        "offEnvelope": 327.9
+        "offEnvelope": 346.2
        },
        "deshoaled": {
         "H0": 1.365,
-        "zModelMedian": -96.4,
+        "zModelMedian": -78.8,
         "gapFrac": 0.17,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": 271,
-          "mean": 195.8,
-          "q25": 121.4,
-          "q75": 282.6,
-          "absMedian": 271
+          "median": 274.3,
+          "mean": 205.6,
+          "q25": 113.5,
+          "q75": 286,
+          "absMedian": 274.3
          },
          "k6": {
           "n": 29,
-          "median": 250.7,
-          "mean": 152.2,
-          "q25": -25.6,
-          "q75": 272.6,
-          "absMedian": 250.7
+          "median": 258.6,
+          "mean": 161.9,
+          "q25": -23.3,
+          "q75": 276.8,
+          "absMedian": 258.6
          },
          "k9": {
           "n": 29,
-          "median": -96.5,
-          "mean": -77.7,
-          "q25": -171.1,
-          "q75": -33.9,
-          "absMedian": 96.5
+          "median": -87.9,
+          "mean": -67.9,
+          "q25": -144.8,
+          "q75": -26.6,
+          "absMedian": 87.9
          }
         },
-        "offEnvelope": 338
+        "offEnvelope": 355.6
        },
        "h10": {
         "H0": 1.911,
-        "zModelMedian": -128.7,
+        "zModelMedian": -119.9,
         "gapFrac": 0.14,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": 232.9,
-          "mean": 163.3,
-          "q25": 103.3,
-          "q75": 262.4,
-          "absMedian": 232.9
+          "median": 237.5,
+          "mean": 165.4,
+          "q25": 92.3,
+          "q75": 253.5,
+          "absMedian": 237.5
          },
          "k6": {
           "n": 29,
-          "median": 185.6,
-          "mean": 119.6,
-          "q25": -65.1,
-          "q75": 257.1,
-          "absMedian": 185.6
+          "median": 223.9,
+          "mean": 121.8,
+          "q25": -63.4,
+          "q75": 245.2,
+          "absMedian": 223.9
          },
          "k9": {
           "n": 29,
           "median": -135.9,
-          "mean": -110.2,
-          "q25": -196.5,
+          "mean": -108.1,
+          "q25": -200.4,
           "q75": -65.4,
           "absMedian": 135.9
          }
         },
-        "offEnvelope": 305.7
+        "offEnvelope": 314.5
        }
       },
       "plane": {
@@ -1609,99 +1609,99 @@
       "reef": {
        "hs": {
         "H0": 1.505,
-        "zModelMedian": -86.6,
+        "zModelMedian": -80.5,
         "gapFrac": 0.07,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": 285.5,
-          "mean": 244.5,
-          "q25": 246.2,
-          "q75": 316.3,
-          "absMedian": 285.5
+          "median": 272.5,
+          "mean": 244.3,
+          "q25": 247.6,
+          "q75": 319.7,
+          "absMedian": 272.5
          },
          "k6": {
           "n": 30,
           "median": 4.2,
-          "mean": 77.2,
-          "q25": -44.2,
-          "q75": 240,
+          "mean": 77,
+          "q25": -41.5,
+          "q75": 241.7,
           "absMedian": 4.2
          },
          "k9": {
           "n": 30,
-          "median": -60.5,
-          "mean": -57.6,
-          "q25": -94,
-          "q75": -13.7,
-          "absMedian": 60.6
+          "median": -58,
+          "mean": -57.8,
+          "q25": -95,
+          "q75": -13.3,
+          "absMedian": 58
          }
         },
-        "offEnvelope": 317.8
+        "offEnvelope": 323.9
        },
        "deshoaled": {
         "H0": 1.365,
-        "zModelMedian": -77.1,
-        "gapFrac": 0.1,
+        "zModelMedian": -69.4,
+        "gapFrac": 0.07,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": 287.3,
-          "mean": 253.4,
-          "q25": 252.3,
-          "q75": 325.7,
-          "absMedian": 287.3
+          "median": 277.8,
+          "mean": 255.5,
+          "q25": 255.3,
+          "q75": 327.6,
+          "absMedian": 277.8
          },
          "k6": {
           "n": 30,
-          "median": 16.9,
-          "mean": 86,
-          "q25": -28.8,
-          "q75": 245.4,
-          "absMedian": 16.9
+          "median": 17,
+          "mean": 88.2,
+          "q25": -27.8,
+          "q75": 248.7,
+          "absMedian": 17
          },
          "k9": {
           "n": 30,
-          "median": -52.7,
-          "mean": -48.8,
-          "q25": -88.9,
-          "q75": -1.4,
-          "absMedian": 52.8
+          "median": -46.2,
+          "mean": -46.6,
+          "q25": -81.6,
+          "q75": 0.2,
+          "absMedian": 46.2
          }
         },
-        "offEnvelope": 327.3
+        "offEnvelope": 335
        },
        "h10": {
         "H0": 1.911,
-        "zModelMedian": -105.8,
+        "zModelMedian": -106.6,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": 276.2,
-          "mean": 224,
-          "q25": 225.9,
-          "q75": 300.7,
-          "absMedian": 276.2
+          "median": 265.6,
+          "mean": 220,
+          "q25": 224.9,
+          "q75": 291.2,
+          "absMedian": 265.6
          },
          "k6": {
           "n": 30,
           "median": -28.4,
-          "mean": 56.7,
-          "q25": -71.9,
-          "q75": 219.8,
+          "mean": 52.7,
+          "q25": -73.1,
+          "q75": 219.5,
           "absMedian": 28.4
          },
          "k9": {
           "n": 30,
-          "median": -79,
-          "mean": -78.1,
-          "q25": -103.6,
+          "median": -80.9,
+          "mean": -82.1,
+          "q25": -115,
           "q75": -44.3,
-          "absMedian": 79
+          "absMedian": 80.9
          }
         },
-        "offEnvelope": 298.6
+        "offEnvelope": 297.8
        }
       },
       "plane": {
@@ -1923,99 +1923,99 @@
       "reef": {
        "hs": {
         "H0": 1.505,
-        "zModelMedian": -152,
-        "gapFrac": 0.17,
+        "zModelMedian": -120.8,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 23,
-          "median": -83.7,
-          "mean": 5.6,
-          "q25": -116.3,
-          "q75": 235.6,
-          "absMedian": 83.7
+          "median": -45.4,
+          "mean": 44.1,
+          "q25": -54.6,
+          "q75": 245.4,
+          "absMedian": 45.4
          },
          "k6": {
           "n": 23,
-          "median": -101.8,
-          "mean": -68.3,
-          "q25": -123.5,
-          "q75": -59.1,
-          "absMedian": 101.8
+          "median": -54.7,
+          "mean": -29.8,
+          "q25": -60.6,
+          "q75": -44.4,
+          "absMedian": 54.7
          },
          "k9": {
           "n": 23,
-          "median": -107.8,
-          "mean": -95.6,
-          "q25": -134,
-          "q75": -61.1,
-          "absMedian": 107.8
+          "median": -57.2,
+          "mean": -57,
+          "q25": -68.2,
+          "q75": -45.2,
+          "absMedian": 57.2
          }
         },
-        "offEnvelope": -62.8
+        "offEnvelope": -31.6
        },
        "deshoaled": {
         "H0": 1.365,
-        "zModelMedian": -137.1,
-        "gapFrac": 0.17,
+        "zModelMedian": -110.3,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 23,
-          "median": -75,
-          "mean": 14,
-          "q25": -113.2,
-          "q75": 249.9,
-          "absMedian": 75
+          "median": -37.2,
+          "mean": 54,
+          "q25": -44.9,
+          "q75": 254.6,
+          "absMedian": 37.2
          },
          "k6": {
           "n": 23,
-          "median": -94.5,
-          "mean": -60,
-          "q25": -121.1,
-          "q75": -46.6,
-          "absMedian": 94.5
+          "median": -44,
+          "mean": -19.9,
+          "q25": -50,
+          "q75": -33.4,
+          "absMedian": 44
          },
          "k9": {
           "n": 23,
-          "median": -100.5,
-          "mean": -87.2,
-          "q25": -129.5,
-          "q75": -48.6,
-          "absMedian": 100.5
+          "median": -50.3,
+          "mean": -47.1,
+          "q25": -56.5,
+          "q75": -36.5,
+          "absMedian": 50.3
          }
         },
-        "offEnvelope": -47.9
+        "offEnvelope": -21.1
        },
        "h10": {
         "H0": 1.911,
-        "zModelMedian": -183.2,
-        "gapFrac": 0.09,
+        "zModelMedian": -150.7,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 23,
-          "median": -105.3,
-          "mean": -18.5,
-          "q25": -124.9,
-          "q75": 190.4,
-          "absMedian": 105.3
+          "median": -74.7,
+          "mean": 15,
+          "q25": -84,
+          "q75": 215.8,
+          "absMedian": 74.7
          },
          "k6": {
           "n": 23,
-          "median": -123.8,
-          "mean": -92.4,
-          "q25": -137.8,
-          "q75": -94.4,
-          "absMedian": 123.8
+          "median": -86,
+          "mean": -59,
+          "q25": -89.7,
+          "q75": -72.4,
+          "absMedian": 86
          },
          "k9": {
           "n": 23,
-          "median": -129.1,
-          "mean": -119.6,
-          "q25": -146.1,
-          "q75": -96.4,
-          "absMedian": 129.1
+          "median": -89.1,
+          "mean": -86.2,
+          "q25": -97.3,
+          "q75": -74.2,
+          "absMedian": 89.1
          }
         },
-        "offEnvelope": -94
+        "offEnvelope": -61.5
        }
       },
       "plane": {
@@ -2322,35 +2322,35 @@
        },
        "h10": {
         "H0": 1.792,
-        "zModelMedian": -133.6,
+        "zModelMedian": -134,
         "gapFrac": 0.35,
         "offsets": {
          "k4": {
           "n": 26,
-          "median": -106.3,
-          "mean": -80.8,
-          "q25": -127.9,
-          "q75": -26.7,
-          "absMedian": 106.4
+          "median": -100.9,
+          "mean": -80.4,
+          "q25": -124.3,
+          "q75": -36,
+          "absMedian": 100.9
          },
          "k6": {
           "n": 26,
-          "median": -107.6,
-          "mean": -96.7,
-          "q25": -136.7,
-          "q75": -67.6,
-          "absMedian": 107.6
+          "median": -106.9,
+          "mean": -96.4,
+          "q25": -131.3,
+          "q75": -70,
+          "absMedian": 106.9
          },
          "k9": {
           "n": 26,
-          "median": -134.9,
-          "mean": -122.3,
-          "q25": -159.2,
-          "q75": -107.1,
-          "absMedian": 135
+          "median": -130.6,
+          "mean": -122,
+          "q25": -164.7,
+          "q75": -104.6,
+          "absMedian": 130.6
          }
         },
-        "offEnvelope": -51.6
+        "offEnvelope": -52
        }
       },
       "plane": {
@@ -2572,99 +2572,99 @@
       "reef": {
        "hs": {
         "H0": 1.411,
-        "zModelMedian": -67.1,
-        "gapFrac": 0.64,
+        "zModelMedian": -51.9,
+        "gapFrac": 0.55,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": -86.6,
-          "mean": -81.4,
-          "q25": -117.5,
-          "q75": -46.9,
-          "absMedian": 86.6
+          "median": -71.9,
+          "mean": -63.9,
+          "q25": -95.1,
+          "q75": -34.4,
+          "absMedian": 71.9
          },
          "k6": {
           "n": 11,
-          "median": -86.6,
-          "mean": -82.3,
-          "q25": -117.5,
-          "q75": -46.9,
-          "absMedian": 86.6
+          "median": -71.9,
+          "mean": -64.8,
+          "q25": -95.6,
+          "q75": -34.4,
+          "absMedian": 71.9
          },
          "k9": {
           "n": 11,
-          "median": -86.6,
-          "mean": -83.4,
-          "q25": -119.7,
-          "q75": -46.9,
-          "absMedian": 86.6
+          "median": -71.9,
+          "mean": -65.9,
+          "q25": -99.6,
+          "q75": -34.4,
+          "absMedian": 71.9
          }
         },
-        "offEnvelope": -73.1
+        "offEnvelope": -57.9
        },
        "deshoaled": {
         "H0": 1.145,
-        "zModelMedian": -47.8,
-        "gapFrac": 0.64,
+        "zModelMedian": 21.1,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": -53.8,
-          "mean": -54.5,
-          "q25": -91.7,
-          "q75": -16.5,
-          "absMedian": 53.8
+          "median": 6.2,
+          "mean": 7.3,
+          "q25": 0.8,
+          "q75": 14.3,
+          "absMedian": 6.2
          },
          "k6": {
           "n": 11,
-          "median": -61.8,
-          "mean": -55.5,
-          "q25": -92.7,
-          "q75": -16.5,
-          "absMedian": 61.8
+          "median": 6.2,
+          "mean": 6.4,
+          "q25": 0.8,
+          "q75": 11.2,
+          "absMedian": 6.2
          },
          "k9": {
           "n": 11,
-          "median": -61.8,
-          "mean": -56.5,
-          "q25": -92.7,
-          "q75": -16.5,
-          "absMedian": 61.8
+          "median": 3.7,
+          "mean": 5.3,
+          "q25": 0.8,
+          "q75": 8.3,
+          "absMedian": 3.7
          }
         },
-        "offEnvelope": -53.8
+        "offEnvelope": 15.1
        },
        "h10": {
         "H0": 1.792,
-        "zModelMedian": -105.2,
-        "gapFrac": 0.36,
+        "zModelMedian": -94,
+        "gapFrac": 0.27,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": -123.2,
-          "mean": -115.1,
-          "q25": -135.9,
-          "q75": -92.1,
-          "absMedian": 123.2
+          "median": -112,
+          "mean": -108,
+          "q25": -129.6,
+          "q75": -81.4,
+          "absMedian": 112
          },
          "k6": {
           "n": 11,
-          "median": -123.2,
-          "mean": -116,
-          "q25": -136.9,
-          "q75": -96.1,
-          "absMedian": 123.2
+          "median": -112,
+          "mean": -108.9,
+          "q25": -130.6,
+          "q75": -85.4,
+          "absMedian": 112
          },
          "k9": {
           "n": 11,
-          "median": -123.2,
-          "mean": -117.1,
-          "q25": -141.7,
-          "q75": -96.1,
-          "absMedian": 123.2
+          "median": -112,
+          "mean": -110,
+          "q25": -136.6,
+          "q75": -85.4,
+          "absMedian": 112
          }
         },
-        "offEnvelope": -111.2
+        "offEnvelope": -100
        }
       },
       "plane": {
@@ -2886,99 +2886,99 @@
       "reef": {
        "hs": {
         "H0": 1.411,
-        "zModelMedian": -65.6,
-        "gapFrac": 0.11,
+        "zModelMedian": -46,
+        "gapFrac": 0.05,
         "offsets": {
          "k4": {
           "n": 17,
-          "median": -99.9,
-          "mean": -100.1,
-          "q25": -118.3,
-          "q75": -95.7,
-          "absMedian": 99.9
+          "median": -89.7,
+          "mean": -86.5,
+          "q25": -117.9,
+          "q75": -76,
+          "absMedian": 89.7
          },
          "k6": {
           "n": 17,
-          "median": -102.5,
-          "mean": -104.1,
-          "q25": -130.1,
-          "q75": -96.9,
-          "absMedian": 102.5
+          "median": -92.8,
+          "mean": -90.5,
+          "q25": -123.4,
+          "q75": -86,
+          "absMedian": 92.8
          },
          "k9": {
           "n": 17,
-          "median": -102.5,
-          "mean": -105.4,
-          "q25": -130.1,
-          "q75": -96.9,
-          "absMedian": 102.5
+          "median": -92.8,
+          "mean": -91.8,
+          "q25": -123.4,
+          "q75": -86,
+          "absMedian": 92.8
          }
         },
-        "offEnvelope": -58.8
+        "offEnvelope": -39.2
        },
        "deshoaled": {
         "H0": 1.145,
-        "zModelMedian": -49,
+        "zModelMedian": 0,
         "gapFrac": 0.16,
         "offsets": {
          "k4": {
           "n": 17,
-          "median": -90.9,
-          "mean": -79.4,
-          "q25": -97.9,
-          "q75": -83.6,
-          "absMedian": 90.9
+          "median": -45.4,
+          "mean": -39.1,
+          "q25": -83.2,
+          "q75": 1.4,
+          "absMedian": 45.4
          },
          "k6": {
           "n": 17,
-          "median": -91,
-          "mean": -83.4,
-          "q25": -108.1,
-          "q75": -88.1,
-          "absMedian": 91
+          "median": -47.3,
+          "mean": -43.1,
+          "q25": -83.2,
+          "q75": 1.4,
+          "absMedian": 47.3
          },
          "k9": {
           "n": 17,
-          "median": -91,
-          "mean": -84.7,
-          "q25": -108.1,
-          "q75": -88.1,
-          "absMedian": 91
+          "median": -47.3,
+          "mean": -44.4,
+          "q25": -83.2,
+          "q75": -14,
+          "absMedian": 47.3
          }
         },
-        "offEnvelope": -42.2
+        "offEnvelope": 6.8
        },
        "h10": {
         "H0": 1.792,
-        "zModelMedian": -84.6,
-        "gapFrac": 0,
+        "zModelMedian": -80.6,
+        "gapFrac": 0.05,
         "offsets": {
          "k4": {
           "n": 17,
-          "median": -111.5,
-          "mean": -119,
+          "median": -114.6,
+          "mean": -119.6,
           "q25": -152.1,
-          "q75": -104.6,
-          "absMedian": 111.5
+          "q75": -109.7,
+          "absMedian": 114.6
          },
          "k6": {
           "n": 17,
-          "median": -112.4,
-          "mean": -123,
-          "q25": -158,
-          "q75": -108.2,
-          "absMedian": 112.4
+          "median": -124,
+          "mean": -123.6,
+          "q25": -152.4,
+          "q75": -110.6,
+          "absMedian": 124
          },
          "k9": {
           "n": 17,
-          "median": -114.6,
-          "mean": -124.3,
-          "q25": -158,
-          "q75": -110.5,
-          "absMedian": 114.6
+          "median": -124,
+          "mean": -124.9,
+          "q25": -152.4,
+          "q75": -111.2,
+          "absMedian": 124
          }
         },
-        "offEnvelope": -77.8
+        "offEnvelope": -73.8
        }
       },
       "plane": {
@@ -3200,99 +3200,99 @@
       "reef": {
        "hs": {
         "H0": 1.411,
-        "zModelMedian": -84.5,
-        "gapFrac": 0.06,
-        "offsets": {
-         "k4": {
-          "n": 31,
-          "median": -134.8,
-          "mean": -120.3,
-          "q25": -149.5,
-          "q75": -81.3,
-          "absMedian": 134.8
-         },
-         "k6": {
-          "n": 31,
-          "median": -134.8,
-          "mean": -128.7,
-          "q25": -154.1,
-          "q75": -106.4,
-          "absMedian": 134.8
-         },
-         "k9": {
-          "n": 31,
-          "median": -136.6,
-          "mean": -131.5,
-          "q25": -154.1,
-          "q75": -106.6,
-          "absMedian": 136.6
-         }
-        },
-        "offEnvelope": -104.5
-       },
-       "deshoaled": {
-        "H0": 1.145,
-        "zModelMedian": -63.5,
+        "zModelMedian": -76.2,
         "gapFrac": 0.13,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": -122.7,
-          "mean": -103.5,
-          "q25": -133.5,
-          "q75": -70.9,
-          "absMedian": 122.7
+          "median": -135.5,
+          "mean": -118.9,
+          "q25": -149.3,
+          "q75": -75.7,
+          "absMedian": 135.5
          },
          "k6": {
           "n": 31,
-          "median": -122.7,
-          "mean": -111.9,
-          "q25": -133.5,
-          "q75": -93.8,
-          "absMedian": 122.7
+          "median": -135.5,
+          "mean": -127.4,
+          "q25": -149.3,
+          "q75": -100.8,
+          "absMedian": 135.5
          },
          "k9": {
           "n": 31,
-          "median": -122.7,
-          "mean": -114.7,
-          "q25": -133.5,
-          "q75": -93.8,
-          "absMedian": 122.7
+          "median": -135.5,
+          "mean": -130.2,
+          "q25": -149.3,
+          "q75": -100.8,
+          "absMedian": 135.5
          }
         },
-        "offEnvelope": -83.5
+        "offEnvelope": -96.2
        },
-       "h10": {
-        "H0": 1.792,
-        "zModelMedian": -102.5,
-        "gapFrac": 0,
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -49,
+        "gapFrac": 0.13,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": -144,
-          "mean": -135.5,
-          "q25": -159.2,
-          "q75": -98.8,
-          "absMedian": 144
+          "median": -117.3,
+          "mean": -97.5,
+          "q25": -130.2,
+          "q75": -59.7,
+          "absMedian": 117.3
          },
          "k6": {
           "n": 31,
-          "median": -147.1,
-          "mean": -144,
-          "q25": -169.8,
-          "q75": -120.6,
-          "absMedian": 147.1
+          "median": -117.3,
+          "mean": -105.9,
+          "q25": -133,
+          "q75": -84.8,
+          "absMedian": 117.3
          },
          "k9": {
           "n": 31,
-          "median": -147.1,
-          "mean": -146.7,
-          "q25": -180.9,
-          "q75": -121.1,
-          "absMedian": 147.1
+          "median": -117.3,
+          "mean": -108.7,
+          "q25": -133,
+          "q75": -84.8,
+          "absMedian": 117.3
          }
         },
-        "offEnvelope": -122.5
+        "offEnvelope": -69
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -105.8,
+        "gapFrac": 0.03,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -152,
+          "mean": -141.9,
+          "q25": -171.2,
+          "q75": -97.8,
+          "absMedian": 152
+         },
+         "k6": {
+          "n": 31,
+          "median": -156.6,
+          "mean": -150.3,
+          "q25": -173,
+          "q75": -119.2,
+          "absMedian": 156.6
+         },
+         "k9": {
+          "n": 31,
+          "median": -156.6,
+          "mean": -153.1,
+          "q25": -177,
+          "q75": -119.5,
+          "absMedian": 156.6
+         }
+        },
+        "offEnvelope": -125.8
        }
       },
       "plane": {
@@ -3514,99 +3514,99 @@
       "reef": {
        "hs": {
         "H0": 1.411,
-        "zModelMedian": -103.8,
-        "gapFrac": 0.17,
-        "offsets": {
-         "k4": {
-          "n": 23,
-          "median": -104.8,
-          "mean": -101,
-          "q25": -168.8,
-          "q75": -60.1,
-          "absMedian": 104.8
-         },
-         "k6": {
-          "n": 23,
-          "median": -104.8,
-          "mean": -104.5,
-          "q25": -168.8,
-          "q75": -67.3,
-          "absMedian": 104.8
-         },
-         "k9": {
-          "n": 23,
-          "median": -104.8,
-          "mean": -127.7,
-          "q25": -168.8,
-          "q75": -90.2,
-          "absMedian": 104.8
-         }
-        },
-        "offEnvelope": -85
-       },
-       "deshoaled": {
-        "H0": 1.145,
-        "zModelMedian": -81,
-        "gapFrac": 0.17,
-        "offsets": {
-         "k4": {
-          "n": 23,
-          "median": -89.4,
-          "mean": -82.5,
-          "q25": -156.9,
-          "q75": -34.3,
-          "absMedian": 89.4
-         },
-         "k6": {
-          "n": 23,
-          "median": -89.4,
-          "mean": -86,
-          "q25": -156.9,
-          "q75": -43.3,
-          "absMedian": 89.4
-         },
-         "k9": {
-          "n": 23,
-          "median": -89.4,
-          "mean": -109.2,
-          "q25": -156.9,
-          "q75": -68.9,
-          "absMedian": 89.4
-         }
-        },
-        "offEnvelope": -62.2
-       },
-       "h10": {
-        "H0": 1.792,
-        "zModelMedian": -127.2,
+        "zModelMedian": -84.3,
         "gapFrac": 0.14,
         "offsets": {
          "k4": {
           "n": 23,
-          "median": -121.1,
-          "mean": -124.2,
-          "q25": -181.4,
-          "q75": -83.1,
-          "absMedian": 121.1
+          "median": -100.3,
+          "mean": -104.1,
+          "q25": -178.9,
+          "q75": -54.7,
+          "absMedian": 100.3
          },
          "k6": {
           "n": 23,
-          "median": -121.4,
-          "mean": -127.7,
-          "q25": -181.4,
-          "q75": -89.1,
-          "absMedian": 121.4
+          "median": -100.3,
+          "mean": -107.6,
+          "q25": -178.9,
+          "q75": -60.7,
+          "absMedian": 100.3
          },
          "k9": {
           "n": 23,
-          "median": -152.9,
-          "mean": -150.9,
-          "q25": -181.4,
-          "q75": -113.7,
-          "absMedian": 152.9
+          "median": -103.3,
+          "mean": -130.8,
+          "q25": -178.9,
+          "q75": -87,
+          "absMedian": 103.3
          }
         },
-        "offEnvelope": -108.4
+        "offEnvelope": -65.5
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -28,
+        "gapFrac": 0.17,
+        "offsets": {
+         "k4": {
+          "n": 23,
+          "median": -74.1,
+          "mean": -65.8,
+          "q25": -135.9,
+          "q75": -20.9,
+          "absMedian": 74.1
+         },
+         "k6": {
+          "n": 23,
+          "median": -74.1,
+          "mean": -69.3,
+          "q25": -135.9,
+          "q75": -25.8,
+          "absMedian": 74.1
+         },
+         "k9": {
+          "n": 23,
+          "median": -74.8,
+          "mean": -92.5,
+          "q25": -135.9,
+          "q75": -59.2,
+          "absMedian": 74.8
+         }
+        },
+        "offEnvelope": -9.2
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -116.5,
+        "gapFrac": 0.14,
+        "offsets": {
+         "k4": {
+          "n": 23,
+          "median": -121.6,
+          "mean": -127.2,
+          "q25": -194.8,
+          "q75": -81.3,
+          "absMedian": 121.6
+         },
+         "k6": {
+          "n": 23,
+          "median": -121.6,
+          "mean": -130.7,
+          "q25": -194.8,
+          "q75": -87,
+          "absMedian": 121.6
+         },
+         "k9": {
+          "n": 23,
+          "median": -141,
+          "mean": -153.9,
+          "q25": -194.8,
+          "q75": -113.3,
+          "absMedian": 141
+         }
+        },
+        "offEnvelope": -97.7
        }
       },
       "plane": {
@@ -3828,99 +3828,99 @@
       "reef": {
        "hs": {
         "H0": 1.411,
-        "zModelMedian": -81.8,
+        "zModelMedian": -77.6,
         "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": -92.5,
-          "mean": -92.8,
-          "q25": -115.4,
-          "q75": -67.6,
-          "absMedian": 92.6
+          "median": -88.9,
+          "mean": -92.2,
+          "q25": -121.1,
+          "q75": -64.2,
+          "absMedian": 88.9
          },
          "k6": {
           "n": 30,
-          "median": -121.3,
-          "mean": -121.2,
-          "q25": -139.2,
-          "q75": -102,
-          "absMedian": 121.4
+          "median": -128,
+          "mean": -120.6,
+          "q25": -138.9,
+          "q75": -100.1,
+          "absMedian": 128.1
          },
          "k9": {
           "n": 29,
-          "median": -134.5,
-          "mean": -139.7,
+          "median": -146.8,
+          "mean": -139,
           "q25": -166.2,
-          "q75": -123.1,
-          "absMedian": 134.5
+          "q75": -123.3,
+          "absMedian": 146.8
          }
         },
-        "offEnvelope": -63.6
+        "offEnvelope": -59.4
        },
        "deshoaled": {
         "H0": 1.145,
-        "zModelMedian": -63.8,
-        "gapFrac": 0.1,
+        "zModelMedian": -51.2,
+        "gapFrac": 0.13,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": -74.1,
-          "mean": -71.7,
-          "q25": -95.1,
-          "q75": -48.8,
-          "absMedian": 74.1
+          "median": -63.4,
+          "mean": -66.1,
+          "q25": -88.9,
+          "q75": -39,
+          "absMedian": 63.5
          },
          "k6": {
           "n": 30,
-          "median": -110,
-          "mean": -100.1,
-          "q25": -121.9,
-          "q75": -88.4,
-          "absMedian": 110
+          "median": -100.5,
+          "mean": -94.5,
+          "q25": -120.5,
+          "q75": -82.9,
+          "absMedian": 100.5
          },
          "k9": {
           "n": 29,
-          "median": -129.1,
-          "mean": -118.2,
-          "q25": -137.3,
-          "q75": -109.2,
-          "absMedian": 129.1
+          "median": -126.6,
+          "mean": -112.6,
+          "q25": -134.8,
+          "q75": -99.8,
+          "absMedian": 126.6
          }
         },
-        "offEnvelope": -45.6
+        "offEnvelope": -33
        },
        "h10": {
         "H0": 1.792,
-        "zModelMedian": -102.7,
-        "gapFrac": 0,
+        "zModelMedian": -102.8,
+        "gapFrac": 0.03,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": -109.1,
-          "mean": -114.9,
-          "q25": -123.7,
-          "q75": -93.9,
-          "absMedian": 109.2
+          "median": -113.6,
+          "mean": -118.8,
+          "q25": -138.1,
+          "q75": -90.8,
+          "absMedian": 113.6
          },
          "k6": {
           "n": 30,
-          "median": -134,
-          "mean": -143.3,
-          "q25": -166.6,
-          "q75": -114.5,
-          "absMedian": 134
+          "median": -143.4,
+          "mean": -147.2,
+          "q25": -167.2,
+          "q75": -119.8,
+          "absMedian": 143.4
          },
          "k9": {
           "n": 29,
           "median": -157,
-          "mean": -162.2,
+          "mean": -166.1,
           "q25": -192.4,
-          "q75": -137.9,
+          "q75": -144.2,
           "absMedian": 157
          }
         },
-        "offEnvelope": -84.5
+        "offEnvelope": -84.6
        }
       },
       "plane": {
@@ -4142,99 +4142,99 @@
       "reef": {
        "hs": {
         "H0": 1.411,
-        "zModelMedian": -146.1,
-        "gapFrac": 0.17,
+        "zModelMedian": -116.6,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 23,
-          "median": -167.9,
-          "mean": -165.6,
-          "q25": -183.1,
-          "q75": -143.5,
-          "absMedian": 167.9
+          "median": -147.9,
+          "mean": -126.3,
+          "q25": -168.4,
+          "q75": -82.6,
+          "absMedian": 147.9
          },
          "k6": {
           "n": 22,
-          "median": -181.1,
-          "mean": -188.7,
-          "q25": -244.8,
-          "q75": -154.5,
-          "absMedian": 181.1
+          "median": -172.2,
+          "mean": -147.6,
+          "q25": -180.1,
+          "q75": -95.1,
+          "absMedian": 172.3
          },
          "k9": {
           "n": 21,
-          "median": -216.1,
-          "mean": -222.2,
-          "q25": -259,
-          "q75": -189.1,
-          "absMedian": 216.1
+          "median": -186.9,
+          "mean": -179.5,
+          "q25": -194.4,
+          "q75": -175,
+          "absMedian": 186.9
          }
         },
-        "offEnvelope": -124.1
+        "offEnvelope": -94.6
        },
        "deshoaled": {
         "H0": 1.145,
-        "zModelMedian": -114.7,
-        "gapFrac": 0.17,
+        "zModelMedian": -93.1,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 23,
-          "median": -140.3,
-          "mean": -141.3,
-          "q25": -153.6,
-          "q75": -128.9,
-          "absMedian": 140.3
+          "median": -128.6,
+          "mean": -104.3,
+          "q25": -151.4,
+          "q75": -56.9,
+          "absMedian": 128.6
          },
          "k6": {
           "n": 22,
-          "median": -151.1,
-          "mean": -164.2,
-          "q25": -199.2,
-          "q75": -141.4,
-          "absMedian": 151.1
+          "median": -150.3,
+          "mean": -125.6,
+          "q25": -164.1,
+          "q75": -69.1,
+          "absMedian": 150.3
          },
          "k9": {
           "n": 21,
-          "median": -188.7,
-          "mean": -197.7,
-          "q25": -240.6,
-          "q75": -157.1,
-          "absMedian": 188.7
+          "median": -161.1,
+          "mean": -157.5,
+          "q25": -176.4,
+          "q75": -150,
+          "absMedian": 161.1
          }
         },
-        "offEnvelope": -92.7
+        "offEnvelope": -71.1
        },
        "h10": {
         "H0": 1.792,
-        "zModelMedian": -182.4,
-        "gapFrac": 0.09,
+        "zModelMedian": -147.9,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 23,
-          "median": -207.3,
-          "mean": -190.5,
-          "q25": -243.5,
-          "q75": -153,
-          "absMedian": 207.3
+          "median": -181.8,
+          "mean": -156.6,
+          "q25": -197.8,
+          "q75": -110.7,
+          "absMedian": 181.8
          },
          "k6": {
           "n": 22,
-          "median": -223.5,
-          "mean": -213.3,
-          "q25": -265.5,
-          "q75": -163.6,
-          "absMedian": 223.5
+          "median": -204.8,
+          "mean": -177.9,
+          "q25": -212.4,
+          "q75": -125.8,
+          "absMedian": 204.9
          },
          "k9": {
           "n": 21,
-          "median": -248.9,
-          "mean": -246.7,
-          "q25": -276,
-          "q75": -233.2,
-          "absMedian": 248.9
+          "median": -218.4,
+          "mean": -209.7,
+          "q25": -224.6,
+          "q75": -206.6,
+          "absMedian": 218.4
          }
         },
-        "offEnvelope": -160.4
+        "offEnvelope": -125.9
        }
       },
       "plane": {
@@ -4477,35 +4477,35 @@
       "reef": {
        "hs": {
         "H0": 1.374,
-        "zModelMedian": -28.1,
+        "zModelMedian": -27.3,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 26,
-          "median": 51.8,
-          "mean": 51.9,
+          "median": 51.9,
+          "mean": 52.4,
           "q25": 31.3,
-          "q75": 67.9,
-          "absMedian": 51.8
+          "q75": 68.3,
+          "absMedian": 51.9
          },
          "k6": {
           "n": 26,
           "median": 37.2,
-          "mean": 40.5,
+          "mean": 41,
           "q25": 17.2,
-          "q75": 59.1,
+          "q75": 59.6,
           "absMedian": 37.2
          },
          "k9": {
           "n": 26,
           "median": 20.3,
-          "mean": 30.1,
+          "mean": 30.5,
           "q25": 3.1,
-          "q75": 53.7,
+          "q75": 54.2,
           "absMedian": 20.3
          }
         },
-        "offEnvelope": 75.9
+        "offEnvelope": 76.7
        },
        "deshoaled": {
         "H0": 1.282,
@@ -4531,7 +4531,7 @@
          "k9": {
           "n": 26,
           "median": 28.8,
-          "mean": 40.1,
+          "mean": 40.2,
           "q25": 12,
           "q75": 64.4,
           "absMedian": 28.8
@@ -4541,35 +4541,35 @@
        },
        "h10": {
         "H0": 1.745,
-        "zModelMedian": -144.1,
+        "zModelMedian": -147.8,
         "gapFrac": 0.31,
         "offsets": {
          "k4": {
           "n": 26,
-          "median": -59.3,
-          "mean": -52.9,
-          "q25": -98.8,
-          "q75": -11.6,
-          "absMedian": 59.3
+          "median": -58.8,
+          "mean": -56.1,
+          "q25": -95.2,
+          "q75": -12,
+          "absMedian": 58.9
          },
          "k6": {
           "n": 26,
-          "median": -64.3,
-          "mean": -64.2,
-          "q25": -101.3,
-          "q75": -14.5,
-          "absMedian": 64.3
+          "median": -63.8,
+          "mean": -67.5,
+          "q25": -102.4,
+          "q75": -21.6,
+          "absMedian": 63.9
          },
          "k9": {
           "n": 26,
-          "median": -72.4,
-          "mean": -74.7,
-          "q25": -119.3,
+          "median": -74.1,
+          "mean": -77.9,
+          "q25": -121.9,
           "q75": -22.2,
-          "absMedian": 72.4
+          "absMedian": 74.1
          }
         },
-        "offEnvelope": -40.1
+        "offEnvelope": -43.8
        }
       },
       "plane": {
@@ -4791,99 +4791,99 @@
       "reef": {
        "hs": {
         "H0": 1.374,
-        "zModelMedian": -95.8,
+        "zModelMedian": -83.2,
         "gapFrac": 0.55,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": 38.2,
-          "mean": 41.1,
-          "q25": 13.7,
-          "q75": 64.6,
-          "absMedian": 38.2
+          "median": 50.8,
+          "mean": 53.8,
+          "q25": 26.3,
+          "q75": 77.5,
+          "absMedian": 50.8
          },
          "k6": {
           "n": 11,
-          "median": 32.2,
-          "mean": 37.6,
-          "q25": 7.1,
-          "q75": 64.6,
-          "absMedian": 32.2
+          "median": 44.8,
+          "mean": 50.4,
+          "q25": 21.8,
+          "q75": 77.5,
+          "absMedian": 44.8
          },
          "k9": {
           "n": 11,
-          "median": 24.2,
-          "mean": 34.3,
-          "q25": 2.7,
-          "q75": 63,
-          "absMedian": 24.2
+          "median": 36.8,
+          "mean": 47.1,
+          "q25": 18.1,
+          "q75": 77.5,
+          "absMedian": 36.8
          }
         },
-        "offEnvelope": 34.2
+        "offEnvelope": 46.8
        },
        "deshoaled": {
         "H0": 1.282,
-        "zModelMedian": -76.3,
-        "gapFrac": 0.55,
+        "zModelMedian": -61.4,
+        "gapFrac": 0.45,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": 47.7,
-          "mean": 51,
-          "q25": 24.5,
-          "q75": 83.1,
-          "absMedian": 47.7
+          "median": 62.6,
+          "mean": 65.2,
+          "q25": 39.9,
+          "q75": 93.7,
+          "absMedian": 62.6
          },
          "k6": {
           "n": 11,
-          "median": 39.7,
-          "mean": 47.5,
-          "q25": 17.5,
-          "q75": 80.1,
-          "absMedian": 39.7
+          "median": 54.6,
+          "mean": 61.7,
+          "q25": 32.9,
+          "q75": 93.7,
+          "absMedian": 54.6
          },
          "k9": {
           "n": 11,
-          "median": 33.7,
-          "mean": 44.3,
-          "q25": 10.5,
-          "q75": 76.1,
-          "absMedian": 33.7
+          "median": 48.6,
+          "mean": 58.4,
+          "q25": 25.9,
+          "q75": 93.7,
+          "absMedian": 48.6
          }
         },
-        "offEnvelope": 53.7
+        "offEnvelope": 68.6
        },
        "h10": {
         "H0": 1.745,
-        "zModelMedian": -118.9,
-        "gapFrac": 0.27,
+        "zModelMedian": -108.7,
+        "gapFrac": 0.36,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": 13.1,
-          "mean": 16.6,
-          "q25": -5.9,
-          "q75": 30.1,
-          "absMedian": 13.1
+          "median": 23.3,
+          "mean": 19.8,
+          "q25": -8.1,
+          "q75": 38.8,
+          "absMedian": 23.3
          },
          "k6": {
           "n": 11,
-          "median": 11.1,
-          "mean": 13.1,
-          "q25": -12,
-          "q75": 27.9,
-          "absMedian": 11.1
+          "median": 21.3,
+          "mean": 16.3,
+          "q25": -10.1,
+          "q75": 35.8,
+          "absMedian": 21.3
          },
          "k9": {
           "n": 11,
-          "median": -0.9,
-          "mean": 9.9,
-          "q25": -12,
-          "q75": 27.9,
-          "absMedian": 0.9
+          "median": 9.3,
+          "mean": 13.1,
+          "q25": -10.1,
+          "q75": 34.9,
+          "absMedian": 9.3
          }
         },
-        "offEnvelope": 11.1
+        "offEnvelope": 21.3
        }
       },
       "plane": {
@@ -5084,7 +5084,7 @@
       }
      },
      "verdicts": {
-      "reef": "consistent",
+      "reef": "contradicted",
       "plane": "contradicted",
       "measured": "contradicted"
      }
@@ -5105,99 +5105,99 @@
       "reef": {
        "hs": {
         "H0": 1.374,
-        "zModelMedian": -78.3,
-        "gapFrac": 0.05,
-        "offsets": {
-         "k4": {
-          "n": 19,
-          "median": 30.5,
-          "mean": 33.9,
-          "q25": 18.7,
-          "q75": 44.9,
-          "absMedian": 30.5
-         },
-         "k6": {
-          "n": 19,
-          "median": 27.7,
-          "mean": 30,
-          "q25": 16,
-          "q75": 42.9,
-          "absMedian": 27.7
-         },
-         "k9": {
-          "n": 19,
-          "median": 22.9,
-          "mean": 26.2,
-          "q25": 10.3,
-          "q75": 41.7,
-          "absMedian": 22.9
-         }
-        },
-        "offEnvelope": 46.1
-       },
-       "deshoaled": {
-        "H0": 1.282,
-        "zModelMedian": -72.9,
+        "zModelMedian": -60.6,
         "gapFrac": 0.11,
         "offsets": {
          "k4": {
           "n": 19,
-          "median": 33.1,
-          "mean": 38.1,
-          "q25": 21,
-          "q75": 49.6,
-          "absMedian": 33.1
+          "median": 41.5,
+          "mean": 40.1,
+          "q25": 21.3,
+          "q75": 57.9,
+          "absMedian": 41.5
          },
          "k6": {
           "n": 19,
-          "median": 30.3,
-          "mean": 34.2,
-          "q25": 18.2,
-          "q75": 48.6,
-          "absMedian": 30.3
+          "median": 37.3,
+          "mean": 36.2,
+          "q25": 21.3,
+          "q75": 53.1,
+          "absMedian": 37.3
          },
          "k9": {
           "n": 19,
-          "median": 25.8,
-          "mean": 30.4,
-          "q25": 14.1,
-          "q75": 48.4,
-          "absMedian": 25.8
+          "median": 37,
+          "mean": 32.4,
+          "q25": 21.3,
+          "q75": 47.3,
+          "absMedian": 37
          }
         },
-        "offEnvelope": 51.5
+        "offEnvelope": 63.8
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -54.9,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 49.1,
+          "mean": 47.6,
+          "q25": 26.8,
+          "q75": 65.1,
+          "absMedian": 49.1
+         },
+         "k6": {
+          "n": 19,
+          "median": 42.6,
+          "mean": 43.7,
+          "q25": 26.8,
+          "q75": 60.8,
+          "absMedian": 42.6
+         },
+         "k9": {
+          "n": 19,
+          "median": 42.5,
+          "mean": 39.9,
+          "q25": 26.3,
+          "q75": 56.4,
+          "absMedian": 42.5
+         }
+        },
+        "offEnvelope": 69.5
        },
        "h10": {
         "H0": 1.745,
-        "zModelMedian": -90.9,
+        "zModelMedian": -87.7,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 19,
-          "median": 17,
-          "mean": 18.2,
-          "q25": 8.8,
-          "q75": 29.2,
-          "absMedian": 17
+          "median": 18.3,
+          "mean": 14.8,
+          "q25": 2.9,
+          "q75": 30.5,
+          "absMedian": 18.3
          },
          "k6": {
           "n": 19,
-          "median": 12.7,
-          "mean": 14.3,
-          "q25": 7.5,
-          "q75": 22,
-          "absMedian": 12.7
+          "median": 16,
+          "mean": 10.9,
+          "q25": 2,
+          "q75": 22.8,
+          "absMedian": 16
          },
          "k9": {
           "n": 19,
-          "median": 11.3,
-          "mean": 10.5,
-          "q25": 2.1,
-          "q75": 15.3,
-          "absMedian": 11.3
+          "median": 13.4,
+          "mean": 7.1,
+          "q25": -3,
+          "q75": 19.9,
+          "absMedian": 13.4
          }
         },
-        "offEnvelope": 33.5
+        "offEnvelope": 36.7
        }
       },
       "plane": {
@@ -5419,99 +5419,99 @@
       "reef": {
        "hs": {
         "H0": 1.374,
-        "zModelMedian": -91,
-        "gapFrac": 0.06,
-        "offsets": {
-         "k4": {
-          "n": 31,
-          "median": -11.8,
-          "mean": -18.1,
-          "q25": -21,
-          "q75": -3,
-          "absMedian": 11.8
-         },
-         "k6": {
-          "n": 31,
-          "median": -21.1,
-          "mean": -33.7,
-          "q25": -43,
-          "q75": -12,
-          "absMedian": 21.1
-         },
-         "k9": {
-          "n": 31,
-          "median": -33.1,
-          "mean": -39.3,
-          "q25": -47.4,
-          "q75": -14.4,
-          "absMedian": 33.1
-         }
-        },
-        "offEnvelope": 5
-       },
-       "deshoaled": {
-        "H0": 1.282,
-        "zModelMedian": -87.5,
+        "zModelMedian": -89.5,
         "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": -8.1,
-          "mean": -14.7,
-          "q25": -18.2,
-          "q75": 0.5,
-          "absMedian": 8.1
+          "median": -13.1,
+          "mean": -20.8,
+          "q25": -39.3,
+          "q75": -2.7,
+          "absMedian": 13.1
          },
          "k6": {
           "n": 31,
-          "median": -19.5,
-          "mean": -30.2,
-          "q25": -41,
-          "q75": -8.1,
-          "absMedian": 19.5
+          "median": -27.4,
+          "mean": -36.3,
+          "q25": -58.3,
+          "q75": -9.6,
+          "absMedian": 27.4
          },
          "k9": {
           "n": 31,
-          "median": -30.5,
-          "mean": -35.8,
-          "q25": -45.5,
-          "q75": -11.5,
-          "absMedian": 30.5
+          "median": -39.4,
+          "mean": -41.9,
+          "q25": -59.9,
+          "q75": -12.5,
+          "absMedian": 39.4
          }
         },
-        "offEnvelope": 8.5
+        "offEnvelope": 6.5
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -80.4,
+        "gapFrac": 0.1,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -4.7,
+          "mean": -14.9,
+          "q25": -32.3,
+          "q75": 2.2,
+          "absMedian": 4.7
+         },
+         "k6": {
+          "n": 31,
+          "median": -18.5,
+          "mean": -30.5,
+          "q25": -52.2,
+          "q75": -4.4,
+          "absMedian": 18.5
+         },
+         "k9": {
+          "n": 31,
+          "median": -32.5,
+          "mean": -36.1,
+          "q25": -57.3,
+          "q75": -8.2,
+          "absMedian": 32.5
+         }
+        },
+        "offEnvelope": 15.6
        },
        "h10": {
         "H0": 1.745,
-        "zModelMedian": -106.9,
+        "zModelMedian": -110.9,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": -26,
-          "mean": -30.7,
-          "q25": -34.7,
-          "q75": -16.6,
-          "absMedian": 26
+          "median": -30.3,
+          "mean": -37.9,
+          "q25": -50.2,
+          "q75": -19.4,
+          "absMedian": 30.3
          },
          "k6": {
           "n": 31,
-          "median": -31.8,
-          "mean": -46.3,
-          "q25": -50.2,
-          "q75": -26.3,
-          "absMedian": 31.8
+          "median": -42.6,
+          "mean": -53.5,
+          "q25": -69.2,
+          "q75": -26.6,
+          "absMedian": 42.6
          },
          "k9": {
           "n": 31,
-          "median": -44,
-          "mean": -51.9,
-          "q25": -54.6,
-          "q75": -27.7,
-          "absMedian": 44
+          "median": -55.4,
+          "mean": -59.1,
+          "q25": -70.8,
+          "q75": -27.4,
+          "absMedian": 55.4
          }
         },
-        "offEnvelope": -10.9
+        "offEnvelope": -14.9
        }
       },
       "plane": {
@@ -5733,99 +5733,99 @@
       "reef": {
        "hs": {
         "H0": 1.374,
-        "zModelMedian": -111.6,
+        "zModelMedian": -97.4,
         "gapFrac": 0.14,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": -106.7,
-          "mean": -99.9,
-          "q25": -138.1,
-          "q75": -50,
-          "absMedian": 106.7
+          "median": -103.4,
+          "mean": -95.1,
+          "q25": -123.1,
+          "q75": -50.9,
+          "absMedian": 103.4
          },
          "k6": {
           "n": 29,
-          "median": -108.7,
-          "mean": -103.6,
-          "q25": -146.8,
-          "q75": -62,
-          "absMedian": 108.7
+          "median": -104,
+          "mean": -98.9,
+          "q25": -135.1,
+          "q75": -62.9,
+          "absMedian": 104
          },
          "k9": {
           "n": 29,
-          "median": -109,
-          "mean": -105.6,
-          "q25": -151.2,
-          "q75": -62,
-          "absMedian": 109
+          "median": -104,
+          "mean": -100.8,
+          "q25": -135.1,
+          "q75": -62.9,
+          "absMedian": 104
          }
         },
-        "offEnvelope": -67.2
+        "offEnvelope": -53
        },
        "deshoaled": {
         "H0": 1.282,
-        "zModelMedian": -108.1,
+        "zModelMedian": -90.6,
         "gapFrac": 0.14,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": -101,
-          "mean": -95.3,
-          "q25": -136.3,
-          "q75": -46.4,
-          "absMedian": 101
+          "median": -95.4,
+          "mean": -87.7,
+          "q25": -115.4,
+          "q75": -46.2,
+          "absMedian": 95.4
          },
          "k6": {
           "n": 29,
-          "median": -101,
-          "mean": -99,
-          "q25": -138.9,
-          "q75": -58.4,
-          "absMedian": 101
+          "median": -95.4,
+          "mean": -91.4,
+          "q25": -117.4,
+          "q75": -58.2,
+          "absMedian": 95.4
          },
          "k9": {
           "n": 29,
-          "median": -101,
-          "mean": -101,
-          "q25": -146.9,
-          "q75": -58.4,
-          "absMedian": 101
+          "median": -95.4,
+          "mean": -93.3,
+          "q25": -129.4,
+          "q75": -58.2,
+          "absMedian": 95.4
          }
         },
-        "offEnvelope": -63.7
+        "offEnvelope": -46.2
        },
        "h10": {
         "H0": 1.745,
-        "zModelMedian": -131.5,
+        "zModelMedian": -126.5,
         "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": -132.7,
-          "mean": -120.3,
-          "q25": -156.8,
-          "q75": -63,
-          "absMedian": 132.7
+          "median": -135.1,
+          "mean": -118.8,
+          "q25": -150.5,
+          "q75": -66.8,
+          "absMedian": 135.1
          },
          "k6": {
           "n": 29,
           "median": -135.1,
-          "mean": -124.1,
-          "q25": -158.8,
-          "q75": -75,
+          "mean": -122.5,
+          "q25": -161.7,
+          "q75": -78.8,
           "absMedian": 135.1
          },
          "k9": {
           "n": 29,
-          "median": -135.1,
-          "mean": -126,
-          "q25": -166.7,
-          "q75": -75,
-          "absMedian": 135.1
+          "median": -137.2,
+          "mean": -124.4,
+          "q25": -162.7,
+          "q75": -78.8,
+          "absMedian": 137.2
          }
         },
-        "offEnvelope": -87.1
+        "offEnvelope": -82.1
        }
       },
       "plane": {
@@ -6047,99 +6047,99 @@
       "reef": {
        "hs": {
         "H0": 1.374,
-        "zModelMedian": -90.8,
-        "gapFrac": 0.07,
+        "zModelMedian": -88.6,
+        "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 22,
-          "median": -66.2,
-          "mean": -70.1,
-          "q25": -83.8,
-          "q75": -60.2,
-          "absMedian": 66.2
+          "median": -69,
+          "mean": -72.6,
+          "q25": -91.1,
+          "q75": -53.5,
+          "absMedian": 69
          },
          "k6": {
           "n": 21,
           "median": -77.8,
-          "mean": -75.3,
-          "q25": -87.4,
-          "q75": -63.8,
+          "mean": -77.9,
+          "q25": -92.6,
+          "q75": -66.2,
           "absMedian": 77.8
          },
          "k9": {
           "n": 19,
-          "median": -80.9,
-          "mean": -79.7,
-          "q25": -98.7,
-          "q75": -65.2,
-          "absMedian": 80.9
+          "median": -80.8,
+          "mean": -82.6,
+          "q25": -104,
+          "q75": -61.6,
+          "absMedian": 80.8
          }
         },
-        "offEnvelope": -42.8
+        "offEnvelope": -40.6
        },
        "deshoaled": {
         "H0": 1.282,
-        "zModelMedian": -87.8,
+        "zModelMedian": -82.4,
         "gapFrac": 0.07,
         "offsets": {
          "k4": {
           "n": 22,
           "median": -64,
-          "mean": -65.9,
-          "q25": -82.3,
-          "q75": -50.8,
+          "mean": -66.8,
+          "q25": -87.1,
+          "q75": -49.3,
           "absMedian": 64.1
          },
          "k6": {
           "n": 21,
-          "median": -70.3,
-          "mean": -71.2,
-          "q25": -86.3,
-          "q75": -61,
-          "absMedian": 70.3
+          "median": -64.9,
+          "mean": -72.2,
+          "q25": -88.1,
+          "q75": -61.3,
+          "absMedian": 64.9
          },
          "k9": {
           "n": 19,
-          "median": -78.8,
-          "mean": -76,
-          "q25": -93,
-          "q75": -62,
-          "absMedian": 78.8
+          "median": -75.7,
+          "mean": -77,
+          "q25": -93.6,
+          "q75": -57.3,
+          "absMedian": 75.7
          }
         },
-        "offEnvelope": -39.8
+        "offEnvelope": -34.4
        },
        "h10": {
         "H0": 1.745,
-        "zModelMedian": -112.7,
+        "zModelMedian": -113.6,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 22,
-          "median": -87.5,
-          "mean": -83.8,
-          "q25": -95.6,
-          "q75": -70.4,
-          "absMedian": 87.5
+          "median": -93.1,
+          "mean": -89.7,
+          "q25": -102.9,
+          "q75": -75.7,
+          "absMedian": 93.1
          },
          "k6": {
           "n": 21,
-          "median": -88.7,
-          "mean": -88.5,
-          "q25": -103.2,
-          "q75": -76.9,
-          "absMedian": 88.7
+          "median": -100,
+          "mean": -94.6,
+          "q25": -107.9,
+          "q75": -80.3,
+          "absMedian": 100
          },
          "k9": {
           "n": 19,
-          "median": -89.8,
-          "mean": -91.4,
-          "q25": -106.5,
-          "q75": -77.9,
-          "absMedian": 89.8
+          "median": -100,
+          "mean": -98.1,
+          "q25": -117.9,
+          "q75": -80.9,
+          "absMedian": 100
          }
         },
-        "offEnvelope": -64.7
+        "offEnvelope": -65.6
        }
       },
       "plane": {
@@ -6361,99 +6361,99 @@
       "reef": {
        "hs": {
         "H0": 1.374,
-        "zModelMedian": -167.7,
-        "gapFrac": 0.13,
+        "zModelMedian": -129.9,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 6,
-          "median": -202.5,
-          "mean": -200.8,
-          "q25": -234.3,
-          "q75": -159.7,
-          "absMedian": 202.6
+          "median": -161.3,
+          "mean": -156.8,
+          "q25": -207.4,
+          "q75": -105,
+          "absMedian": 161.4
          },
          "k6": {
           "n": 6,
-          "median": -202.5,
-          "mean": -200.8,
-          "q25": -234.3,
-          "q75": -159.7,
-          "absMedian": 202.6
+          "median": -161.3,
+          "mean": -156.8,
+          "q25": -207.4,
+          "q75": -105,
+          "absMedian": 161.4
          },
          "k9": {
           "n": 6,
-          "median": -202.5,
-          "mean": -200.8,
-          "q25": -234.3,
-          "q75": -159.7,
-          "absMedian": 202.6
+          "median": -161.3,
+          "mean": -156.8,
+          "q25": -207.4,
+          "q75": -105,
+          "absMedian": 161.4
          }
         },
-        "offEnvelope": -145.7
+        "offEnvelope": -107.9
        },
        "deshoaled": {
         "H0": 1.282,
-        "zModelMedian": -153.9,
-        "gapFrac": 0.17,
+        "zModelMedian": -122.8,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 6,
-          "median": -191,
-          "mean": -191.9,
-          "q25": -225.7,
-          "q75": -158.2,
-          "absMedian": 191
+          "median": -154.8,
+          "mean": -150.7,
+          "q25": -201.8,
+          "q75": -98.4,
+          "absMedian": 154.9
          },
          "k6": {
           "n": 6,
-          "median": -191,
-          "mean": -191.9,
-          "q25": -225.7,
-          "q75": -158.2,
-          "absMedian": 191
+          "median": -154.8,
+          "mean": -150.7,
+          "q25": -201.8,
+          "q75": -98.4,
+          "absMedian": 154.9
          },
          "k9": {
           "n": 6,
-          "median": -191,
-          "mean": -191.9,
-          "q25": -225.7,
-          "q75": -158.2,
-          "absMedian": 191
+          "median": -154.8,
+          "mean": -150.7,
+          "q25": -201.8,
+          "q75": -98.4,
+          "absMedian": 154.9
          }
         },
-        "offEnvelope": -131.9
+        "offEnvelope": -100.8
        },
        "h10": {
         "H0": 1.745,
-        "zModelMedian": -184.6,
-        "gapFrac": 0.09,
+        "zModelMedian": -156.2,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 6,
-          "median": -219.7,
-          "mean": -223.9,
-          "q25": -279.3,
-          "q75": -165.7,
-          "absMedian": 219.8
+          "median": -185.6,
+          "mean": -182.9,
+          "q25": -235.8,
+          "q75": -129.3,
+          "absMedian": 185.7
          },
          "k6": {
           "n": 6,
-          "median": -219.7,
-          "mean": -223.9,
-          "q25": -279.3,
-          "q75": -165.7,
-          "absMedian": 219.8
+          "median": -185.6,
+          "mean": -182.9,
+          "q25": -235.8,
+          "q75": -129.3,
+          "absMedian": 185.7
          },
          "k9": {
           "n": 6,
-          "median": -219.7,
-          "mean": -223.9,
-          "q25": -279.3,
-          "q75": -165.7,
-          "absMedian": 219.8
+          "median": -185.6,
+          "mean": -182.9,
+          "q25": -235.8,
+          "q75": -129.3,
+          "absMedian": 185.7
          }
         },
-        "offEnvelope": -162.6
+        "offEnvelope": -134.2
        }
       },
       "plane": {
@@ -6696,35 +6696,35 @@
       "reef": {
        "hs": {
         "H0": 1.321,
-        "zModelMedian": -29.8,
+        "zModelMedian": -29.2,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 26,
           "median": 85.6,
-          "mean": 84.9,
+          "mean": 85.6,
           "q25": 64.2,
-          "q75": 104.3,
+          "q75": 106,
           "absMedian": 85.6
          },
          "k6": {
           "n": 26,
           "median": 67.1,
-          "mean": 68.6,
+          "mean": 69.2,
           "q25": 43.3,
-          "q75": 83.2,
+          "q75": 84.2,
           "absMedian": 67.1
          },
          "k9": {
           "n": 26,
           "median": 46.5,
-          "mean": 58.8,
+          "mean": 59.4,
           "q25": 33,
-          "q75": 73.2,
+          "q75": 74.2,
           "absMedian": 46.5
          }
         },
-        "offEnvelope": 119.2
+        "offEnvelope": 119.8
        },
        "deshoaled": {
         "H0": 1.198,
@@ -6760,35 +6760,35 @@
        },
        "h10": {
         "H0": 1.678,
-        "zModelMedian": -145.4,
+        "zModelMedian": -148.9,
         "gapFrac": 0.31,
         "offsets": {
          "k4": {
           "n": 26,
-          "median": -14.3,
-          "mean": -19,
-          "q25": -55.3,
-          "q75": 23.4,
-          "absMedian": 14.3
+          "median": -25.7,
+          "mean": -22.2,
+          "q25": -54.7,
+          "q75": 23.7,
+          "absMedian": 25.7
          },
          "k6": {
           "n": 26,
-          "median": -42.1,
-          "mean": -35.4,
-          "q25": -89.3,
+          "median": -44.8,
+          "mean": -38.6,
+          "q25": -92.8,
           "q75": 8,
-          "absMedian": 42.1
+          "absMedian": 44.8
          },
          "k9": {
           "n": 26,
-          "median": -47.1,
-          "mean": -45.1,
-          "q25": -101.5,
+          "median": -54.8,
+          "mean": -48.4,
+          "q25": -102.8,
           "q75": 6.6,
-          "absMedian": 47.1
+          "absMedian": 54.8
          }
         },
-        "offEnvelope": 3.6
+        "offEnvelope": 0.1
        }
       },
       "plane": {
@@ -7010,99 +7010,99 @@
       "reef": {
        "hs": {
         "H0": 1.321,
-        "zModelMedian": -96.4,
-        "gapFrac": 0.45,
-        "offsets": {
-         "k4": {
-          "n": 11,
-          "median": 63.6,
-          "mean": 77.7,
-          "q25": 46.3,
-          "q75": 102.4,
-          "absMedian": 63.6
-         },
-         "k6": {
-          "n": 11,
-          "median": 59.6,
-          "mean": 70.5,
-          "q25": 46.3,
-          "q75": 87.4,
-          "absMedian": 59.6
-         },
-         "k9": {
-          "n": 11,
-          "median": 50.6,
-          "mean": 63.4,
-          "q25": 34.5,
-          "q75": 84.4,
-          "absMedian": 50.6
-         }
-        },
-        "offEnvelope": 67.6
-       },
-       "deshoaled": {
-        "H0": 1.198,
-        "zModelMedian": -74,
+        "zModelMedian": -84,
         "gapFrac": 0.55,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": 68,
-          "mean": 90.2,
-          "q25": 58,
-          "q75": 118.8,
-          "absMedian": 68
+          "median": 77.9,
+          "mean": 90.1,
+          "q25": 62.1,
+          "q75": 118,
+          "absMedian": 77.9
          },
          "k6": {
           "n": 11,
-          "median": 65.9,
-          "mean": 82.9,
-          "q25": 53,
-          "q75": 103.8,
-          "absMedian": 65.9
+          "median": 75.9,
+          "mean": 82.8,
+          "q25": 61.9,
+          "q75": 103,
+          "absMedian": 75.9
          },
          "k9": {
           "n": 11,
-          "median": 65.9,
+          "median": 63.9,
           "mean": 75.8,
-          "q25": 43,
-          "q75": 100.8,
-          "absMedian": 65.9
+          "q25": 49.2,
+          "q75": 100,
+          "absMedian": 63.9
          }
         },
-        "offEnvelope": 90
+        "offEnvelope": 80
        },
-       "h10": {
-        "H0": 1.678,
-        "zModelMedian": -119.2,
-        "gapFrac": 0.27,
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -59.1,
+        "gapFrac": 0.45,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": 47.1,
-          "mean": 53.5,
-          "q25": 37.5,
-          "q75": 63.8,
-          "absMedian": 47.1
+          "median": 89,
+          "mean": 104.9,
+          "q25": 75.1,
+          "q75": 137,
+          "absMedian": 89
          },
          "k6": {
           "n": 11,
-          "median": 37.9,
-          "mean": 46.2,
-          "q25": 31.6,
-          "q75": 54.3,
-          "absMedian": 37.9
+          "median": 87,
+          "mean": 97.6,
+          "q25": 70,
+          "q75": 122,
+          "absMedian": 87
          },
          "k9": {
           "n": 11,
-          "median": 28.8,
-          "mean": 39.1,
-          "q25": 24.8,
-          "q75": 51.3,
-          "absMedian": 28.8
+          "median": 87,
+          "mean": 90.5,
+          "q25": 58.7,
+          "q75": 119,
+          "absMedian": 87
          }
         },
-        "offEnvelope": 44.8
+        "offEnvelope": 104.9
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -109.3,
+        "gapFrac": 0.36,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 53.9,
+          "mean": 56.5,
+          "q25": 40.3,
+          "q75": 71.5,
+          "absMedian": 53.9
+         },
+         "k6": {
+          "n": 11,
+          "median": 46.7,
+          "mean": 49.3,
+          "q25": 33.3,
+          "q75": 62.3,
+          "absMedian": 46.7
+         },
+         "k9": {
+          "n": 11,
+          "median": 38.7,
+          "mean": 42.2,
+          "q25": 26.3,
+          "q75": 59.3,
+          "absMedian": 38.7
+         }
+        },
+        "offEnvelope": 54.7
        }
       },
       "plane": {
@@ -7324,99 +7324,99 @@
       "reef": {
        "hs": {
         "H0": 1.321,
-        "zModelMedian": -78.8,
-        "gapFrac": 0.05,
-        "offsets": {
-         "k4": {
-          "n": 19,
-          "median": 37.5,
-          "mean": 38.5,
-          "q25": 26.7,
-          "q75": 56.5,
-          "absMedian": 37.5
-         },
-         "k6": {
-          "n": 19,
-          "median": 27.5,
-          "mean": 23.3,
-          "q25": 16.7,
-          "q75": 32.6,
-          "absMedian": 27.5
-         },
-         "k9": {
-          "n": 19,
-          "median": -35.7,
-          "mean": -23.6,
-          "q25": -46.8,
-          "q75": -3.6,
-          "absMedian": 35.7
-         }
-        },
-        "offEnvelope": 60.4
-       },
-       "deshoaled": {
-        "H0": 1.198,
-        "zModelMedian": -70.5,
+        "zModelMedian": -61.6,
         "gapFrac": 0.11,
         "offsets": {
          "k4": {
           "n": 19,
-          "median": 41.7,
-          "mean": 44.4,
-          "q25": 29.6,
-          "q75": 60.5,
-          "absMedian": 41.7
+          "median": 46.5,
+          "mean": 44.1,
+          "q25": 23.6,
+          "q75": 65.3,
+          "absMedian": 46.5
          },
          "k6": {
           "n": 19,
-          "median": 32.2,
-          "mean": 29.2,
-          "q25": 19.5,
-          "q75": 36.2,
-          "absMedian": 32.2
+          "median": 33.4,
+          "mean": 28.9,
+          "q25": 7.6,
+          "q75": 41.1,
+          "absMedian": 33.4
          },
          "k9": {
           "n": 19,
-          "median": -32.9,
-          "mean": -17.7,
-          "q25": -43.4,
-          "q75": 3.4,
-          "absMedian": 32.9
+          "median": -29.6,
+          "mean": -18,
+          "q25": -49.7,
+          "q75": -1.5,
+          "absMedian": 29.6
          }
         },
-        "offEnvelope": 68.7
+        "offEnvelope": 77.6
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -53.7,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 54.3,
+          "mean": 54.5,
+          "q25": 33.3,
+          "q75": 77,
+          "absMedian": 54.3
+         },
+         "k6": {
+          "n": 19,
+          "median": 43.7,
+          "mean": 39.4,
+          "q25": 15.9,
+          "q75": 53.4,
+          "absMedian": 43.7
+         },
+         "k9": {
+          "n": 19,
+          "median": -16.9,
+          "mean": -7.6,
+          "q25": -42.7,
+          "q75": 6.9,
+          "absMedian": 16.9
+         }
+        },
+        "offEnvelope": 85.5
        },
        "h10": {
         "H0": 1.678,
-        "zModelMedian": -92.1,
+        "zModelMedian": -88.5,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 19,
-          "median": 27.2,
-          "mean": 22.8,
-          "q25": 19.3,
-          "q75": 40.2,
-          "absMedian": 27.2
+          "median": 25.5,
+          "mean": 19.1,
+          "q25": 2.9,
+          "q75": 43.3,
+          "absMedian": 25.5
          },
          "k6": {
           "n": 19,
-          "median": 14.6,
-          "mean": 7.7,
-          "q25": 5.6,
-          "q75": 22.3,
-          "absMedian": 14.6
+          "median": 12.3,
+          "mean": 4,
+          "q25": -9.4,
+          "q75": 18.7,
+          "absMedian": 12.3
          },
          "k9": {
           "n": 19,
-          "median": -51.9,
-          "mean": -39.3,
-          "q25": -58.8,
-          "q75": -17.9,
-          "absMedian": 51.9
+          "median": -55.9,
+          "mean": -43,
+          "q25": -67.5,
+          "q75": -25.7,
+          "absMedian": 55.9
          }
         },
-        "offEnvelope": 47.1
+        "offEnvelope": 50.7
        }
       },
       "plane": {
@@ -7638,99 +7638,99 @@
       "reef": {
        "hs": {
         "H0": 1.321,
-        "zModelMedian": -93.1,
-        "gapFrac": 0.06,
-        "offsets": {
-         "k4": {
-          "n": 31,
-          "median": -32.2,
-          "mean": -40.4,
-          "q25": -61.8,
-          "q75": -2.6,
-          "absMedian": 32.2
-         },
-         "k6": {
-          "n": 31,
-          "median": -32.2,
-          "mean": -52.2,
-          "q25": -67.3,
-          "q75": -15.1,
-          "absMedian": 32.2
-         },
-         "k9": {
-          "n": 31,
-          "median": -47.6,
-          "mean": -61.6,
-          "q25": -76.1,
-          "q75": -17.3,
-          "absMedian": 47.6
-         }
-        },
-        "offEnvelope": -29.1
-       },
-       "deshoaled": {
-        "H0": 1.198,
-        "zModelMedian": -86.9,
+        "zModelMedian": -91.2,
         "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": -28.4,
-          "mean": -35.5,
-          "q25": -58.7,
-          "q75": 1.4,
-          "absMedian": 28.4
+          "median": -33.8,
+          "mean": -43.4,
+          "q25": -78.7,
+          "q75": -0.3,
+          "absMedian": 33.8
          },
          "k6": {
           "n": 31,
-          "median": -28.4,
-          "mean": -47.3,
-          "q25": -60.4,
-          "q75": -10.1,
-          "absMedian": 28.4
+          "median": -33.8,
+          "mean": -55.2,
+          "q25": -78.7,
+          "q75": -12.7,
+          "absMedian": 33.8
          },
          "k9": {
           "n": 31,
-          "median": -43.9,
-          "mean": -56.7,
-          "q25": -70.4,
-          "q75": -12.7,
-          "absMedian": 43.9
+          "median": -50.8,
+          "mean": -64.6,
+          "q25": -89.7,
+          "q75": -16.7,
+          "absMedian": 50.8
          }
         },
-        "offEnvelope": -22.9
+        "offEnvelope": -27.2
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -79.7,
+        "gapFrac": 0.1,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -28.7,
+          "mean": -35.2,
+          "q25": -63.3,
+          "q75": 4.9,
+          "absMedian": 28.7
+         },
+         "k6": {
+          "n": 31,
+          "median": -28.7,
+          "mean": -47,
+          "q25": -75.4,
+          "q75": -6.6,
+          "absMedian": 28.7
+         },
+         "k9": {
+          "n": 31,
+          "median": -45.7,
+          "mean": -56.5,
+          "q25": -86.4,
+          "q75": -10.5,
+          "absMedian": 45.7
+         }
+        },
+        "offEnvelope": -15.7
        },
        "h10": {
         "H0": 1.678,
-        "zModelMedian": -107.4,
+        "zModelMedian": -111.5,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 31,
-          "median": -43.4,
-          "mean": -52.9,
-          "q25": -68,
-          "q75": -16.7,
-          "absMedian": 43.4
+          "median": -47.5,
+          "mean": -60.2,
+          "q25": -87.1,
+          "q75": -16.6,
+          "absMedian": 47.5
          },
          "k6": {
           "n": 31,
-          "median": -43.4,
-          "mean": -64.7,
-          "q25": -74.6,
-          "q75": -28.4,
-          "absMedian": 43.4
+          "median": -47.5,
+          "mean": -72,
+          "q25": -93.5,
+          "q75": -28.1,
+          "absMedian": 47.5
          },
          "k9": {
           "n": 31,
-          "median": -58.5,
-          "mean": -74.1,
-          "q25": -89.3,
-          "q75": -30.9,
-          "absMedian": 58.5
+          "median": -64.2,
+          "mean": -81.4,
+          "q25": -100,
+          "q75": -31.2,
+          "absMedian": 64.2
          }
         },
-        "offEnvelope": -43.4
+        "offEnvelope": -47.5
        }
       },
       "plane": {
@@ -7952,99 +7952,99 @@
       "reef": {
        "hs": {
         "H0": 1.321,
-        "zModelMedian": -112.2,
+        "zModelMedian": -98.8,
         "gapFrac": 0.14,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": -39.9,
-          "mean": -49.9,
-          "q25": -69.8,
-          "q75": -19.2,
-          "absMedian": 39.9
+          "median": -36.8,
+          "mean": -45.3,
+          "q25": -65.2,
+          "q75": -19.7,
+          "absMedian": 36.8
          },
          "k6": {
           "n": 29,
-          "median": -46.9,
-          "mean": -61.8,
-          "q25": -92.2,
+          "median": -49.8,
+          "mean": -57.2,
+          "q25": -86.8,
           "q75": -25.2,
-          "absMedian": 46.9
+          "absMedian": 49.8
          },
          "k9": {
           "n": 29,
-          "median": -54.9,
-          "mean": -68.7,
-          "q25": -123.7,
-          "q75": -33.7,
-          "absMedian": 54.9
+          "median": -50.4,
+          "mean": -64.1,
+          "q25": -87.8,
+          "q75": -32.3,
+          "absMedian": 50.4
          }
         },
-        "offEnvelope": -30.2
+        "offEnvelope": -16.8
        },
        "deshoaled": {
         "H0": 1.198,
-        "zModelMedian": -107.3,
+        "zModelMedian": -89.6,
         "gapFrac": 0.14,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": -37.7,
-          "mean": -43.5,
-          "q25": -66.1,
-          "q75": -13.1,
-          "absMedian": 37.7
+          "median": -25.6,
+          "mean": -35.7,
+          "q25": -58.2,
+          "q75": -8.8,
+          "absMedian": 25.6
          },
          "k6": {
           "n": 29,
           "median": -39.1,
-          "mean": -55.3,
-          "q25": -82.2,
-          "q75": -17.3,
+          "mean": -47.5,
+          "q25": -70.7,
+          "q75": -15.6,
           "absMedian": 39.1
          },
          "k9": {
           "n": 29,
-          "median": -49.1,
-          "mean": -62.2,
-          "q25": -119.1,
+          "median": -44,
+          "mean": -54.4,
+          "q25": -82.7,
           "q75": -23.1,
-          "absMedian": 49.1
+          "absMedian": 44
          }
         },
-        "offEnvelope": -25.3
+        "offEnvelope": -7.6
        },
        "h10": {
         "H0": 1.678,
-        "zModelMedian": -132,
+        "zModelMedian": -127.8,
         "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 29,
-          "median": -57.8,
-          "mean": -70.2,
-          "q25": -85,
-          "q75": -37.1,
-          "absMedian": 57.8
+          "median": -63.2,
+          "mean": -68.7,
+          "q25": -85.6,
+          "q75": -38.8,
+          "absMedian": 63.2
          },
          "k6": {
           "n": 29,
-          "median": -66.3,
-          "mean": -82,
-          "q25": -132.5,
-          "q75": -47.5,
-          "absMedian": 66.3
+          "median": -70.1,
+          "mean": -80.6,
+          "q25": -108,
+          "q75": -51.5,
+          "absMedian": 70.1
          },
          "k9": {
           "n": 29,
-          "median": -73.5,
-          "mean": -88.9,
-          "q25": -140.9,
-          "q75": -49.5,
-          "absMedian": 73.5
+          "median": -77,
+          "mean": -87.5,
+          "q25": -125.8,
+          "q75": -53.5,
+          "absMedian": 77
          }
         },
-        "offEnvelope": -50
+        "offEnvelope": -45.8
        }
       },
       "plane": {
@@ -8266,99 +8266,99 @@
       "reef": {
        "hs": {
         "H0": 1.321,
-        "zModelMedian": -91.5,
-        "gapFrac": 0.07,
+        "zModelMedian": -90.3,
+        "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": -48.7,
-          "mean": -47.5,
-          "q25": -64.5,
-          "q75": -34.6,
-          "absMedian": 48.7
+          "median": -51.3,
+          "mean": -49.5,
+          "q25": -65.4,
+          "q75": -30.2,
+          "absMedian": 51.4
          },
          "k6": {
           "n": 30,
-          "median": -55.1,
-          "mean": -55.9,
-          "q25": -65.9,
-          "q75": -49.2,
-          "absMedian": 55.2
+          "median": -55.9,
+          "mean": -57.8,
+          "q25": -78.6,
+          "q75": -48.3,
+          "absMedian": 56
          },
          "k9": {
           "n": 30,
-          "median": -65.7,
-          "mean": -62.4,
-          "q25": -80.9,
-          "q75": -50.8,
-          "absMedian": 65.7
+          "median": -68,
+          "mean": -64.3,
+          "q25": -89.2,
+          "q75": -49.3,
+          "absMedian": 68
          }
         },
-        "offEnvelope": -21.3
+        "offEnvelope": -20.1
        },
        "deshoaled": {
         "H0": 1.198,
-        "zModelMedian": -87.2,
+        "zModelMedian": -81.6,
         "gapFrac": 0.07,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": -44.4,
-          "mean": -40.4,
-          "q25": -58.2,
-          "q75": -26,
-          "absMedian": 44.4
+          "median": -42.2,
+          "mean": -40.8,
+          "q25": -61.4,
+          "q75": -22,
+          "absMedian": 42.2
          },
          "k6": {
           "n": 30,
-          "median": -50.5,
-          "mean": -48.8,
-          "q25": -64,
-          "q75": -41.6,
-          "absMedian": 50.6
+          "median": -47.8,
+          "mean": -49.1,
+          "q25": -69.4,
+          "q75": -39.5,
+          "absMedian": 47.8
          },
          "k9": {
           "n": 30,
-          "median": -62.2,
-          "mean": -55.3,
-          "q25": -75.1,
-          "q75": -42.5,
-          "absMedian": 62.2
+          "median": -62.7,
+          "mean": -55.6,
+          "q25": -76,
+          "q75": -41.3,
+          "absMedian": 62.8
          }
         },
-        "offEnvelope": -17
+        "offEnvelope": -11.4
        },
        "h10": {
         "H0": 1.678,
-        "zModelMedian": -113.6,
+        "zModelMedian": -115,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 30,
-          "median": -65.4,
-          "mean": -65.1,
-          "q25": -72.6,
-          "q75": -53.8,
-          "absMedian": 65.4
+          "median": -68.2,
+          "mean": -69.4,
+          "q25": -83.5,
+          "q75": -56.6,
+          "absMedian": 68.3
          },
          "k6": {
           "n": 30,
-          "median": -71.6,
-          "mean": -73.4,
-          "q25": -81,
-          "q75": -66,
-          "absMedian": 71.7
+          "median": -77.9,
+          "mean": -77.8,
+          "q25": -87.7,
+          "q75": -68.6,
+          "absMedian": 77.9
          },
          "k9": {
           "n": 30,
-          "median": -81,
-          "mean": -80,
-          "q25": -88.7,
-          "q75": -72.6,
-          "absMedian": 81.1
+          "median": -85.5,
+          "mean": -84.3,
+          "q25": -99.6,
+          "q75": -73.6,
+          "absMedian": 85.6
          }
         },
-        "offEnvelope": -43.4
+        "offEnvelope": -44.8
        }
       },
       "plane": {
@@ -8580,99 +8580,99 @@
       "reef": {
        "hs": {
         "H0": 1.321,
-        "zModelMedian": -168.2,
-        "gapFrac": 0.13,
+        "zModelMedian": -131.1,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 21,
-          "median": -108.2,
-          "mean": -92.3,
-          "q25": -126.8,
-          "q75": -61.5,
-          "absMedian": 108.2
+          "median": -57.8,
+          "mean": -51.2,
+          "q25": -63.4,
+          "q75": -35.4,
+          "absMedian": 57.8
          },
          "k6": {
           "n": 21,
-          "median": -113.1,
-          "mean": -97.6,
-          "q25": -136.3,
-          "q75": -61.5,
-          "absMedian": 113.1
+          "median": -63.2,
+          "mean": -56.5,
+          "q25": -70.7,
+          "q75": -39.1,
+          "absMedian": 63.2
          },
          "k9": {
           "n": 21,
-          "median": -113.1,
-          "mean": -100.2,
-          "q25": -136.3,
-          "q75": -61.5,
-          "absMedian": 113.1
+          "median": -63.4,
+          "mean": -59.1,
+          "q25": -73.2,
+          "q75": -39.1,
+          "absMedian": 63.4
          }
         },
-        "offEnvelope": -68.2
+        "offEnvelope": -31.1
        },
        "deshoaled": {
         "H0": 1.198,
-        "zModelMedian": -151.6,
-        "gapFrac": 0.17,
+        "zModelMedian": -121.1,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 21,
-          "median": -92.7,
-          "mean": -83.8,
-          "q25": -124.6,
-          "q75": -49.9,
-          "absMedian": 92.7
+          "median": -47.9,
+          "mean": -42.2,
+          "q25": -53.7,
+          "q75": -27.7,
+          "absMedian": 47.9
          },
          "k6": {
           "n": 21,
-          "median": -92.7,
-          "mean": -89.1,
-          "q25": -134.3,
-          "q75": -49.9,
-          "absMedian": 92.7
+          "median": -53.6,
+          "mean": -47.6,
+          "q25": -61.4,
+          "q75": -30.9,
+          "absMedian": 53.6
          },
          "k9": {
           "n": 21,
-          "median": -102.7,
-          "mean": -91.7,
-          "q25": -134.3,
-          "q75": -49.9,
-          "absMedian": 102.7
+          "median": -53.8,
+          "mean": -50.1,
+          "q25": -63.6,
+          "q75": -30.9,
+          "absMedian": 53.8
          }
         },
-        "offEnvelope": -51.6
+        "offEnvelope": -21.1
        },
        "h10": {
         "H0": 1.678,
-        "zModelMedian": -184.9,
-        "gapFrac": 0.04,
+        "zModelMedian": -157.2,
+        "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 21,
-          "median": -117,
-          "mean": -111.5,
-          "q25": -132.9,
-          "q75": -94.5,
-          "absMedian": 117
+          "median": -81.6,
+          "mean": -77.7,
+          "q25": -88.3,
+          "q75": -64,
+          "absMedian": 81.6
          },
          "k6": {
           "n": 21,
-          "median": -124,
-          "mean": -116.8,
-          "q25": -142.1,
-          "q75": -94.5,
-          "absMedian": 124
+          "median": -88.3,
+          "mean": -83.1,
+          "q25": -95.2,
+          "q75": -68.6,
+          "absMedian": 88.3
          },
          "k9": {
           "n": 21,
-          "median": -124,
-          "mean": -119.4,
-          "q25": -142.1,
-          "q75": -110.5,
-          "absMedian": 124
+          "median": -92.2,
+          "mean": -85.6,
+          "q25": -98.3,
+          "q75": -68.6,
+          "absMedian": 92.2
          }
         },
-        "offEnvelope": -84.9
+        "offEnvelope": -57.2
        }
       },
       "plane": {
@@ -8915,99 +8915,99 @@
       "reef": {
        "hs": {
         "H0": 1.835,
-        "zModelMedian": -170.8,
+        "zModelMedian": -173.2,
         "gapFrac": 0.23,
         "offsets": {
          "k4": {
           "n": 26,
-          "median": -101.4,
-          "mean": -137,
-          "q25": -208.5,
-          "q75": -77.6,
-          "absMedian": 101.4
+          "median": -104.6,
+          "mean": -138,
+          "q25": -208.7,
+          "q75": -74.7,
+          "absMedian": 104.6
          },
          "k6": {
           "n": 25,
-          "median": -184.4,
-          "mean": -183.5,
-          "q25": -260.4,
-          "q75": -108,
-          "absMedian": 184.4
+          "median": -195.8,
+          "mean": -184.5,
+          "q25": -264.3,
+          "q75": -105.5,
+          "absMedian": 195.8
          },
          "k9": {
           "n": 25,
-          "median": -185.2,
-          "mean": -198.5,
-          "q25": -272.4,
-          "q75": -128.1,
-          "absMedian": 185.2
+          "median": -195.8,
+          "mean": -199.4,
+          "q25": -271.8,
+          "q75": -124.8,
+          "absMedian": 195.8
          }
         },
-        "offEnvelope": -96.4
+        "offEnvelope": -98.8
        },
        "deshoaled": {
         "H0": 1.61,
-        "zModelMedian": -155.4,
-        "gapFrac": 0.27,
+        "zModelMedian": -154.1,
+        "gapFrac": 0.23,
         "offsets": {
          "k4": {
           "n": 26,
-          "median": -83.8,
-          "mean": -118.2,
-          "q25": -184.6,
-          "q75": -62.6,
-          "absMedian": 83.9
+          "median": -81.6,
+          "mean": -118.5,
+          "q25": -189,
+          "q75": -61.5,
+          "absMedian": 81.6
          },
          "k6": {
           "n": 25,
           "median": -163.8,
-          "mean": -164.7,
-          "q25": -238.3,
-          "q75": -99,
+          "mean": -165.1,
+          "q25": -239.6,
+          "q75": -95.9,
           "absMedian": 163.8
          },
          "k9": {
           "n": 25,
           "median": -164.5,
-          "mean": -179.7,
-          "q25": -249.4,
-          "q75": -108.4,
+          "mean": -180,
+          "q25": -251.6,
+          "q75": -104.8,
           "absMedian": 164.5
          }
         },
-        "offEnvelope": -81
+        "offEnvelope": -79.7
        },
        "h10": {
         "H0": 2.33,
-        "zModelMedian": -202.2,
-        "gapFrac": 0.15,
+        "zModelMedian": -207,
+        "gapFrac": 0.19,
         "offsets": {
          "k4": {
           "n": 26,
-          "median": -135,
-          "mean": -171.7,
-          "q25": -234.8,
-          "q75": -109.3,
-          "absMedian": 135
+          "median": -142.5,
+          "mean": -173.3,
+          "q25": -231.8,
+          "q75": -108.1,
+          "absMedian": 142.6
          },
          "k6": {
           "n": 25,
-          "median": -262.9,
-          "mean": -217.8,
-          "q25": -291.1,
-          "q75": -138.5,
-          "absMedian": 262.9
+          "median": -260.9,
+          "mean": -219.5,
+          "q25": -289.4,
+          "q75": -136.8,
+          "absMedian": 260.9
          },
          "k9": {
           "n": 25,
-          "median": -265.7,
-          "mean": -232.8,
-          "q25": -295.8,
-          "q75": -153.4,
-          "absMedian": 265.7
+          "median": -270.9,
+          "mean": -234.5,
+          "q25": -298.2,
+          "q75": -153.1,
+          "absMedian": 270.9
          }
         },
-        "offEnvelope": -127.8
+        "offEnvelope": -132.6
        }
       },
       "plane": {
@@ -9229,99 +9229,99 @@
       "reef": {
        "hs": {
         "H0": 1.835,
-        "zModelMedian": -130.9,
-        "gapFrac": 0.09,
-        "offsets": {
-         "k4": {
-          "n": 11,
-          "median": -90.4,
-          "mean": -81.7,
-          "q25": -113.7,
-          "q75": -28.4,
-          "absMedian": 90.4
-         },
-         "k6": {
-          "n": 9,
-          "median": -101.2,
-          "mean": -96.7,
-          "q25": -126.3,
-          "q75": -90.4,
-          "absMedian": 101.2
-         },
-         "k9": {
-          "n": 4,
-          "median": -147.2,
-          "mean": -144.9,
-          "q25": -151.9,
-          "q75": -140.2,
-          "absMedian": 147.2
-         }
-        },
-        "offEnvelope": -26.1
-       },
-       "deshoaled": {
-        "H0": 1.61,
-        "zModelMedian": -120.9,
+        "zModelMedian": -128.9,
         "gapFrac": 0.18,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": -78.8,
-          "mean": -72.6,
-          "q25": -96.2,
-          "q75": -24,
-          "absMedian": 78.8
+          "median": -92.1,
+          "mean": -83.7,
+          "q25": -108.5,
+          "q75": -33.6,
+          "absMedian": 92.1
          },
          "k6": {
           "n": 9,
-          "median": -94.5,
-          "mean": -86.4,
-          "q25": -98,
-          "q75": -78.8,
-          "absMedian": 94.5
+          "median": -94.1,
+          "mean": -98.3,
+          "q25": -120.9,
+          "q75": -86,
+          "absMedian": 94.1
          },
          "k9": {
           "n": 4,
-          "median": -133.2,
-          "mean": -130.1,
-          "q25": -148.8,
-          "q75": -114.5,
-          "absMedian": 133.2
+          "median": -154.5,
+          "mean": -151,
+          "q25": -168.1,
+          "q75": -137.4,
+          "absMedian": 154.5
          }
         },
-        "offEnvelope": -16.1
+        "offEnvelope": -24.1
        },
-       "h10": {
-        "H0": 2.33,
-        "zModelMedian": -139.8,
-        "gapFrac": 0,
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -112.3,
+        "gapFrac": 0.27,
         "offsets": {
          "k4": {
           "n": 11,
-          "median": -113.6,
-          "mean": -94.1,
-          "q25": -134.6,
-          "q75": -37.7,
-          "absMedian": 113.6
+          "median": -72.3,
+          "mean": -70.4,
+          "q25": -88.9,
+          "q75": -28.3,
+          "absMedian": 72.3
          },
          "k6": {
           "n": 9,
-          "median": -113.7,
-          "mean": -110.1,
-          "q25": -154.1,
-          "q75": -111.7,
-          "absMedian": 113.7
+          "median": -85.9,
+          "mean": -83.7,
+          "q25": -92,
+          "q75": -72.3,
+          "absMedian": 85.9
          },
          "k9": {
           "n": 4,
-          "median": -155.4,
-          "mean": -157.5,
-          "q25": -158.5,
-          "q75": -154.4,
-          "absMedian": 155.4
+          "median": -127,
+          "mean": -129.2,
+          "q25": -148.4,
+          "q75": -107.7,
+          "absMedian": 127
          }
         },
-        "offEnvelope": -35
+        "offEnvelope": -7.5
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -145.5,
+        "gapFrac": 0.09,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -111.1,
+          "mean": -101.5,
+          "q25": -138.3,
+          "q75": -44.5,
+          "absMedian": 111.1
+         },
+         "k6": {
+          "n": 9,
+          "median": -111.8,
+          "mean": -117.4,
+          "q25": -164.8,
+          "q75": -111.1,
+          "absMedian": 111.8
+         },
+         "k9": {
+          "n": 4,
+          "median": -172,
+          "mean": -172.4,
+          "q25": -174.9,
+          "q75": -169.4,
+          "absMedian": 172
+         }
+        },
+        "offEnvelope": -40.7
        }
       },
       "plane": {
@@ -9543,24 +9543,24 @@
       "reef": {
        "hs": {
         "H0": 1.835,
-        "zModelMedian": -105.3,
+        "zModelMedian": -110.2,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 18,
-          "median": -20.8,
-          "mean": -28.3,
-          "q25": -42.7,
-          "q75": -14.5,
-          "absMedian": 20.8
+          "median": -33.5,
+          "mean": -37.7,
+          "q25": -49.9,
+          "q75": -22.9,
+          "absMedian": 33.5
          },
          "k6": {
           "n": 9,
-          "median": -40.5,
-          "mean": -41.2,
-          "q25": -47.1,
-          "q75": -35.5,
-          "absMedian": 40.5
+          "median": -52.9,
+          "mean": -54.5,
+          "q25": -65.2,
+          "q75": -48.4,
+          "absMedian": 52.9
          },
          "k9": {
           "n": 0,
@@ -9571,28 +9571,28 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -4.5
+        "offEnvelope": -9.4
        },
        "deshoaled": {
         "H0": 1.61,
-        "zModelMedian": -98.1,
+        "zModelMedian": -92.2,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 18,
-          "median": -13.4,
-          "mean": -18.2,
-          "q25": -31,
-          "q75": -7.1,
-          "absMedian": 13.5
+          "median": -20.4,
+          "mean": -23.8,
+          "q25": -34.2,
+          "q75": -11.7,
+          "absMedian": 20.4
          },
          "k6": {
           "n": 9,
-          "median": -33,
-          "mean": -31.5,
-          "q25": -40,
-          "q75": -29.9,
-          "absMedian": 33
+          "median": -39.5,
+          "mean": -39.7,
+          "q25": -48.3,
+          "q75": -33.3,
+          "absMedian": 39.5
          },
          "k9": {
           "n": 0,
@@ -9603,28 +9603,28 @@
           "absMedian": null
          }
         },
-        "offEnvelope": 2.7
+        "offEnvelope": 8.6
        },
        "h10": {
         "H0": 2.33,
-        "zModelMedian": -131.1,
+        "zModelMedian": -133.5,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 18,
-          "median": -51.5,
-          "mean": -53.9,
-          "q25": -68.5,
-          "q75": -33.6,
-          "absMedian": 51.5
+          "median": -61.1,
+          "mean": -65.6,
+          "q25": -82.1,
+          "q75": -51.3,
+          "absMedian": 61.2
          },
          "k6": {
           "n": 9,
-          "median": -59.4,
-          "mean": -64.1,
-          "q25": -82.8,
-          "q75": -52.2,
-          "absMedian": 59.4
+          "median": -82.8,
+          "mean": -80.5,
+          "q25": -90.2,
+          "q75": -69.2,
+          "absMedian": 82.8
          },
          "k9": {
           "n": 0,
@@ -9635,7 +9635,7 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -30.3
+        "offEnvelope": -32.7
        }
       },
       "plane": {
@@ -9857,24 +9857,24 @@
       "reef": {
        "hs": {
         "H0": 1.835,
-        "zModelMedian": -120.1,
+        "zModelMedian": -124.3,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 24,
-          "median": -32.1,
-          "mean": -38.7,
-          "q25": -46,
+          "median": -49.9,
+          "mean": -48.3,
+          "q25": -66.5,
           "q75": -20.6,
-          "absMedian": 32.2
+          "absMedian": 49.9
          },
          "k6": {
           "n": 9,
-          "median": -59.2,
-          "mean": -62.8,
-          "q25": -61.3,
-          "q75": -36.1,
-          "absMedian": 59.2
+          "median": -70.8,
+          "mean": -82.2,
+          "q25": -83.8,
+          "q75": -54.6,
+          "absMedian": 70.8
          },
          "k9": {
           "n": 0,
@@ -9885,28 +9885,28 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -13.3
+        "offEnvelope": -17.5
        },
        "deshoaled": {
         "H0": 1.61,
-        "zModelMedian": -110,
+        "zModelMedian": -114.5,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 24,
-          "median": -27.6,
-          "mean": -29.9,
-          "q25": -41.1,
+          "median": -45.2,
+          "mean": -38.9,
+          "q25": -61.6,
           "q75": -8.5,
-          "absMedian": 27.6
+          "absMedian": 45.3
          },
          "k6": {
           "n": 9,
-          "median": -53.7,
-          "mean": -58.2,
-          "q25": -57.5,
-          "q75": -31.4,
-          "absMedian": 53.7
+          "median": -64.7,
+          "mean": -77.5,
+          "q25": -79.8,
+          "q75": -50.8,
+          "absMedian": 64.7
          },
          "k9": {
           "n": 0,
@@ -9917,28 +9917,28 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -3.2
+        "offEnvelope": -7.7
        },
        "h10": {
         "H0": 2.33,
-        "zModelMedian": -154.3,
+        "zModelMedian": -155.3,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 24,
-          "median": -52.2,
-          "mean": -61.6,
-          "q25": -60.6,
-          "q75": -44.4,
-          "absMedian": 52.2
+          "median": -64.1,
+          "mean": -69.3,
+          "q25": -80.5,
+          "q75": -50.4,
+          "absMedian": 64.1
          },
          "k6": {
           "n": 9,
-          "median": -73.8,
-          "mean": -77.4,
-          "q25": -78.3,
-          "q75": -51.1,
-          "absMedian": 73.8
+          "median": -84.4,
+          "mean": -92.8,
+          "q25": -94,
+          "q75": -64,
+          "absMedian": 84.4
          },
          "k9": {
           "n": 0,
@@ -9949,7 +9949,7 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -47.5
+        "offEnvelope": -48.5
        }
       },
       "plane": {
@@ -10171,16 +10171,16 @@
       "reef": {
        "hs": {
         "H0": 1.835,
-        "zModelMedian": -155.5,
+        "zModelMedian": -151.1,
         "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 15,
-          "median": -75.2,
-          "mean": -82.3,
-          "q25": -93.3,
-          "q75": -65.1,
-          "absMedian": 75.2
+          "median": -77.1,
+          "mean": -76.5,
+          "q25": -107,
+          "q75": -47.7,
+          "absMedian": 77.1
          },
          "k6": {
           "n": 4,
@@ -10199,19 +10199,19 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -169.9
+        "offEnvelope": -165.5
        },
        "deshoaled": {
         "H0": 1.61,
-        "zModelMedian": -142.1,
-        "gapFrac": 0.14,
+        "zModelMedian": -133.8,
+        "gapFrac": 0.1,
         "offsets": {
          "k4": {
           "n": 15,
           "median": -61.2,
-          "mean": -64.7,
-          "q25": -87.2,
-          "q75": -52.5,
+          "mean": -59.5,
+          "q25": -100.3,
+          "q75": -22.2,
           "absMedian": 61.2
          },
          "k6": {
@@ -10231,28 +10231,28 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -156.5
+        "offEnvelope": -148.2
        },
        "h10": {
         "H0": 2.33,
-        "zModelMedian": -178.5,
+        "zModelMedian": -182.6,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 15,
-          "median": -101.4,
-          "mean": -113.1,
-          "q25": -107.5,
-          "q75": -84.3,
-          "absMedian": 101.4
+          "median": -104.4,
+          "mean": -113.9,
+          "q25": -119.7,
+          "q75": -83.9,
+          "absMedian": 104.4
          },
          "k6": {
           "n": 4,
-          "median": -203.4,
-          "mean": -204.3,
-          "q25": -245.5,
+          "median": -200.2,
+          "mean": -198.1,
+          "q25": -236.1,
           "q75": -162.2,
-          "absMedian": 203.5
+          "absMedian": 200.3
          },
          "k9": {
           "n": 0,
@@ -10263,7 +10263,7 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -192.9
+        "offEnvelope": -197
        }
       },
       "plane": {
@@ -10485,24 +10485,24 @@
       "reef": {
        "hs": {
         "H0": 1.835,
-        "zModelMedian": -132.5,
+        "zModelMedian": -134.8,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 16,
-          "median": -109.6,
-          "mean": -100.6,
+          "median": -120.3,
+          "mean": -104.4,
           "q25": -124.2,
-          "q75": -66.5,
-          "absMedian": 109.7
+          "q75": -72.6,
+          "absMedian": 120.4
          },
          "k6": {
           "n": 8,
-          "median": -124,
-          "mean": -116.2,
+          "median": -124.3,
+          "mean": -117.5,
           "q25": -126.6,
-          "q75": -97.2,
-          "absMedian": 124.1
+          "q75": -98.4,
+          "absMedian": 124.3
          },
          "k9": {
           "n": 0,
@@ -10513,27 +10513,27 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -75.3
+        "offEnvelope": -77.6
        },
        "deshoaled": {
         "H0": 1.61,
-        "zModelMedian": -119.1,
+        "zModelMedian": -119.9,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 16,
-          "median": -104.9,
-          "mean": -89.6,
-          "q25": -108.8,
-          "q75": -60.6,
-          "absMedian": 105
+          "median": -108.3,
+          "mean": -92.9,
+          "q25": -115.2,
+          "q75": -65.8,
+          "absMedian": 108.3
          },
          "k6": {
           "n": 8,
-          "median": -108.2,
-          "mean": -102.9,
-          "q25": -112.3,
-          "q75": -82.6,
+          "median": -108.3,
+          "mean": -103.9,
+          "q25": -114.1,
+          "q75": -83.8,
           "absMedian": 108.3
          },
          "k9": {
@@ -10545,27 +10545,27 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -61.9
+        "offEnvelope": -62.7
        },
        "h10": {
         "H0": 2.33,
-        "zModelMedian": -158,
+        "zModelMedian": -163.1,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 16,
-          "median": -122.3,
-          "mean": -125.4,
+          "median": -130.9,
+          "mean": -128.5,
           "q25": -159.1,
           "q75": -95.4,
-          "absMedian": 122.4
+          "absMedian": 131
          },
          "k6": {
           "n": 8,
           "median": -158.7,
-          "mean": -146.7,
+          "mean": -147.2,
           "q25": -161.3,
-          "q75": -129.1,
+          "q75": -129.3,
           "absMedian": 158.7
          },
          "k9": {
@@ -10577,7 +10577,7 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -100.8
+        "offEnvelope": -105.9
        }
       },
       "plane": {
@@ -10799,24 +10799,24 @@
       "reef": {
        "hs": {
         "H0": 1.835,
-        "zModelMedian": -201.3,
+        "zModelMedian": -178.6,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 20,
-          "median": -124.5,
-          "mean": -123.2,
-          "q25": -142.6,
-          "q75": -101.1,
-          "absMedian": 124.5
+          "median": -104.4,
+          "mean": -99.8,
+          "q25": -113.7,
+          "q75": -82.4,
+          "absMedian": 104.5
          },
          "k6": {
           "n": 16,
-          "median": -138.2,
-          "mean": -133.9,
-          "q25": -142.7,
-          "q75": -125.9,
-          "absMedian": 138.2
+          "median": -109.1,
+          "mean": -108.1,
+          "q25": -117.1,
+          "q75": -91.9,
+          "absMedian": 109.2
          },
          "k9": {
           "n": 0,
@@ -10827,60 +10827,28 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -106.3
+        "offEnvelope": -83.6
        },
        "deshoaled": {
         "H0": 1.61,
-        "zModelMedian": -192.3,
-        "gapFrac": 0.09,
-        "offsets": {
-         "k4": {
-          "n": 20,
-          "median": -116.2,
-          "mean": -114.2,
-          "q25": -131,
-          "q75": -94.7,
-          "absMedian": 116.3
-         },
-         "k6": {
-          "n": 16,
-          "median": -128.5,
-          "mean": -125.6,
-          "q25": -138.6,
-          "q75": -115.2,
-          "absMedian": 128.5
-         },
-         "k9": {
-          "n": 0,
-          "median": null,
-          "mean": null,
-          "q25": null,
-          "q75": null,
-          "absMedian": null
-         }
-        },
-        "offEnvelope": -97.3
-       },
-       "h10": {
-        "H0": 2.33,
-        "zModelMedian": -226.7,
+        "zModelMedian": -162.5,
         "gapFrac": 0,
         "offsets": {
          "k4": {
           "n": 20,
-          "median": -140.2,
-          "mean": -142,
-          "q25": -160.3,
-          "q75": -122.4,
-          "absMedian": 140.2
+          "median": -88.9,
+          "mean": -83.5,
+          "q25": -96.9,
+          "q75": -66.7,
+          "absMedian": 88.9
          },
          "k6": {
           "n": 16,
-          "median": -153.5,
-          "mean": -151.1,
-          "q25": -160.3,
-          "q75": -135.7,
-          "absMedian": 153.6
+          "median": -93.8,
+          "mean": -91.7,
+          "q25": -101.3,
+          "q75": -74.7,
+          "absMedian": 93.9
          },
          "k9": {
           "n": 0,
@@ -10891,7 +10859,39 @@
           "absMedian": null
          }
         },
-        "offEnvelope": -131.7
+        "offEnvelope": -67.5
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -215.8,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 20,
+          "median": -136.2,
+          "mean": -135.7,
+          "q25": -153,
+          "q75": -117.5,
+          "absMedian": 136.2
+         },
+         "k6": {
+          "n": 16,
+          "median": -144.1,
+          "mean": -144.6,
+          "q25": -154.5,
+          "q75": -130,
+          "absMedian": 144.1
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -120.8
        }
       },
       "plane": {
@@ -11105,9 +11105,9 @@
   "cells": 28,
   "score": {
    "reef": {
-    "contradicted": 3,
-    "consistent": 25,
-    "closest": 7
+    "contradicted": 4,
+    "consistent": 24,
+    "closest": 6
    },
    "plane": {
     "contradicted": 12,
@@ -11117,7 +11117,7 @@
    "measured": {
     "contradicted": 10,
     "consistent": 18,
-    "closest": 2
+    "closest": 1
    }
   }
  }
