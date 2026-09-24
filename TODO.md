@@ -56,7 +56,14 @@ the day's waves break in 1.6–2.0 m, so the line lands on the natural bed's
 shore-parallel 1.7 m isobath, on-reef 0.00. An intertidal crest (0.6–0.8 m
 below MSL, β 45°) reproduces the observed Vp/c/α and keeps the card,
 Sentinel-2 and Lookout verdicts, but breaks the ceiling invariant (235–256
-wet posts). Product call, then the signed apex refit (item 3). Two MODEL.md
+wet posts). **Andy allowed the intertidal crest 2026-09-24 and the refit
+landed** (`docs/research/REEF_REFIT_2026-09-24.md`; MODEL.md §4.6 "The
+intertidal crest"; `#reef=legacy` is the bit-identical revert; scorecard
+`scripts/score_reef_fit.mjs`). Field day reproduced at Second Peak (α 41°,
+Vp 6.3 m/s); floors drop to 0.46–0.64 m at the down-point spots; Sentinel-2
+4 → 3 contradicted. Still open: Second Peak card 32° vs 41 (reef-window
+feather at the stage head — the extent decision), Sewers deep by the fit,
+Sharks' tide band [0, 0], and Andy's eye on the exposed shelf at MLLW. Two MODEL.md
 wording errors were corrected (`e51ff93`: shoaling is the full linear Ks,
 not Green's law; the skew map steepens the front by at most 1+s and h(x) is
 single-valued).

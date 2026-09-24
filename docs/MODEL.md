@@ -2061,6 +2061,77 @@ suite instead of inheriting the null.
 7. **Disclose in the product, not only in the docs.** A silent clamp is the
    dishonesty the rest of this file exists to prevent.
 
+### The intertidal crest (decided 2026-09-24)
+
+**Decision (Andy, 2026-09-24): the synthetic reef may rise into the
+intertidal.** The old invariant — `REEF_CEIL_EL = −0.5 m NAVD88`, "the reef
+must never move the shoreline" — capped the wedge crest at 1.6 m below MSL.
+The first kinematic field day (2026-08-15, Second Peak, Surfline cam:
+Vp 4.7–6.7 m/s, c 3.8–5.3, α 55–73°; `research/SURFLINE_CAM_POSE_2026-09-23.md`)
+broke in 1.6–2.0 m of water at +0.36…+0.50 m of tide, i.e. *on* the cap, and
+the model closed out there on every bed because the line fell onto the
+natural bed's shore-parallel 1.7 m isobath with no station on the reef
+(`research/PEEL_BAND_FIELD_2026-09-24.md`). No wedge inside the old invariant
+reproduces the day; one with its crest 0.8 m below MSL at a 45° strike does,
+and keeps every other observation (`research/REEF_REFIT_2026-09-24.md`).
+
+**The policy now.** The wedge lifts *submerged* posts up to
+`REEF_CREST_CEIL_EL` = MLLW + 0.1 m (+0.143 m NAVD88, derived from the
+CO-OPS 9413450 datums the tide axis already uses) and still never touches a
+post above the old −0.5 m: the land, the beach and the cliff cameras do not
+move (`dryTouched = 0` is the surviving invariant). At MSL nothing is exposed
+anywhere; at MLLW a shelf 0.1 m proud of the water shows along a band of the
+stage at Second Peak (48 posts, ~2,400 m²), Jack's (30) and Private's (52) —
+the intertidal platform the decision admits. Sewers, First Peak, The Hook and
+Sharks stay submerged at every tide.
+
+**The fit now.** Per spot, over (crest depth, strike β), scored on the
+canonical signed stage-median α (the `PEEL_FLOOR_BASIS.alphaMetric`), not the
+legacy five-station line bearing that §4.5 flagged as the migration limit.
+Objective α_card = α_target with the authored handedness; constraints: every
+0.05 m rung of H0 ∈ card × [0.7, 1.3] at tide 0 a peel (α ≥ 10°, on-reef
+≥ 0.5), no reversal at any clean on-reef off-ramp station, and at Second Peak
+the two field-day cells (0.778 m / +0.500 m / T 16 and 0.914 / +0.357 / 16)
+inside the observed kinematics. Fitted offline (`scripts/fit_reef.mjs`) and
+tabulated in `data/model/pp_reef_fit.json`; `bed.js` reads the table and
+`#reef=legacy` restores the pre-refit wedge, ceiling and load-time fit
+**bit-for-bit** (`tests/reef-legacy-parity.test.js`). The acceptance
+scorecard is `scripts/score_reef_fit.mjs` (`research/REEF_SCORECARD_2026-09-24.md`).
+
+| spot | crest m (legacy → table) | β° | card α (target) | floor H0 | activation H0 |
+|---|---|---|---|---|---|
+| Sewers | 2.93 → 2.76 | 37.0 → 38.0 | 36.3 → 38.1 (38) | 1.62 → 1.54 | 1.239 → 1.206 |
+| First Peak | 2.44 → 1.76 | 48.0 → 50.5 | 60.7 → 50.0 (50) | 1.38 → 1.20 | 1.143 → 0.707 |
+| Second Peak | 2.10 → 0.86 | 57.6 → 44.25 | 25.8 → 32.1 (41) | 1.11 → 0.47 | 1.003 → 0.299 |
+| Jack's | 1.60 → 0.86 | 41.9 → 35.5 | 37.1 → 35.0 (37) | 0.78 → 0.47 | 0.616 → 0.288 |
+| The Hook | 2.02 → 1.81 | 55.2 → 45.5 | 36.8 → 39.7 (41) | 1.09 → 0.92 | 0.916 → 0.775 |
+| Sharks | 1.60 → 0.96 | 43.3 → 38.0 | 30.5 → 34.3 (36) | 0.81 → 0.46 | 0.726 → 0.439 |
+| Private's | 1.60 → 0.91 | 22.0 → 65.5 | 15.8 → 30.4 (31) | none → 0.64 | 0.721 → 0.305 |
+
+Second Peak on the field day: α 41.0°, Vp 6.3 m/s, c 4.19, on-reef 0.62
+(was 9.7° / 24.2 / 4.12 / 0.00). Sentinel-2 reef arm 4 → 3 contradicted of
+28, apex consistent on all four frames; the Lookout Jack's line moves 37 m
+seaward toward the photographed break. The H0 band is healthy at every rung
+at all seven spots (was 6/7), and the ≥ 30° window widened at six.
+
+**What the refit did not close, on the record.** Second Peak's card reads
+32° against 41: the only crests that carry the field day (0.76–0.86 m) top
+out there, and above 1.1× the card the line reverses at the up-point stage
+head (x −47…−33 m) — the reef window's up-point feather, the extent decision
+REEF_FIT_SIGNED §6 item 3 leaves to authorship. Sewers stays deep (crest
+2.76 m) because every shallower crest turns its 0.7–0.9× rungs into lefts;
+its August p75 remains unreachable, now by the fit rather than by the cap.
+Sharks' tide band is a one-rung knife-edge at [0, 0]. **The measured tables
+earlier in this section (activation, the Private's floor, the tide bands)
+describe the `#reef=legacy` arm**; the table arm's re-measured `PEEL_FLOOR`
+is in `params.js` with its basis, and `PEEL_FLOOR_LEGACY` keeps the old one.
+
+**Looked at (2026-09-24, coordinator captures, cliff and drone at Second
+Peak, card and field day, MSL and MLLW):** on the field forcing the legacy
+bake is a closeout wall across the cliff view and the table bake peels with
+a visible head; at MLLW the drone shows the shelf as a pale band under the
+inner rows. Not yet judged by Andy's eye at close range.
+
 ## 5. Deliberately out of scope
 
 - **Barrel interior / tube ride POV** — a camera-and-geometry problem, not a model

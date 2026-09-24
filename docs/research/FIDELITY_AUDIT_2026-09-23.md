@@ -371,11 +371,16 @@ Measured, proposed, not done. Product calls are Andy's.
 2. **Adopt the comparison protocol** (T2 §7.1): observed 9413450 water
    level, not predicted, for every same-hour comparison; both day hashes in
    T2 already do this.
-3. **Fit the down-point reefs over the H0 band, signed** (T1 + T5): the reef
-   fit is a point fit at `breakDepthFor(H0, T)`; T1's line-bearing slide and
-   T5's 13/16 down-point cells point at the same wedge obliquity. REEF_FIT
-   §"signed refit" is already queued; T5's hashed loci are the acceptance
-   test (`compare_sentinel2_line.mjs`, no new observation needed).
+3. ~~Fit the down-point reefs over the H0 band, signed~~ — **DONE
+   2026-09-24** (`REEF_REFIT_2026-09-24.md`, MODEL.md §4.6 "The intertidal
+   crest"): Andy allowed the intertidal crest; the fit is now over (crest, β)
+   on the canonical stage α with the field day as a constraint, tabulated
+   per spot, `#reef=legacy` bit-identical revert, scored by
+   `scripts/score_reef_fit.mjs` (`REEF_SCORECARD_2026-09-24.md`, gated
+   466/466 on the legacy arm). Field day reproduced (α 41°, Vp 6.3, c 4.2);
+   Sentinel-2 4 → 3 contradicted; every H0 band healthy; floors drop 0.1–0.6
+   m. Open: Second Peak card 32° vs 41 (the reef-window feather at the stage
+   head), Sewers still deep, Sharks' one-rung tide band.
 4. **`#h0stat=` for the drawn line** (T3): H_1/10 for the line, Hs for the
    HUD, one uniform. Puts the shipped bed on the riders' wave by T3's own
    numbers and makes the next fixture a bed test only.
