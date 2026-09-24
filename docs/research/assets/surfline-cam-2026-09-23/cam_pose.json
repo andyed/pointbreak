@@ -1,0 +1,482 @@
+{
+ "source_sha256": "11428e3fa283bea0834c724c7a6c79d6bb6b506ae9e0885525d43ee08e962695",
+ "image": [
+  2288,
+  1286
+ ],
+ "principal_point": [
+  1144.0,
+  643.0
+ ],
+ "method": "horizon + focal-length-free vertical scale bars; full PnP not possible (no land control point with a fixable stage coordinate in frame)",
+ "horizon": {
+  "a": 562.8702980591593,
+  "b": -0.0065289256537188175,
+  "roll_deg": -0.37407456956382484,
+  "rms_px": 2.0330647325731626,
+  "n_used": 66,
+  "n_total": 105,
+  "y_at_centre": 555.401207111305
+ },
+ "sea_surface": {
+  "tide_ft_mllw": 4.0,
+  "tide_m_msl": 0.357,
+  "sea_navd88_m": 1.262,
+  "note": "the plane the rays are intersected with; at a 4-6 deg grazing angle a 0.36 m plane error moves range by ~2.4 %"
+ },
+ "fence_posts": [
+  {
+   "x": 1330,
+   "y_top": 1110,
+   "y_base": 1250,
+   "note": "mid-frame post, base at vegetation line",
+   "h_px": 140,
+   "delta_px": 695.8131730602868,
+   "H_above_base_m": 5.715608207280927
+  },
+  {
+   "x": 2010,
+   "y_top": 965,
+   "y_base": 1092,
+   "note": "right-of-frame post at the path edge",
+   "h_px": 127,
+   "delta_px": 542.2528425048156,
+   "H_above_base_m": 4.910163534492424
+  }
+ ],
+ "fence_post_height_m": [
+  1.15,
+  0.1
+ ],
+ "H_above_fence_base_m": [
+  5.31,
+  0.62
+ ],
+ "terrace_navd88_m": [
+  10.75,
+  0.75
+ ],
+ "terrace_above_sea_m": 9.49,
+ "H_eye_from_fence_m": [
+  14.8,
+  0.97
+ ],
+ "sitters": {
+  "n": 65,
+  "height_m": [
+   0.85,
+   0.15
+  ],
+  "h_px_median": 12.0,
+  "delta_px_median": 212.3419333624704,
+  "H_eye_median_m": 15.27,
+  "H_eye_iqr_m": [
+   12.26,
+   21.25
+  ],
+  "sd_used": 2.82
+ },
+ "H_eye_m": [
+  14.85,
+  0.92
+ ],
+ "f_bracket_px": [
+  1300,
+  1800,
+  2500
+ ],
+ "f_note": "not solvable from this frame; central value from the lineup range, bounds from plausible surf-cam lenses",
+ "pitch_deg_by_f": {
+  "1300": 3.855,
+  "1800": 2.786,
+  "2500": 2.007
+ },
+ "reprojection_residual_px": null,
+ "reprojection_note": "no control-point solve was possible, so no reprojection residual exists; the horizon line fit rms is the only geometric residual",
+ "sequences": {
+  "seqA": {
+   "front_median_px": [
+    1256.0,
+    733.8
+   ],
+   "crest_row_px": 730,
+   "front_x_px_per_s": -69.49885800010958,
+   "front_y_px_per_s": 4.924769924218631,
+   "front_x_stepwise": {
+    "median": -42.0623612840362,
+    "q1": -82.07427290794669,
+    "q3": -26.64811076782006,
+    "n": 262,
+    "p10": -142.55280282186934,
+    "p90": -20.097069966060275
+   },
+   "crossshore_px_per_s": 6.061120543293718,
+   "alongshore_lag_px_per_s": -100.0,
+   "conversions": {
+    "f1300|H-2": {
+     "f_px": 1300,
+     "H_m": 12.85,
+     "pitch_deg": 3.855,
+     "front_range_m": 92.8,
+     "lateral_m_per_px": 0.0716,
+     "range_m_per_px_at_crest_row": 0.5459,
+     "Vp_fit_mps": 5.7,
+     "Vp_step_q1_med_q3_mps": [
+      3.91,
+      5.75,
+      5.88
+     ],
+     "Vp_lag_mps": 7.17,
+     "c_mps": 3.32,
+     "c_over_Vp": 0.583,
+     "alpha_deg": 35.6,
+     "alpha_note": null
+    },
+    "f1300|H": {
+     "f_px": 1300,
+     "H_m": 14.85,
+     "pitch_deg": 3.855,
+     "front_range_m": 107.3,
+     "lateral_m_per_px": 0.0828,
+     "range_m_per_px_at_crest_row": 0.6309,
+     "Vp_fit_mps": 6.59,
+     "Vp_step_q1_med_q3_mps": [
+      4.52,
+      6.64,
+      6.8
+     ],
+     "Vp_lag_mps": 8.28,
+     "c_mps": 3.84,
+     "c_over_Vp": 0.583,
+     "alpha_deg": 35.6,
+     "alpha_note": null
+    },
+    "f1300|H+2": {
+     "f_px": 1300,
+     "H_m": 16.85,
+     "pitch_deg": 3.855,
+     "front_range_m": 121.7,
+     "lateral_m_per_px": 0.0939,
+     "range_m_per_px_at_crest_row": 0.7158,
+     "Vp_fit_mps": 7.48,
+     "Vp_step_q1_med_q3_mps": [
+      5.13,
+      7.54,
+      7.71
+     ],
+     "Vp_lag_mps": 9.4,
+     "c_mps": 4.35,
+     "c_over_Vp": 0.583,
+     "alpha_deg": 35.6,
+     "alpha_note": null
+    },
+    "f1800|H-2": {
+     "f_px": 1800,
+     "H_m": 12.85,
+     "pitch_deg": 2.786,
+     "front_range_m": 128.8,
+     "lateral_m_per_px": 0.0715,
+     "range_m_per_px_at_crest_row": 0.7542,
+     "Vp_fit_mps": 6.12,
+     "Vp_step_q1_med_q3_mps": [
+      4.45,
+      5.88,
+      7.61
+     ],
+     "Vp_lag_mps": 7.17,
+     "c_mps": 4.58,
+     "c_over_Vp": 0.749,
+     "alpha_deg": 48.5,
+     "alpha_note": null
+    },
+    "f1800|H": {
+     "f_px": 1800,
+     "H_m": 14.85,
+     "pitch_deg": 2.786,
+     "front_range_m": 148.9,
+     "lateral_m_per_px": 0.0827,
+     "range_m_per_px_at_crest_row": 0.8716,
+     "Vp_fit_mps": 7.07,
+     "Vp_step_q1_med_q3_mps": [
+      5.14,
+      6.8,
+      8.8
+     ],
+     "Vp_lag_mps": 8.28,
+     "c_mps": 5.29,
+     "c_over_Vp": 0.749,
+     "alpha_deg": 48.5,
+     "alpha_note": null
+    },
+    "f1800|H+2": {
+     "f_px": 1800,
+     "H_m": 16.85,
+     "pitch_deg": 2.786,
+     "front_range_m": 168.9,
+     "lateral_m_per_px": 0.0938,
+     "range_m_per_px_at_crest_row": 0.989,
+     "Vp_fit_mps": 8.02,
+     "Vp_step_q1_med_q3_mps": [
+      5.83,
+      7.71,
+      9.98
+     ],
+     "Vp_lag_mps": 9.4,
+     "c_mps": 6.01,
+     "c_over_Vp": 0.749,
+     "alpha_deg": 48.5,
+     "alpha_note": null
+    },
+    "f2500|H-2": {
+     "f_px": 2500,
+     "H_m": 12.85,
+     "pitch_deg": 2.007,
+     "front_range_m": 179.1,
+     "lateral_m_per_px": 0.0715,
+     "range_m_per_px_at_crest_row": 1.0463,
+     "Vp_fit_mps": 6.86,
+     "Vp_step_q1_med_q3_mps": [
+      5.34,
+      5.89,
+      10.31
+     ],
+     "Vp_lag_mps": 7.18,
+     "c_mps": 6.35,
+     "c_over_Vp": 0.926,
+     "alpha_deg": 67.8,
+     "alpha_note": null
+    },
+    "f2500|H": {
+     "f_px": 2500,
+     "H_m": 14.85,
+     "pitch_deg": 2.007,
+     "front_range_m": 207.0,
+     "lateral_m_per_px": 0.0826,
+     "range_m_per_px_at_crest_row": 1.2092,
+     "Vp_fit_mps": 7.92,
+     "Vp_step_q1_med_q3_mps": [
+      6.17,
+      6.81,
+      11.92
+     ],
+     "Vp_lag_mps": 8.3,
+     "c_mps": 7.34,
+     "c_over_Vp": 0.926,
+     "alpha_deg": 67.8,
+     "alpha_note": null
+    },
+    "f2500|H+2": {
+     "f_px": 2500,
+     "H_m": 16.85,
+     "pitch_deg": 2.007,
+     "front_range_m": 234.9,
+     "lateral_m_per_px": 0.0937,
+     "range_m_per_px_at_crest_row": 1.372,
+     "Vp_fit_mps": 8.99,
+     "Vp_step_q1_med_q3_mps": [
+      7.0,
+      7.73,
+      13.52
+     ],
+     "Vp_lag_mps": 9.41,
+     "c_mps": 8.32,
+     "c_over_Vp": 0.926,
+     "alpha_deg": 67.8,
+     "alpha_note": null
+    }
+   }
+  },
+  "seqB": {
+   "front_median_px": [
+    1340.65,
+    726.6
+   ],
+   "crest_row_px": 730,
+   "front_x_px_per_s": -36.01261840679498,
+   "front_y_px_per_s": 4.933090909090931,
+   "front_x_stepwise": {
+    "median": -35.68028505268433,
+    "q1": -44.15146898731892,
+    "q3": -30.904671367838624,
+    "n": 263,
+    "p10": -86.82626135837336,
+    "p90": -13.870336761443781
+   },
+   "crossshore_px_per_s": 6.061120543293718,
+   "alongshore_lag_px_per_s": -44.44444444444444,
+   "conversions": {
+    "f1300|H-2": {
+     "f_px": 1300,
+     "H_m": 12.85,
+     "pitch_deg": 3.855,
+     "front_range_m": 96.4,
+     "lateral_m_per_px": 0.0741,
+     "range_m_per_px_at_crest_row": 0.5425,
+     "Vp_fit_mps": 4.07,
+     "Vp_step_q1_med_q3_mps": [
+      3.99,
+      4.02,
+      4.21
+     ],
+     "Vp_lag_mps": 3.3,
+     "c_mps": 3.33,
+     "c_over_Vp": 0.817,
+     "alpha_deg": 54.8,
+     "alpha_note": null
+    },
+    "f1300|H": {
+     "f_px": 1300,
+     "H_m": 14.85,
+     "pitch_deg": 3.855,
+     "front_range_m": 111.4,
+     "lateral_m_per_px": 0.0856,
+     "range_m_per_px_at_crest_row": 0.6269,
+     "Vp_fit_mps": 4.7,
+     "Vp_step_q1_med_q3_mps": [
+      4.61,
+      4.65,
+      4.86
+     ],
+     "Vp_lag_mps": 3.81,
+     "c_mps": 3.84,
+     "c_over_Vp": 0.817,
+     "alpha_deg": 54.8,
+     "alpha_note": null
+    },
+    "f1300|H+2": {
+     "f_px": 1300,
+     "H_m": 16.85,
+     "pitch_deg": 3.855,
+     "front_range_m": 126.4,
+     "lateral_m_per_px": 0.0972,
+     "range_m_per_px_at_crest_row": 0.7113,
+     "Vp_fit_mps": 5.34,
+     "Vp_step_q1_med_q3_mps": [
+      5.24,
+      5.28,
+      5.51
+     ],
+     "Vp_lag_mps": 4.32,
+     "c_mps": 4.36,
+     "c_over_Vp": 0.817,
+     "alpha_deg": 54.8,
+     "alpha_note": null
+    },
+    "f1800|H-2": {
+     "f_px": 1800,
+     "H_m": 12.85,
+     "pitch_deg": 2.786,
+     "front_range_m": 133.8,
+     "lateral_m_per_px": 0.074,
+     "range_m_per_px_at_crest_row": 0.7495,
+     "Vp_fit_mps": 4.79,
+     "Vp_step_q1_med_q3_mps": [
+      4.39,
+      4.68,
+      5.17
+     ],
+     "Vp_lag_mps": 3.3,
+     "c_mps": 4.57,
+     "c_over_Vp": 0.954,
+     "alpha_deg": 72.6,
+     "alpha_note": null
+    },
+    "f1800|H": {
+     "f_px": 1800,
+     "H_m": 14.85,
+     "pitch_deg": 2.786,
+     "front_range_m": 154.6,
+     "lateral_m_per_px": 0.0856,
+     "range_m_per_px_at_crest_row": 0.8661,
+     "Vp_fit_mps": 5.53,
+     "Vp_step_q1_med_q3_mps": [
+      5.07,
+      5.41,
+      5.97
+     ],
+     "Vp_lag_mps": 3.81,
+     "c_mps": 5.28,
+     "c_over_Vp": 0.954,
+     "alpha_deg": 72.6,
+     "alpha_note": null
+    },
+    "f1800|H+2": {
+     "f_px": 1800,
+     "H_m": 16.85,
+     "pitch_deg": 2.786,
+     "front_range_m": 175.4,
+     "lateral_m_per_px": 0.0971,
+     "range_m_per_px_at_crest_row": 0.9828,
+     "Vp_fit_mps": 6.28,
+     "Vp_step_q1_med_q3_mps": [
+      5.76,
+      6.14,
+      6.77
+     ],
+     "Vp_lag_mps": 4.32,
+     "c_mps": 5.99,
+     "c_over_Vp": 0.954,
+     "alpha_deg": 72.6,
+     "alpha_note": null
+    },
+    "f2500|H-2": {
+     "f_px": 2500,
+     "H_m": 12.85,
+     "pitch_deg": 2.007,
+     "front_range_m": 186.0,
+     "lateral_m_per_px": 0.074,
+     "range_m_per_px_at_crest_row": 1.0398,
+     "Vp_fit_mps": 5.94,
+     "Vp_step_q1_med_q3_mps": [
+      5.03,
+      5.8,
+      6.65
+     ],
+     "Vp_lag_mps": 3.3,
+     "c_mps": 6.32,
+     "c_over_Vp": 1.064,
+     "alpha_deg": 90.0,
+     "alpha_note": "c > Vp at this f: no real peel angle; f too long or c is the bore not the crest"
+    },
+    "f2500|H": {
+     "f_px": 2500,
+     "H_m": 14.85,
+     "pitch_deg": 2.007,
+     "front_range_m": 215.0,
+     "lateral_m_per_px": 0.0855,
+     "range_m_per_px_at_crest_row": 1.2016,
+     "Vp_fit_mps": 6.87,
+     "Vp_step_q1_med_q3_mps": [
+      5.81,
+      6.7,
+      7.68
+     ],
+     "Vp_lag_mps": 3.82,
+     "c_mps": 7.31,
+     "c_over_Vp": 1.064,
+     "alpha_deg": 90.0,
+     "alpha_note": "c > Vp at this f: no real peel angle; f too long or c is the bore not the crest"
+    },
+    "f2500|H+2": {
+     "f_px": 2500,
+     "H_m": 16.85,
+     "pitch_deg": 2.007,
+     "front_range_m": 243.9,
+     "lateral_m_per_px": 0.097,
+     "range_m_per_px_at_crest_row": 1.3634,
+     "Vp_fit_mps": 7.79,
+     "Vp_step_q1_med_q3_mps": [
+      6.59,
+      7.6,
+      8.72
+     ],
+     "Vp_lag_mps": 4.33,
+     "c_mps": 8.29,
+     "c_over_Vp": 1.064,
+     "alpha_deg": 90.0,
+     "alpha_note": "c > Vp at this f: no real peel angle; f too long or c is the bore not the crest"
+    }
+   }
+  }
+ }
+}
