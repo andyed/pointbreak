@@ -143,8 +143,8 @@ def main():
     o.append(f'<line class="wk-rule" x1="{M}" y1="{fy - 22}" x2="{W - M}" y2="{fy - 22}"/>')
     o.append(f'<text class="wk-foot" x="{M}" y="{fy}">'
              'α peel angle · ξ Iribarren (barrel-ness) · σ section noise · '
-             'T period · H0 swell height. Six of the seven run on surveyed NCEI bathymetry; '
-             'Privates runs on a synthetic stage and is labelled as such in the app.</text>')
+             'T period · H0 swell height. All seven run on surveyed NCEI depth profiles '
+             '(Privates since 2026-09-02, on a truncated contour window).</text>')
     o.append('</svg>')
     OUT.write_text('\n'.join(o))
     print(f'wrote {OUT.name} ({W}x{H}) — {len(presets)} sites')

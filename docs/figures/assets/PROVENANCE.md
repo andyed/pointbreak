@@ -37,6 +37,49 @@ names (Cowell's, The Slot, Middle Peak) inherited from an early preset bank.
 The bank was retargeted to the real Pleasure Point canon on 2026-08-10 and no
 borrowed names remain.
 
+## Regeneration 2026-09-24 — unmirrored site, refit reef
+
+The seven `cliff_<key>.png` frames, `fig-week.svg` and `fig-week-render.png`
+were regenerated at commit `b78be48` (main) after two model changes landed
+the same day: the stage → world mirror was removed (`604ea6a`; `#mirror=0`
+reverts) and the reef was refit with an intertidal crest allowed
+(`56219d7`; `#reef=legacy` reverts). Same rig as before — Drone camera,
+1280×720, `sim=42`, `speed=0`, `month=card`, tide 0 — driven this time against
+an already-running `scripts/serve.py` on port 8238 through the capture
+script's new `--base=` flag (`--port=` moves its built-in server; both were
+added so a capture never fights a preview port).
+
+What changed in the pictures:
+
+- **Handedness.** Every frame is now the geographically correct-handed site.
+  The previous set (2026-08-26) was the mirror image: at Sewers, First Peak,
+  Second Peak, Jack's, The Hook and Sharks the breaking head has moved from
+  the left third of the frame to the right third and the peel runs
+  screen-left, with the shore band (where one is in frame — Jack's, Sharks)
+  now bottom-left. The sun glint sits on the right, as
+  `docs/research/MIRROR_VERIFICATION_2026-09-23.md` §7 notes it would.
+- **Reef.** Second Peak, Jack's and Privates now carry the intertidal wedge
+  (crest +0.142 m NAVD88, `REEF_REFIT_2026-09-24.md` §6), and Sharks' crest
+  moved to 0.96 m below MSL. The frames are captured at tide 0 (MSL), where
+  nothing is exposed, so no shelf is visible in them; at MLLW the three spots
+  would show a ~1,500–2,600 m² shelf. The break line sits at the same
+  offshore station as before at every spot.
+- **Privates** is not a mirror comparison: the 2026-08-26 frame predated the
+  mapped bed (2026-09-02) and showed the fogged synthetic stage; the new frame
+  is the surveyed platform with the cove bottom-right. `gen_week.py`'s footer
+  no longer says six of seven run on surveyed bathymetry.
+
+The spec line under each panel is read from `shared/params.js` as before, so
+it now carries the retargeted peel bank (α 38/50/41/37/41/36/31).
+
+The og hero was **not** replaced. A review candidate was captured with
+`capture_og_hero.mjs` at the same commit and saved beside the accepted asset
+as `og_hero_candidate_2026-09-24.png`; the accepted `og_hero.png` (2026-08-10,
+`38e67ad`, which is the mirror image of the site) was restored from git. The
+candidate is unmirrored but shows bright lip-geometry artefacts on the two
+breaking heads at card size, so it is not offered as a replacement without a
+visual pass.
+
 ## Social-preview inset
 
 `og_hero.png` is a 1280×752 crop of the renderer at Sewers, Drone camera. The

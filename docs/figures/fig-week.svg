@@ -90,5 +90,5 @@
 <text class="wk-read" x="820" y="708">thin feathering crest,</text>
 <text class="wk-read" x="820" y="728">barely spilling, sheltered</text>
 <line class="wk-rule" x1="40" y1="770" x2="1576" y2="770"/>
-<text class="wk-foot" x="40" y="792">α peel angle · ξ Iribarren (barrel-ness) · σ section noise · T period · H0 swell height. Six of the seven run on surveyed NCEI bathymetry; Privates runs on a synthetic stage and is labelled as such in the app.</text>
+<text class="wk-foot" x="40" y="792">α peel angle · ξ Iribarren (barrel-ness) · σ section noise · T period · H0 swell height. All seven run on surveyed NCEI depth profiles (Privates since 2026-09-02, on a truncated contour window).</text>
 </svg>

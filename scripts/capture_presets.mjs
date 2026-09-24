@@ -3,7 +3,9 @@
 // writes assets/cliff_<key>.png. Deterministic: the sim clock is jumped to a
 // fixed time rather than sampled from wall-clock, so re-runs are comparable.
 //
-//   node scripts/capture_presets.mjs
+//   node scripts/capture_presets.mjs                       # own server on 8188
+//   node scripts/capture_presets.mjs --port=8190           # own server, other port
+//   node scripts/capture_presets.mjs --base=http://127.0.0.1:8238/   # reuse a running server
 
 // pointbreak ships no node_modules on purpose (no bundler, no deps). Resolve
 // Playwright from wherever it already exists: PLAYWRIGHT_DIR, else a sibling
@@ -29,7 +31,15 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'docs/figures/assets');
-const PORT = 8188;
+// --port= moves the built-in server; --base= skips it and drives a server that
+// is already up (the QA rig does the same), so a capture never fights the port
+// a preview or another rig is holding.
+const flags = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => {
+  const s = a.replace(/^--/, ''); const eq = s.indexOf('=');
+  return eq < 0 ? [s, 'true'] : [s.slice(0, eq), s.slice(eq + 1)];
+}));
+const PORT = Number(flags.port || 8188);
+const BASE = flags.base ? flags.base.replace(/\/?$/, '/') : `http://127.0.0.1:${PORT}/`;
 const SIM_T = 42;          // mid-set, matches the other figure captures
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -53,7 +63,7 @@ const presets = (await readFile(join(ROOT, 'shared/params.js'), 'utf8'))
   .map((l) => (l.match(/^\s*(\w+):/) || [])[1]).filter(Boolean);
 
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
-await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
+if (!flags.base) await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
 const browser = await chromium.launch({ args: ['--use-angle=metal'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -62,7 +72,7 @@ page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 for (const key of presets) {
-  const url = `http://127.0.0.1:${PORT}/web-three/#preset=${key}&cam=drone&hud=0&sim=${SIM_T}&speed=0&month=card`;
+  const url = `${BASE}web-three/#preset=${key}&cam=drone&hud=0&sim=${SIM_T}&speed=0&month=card`;
   await page.goto(url, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });     // hash-only nav wouldn't re-init
   await page.waitForTimeout(2600);              // shader compile + first frames
@@ -73,6 +83,6 @@ for (const key of presets) {
 }
 
 await browser.close();
-server.close();
+if (!flags.base) server.close();
 if (errors.length) { console.error('CONSOLE ERRORS:\n' + errors.join('\n')); process.exit(1); }
 console.log(`done — ${presets.length} captures in docs/figures/assets`);
