@@ -232,6 +232,59 @@ export const PEEL_FLOOR_BASIS = {
 };
 export const PEEL_FLOOR = {
   sewers: {
+    flipLo: 1.53, flipHi: 1.54, floorLo: 1.53, floorHi: 1.54, floorH0: 1.54,
+    alphaBelow: -7.8, alphaAbove: 21.6, onReefBelow: 0.28, onReefAbove: 0.62,
+    alphaTarget: 38, basisT: 15, basisTideM: 0, bakeDigest: 'bcd661f5eac8d3e3',
+    tideBandM: [0, 0], tideDigest: 'TBD',
+    tideEdges: null },
+  firstpeak: {
+    flipLo: 0.95, flipHi: 0.96, floorLo: 1.19, floorHi: 1.20, floorH0: 1.20,
+    alphaBelow: 5.2, alphaAbove: 13.1, onReefBelow: 0.79, onReefAbove: 0.82,
+    alphaTarget: 50, basisT: 14, basisTideM: 0, bakeDigest: '0e2ab6aeaa9015ba',
+    tideBandM: [0, 0], tideDigest: 'TBD',
+    tideEdges: null },
+  secondpeak: {
+    flipLo: null, flipHi: null, floorLo: 0.46, floorHi: 0.47, floorH0: 0.47,
+    alphaBelow: 15.3, alphaAbove: 15.8, onReefBelow: 0.48, onReefAbove: 0.52,
+    alphaTarget: 41, basisT: 14, basisTideM: 0, bakeDigest: '262e8b6c866fbf4b',
+    tideBandM: [0, 0], tideDigest: 'TBD',
+    tideEdges: null },
+  jacks: {
+    flipLo: 0.46, flipHi: 0.47, floorLo: 0.46, floorHi: 0.47, floorH0: 0.47,
+    alphaBelow: 9.7, alphaAbove: 27.2, onReefBelow: 0.47, onReefAbove: 0.67,
+    alphaTarget: 37, basisT: 13, basisTideM: 0, bakeDigest: '67b21cf21762b099',
+    tideBandM: [0, 0], tideDigest: 'TBD',
+    tideEdges: null },
+  thehook: {
+    flipLo: 1.01, flipHi: 1.02, floorLo: 0.91, floorHi: 0.92, floorH0: 0.92,
+    alphaBelow: -4.8, alphaAbove: 12.2, onReefBelow: 0.51, onReefAbove: 0.54,
+    alphaTarget: 41, basisT: 13, basisTideM: 0, bakeDigest: '0a3ae5d50232c1d1',
+    tideBandM: [0, 0], tideDigest: 'TBD',
+    tideEdges: null },
+  sharks: {
+    flipLo: 0.45, flipHi: 0.46, floorLo: 0.45, floorHi: 0.46, floorH0: 0.46,
+    alphaBelow: 12.3, alphaAbove: 21.9, onReefBelow: 0.39, onReefAbove: 0.53,
+    alphaTarget: 36, basisT: 13, basisTideM: 0, bakeDigest: '386e89d6b816943e',
+    tideBandM: [0, 0], tideDigest: 'TBD',
+    tideEdges: null },
+  privates: {
+    flipLo: 0.55, flipHi: 0.56, floorLo: 0.63, floorHi: 0.64, floorH0: 0.64,
+    alphaBelow: 17.3, alphaAbove: 26.7, onReefBelow: 0.00, onReefAbove: 0.55,
+    alphaTarget: 31, basisT: 12, basisTideM: 0, bakeDigest: 'e15596316c313dfc',
+    tideBandM: [0, 0], tideDigest: 'TBD',
+    tideEdges: null },
+};
+
+// THE LEGACY ARM'S FLOOR (#reef=legacy). The table above was re-measured on
+// 2026-09-24 for the refit wedge (research/REEF_REFIT_2026-09-24.md); this is
+// the c85bf62 table as it shipped before that, kept because the legacy arm
+// must reproduce the pre-refit bake bit-for-bit and its digests are the proof
+// (tests/reef-legacy-parity.test.js re-bakes bakeDigest and tideDigest on the
+// legacy arm). Not read by the runtime: peelFloorH0() serves the shipped arm
+// only, and a #reef=legacy boot draws derived oceans through PEEL_FLOOR — a
+// known, documented mismatch on an A/B arm, not a floor claim about it.
+export const PEEL_FLOOR_LEGACY = {
+  sewers: {
     flipLo: 1.61, flipHi: 1.62, floorLo: 1.61, floorHi: 1.62, floorH0: 1.62,
     alphaBelow: -8.3, alphaAbove: 34.8, onReefBelow: 0.33, onReefAbove: 0.65,
     alphaTarget: 38, basisT: 15, basisTideM: 0, bakeDigest: '747a005bb046e8c7',

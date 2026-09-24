@@ -1299,7 +1299,10 @@ async function main() {
                 `${fmt(c.drawnMin, 3)}-${fmt(c.drawnMax, 3)}`, `${Math.round(c.rangeKept * 100)}%`, `${fmt(c.alphaRawMin)}-${fmt(c.alphaRawMax)}`, `${fmt(c.alphaDrawnMin)}-${fmt(c.alphaDrawnMax)}`]; })));
     console.log('\n## Paste-ready shared/params.js PEEL_FLOOR entries\n');
     for (const k of P) { const f = summary.presets[k].peelFloor; if (!f.floorH0) continue;
-      console.log(`  ${k}: {\n    flipLo: ${f.largestFlip.from.toFixed(2)}, flipHi: ${f.largestFlip.to.toFixed(2)}, floorLo: ${f.floorLo.toFixed(2)}, floorHi: ${f.floorHi.toFixed(2)}, floorH0: ${f.floorH0.toFixed(2)},\n`
+      // a ladder with no branch flip (Second Peak since the 2026-09-24 refit)
+      // carries null flip rungs: the floor is then a peel returning, not a branch changing
+      const flip = f.largestFlip ? `${f.largestFlip.from.toFixed(2)}, flipHi: ${f.largestFlip.to.toFixed(2)}` : 'null, flipHi: null';
+      console.log(`  ${k}: {\n    flipLo: ${flip}, floorLo: ${f.floorLo.toFixed(2)}, floorHi: ${f.floorHi.toFixed(2)}, floorH0: ${f.floorH0.toFixed(2)},\n`
         + `    alphaBelow: ${f.alphaBelow.toFixed(1)}, alphaAbove: ${f.alphaAbove.toFixed(1)}, onReefBelow: ${f.onReefBelow.toFixed(2)}, onReefAbove: ${f.onReefAbove.toFixed(2)},\n`
         + `    alphaTarget: ${f.alphaTarget}, basisT: ${f.basisT}, basisTideM: 0, bakeDigest: '${f.bakeDigest}' },`); }
   }

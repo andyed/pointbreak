@@ -17,6 +17,11 @@ import * as THREE from 'three';
 import { PP_DEPTH_DATA } from '../../data/model/pp_depth_patches.js';
 import { PRESETS, reefWindowKnots } from '../../shared/params.js';
 import { PP_GEO_DATA } from '../../data/model/pp_geo_profiles.js';
+// The baked reef table (scripts/fit_reef.mjs --mode=fit --write): per spot,
+// the wedge crest depth and strike the offline search settled on, with the
+// scores it was accepted at and the digests of what it was fitted against.
+// Read at load; a spot missing from it falls back to the live legacy fit.
+import PP_REEF_FIT from '../../data/model/pp_reef_fit.json' with { type: 'json' };
 import {
   referenceAlongshoreKappa, integratePsi, psiSample, zcAtPsiIn, wavelengthAt,
   incidenceAt as dispIncidenceAt, refractionCacheKey,
@@ -70,7 +75,54 @@ function smoothstepJS(a, b, x) {
 // ABOVE the refracted crest bearing, which is the shoreward sweep. Both signs
 // read the same |derived alpha|; only this one keeps the zipper a right.
 const PHI_BREAK_DEG = 9;      // refracted crest bearing the seed assumes (MODEL.md 2.4)
-const REEF_CEIL_EL = -0.5;    // m NAVD88 hard ceiling: the reef must never move the shoreline
+// THE SHORELINE GATE. A post already at or above -0.5 m NAVD88 (the beach,
+// the cliff, the cameras' ground) is never touched by the wedge, on any arm.
+// Until 2026-09-24 this was ALSO the crest cap — no wet post could be lifted
+// past it — which put the shallowest allowed crest 1.605 m below MSL, and
+// research/PEEL_BAND_FIELD_2026-09-24.md measured that cap to be exactly what
+// closes the 2026-08-15 Second Peak day (0.73-0.91 m at +0.36..+0.50 m of
+// tide breaks in 1.6-2.0 m of water, above the crest the cap allowed, on a
+// bed the wedge does not touch). The cap moved to REEF_CREST_CEIL_EL below;
+// the gate stays.
+const REEF_CEIL_EL = -0.5;    // m NAVD88: the reef must never move the shoreline (dry-post gate)
+// THE INTERTIDAL CREST (2026-09-24, "allow the intertidal crest, go with the
+// refit"). The wedge may lift a SUBMERGED post (one below the -0.5 m gate) up
+// to MLLW + 0.1 m. Datums read from where the repo keeps them, not retyped:
+// PP_DEPTH_DATA.mslAboveNavd88M = +0.905 m NAVD88 (NOAA CO-OPS 9413450) and
+// TIDE_RANGE[0] = MLLW - MSL = -0.862 m, so the ceiling is
+//   0.905 - 0.862 + 0.1 = +0.143 m NAVD88, i.e. 0.762 m below MSL.
+// A crest at the ceiling is an intertidal shelf: 0.1 m out of the water at
+// MLLW, 0.76 m under it at MSL. That is the Purisima shore platform the
+// reef stands in for (the 08-15 wedge was 0.6-0.8 m below MSL), and it is
+// what the old cap forbade. Legacy arm (#reef=legacy): the cap is
+// REEF_CEIL_EL again, bit-for-bit.
+export const REEF_CREST_CEIL_EL = MSL_ABOVE_NAVD88 + TIDE_RANGE[0] + 0.1;
+// Which reef the bake builds. 'table' (shipped): data/model/pp_reef_fit.json
+// gives each spot its crest depth and strike, capped at REEF_CREST_CEIL_EL;
+// 'legacy': the pre-2026-09-24 load-time line-bearing fit under the old cap.
+// Boot-only (#reef=legacy); flipping it invalidates every reef cache.
+let REEF_FIT_MODE = 'table';
+export function setReefFitMode(mode) {
+  const m = mode === 'legacy' ? 'legacy' : 'table';
+  if (m !== REEF_FIT_MODE) { REEF_FIT_MODE = m; invalidateReef(); }
+}
+export function getReefFitMode() { return REEF_FIT_MODE; }
+// A candidate wedge for ONE spot, served through the table path exactly as a
+// baked row would be — scripts/fit_reef.mjs scores candidates with this, so
+// the code that scores a wedge is the code that draws it. null clears it.
+const fitOverride = new Map();
+export function setReefFitOverride(name, row) {
+  if (row && Number.isFinite(row.crestDepthM) && Number.isFinite(row.betaDeg)) fitOverride.set(name, row);
+  else fitOverride.delete(name);
+  invalidateReef();
+}
+// The row the table path builds from, or null on the legacy arm / a spot the
+// table does not carry (then the live legacy fit runs, old cap and old rule).
+function reefTableRow(name) {
+  if (REEF_FIT_MODE === 'legacy') return null;
+  const row = fitOverride.get(name) ?? PP_REEF_FIT.spots?.[name] ?? null;
+  return row && Number.isFinite(row.crestDepthM) && Number.isFinite(row.betaDeg) ? row : null;
+}
 // SWEEPABLE for Track 1c'-c.3 (`#reefamp=`, `#reefflank=`). Both default to the
 // shipped values; both invalidate every reef cache on change. REEF_AMP_MAX is
 // the more consequential of the two because it appears TWICE below — as the
@@ -156,6 +208,7 @@ function invalidateReef() {
   fitCache.clear();
   actCache.clear();   // activation is a property of the wedge; a new wedge, a new number
   breakKey = '';
+  refrKey = '';       // Psi integrates bedElevBlended, and the wedge is in that bed
   for (const c of [u16Cache, texCache, cpuCache]) {
     for (const k of [...c.keys()]) if (k.endsWith('|reef')) c.delete(k);
   }
@@ -209,10 +262,10 @@ function reefCard(name) {
 // reef(x, z, em) -> additive uplift in metres given the measured elevation em.
 // Additive only (>= 0), zero wherever em >= -0.5 m NAVD88 (dry land, the
 // beach, the cliff — the shoreline and the cliff cameras cannot move), capped
-// so the augmented bed never rises above the -0.5 m ceiling, and feathered at
-// the reefWindow ends (the smoothstep pair is a MODEL-TWIN of the GLSL
-// reefWindow; the A-frame fold never reaches this code — no mapped preset
-// ships aframe = 1).
+// so the augmented bed never rises above ceilEl (REEF_CREST_CEIL_EL on the
+// table arm, REEF_CEIL_EL on the legacy arm), and feathered at the reefWindow
+// ends (the smoothstep pair is a MODEL-TWIN of the GLSL reefWindow; the
+// A-frame fold never reaches this code — no mapped preset ships aframe = 1).
 // The finite-reef envelope for a spot, from its own OSM stage bounds. Falls
 // back to the synthetic stage — and therefore to the legacy constants exactly —
 // for any spot without a usable contour fit.
@@ -234,7 +287,7 @@ function spotContourCurve(spotName, x) {
   return pr.contourFit.x2 * gx * gx + pr.contourFit.x3 * gx * gx * gx;
 }
 
-function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
+function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin, ceilEl) {
   const bRad = betaDeg * Math.PI / 180;
   const tanB = Math.tan(bRad), cosB = Math.cos(bRad), sinB = Math.sin(bRad);
   // ---------- the nose: a crest that DEEPENS down-point ----------
@@ -300,10 +353,11 @@ function makeReefFn(betaDeg, targetEl, zRef, seed, reefWin) {
     // tapered down-point by the nose. Every factor is non-negative and
     // noseTaper >= 1 - 0.30 = 0.70, so the nose and the bound can only REDUCE
     // lift: they cannot deepen a post, and cannot push one above a ceiling the
-    // unbounded path already respected.
+    // unbounded path already respected. ceilEl is the arm's crest cap; the
+    // dry-post gate above (REEF_CEIL_EL) is what keeps land untouched.
     const lift = Math.min(Math.max(targetEl - em, 0), REEF_AMP_MAX)
                * bound * noseTaper(x) * flank * w * ridge;
-    return Math.max(Math.min(em + lift, REEF_CEIL_EL) - em, 0);
+    return Math.max(Math.min(em + lift, ceilEl) - em, 0);
   };
 }
 
@@ -341,11 +395,23 @@ export function reefFitFor(name) {
   const rawAt = (x, z) => bilinearAt(raw, x, z);
 
   const hb = breakDepthFor(card.H0, card.T);
-  // Wedge crest ~0.75 of the breaking depth below the water: deep enough that
-  // waves reach it, shallow enough that the gamma-h crossing happens ON the
-  // flank. Small-H0 spots are ceiling-limited (the -0.5 m clamp with margin).
-  const crestDepth = Math.min(Math.max(0.75 * hb, 1.2), 3.0);
-  const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, REEF_CEIL_EL - 0.2);
+  // THE TWO ARMS. `row` is the baked table entry (or a fit_reef.mjs candidate)
+  // on the shipped arm, null on #reef=legacy or for a spot the table lacks.
+  //   table:  crest depth is the table's, searched offline from the intertidal
+  //           ceiling REEF_CREST_CEIL_EL down to 3.0 m on the canonical
+  //           stage-median alpha (research/REEF_REFIT_2026-09-24.md); the
+  //           crest target may sit AT the ceiling (no margin — the post clamp
+  //           holds the ridge overshoot there).
+  //   legacy: crest ~0.75 of the card's breaking depth below the water — deep
+  //           enough that waves reach it, shallow enough that the gamma-h
+  //           crossing happens ON the flank — small-H0 spots ceiling-limited
+  //           by the -0.5 m cap with a 0.2 m margin. Bit-for-bit the
+  //           pre-2026-09-24 bake (tests/reef-legacy-parity.test.js).
+  const row = reefTableRow(name);
+  const crestCeil = row ? REEF_CREST_CEIL_EL : REEF_CEIL_EL;
+  const crestMargin = row ? 0 : 0.2;
+  const crestDepth = row ? row.crestDepthM : Math.min(Math.max(0.75 * hb, 1.2), 3.0);
+  const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, crestCeil - crestMargin);
   // Anchor on the measured bed's NATURAL BREAKING contour (depth = h_b), not
   // the crest-depth contour: the march takes the seaward-most crossing, so a
   // wedge anchored shoreward of where the wave already breaks never owns the
@@ -360,7 +426,8 @@ export function reefFitFor(name) {
 
   const seed = nameSeed(name);
   const reefWin = reefWinFor(name);
-  let beta = Math.min(Math.max(card.alphaDeg - PHI_BREAK_DEG, 3), 80);
+  let beta = row ? Math.min(Math.max(row.betaDeg, 3), 80)
+                 : Math.min(Math.max(card.alphaDeg - PHI_BREAK_DEG, 3), 80);
   let derived = 0, iterations = 0, reefFn = null, signViolations = 0;
   // Stations spanning the WHOLE stage, not 32 m of it. The old set was
   // [-16, -8, 0, 8, 16] — five points across 32 m of a 113-312 m reef, i.e.
@@ -390,7 +457,7 @@ export function reefFitFor(name) {
   // best-so-far kept regardless. Load time, once per spot, cached — the extra
   // evaluations are free.
   const evaluate = (b) => {
-    const fn = makeReefFn(b, targetEl, zRef, seed, reefWin);
+    const fn = makeReefFn(b, targetEl, zRef, seed, reefWin, crestCeil);
     const elevAt = (x, z) => { const em = rawAt(x, z); return em + fn(x, z, em); };
     // Fit against the SMOOTHED locus, because that is the line the renderer
     // draws (bakeBreakLine smoothM). Fitting the raw march while rendering the
@@ -460,13 +527,16 @@ export function reefFitFor(name) {
   let b0 = beta;
   let r0 = evaluate(b0); iterations = 1; record(b0, r0);
   let f0 = r0.derived - card.alphaDeg;
+  // Table arm: the strike is the table's; one evaluation, for the legacy
+  // line-bearing readout that is carried beside the canonical number. The
+  // secant below is the legacy arm's root-find and never runs here.
   // second probe on the side the residual points to, so the pair usually
   // brackets the root immediately
-  let b1 = Math.min(Math.max(b0 - Math.sign(f0) * 8, 3), 80);
-  let r1 = evaluate(b1); iterations++; record(b1, r1);
+  let b1 = row ? b0 : Math.min(Math.max(b0 - Math.sign(f0) * 8, 3), 80);
+  let r1 = row ? r0 : evaluate(b1); if (!row) { iterations++; record(b1, r1); }
   let f1 = r1.derived - card.alphaDeg;
 
-  while (iterations < REEF_FIT_MAX_ITER && bestErr > REEF_FIT_TOL_DEG) {
+  while (!row && iterations < REEF_FIT_MAX_ITER && bestErr > REEF_FIT_TOL_DEG) {
     let b2;
     if (f0 * f1 < 0) {
       // bracketed: secant, but keep it inside the bracket (false position)
@@ -491,23 +561,35 @@ export function reefFitFor(name) {
     b1 = b2; f1 = f2;
   }
 
+  // The number the fit is judged on. Table arm: the canonical stage-median
+  // signed alpha the search scored the card at (PEEL_FLOOR_BASIS.alphaMetric),
+  // read from the row; the legacy five-station bearing is carried beside it as
+  // legacyDerivedDeg on both arms. Legacy arm: the bearing IS the metric, as it
+  // was (the MIGRATION GUARD of 2026-08-11, now retired on the shipped arm).
+  const judged = row ? row.cardAlphaDeg : derived;
   const fit = {
     spot: name, synthetic: true,
     targetDeg: card.alphaDeg,
     betaDeg: beta,
-    fitDerivedDeg: derived,
-    fitMetric: 'legacy-break-line-bearing',
-    canonicalFitDeferred: true,
-    residualDeg: card.alphaDeg - derived,
-    withinTol: Math.abs(card.alphaDeg - derived) <= 5,
+    fitDerivedDeg: judged,
+    legacyDerivedDeg: derived,
+    fitMetric: row ? 'canonical-stage-alpha-table' : 'legacy-break-line-bearing',
+    canonicalFitDeferred: !row,
+    source: row ? (fitOverride.has(name) ? 'override' : 'data/model/pp_reef_fit.json') : 'live-legacy-fit',
+    residualDeg: card.alphaDeg - judged,
+    withinTol: Math.abs(card.alphaDeg - judged) <= 5,
     // Carried, not hidden — same contract as withinTol. A fit that hits its
     // alpha target while reversing direction somewhere on the stage has not
-    // succeeded, and the HUD must be able to say so.
+    // succeeded, and the HUD must be able to say so. signViolations is the
+    // five-station slope-sign count on both arms; reversalsOffRamp is the
+    // table's canonical count (clean, on-reef, off-ramp stations, card + band).
     signViolations,
-    directionOk: signViolations === 0,
+    reversalsOffRamp: row ? (row.reversalsOffRamp ?? null) : null,
+    directionOk: row ? (row.reversalsOffRamp ?? 0) === 0 : signViolations === 0,
     stations: xs.length,
     iterations,
     targetEl, zRef, hbM: hb,
+    crestDepthM: crestDepth, crestCeilEl: crestCeil,
     reefAt: reefFn,
   };
   fitCache.set(name, fit);
@@ -517,8 +599,8 @@ export function reefFitFor(name) {
 // ---------- the one augmentation surface ----------
 // Decode the shipped base64 uint16 once, apply the reef once, re-quantize
 // once. Both the GPU texture and the CPU grid are built from THIS array, so
-// they agree to the quantum (~0.9 mm). Quantization uses floor so the -0.5 m
-// ceiling survives it (round could lift a post half a step above the clamp),
+// they agree to the quantum (~0.9 mm). Quantization uses floor so the crest
+// cap survives it (round could lift a post half a step above the clamp),
 // and floor(em + add) >= raw for add >= 0, so it can never deepen either.
 const u16Cache = new Map();
 function compositeU16(name, withReef) {
@@ -558,17 +640,22 @@ function compositeU16(name, withReef) {
   return u16;
 }
 
-// Post-hoc audit of the clamp invariant, for verification and tests-by-hand:
+// Post-hoc audit of the clamp invariants, for verification and tests-by-hand:
 // the augmented grid must be identical to the measured grid wherever the
-// measured bed is at/above -0.5 m NAVD88 (shoreline, beach, cliff), never
-// deepened, and never raised above the ceiling.
+// measured bed is at/above -0.5 m NAVD88 (shoreline, beach, cliff: dryTouched),
+// never deepened, and never raised above the arm's crest cap (aboveCeil,
+// against fit.crestCeilEl — REEF_CREST_CEIL_EL on the table arm, REEF_CEIL_EL
+// on legacy). aboveLegacyCeil counts the wet posts lifted past the OLD -0.5 m
+// cap: an invariant on the legacy arm, a reported quantity on the table arm
+// (that count IS the intertidal shelf the 2026-09-24 policy allows).
 export function reefAudit(name) {
   const fit = reefFitFor(name);
   if (!fit) return null;
   const raw = compositeU16(name, false), aug = compositeU16(name, true);
   const { nx, nz, elevMinM, elevMaxM } = PP_DEPTH_DATA.grid;
   const span = elevMaxM - elevMinM, quantum = span / 65535;
-  let maxRaise = 0, deepened = 0, aboveCeil = 0, dryTouched = 0, postsTouched = 0;
+  const crestCeil = fit.crestCeilEl;
+  let maxRaise = 0, deepened = 0, aboveCeil = 0, aboveLegacyCeil = 0, dryTouched = 0, postsTouched = 0;
   for (let i = 0; i < nx * nz; i++) {
     const em = elevMinM + (raw[i] / 65535) * span;
     const ea = elevMinM + (aug[i] / 65535) * span;
@@ -578,7 +665,8 @@ export function reefAudit(name) {
     if (em >= REEF_CEIL_EL && aug[i] !== raw[i]) dryTouched++;
     // ceiling violations are only meaningful on posts the reef could touch:
     // land is naturally above -0.5 m and must simply be untouched (dryTouched)
-    if (em < REEF_CEIL_EL && ea > REEF_CEIL_EL + quantum) aboveCeil++;
+    if (em < REEF_CEIL_EL && ea > crestCeil + quantum) aboveCeil++;
+    if (em < REEF_CEIL_EL && ea > REEF_CEIL_EL + quantum) aboveLegacyCeil++;
   }
   let checksum = 0;
   for (let i = 0; i < aug.length; i++) checksum = (Math.imul(checksum, 31) + aug[i]) >>> 0;
@@ -586,7 +674,8 @@ export function reefAudit(name) {
     spot: name, targetDeg: fit.targetDeg, betaDeg: fit.betaDeg,
     fitDerivedDeg: fit.fitDerivedDeg, residualDeg: fit.residualDeg,
     withinTol: fit.withinTol, iterations: fit.iterations, hbM: fit.hbM,
-    maxRaiseM: maxRaise, postsTouched, deepened, aboveCeil, dryTouched, checksum,
+    crestCeilEl: crestCeil, crestDepthM: fit.crestDepthM, fitMetric: fit.fitMetric,
+    maxRaiseM: maxRaise, postsTouched, deepened, aboveCeil, aboveLegacyCeil, dryTouched, checksum,
   };
 }
 

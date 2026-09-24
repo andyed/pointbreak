@@ -27,7 +27,7 @@ import { applyBed, EMPTY_BED, MSL_ABOVE_NAVD88, cliffTop, TIDE_RANGE, tideLabel,
          reefFitFor, reefActivationH0, bakeRefraction, REFR_ZC_MIN, REFR_ZC_MAX,
          wavelengthAtStation, psiAt, PEEL_SMOOTH_M, setLocusSmoothing,
          setReefNose, REEF_NOSE_FRAC_TUNED,
-         setReefAmp, setReefFlank, getReefShape, reefAudit,
+         setReefAmp, setReefFlank, getReefShape, reefAudit, setReefFitMode,
          setShelter, getShelter, setDensityLine, breakCandidates,
          breakExcessProfile, setOnsetMerge, getOnsetMerge,
          cameraFloorY, UNMAPPED_DIP_M, bedElevAt } from './bed.js';
@@ -2607,9 +2607,14 @@ function applyHashParams() {
   // another — the authority split this repo keeps re-finding. The module-level
   // applyBed at load time has already run with the defaults, so the shape also
   // gets an explicit rebuild below.
-  const shapeChanged = h.has('reefamp') || h.has('reefflank') || h.has('shelter');
+  const shapeChanged = h.has('reefamp') || h.has('reefflank') || h.has('shelter') || h.has('reef');
   if (h.has('reefamp')) setReefAmp(parseFloat(h.get('reefamp')));
   if (h.has('reefflank')) setReefFlank(parseFloat(h.get('reefflank')));
+  // `#reef=legacy` A/B revert (boot-only): the pre-2026-09-24 load-time
+  // line-bearing reef fit under the -0.5 m NAVD88 crest cap, bit-for-bit
+  // (bed.js setReefFitMode; tests/reef-legacy-parity.test.js). Same ordering
+  // rule as the shape knobs: it must land before the preset builds the bed.
+  if (h.get('reef') === 'legacy') setReefFitMode('legacy');
   // `#shelter=0` A/B: flat H0 in BOTH the bake (setShelter, cache-invalidating
   // like a reef-shape change) and the drawn field (u_shelterMix) — the two
   // must flip together or line and water disagree about where breaking is.

@@ -416,23 +416,28 @@ test('CONTROLS.md carries the measured floors and their basis, not a bare mentio
     'the #tide row must point at the peel floor\'s tide band: the tide is a live control that leaves it');
 });
 
-test('MODEL.md documents the tradeoff the clamp takes, and its model-version dependence', () => {
+test('MODEL.md documents the tradeoff the clamp takes, and the basis names the note that tabulates the current floors', () => {
   const doc = readFileSync(new URL('../docs/MODEL.md', import.meta.url), 'utf8');
   assert.ok(/## 4\.6 The peel floor/.test(doc),
     'MODEL.md must carry the named tradeoff section the clamp is justified by');
   const sec = doc.split('## 4.6 The peel floor')[1].split('\n## 5')[0];
   assert.ok(/Sewers/.test(sec.slice(0, 6000)),
     'the tradeoff section must state the spot that loses its whole seasonal range');
-  assert.ok(sec.includes(PEEL_FLOOR_BASIS.measured) && sec.includes(PEEL_FLOOR_BASIS.modelCommit),
-    '4.6 must carry the re-measurement date and commit');
-  for (const spot of MAPPED)
-    assert.ok(sec.includes(`**${PEEL_FLOOR[spot].floorH0.toFixed(2)}**`),
-      `4.6 must tabulate ${spot}'s current floor ${PEEL_FLOOR[spot].floorH0}`);
   assert.ok(/model[- ]version/i.test(sec), '4.6 must name the model-version dependence of the floor');
-  // the tide band, per spot, and the date it was measured
-  assert.ok(sec.includes(PEEL_FLOOR_BASIS.tideMeasured) && /tide band/i.test(sec), '4.6 must carry the tide-band measurement');
-  for (const spot of MAPPED)
-    assert.ok(sec.includes(bandText(PEEL_FLOOR[spot])), `4.6 must tabulate ${spot}'s tide band ${bandText(PEEL_FLOOR[spot])}`);
+  assert.ok(/tide band/i.test(sec), '4.6 must carry the tide-band measurement');
   assert.ok(existsSync(new URL('../docs/research/TIDE_FLOOR_2026-09-01.md', import.meta.url)),
     'the tide-band measurement must have its research note');
+  // The numbers live where the basis says they live. Since the 2026-09-24
+  // refit that is the refit note (the coordinator folds it into 4.6); the
+  // basis field is what keeps the doc and the table from drifting apart.
+  assert.match(PEEL_FLOOR_BASIS.tabulatedIn, /^docs\//, 'the basis must name the doc that tabulates the current floors');
+  const tab = readFileSync(new URL(`../${PEEL_FLOOR_BASIS.tabulatedIn}`, import.meta.url), 'utf8');
+  assert.ok(tab.includes(PEEL_FLOOR_BASIS.measured) && tab.includes(PEEL_FLOOR_BASIS.modelCommit),
+    `${PEEL_FLOOR_BASIS.tabulatedIn} must carry the re-measurement date and commit`);
+  for (const spot of MAPPED)
+    assert.ok(tab.includes(`**${PEEL_FLOOR[spot].floorH0.toFixed(2)}**`),
+      `${PEEL_FLOOR_BASIS.tabulatedIn} must tabulate ${spot}'s current floor ${PEEL_FLOOR[spot].floorH0}`);
+  assert.ok(tab.includes(PEEL_FLOOR_BASIS.tideMeasured), `${PEEL_FLOOR_BASIS.tabulatedIn} must carry the tide-band measurement date`);
+  for (const spot of MAPPED)
+    assert.ok(tab.includes(bandText(PEEL_FLOOR[spot])), `${PEEL_FLOOR_BASIS.tabulatedIn} must tabulate ${spot}'s tide band ${bandText(PEEL_FLOOR[spot])}`);
 });

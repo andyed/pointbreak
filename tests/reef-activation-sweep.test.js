@@ -54,9 +54,15 @@ test('the knobs reach the bake, and instances do not share state', async () => {
   // carries ampM so the module URL differs)
   await S.bedFor({ ampM: 9.6 });
   assert.equal(S.activationOn(await S.bedFor({}), 'sewers', { T }).H0, shipped, 'shipped instance mutated by an amp sweep');
-  // the ceiling binds: below it a shallower crest stops moving activation
+  // the ceiling binds: past it a shallower crest stops moving activation. Since
+  // the 2026-09-24 refit the cap is the intertidal REEF_CREST_CEIL_EL and no
+  // shipped crest sits on it, so the bind is shown by two deltas both beyond
+  // the ceiling reading the same activation (the crest target is clamped to
+  // the cap either way), and by that activation being below the shipped one.
   const atCeil = S.activationOn(await S.bedFor({ crestDeltaM: -2.0 }), 'jacks', { T: PRESETS.jacks.T }).H0;
-  assert.equal(atCeil, S.activationOn(await S.bedFor({}), 'jacks', { T: PRESETS.jacks.T }).H0, "Jack's is ceiling-limited at the shipped crest");
+  const pastCeil = S.activationOn(await S.bedFor({ crestDeltaM: -3.0 }), 'jacks', { T: PRESETS.jacks.T }).H0;
+  assert.equal(atCeil, pastCeil, "Jack's crest is not clamped at the ceiling");
+  assert.ok(atCeil < shipped, `the ceiling-bound activation ${atCeil} must sit below the shipped ${shipped}`);
 });
 
 test('the instrument touches no renderer file', () => {
