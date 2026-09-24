@@ -722,7 +722,10 @@
     </p>
     <p class="prose">
       Private's and Sharks sit in the most sheltered water and
-      require both swell and a low tide to activate at all; the Hook and 38th
+      require both swell and a low tide to activate at all (the model agrees in
+      kind: its own peel floors, re-measured 24 September, put Sharks at
+      0.46&nbsp;m and Private's at 0.64&nbsp;m of swell, holding only at or
+      below mean sea level); the Hook and 38th
       occupy intermediate exposure; Second Peak sits on a low-gradient shelf
       and produces the long, roughly 90 m peel the site is best known for;
       First Peak's steeper profile yields tapered, faster walls; and Sewers,
@@ -1025,7 +1028,7 @@ depth and exposure.</desc>
 <line class="week-wk-rule" x1="40" y1="770" x2="1576" y2="770"/>
 <text class="week-wk-foot" x="40" y="792">α peel angle · ξ Iribarren (barrel-ness) · σ section noise · T period · H0 swell height. All seven run on surveyed NCEI depth profiles (Privates since 2026-09-02, on a truncated contour window).</text>
 </svg></div>
-      <figcaption><span class="cap-label">Fig. 3</span> &mdash; <strong>Work-in-progress computer renders, not photographs.</strong> One frame per site, ordered apex to down-point. Parameters under each frame are read from the model's preset bank. <a href="fig-week.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
+      <figcaption><span class="cap-label">Fig. 3</span> &mdash; <strong>Work-in-progress computer renders, not photographs.</strong> One frame per site, ordered apex to down-point, at mean sea level. Parameters under each frame are read from the model's preset bank. Regenerated 24 September 2026; earlier versions of this figure were the mirror image of the site. <a href="fig-week.svg" target="_blank" rel="noopener">Open full size &#8599;</a></figcaption>
     </figure>
 
     <p class="prose">
@@ -1266,30 +1269,43 @@ depth and exposure.</desc>
       metres &mdash; enough to invent A-frames the real point does not have.
       So each mapped site adds one declared component: a planar wedge in
       Mead &amp; Black&rsquo;s (2001) taxonomy of surf-break bathymetry,
-      fitted toward that site&rsquo;s target character. The declaration is
-      bounded &mdash; the physics still proposes every candidate break
-      position; the wedge only chooses among them &mdash; and the plane
-      counterfactual below removes it along with every other bump. What the
-      model may author and what it must
-      derive is a recorded rule in the repository
-      (<span class="mono">MODEL.md &sect;4.5</span>), not a habit.
+      fitted &mdash; over its crest depth and its strike &mdash; toward that
+      site&rsquo;s target character. Since 24 September the crest may sit in
+      the intertidal (a shelf that dries at the lowest tides, as the real
+      platform does), because the one day of measured peel kinematics the
+      project has broke in water the old submerged-only rule could not reach.
+      The declaration is bounded &mdash; the physics still proposes every
+      candidate break position; the wedge only chooses among them &mdash;
+      and the plane counterfactual below removes it along with every other
+      bump. What the model may author and what it must derive is a recorded
+      rule in the repository (<span class="mono">MODEL.md &sect;4.5</span>,
+      with the intertidal decision in <span class="mono">&sect;4.6</span>),
+      not a habit.
     </p>
 
     <p class="prose">
       The test is a counterfactual. Below, the same swell runs over the same
-      site twice: once over the surveyed seabed, and once over that
-      seabed's own least-squares plane &mdash; identical mean depth, slope and
-      orientation, with only the structure removed (0.32&nbsp;m RMS at Second
-      Peak).
+      site twice: once over the bed the model draws &mdash; the surveyed
+      seabed (0.32&nbsp;m RMS of its own structure at Second Peak) plus the
+      declared wedge &mdash; and once over that seabed's least-squares plane,
+      identical in mean depth, slope and orientation, with the survey's
+      structure and the wedge both removed.
     </p>
 
     <p class="prose">
-      The honest result is that almost nothing happens. Averaged over the
-      stage the two frames differ by about 1% of full brightness, and the
-      shoreline is unchanged by construction. That is not the demo failing;
-      it is the demo working and returning a negative. There is only
-      0.32&nbsp;m of reef at this resolution, so removing it removes almost
-      nothing.
+      Until September the honest result was that almost nothing happened: the
+      two frames differed by about 1% of full brightness, because the wedge
+      then sat 2.1&nbsp;m below sea level and the survey's own relief was all
+      that was left to remove. After the refit the wedge crest at Second Peak
+      sits 0.86&nbsp;m below mean sea level, and the same comparison, at a
+      fixed camera, differs by about 9% of full brightness: over the plane
+      the swell breaks in shore-parallel rows, over the drawn bed it breaks
+      first at the apex and peels. The shoreline is unchanged at the tide
+      shown (mean sea level); at the lowest tides the wedge crest breaks the
+      surface as a shelf, which the plane also removes. Four Sentinel-2
+      frames say the same thing from orbit: the plane bed puts the break
+      84&ndash;184&nbsp;m inside the observed whitewater at the apex, the
+      wedge does not.
     </p>
 
     <p class="prose">
@@ -1308,7 +1324,7 @@ depth and exposure.</desc>
             data-src="sim/web-three/#preset=secondpeak&amp;cam=drone&amp;controls=1&amp;sim=42"
             title="Simulation over the surveyed seabed"></iframe>
         </div>
-        <figcaption>Surveyed seabed: the measured floor, 0.32&nbsp;m RMS of structure on a 1:58 ramp.</figcaption>
+        <figcaption>The drawn bed: the surveyed floor (0.32&nbsp;m RMS of structure on a 1:58 ramp) plus the declared wedge, its crest 0.86&nbsp;m below mean sea level.</figcaption>
       </figure>
       <figure class="sim-figure">
         <div class="sim-frame">
@@ -1316,7 +1332,7 @@ depth and exposure.</desc>
             data-src="sim/web-three/#preset=secondpeak&amp;cam=drone&amp;bed=plane&amp;controls=1&amp;sim=42"
             title="Simulation over a featureless plane of the same mean slope"></iframe>
         </div>
-        <figcaption>Same depth, slope and shoreline, reef removed. Look for the difference: there is barely one.</figcaption>
+        <figcaption>Same mean depth, slope and shoreline at this tide, survey structure and wedge removed. Look for the difference: the apex peel becomes shore-parallel rows.</figcaption>
       </figure>
     </div>
 
@@ -1349,18 +1365,20 @@ depth and exposure.</desc>
         heights, breaking positions, or imagery of this break has been made
         &mdash; and section 07 explains why the usual reference data does not
         exist to compare against.</li>
-      <li><strong>Six of seven sites are mapped.</strong> Sewers, First Peak,
-        Second Peak, Jack's (38th), The Hook and Sharks use surveyed profiles.
-        Private's runs on a synthetic seabed because its coastline defeats the
-        contour fit; it is labelled as such in the app.</li>
-      <li><strong>The break line is derived; its current calibration is not yet
-        canonical.</strong> The runtime now reports signed peel as the angle
-        between the baked breaking route and the refracted crest. The synthetic
-        reef still fits the older line-bearing proxy, explicitly, because the
-        binary break-onset field has branch jumps and limiter gaps; fitting the
-        new metric before that field is continuous makes Second Peak reverse
-        through a closeout. Section 07 separates that migration limit from the
-        authored targets themselves.</li>
+      <li><strong>All seven sites are mapped, on an interpolated seabed.</strong>
+        Sewers, First Peak, Second Peak, Jack's (38th), The Hook, Sharks and
+        (since 2 September, on a truncated contour window) Private's use
+        surveyed profiles. None of the public grids has a sounding under the
+        surf zone itself; every wedge is labelled synthetic in the app.</li>
+      <li><strong>The break line is derived, and the reef is now fitted against
+        it.</strong> The runtime reports signed peel as the angle between the
+        baked breaking route and the refracted crest, and since 24 September
+        each site's wedge is fitted against that same quantity, over crest
+        depth and strike, with one measured field day as a constraint. What
+        did not close is on the record: Second Peak's card state reads
+        32&deg; against its 41&deg; target, the most the wedge that carries the
+        field day can give. The pre-refit reef remains in the app as
+        <span class="mono">#reef=legacy</span>.</li>
       <li><strong>Tidal datum is approximate.</strong> Depths are NAVD88; the
         conversion to local sea level (0.905 m) comes from NOAA station 9413450
         at Monterey, about 40 km away, because the Santa Cruz gauge publishes
@@ -1794,12 +1812,17 @@ strokes, arcs and leader lines use teal/slate and carry no text. 16px text floor
       peel plus breakpoint velocity; the old
       <span class="mono">atan(|dz<sub>b</sub>/dx|)</span> is retained only as
       a named line-bearing diagnostic. The result is less flattering and more
-      useful: off-reef reversals and limiter-pinned stations remain, and the
-      synthetic reef is still calibrated against the old bearing while the
-      onset field is discontinuous. A direct canonical refit was tried and made
-      Second Peak reverse through a closeout. The next honest investment is a
-      continuous break-activation field, then a refit against the quantity the
-      wave actually draws.
+      useful: off-reef reversals and limiter-pinned stations remain. For a
+      month the synthetic reef stayed calibrated against the old bearing
+      because a direct refit against the new metric made Second Peak reverse
+      through a closeout. That investment was made on 24 September, after the
+      first day of measured peel kinematics (a fixed surf cam on 15 August:
+      4.7&ndash;6.7&nbsp;m/s down the line at Second Peak, where the model
+      then drew a closeout) showed the wedge could not reach the water the
+      real wave broke in. The refit is over crest depth and strike, scored on
+      the signed crest-relative peel, and it reproduces that day; the one
+      thing it cannot give is Second Peak's full 41&deg; at the card state
+      (32&deg;), and the essay says so rather than tuning it away.
     </p>
     <p class="prose">
       The measurement itself is now tractable, which is the invitation this
