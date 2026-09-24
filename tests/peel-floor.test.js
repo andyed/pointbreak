@@ -84,10 +84,10 @@ const bandText = (f) => `${fmtTide(f.tideBandM[0])}…${fmtTide(f.tideBandM[1])}
 test('the floor table carries its basis, and the basis is the instrument\'s and the runtime\'s', () => {
   assert.deepEqual(Object.keys(PEEL_FLOOR).sort(), Object.keys(PRESETS).sort(),
     'every preset needs a PEEL_FLOOR entry, even if it is null');
-  assert.equal(PEEL_FLOOR.privates, null,
-    'Privates has no floor: its card ocean sits below its own wedge\'s activation, '
-    + 'so no rung up to the card is on the reef and the criterion has no domain '
-    + '(re-baked in its own test below; MODEL.md 4.6 "Privates")');
+  assert.ok(PEEL_FLOOR.privates,
+    'Privates has a floor since the 2026-09-24 refit: its table wedge (crest 0.912 m) '
+    + 'activates at 0.305 m, below the 0.70 m card, so the card line is on the reef and the '
+    + 'criterion has a domain (re-baked in its own test below; REEF_REFIT_2026-09-24)');
   const B = PEEL_FLOOR_BASIS;
   assert.match(B.modelCommit, /^[0-9a-f]{7,40}$/, 'the basis must name the commit it was measured at');
   assert.match(B.measured, /^\d{4}-\d{2}-\d{2}$/, 'the basis must carry its date');
@@ -104,7 +104,10 @@ test('the floor table carries its basis, and the basis is the instrument\'s and 
     assert.equal(f.basisT, PRESETS[spot].T, `${spot}: the floor's basis period must be the card's own`);
     assert.equal(f.alphaTarget, PRESETS[spot].alpha, `${spot} alpha target drifted from the preset`);
     assert.ok(near(f.floorHi - f.floorLo, B.stepM, 1e-9), `${spot}: floorLo/floorHi must be one ${B.stepM} m rung apart`);
-    assert.ok(near(f.flipHi - f.flipLo, B.stepM, 1e-9), `${spot}: flipLo/flipHi must be one ${B.stepM} m rung apart`);
+    // a ladder with no branch flip carries null flip rungs (Second Peak since
+    // the refit): the floor there is the peel returning, not a branch changing
+    if (f.flipLo === null) assert.equal(f.flipHi, null, `${spot}: flipLo null but flipHi ${f.flipHi}`);
+    else assert.ok(near(f.flipHi - f.flipLo, B.stepM, 1e-9), `${spot}: flipLo/flipHi must be one ${B.stepM} m rung apart`);
     // The floor is the measured healthy-side rung, not a picked number with a
     // margin — anything else is authorship wearing a measurement's clothes.
     assert.equal(f.floorH0, f.floorHi, `${spot} floor must be the measured healthy-side H0`);
@@ -204,6 +207,7 @@ test('the bake still reads what the table says at every floor rung (model-versio
       `${say('floorHi', above)} is not a peel on the reef (needs alpha >= ${ALPHA_FLOOR_DEG}, right-handed, >= ${I.ON_REEF_MIN} on the reef); `
       + `the floor does not restore a peel — ${RE_MEASURE}`);
     // The flip the table names must still be a flip on this bake.
+    if (f.flipLo === null) continue;
     const lo = I.instrumentState(spot, { H0: f.flipLo, T: f.basisT, tide: 0 }).real.z;
     const hi = I.instrumentState(spot, { H0: f.flipHi, T: f.basisT, tide: 0 }).real.z;
     assert.ok(I.maxAbsDiff(lo, hi) > I.FLIP_M,
@@ -313,38 +317,27 @@ test('the clamp is inert on every authored card state', () => {
     const r = shippedAt(spot, cardH0);
     assert.ok(I.peelHealthy(r, 1), `${spot} card state reads alpha ${r.medianClean?.toFixed(1)}, on-reef ${r.onReefFrac.toFixed(2)} — not a peel`);
   }
-  // Privates has no floor at all, so nothing there can be clamped.
-  assert.equal(peelFloorH0('privates', { T: 12, tideM: 0 }), null);
-  assert.equal(clamp('privates', 0.4, { T: 12, tideM: 0 }), 0.4);
 });
 
-test('Privates\' null floor is re-baked, not inherited (measured 2026-09-02)', () => {
-  // Privates is mapped (--truncate 0.5 contour, 1.87 m RMS) and has a bake, so
-  // its null is a measured verdict with a stated reason, and the reason has to
-  // keep being true: the card ocean (0.70 m, T 12, tide 0) sits BELOW the
-  // wedge's own activation H0 (0.721 m on this bake), so no rung 0.40 -> 0.70
-  // puts a station on the reef and "every rung up to the card is healthy"
-  // fails at the card itself. If the bake, the card or the reef fit ever move
-  // so that the card is on the wedge, a floor becomes measurable and this
-  // fails naming the run — the same discipline as the six digests above.
+test('Privates\' floor is a measured verdict on the refit wedge, not an inherited null', () => {
+  // Until the 2026-09-24 refit Privates carried a null floor: its card ocean
+  // (0.70 m, T 12, tide 0) sat BELOW its legacy wedge's activation (0.721 m),
+  // so no rung up to the card put a station on the reef. The table wedge
+  // (crest 0.912 m, beta 65.5) activates at 0.305 m, the card line sits on it
+  // (59 % of stations, alpha 30.4 against 31) and a floor exists at 0.64 m.
+  // If the bake, the card or the table ever move the card back off the wedge,
+  // this fails naming the run — the same discipline as the digests above.
   const key = 'privates', card = PRESETS[key];
   assert.equal(card.geoSpot, "Private's", 'Privates is the mapped preset this verdict was measured on');
   const act = I.reefActivationH0(key, { T: card.T, tide: 0 }).H0;
-  assert.ok(Number.isFinite(act) && act > card.H0,
-    `Privates' wedge now activates at ${act?.toFixed(3)} m, at or below its ${card.H0} m card — `
-    + 'the card may be on the reef and a floor may exist; re-run `node scripts/measure_break_activation.mjs '
-    + '--mode=floor --preset=privates` and add the PEEL_FLOOR row (MODEL.md 4.6 "Privates")');
+  assert.ok(Number.isFinite(act) && act < card.H0,
+    `Privates' wedge activates at ${act?.toFixed(3)} m, at or above its ${card.H0} m card — `
+    + 'the card is off the reef again and the floor has no domain; re-run `node scripts/measure_break_activation.mjs '
+    + '--mode=floor --preset=privates` and set PEEL_FLOOR.privates back to null (MODEL.md 4.6 "Privates")');
   const r = I.repSummary(I.instrumentState(key, { H0: card.H0, T: card.T, tide: 0 }), 1).shipped;
-  assert.equal(r.onReefFrac, 0,
-    `Privates' card line has ${(r.onReefFrac * 100).toFixed(0)}% of stations on the reef; it was measured at 0%`);
-  assert.ok(r.medianClean >= ALPHA_FLOOR_DEG && r.reversals === 0,
-    `Privates' card line reads alpha ${r.medianClean?.toFixed(1)} with ${r.reversals} reversals — it was a clean `
-    + 'right-hand platform peel (15.7 deg, 0 reversals); the null floor was not measured on a closeout');
-  const fl = I.measurePeelFloor(key, { handSign: 1 });
-  assert.equal(fl.floorHi, null,
-    `the instrument now finds a Privates floor at ${fl.floorLo}->${fl.floorHi}; add the PEEL_FLOOR row`);
-  assert.equal(fl.note, 'the card state itself is not healthy');
-  assert.deepEqual(fl.flips, [], 'the 0.40 -> card ladder at Privates had no branch flip when measured');
+  assert.ok(I.peelHealthy(r, 1), `Privates' card line reads alpha ${r.medianClean?.toFixed(1)}, on-reef ${r.onReefFrac.toFixed(2)} — not a peel on the wedge`);
+  const f = PEEL_FLOOR[key];
+  assert.ok(f && f.floorH0 < card.H0, 'Privates carries a floor below its card');
 });
 
 test('a derived ocean has exactly one clamp owner (MODEL.md 4.5)', () => {
@@ -416,23 +409,28 @@ test('CONTROLS.md carries the measured floors and their basis, not a bare mentio
     'the #tide row must point at the peel floor\'s tide band: the tide is a live control that leaves it');
 });
 
-test('MODEL.md documents the tradeoff the clamp takes, and its model-version dependence', () => {
+test('MODEL.md documents the tradeoff the clamp takes, and the basis names the note that tabulates the current floors', () => {
   const doc = readFileSync(new URL('../docs/MODEL.md', import.meta.url), 'utf8');
   assert.ok(/## 4\.6 The peel floor/.test(doc),
     'MODEL.md must carry the named tradeoff section the clamp is justified by');
   const sec = doc.split('## 4.6 The peel floor')[1].split('\n## 5')[0];
   assert.ok(/Sewers/.test(sec.slice(0, 6000)),
     'the tradeoff section must state the spot that loses its whole seasonal range');
-  assert.ok(sec.includes(PEEL_FLOOR_BASIS.measured) && sec.includes(PEEL_FLOOR_BASIS.modelCommit),
-    '4.6 must carry the re-measurement date and commit');
-  for (const spot of MAPPED)
-    assert.ok(sec.includes(`**${PEEL_FLOOR[spot].floorH0.toFixed(2)}**`),
-      `4.6 must tabulate ${spot}'s current floor ${PEEL_FLOOR[spot].floorH0}`);
   assert.ok(/model[- ]version/i.test(sec), '4.6 must name the model-version dependence of the floor');
-  // the tide band, per spot, and the date it was measured
-  assert.ok(sec.includes(PEEL_FLOOR_BASIS.tideMeasured) && /tide band/i.test(sec), '4.6 must carry the tide-band measurement');
-  for (const spot of MAPPED)
-    assert.ok(sec.includes(bandText(PEEL_FLOOR[spot])), `4.6 must tabulate ${spot}'s tide band ${bandText(PEEL_FLOOR[spot])}`);
+  assert.ok(/tide band/i.test(sec), '4.6 must carry the tide-band measurement');
   assert.ok(existsSync(new URL('../docs/research/TIDE_FLOOR_2026-09-01.md', import.meta.url)),
     'the tide-band measurement must have its research note');
+  // The numbers live where the basis says they live. Since the 2026-09-24
+  // refit that is the refit note (the coordinator folds it into 4.6); the
+  // basis field is what keeps the doc and the table from drifting apart.
+  assert.match(PEEL_FLOOR_BASIS.tabulatedIn, /^docs\//, 'the basis must name the doc that tabulates the current floors');
+  const tab = readFileSync(new URL(`../${PEEL_FLOOR_BASIS.tabulatedIn}`, import.meta.url), 'utf8');
+  assert.ok(tab.includes(PEEL_FLOOR_BASIS.measured) && tab.includes(PEEL_FLOOR_BASIS.modelCommit),
+    `${PEEL_FLOOR_BASIS.tabulatedIn} must carry the re-measurement date and commit`);
+  for (const spot of MAPPED)
+    assert.ok(tab.includes(`**${PEEL_FLOOR[spot].floorH0.toFixed(2)}**`),
+      `${PEEL_FLOOR_BASIS.tabulatedIn} must tabulate ${spot}'s current floor ${PEEL_FLOOR[spot].floorH0}`);
+  assert.ok(tab.includes(PEEL_FLOOR_BASIS.tideMeasured), `${PEEL_FLOOR_BASIS.tabulatedIn} must carry the tide-band measurement date`);
+  for (const spot of MAPPED)
+    assert.ok(tab.includes(bandText(PEEL_FLOOR[spot])), `${PEEL_FLOOR_BASIS.tabulatedIn} must tabulate ${spot}'s tide band ${bandText(PEEL_FLOOR[spot])}`);
 });

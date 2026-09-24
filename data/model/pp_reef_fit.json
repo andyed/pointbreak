@@ -1,0 +1,352 @@
+{
+ "version": 1,
+ "generated": "2026-09-24",
+ "instrument": "scripts/fit_reef.mjs --mode=fit --write",
+ "crestCeilEl": 0.143,
+ "crestCeilRule": "MLLW + 0.1 m (bed.js REEF_CREST_CEIL_EL); the wedge never touches a post above the legacy -0.5 m NAVD88 shoreline gate",
+ "objective": "card alpha = target (canonical stage-median signed alpha) within 2 deg; H0 band card x [0.7, 1.3] at tide 0 / card T every rung a peel (alpha >= 10, on-reef >= 0.5); zero clean on-reef off-ramp reversals; Second Peak 2026-08-15 cells alpha >= 30 with Vp in 4.7-6.7 m/s; per-spot Sentinel-2 contradicted count not above the pre-refit count; widest tide band as the secondary. Rank: shortfall (band rung 1, reversal 1 capped at 20, card not a peel 5, field cell 25, Sentinel-2 regression 25), then card within tolerance, then widest tide band, then smallest card error",
+ "lattice": {
+  "crestMinM": 0.762,
+  "crestMaxM": 3,
+  "betaRange": [
+   3,
+   80
+  ],
+  "coarseStep": [
+   0.1,
+   2.5
+  ],
+  "fineStep": [
+   0.05,
+   1.25
+  ],
+  "tideLadder": [
+   -0.85,
+   0.75,
+   0.05
+  ],
+  "bandMults": [
+   0.7,
+   0.8,
+   0.9,
+   1,
+   1.1,
+   1.2,
+   1.3
+  ]
+ },
+ "fittedAgainst": {
+  "web-three/js/bed.js": "9c95657aeaa47672",
+  "web-three/js/dispersion.js": "1f17f883e1bfa622",
+  "web-three/js/peel-geometry.js": "bce6fbcd7b8212a6",
+  "shared/params.js": "1143f2f04a9fc940",
+  "data/model/pp_depth_patches.js": "23e8e4ac9d66a088",
+  "data/model/pp_geo_profiles.js": "276c9ddaabd96415"
+ },
+ "spots": {
+  "Sewer Peak": {
+   "spot": "Sewer Peak",
+   "preset": "sewers",
+   "crestDepthM": 2.762,
+   "betaDeg": 38,
+   "cardAlphaDeg": 38.1,
+   "targetDeg": 38,
+   "cardOnReef": 0.744,
+   "bandHealthy": "7/7",
+   "bandAlphaMinDeg": 13.31,
+   "reversalsOffRamp": 0,
+   "rampStations": 616,
+   "tideBandM": [
+    -0.05,
+    0
+   ],
+   "sentinel2": {
+    "contradicted": 0,
+    "shipped": 0,
+    "h10Offsets": [
+     {
+      "date": "2023-09-26",
+      "h10": -51.5
+     },
+     {
+      "date": "2023-11-25",
+      "h10": -107.6
+     },
+     {
+      "date": "2024-01-04",
+      "h10": -64.3
+     },
+     {
+      "date": "2021-01-09",
+      "h10": -42.1
+     }
+    ]
+   },
+   "feasible": 1,
+   "zRef": -106,
+   "targetEl": -1.857
+  },
+  "First Peak": {
+   "spot": "First Peak",
+   "preset": "firstpeak",
+   "crestDepthM": 1.762,
+   "betaDeg": 50.5,
+   "cardAlphaDeg": 49.99,
+   "targetDeg": 50,
+   "cardOnReef": 1,
+   "bandHealthy": "7/7",
+   "bandAlphaMinDeg": 18.95,
+   "reversalsOffRamp": 0,
+   "rampStations": 252,
+   "tideBandM": [
+    -0.85,
+    0.1
+   ],
+   "sentinel2": {
+    "contradicted": 1,
+    "shipped": 2,
+    "h10Offsets": [
+     {
+      "date": "2023-09-26",
+      "h10": -44.2
+     },
+     {
+      "date": "2023-11-25",
+      "h10": -123.2
+     },
+     {
+      "date": "2024-01-04",
+      "h10": 11.1
+     },
+     {
+      "date": "2021-01-09",
+      "h10": 37.9
+     }
+    ]
+   },
+   "feasible": 1,
+   "zRef": -34,
+   "targetEl": -0.857
+  },
+  "Second Peak": {
+   "spot": "Second Peak",
+   "preset": "secondpeak",
+   "crestDepthM": 0.862,
+   "betaDeg": 44.25,
+   "cardAlphaDeg": 32.14,
+   "targetDeg": 41,
+   "cardOnReef": 0.928,
+   "bandHealthy": "7/7",
+   "bandAlphaMinDeg": 16.56,
+   "reversalsOffRamp": 57,
+   "rampStations": 107,
+   "tideBandM": [
+    -0.25,
+    0.75
+   ],
+   "fieldCells": [
+    {
+     "alpha": 41.03,
+     "Vp": 6.27,
+     "onReef": 0.619
+    },
+    {
+     "alpha": 40.96,
+     "Vp": 6.09,
+     "onReef": 0.845
+    }
+   ],
+   "fieldOk": "2/2",
+   "sentinel2": {
+    "contradicted": 0,
+    "shipped": 0,
+    "h10Offsets": [
+     {
+      "date": "2023-09-26",
+      "h10": 9.1
+     },
+     {
+      "date": "2023-11-25",
+      "h10": -112.4
+     },
+     {
+      "date": "2024-01-04",
+      "h10": 12.7
+     },
+     {
+      "date": "2021-01-09",
+      "h10": 14.6
+     }
+    ]
+   },
+   "feasible": 0,
+   "zRef": -34,
+   "targetEl": 0.043
+  },
+  "38th": {
+   "spot": "38th",
+   "preset": "jacks",
+   "crestDepthM": 0.862,
+   "betaDeg": 35.5,
+   "cardAlphaDeg": 35.04,
+   "targetDeg": 37,
+   "cardOnReef": 0.923,
+   "bandHealthy": "7/7",
+   "bandAlphaMinDeg": 32.95,
+   "reversalsOffRamp": 0,
+   "rampStations": 208,
+   "tideBandM": [
+    -0.85,
+    0.55
+   ],
+   "sentinel2": {
+    "contradicted": 1,
+    "shipped": 1,
+    "h10Offsets": [
+     {
+      "date": "2023-09-26",
+      "h10": 128.8
+     },
+     {
+      "date": "2023-11-25",
+      "h10": -147.1
+     },
+     {
+      "date": "2024-01-04",
+      "h10": -31.8
+     },
+     {
+      "date": "2021-01-09",
+      "h10": -43.4
+     }
+    ]
+   },
+   "feasible": 1,
+   "zRef": -16,
+   "targetEl": 0.043
+  },
+  "The Hook": {
+   "spot": "The Hook",
+   "preset": "thehook",
+   "crestDepthM": 1.812,
+   "betaDeg": 45.5,
+   "cardAlphaDeg": 39.71,
+   "targetDeg": 41,
+   "cardOnReef": 0.814,
+   "bandHealthy": "7/7",
+   "bandAlphaMinDeg": 28.47,
+   "reversalsOffRamp": 0,
+   "rampStations": 338,
+   "tideBandM": [
+    -0.85,
+    0.2
+   ],
+   "sentinel2": {
+    "contradicted": 1,
+    "shipped": 1,
+    "h10Offsets": [
+     {
+      "date": "2023-09-26",
+      "h10": 185.6
+     },
+     {
+      "date": "2023-11-25",
+      "h10": -121.4
+     },
+     {
+      "date": "2024-01-04",
+      "h10": -135.1
+     },
+     {
+      "date": "2021-01-09",
+      "h10": -66.3
+     }
+    ]
+   },
+   "feasible": 1,
+   "zRef": -58,
+   "targetEl": -0.907
+  },
+  "Shark's Cove": {
+   "spot": "Shark's Cove",
+   "preset": "sharks",
+   "crestDepthM": 0.962,
+   "betaDeg": 38,
+   "cardAlphaDeg": 34.3,
+   "targetDeg": 36,
+   "cardOnReef": 0.836,
+   "bandHealthy": "7/7",
+   "bandAlphaMinDeg": 27.73,
+   "reversalsOffRamp": 0,
+   "rampStations": 252,
+   "tideBandM": [
+    -0.65,
+    0.4
+   ],
+   "sentinel2": {
+    "contradicted": 0,
+    "shipped": 0,
+    "h10Offsets": [
+     {
+      "date": "2023-09-26",
+      "h10": -28.4
+     },
+     {
+      "date": "2023-11-25",
+      "h10": -134
+     },
+     {
+      "date": "2024-01-04",
+      "h10": -88.7
+     },
+     {
+      "date": "2021-01-09",
+      "h10": -71.7
+     }
+    ]
+   },
+   "feasible": 1,
+   "zRef": -20,
+   "targetEl": -0.057
+  },
+  "Private's": {
+   "spot": "Private's",
+   "preset": "privates",
+   "crestDepthM": 0.912,
+   "betaDeg": 65.5,
+   "cardAlphaDeg": 30.43,
+   "targetDeg": 31,
+   "cardOnReef": 0.591,
+   "bandHealthy": "5/7",
+   "bandAlphaMinDeg": 17.3,
+   "reversalsOffRamp": 0,
+   "rampStations": 405,
+   "tideBandM": null,
+   "sentinel2": {
+    "contradicted": 0,
+    "shipped": 0,
+    "h10Offsets": [
+     {
+      "date": "2023-09-26",
+      "h10": -123.8
+     },
+     {
+      "date": "2023-11-25",
+      "h10": -223.5
+     },
+     {
+      "date": "2024-01-04",
+      "h10": -219.7
+     },
+     {
+      "date": "2021-01-09",
+      "h10": -124
+     }
+    ]
+   },
+   "feasible": 0,
+   "zRef": 8,
+   "targetEl": -0.007
+  }
+ }
+}

@@ -171,37 +171,35 @@ export const DEFAULT_PRESET = 'secondpeak';
 // to 5.9, turning two healthy states into closeouts. So `basisT`/`basisTideM`
 // are checked before the floor is allowed to bind.
 //
-// Privates stays null, MEASURED (2026-09-02, `--mode=floor --preset=privates`
-// on tree 4412eaa): the criterion has no domain there. Its card ocean (0.70 m,
-// T 12, tide 0) sits BELOW its own wedge's activation H0 (0.721 m), so at every
-// one of the 31 rungs 0.40 -> 0.70 the shipped line has 0 % of stage stations
-// on the reef — it is the DEM platform's line, a right-hand 15.7-26.2 deg peel
-// with 0 reversals and 0 pinned stations (gate 0, replica bit-identical) — and
-// "every rung up to the card is healthy" fails at the card itself (instrument
-// note: "the card state itself is not healthy"). Not a closeout: alpha never
-// drops below 12.8 deg and never changes sign anywhere on 0.40 -> 3.00 m at
-// any sample tide. The line DOES sit on the wedge above the card — healthy at
-// every rung 0.76 -> 1.43 m at tide 0 (alpha 12.8-28.6, on-reef 0.52-0.99) —
-// and off it again seaward above 1.43 m; and the card itself is a peel on the
-// wedge at tides <= -0.09 m, where a floor exists (0.70 at -0.09, 0.61 at
-// -0.25, 0.48 at -0.50, the 0.40 ladder bottom below -0.66; MLLW activation
-// 0.269). A tide-0 floor would have to be 0.76 m, above the authored card,
-// which the table's own invariant (no card at or below its floor) forbids. So:
-// no floor, no clamp, derived oceans pass through raw — Jun-Sep p75
-// 0.585-0.706 m draw on the platform at 15.7-18.7 deg, the other eight months
-// on the wedge at 13.3-27.3 deg, all twelve right-handed. The decision that
-// would create a floor is authorship's — a card H0 >= 0.76 m, or a card tide
-// <= -0.09 m — and is not taken here. Docs: MODEL.md 4.6 "Privates",
-// research/PRIVATES_CONTOUR_2026-09-01.md "Peel floor and tide band".
-// tests/peel-floor.test.js re-bakes the verdict (activation above the card,
-// 0 % on reef at the card, measurePeelFloor finding no floor) so a bake that
-// makes a Privates floor possible fails the suite instead of inheriting this.
+// THE REFIT (2026-09-24, research/REEF_REFIT_2026-09-24.md). Every row below
+// was re-measured on the table-arm bake (bed.js data/model/pp_reef_fit.json
+// under the MLLW + 0.1 m crest cap); the c85bf62 rows are kept as
+// PEEL_FLOOR_LEGACY for the #reef=legacy arm. What moved: the shallower
+// wedges activate lower (0.29-1.21 m against 0.62-1.24), so every floor
+// dropped (Sewers 1.62 -> 1.54, First Peak 1.38 -> 1.20, Second Peak 1.11 ->
+// 0.47, Jack's 0.78 -> 0.47, The Hook 1.09 -> 0.92, Sharks 0.81 -> 0.46) and
+// Second Peak's ladder has NO branch flip any more (flipLo/flipHi null: the
+// floor there is the peel returning on the reef, not a branch changing).
+// Privates, null since 2026-09-02 (its legacy wedge activated at 0.721 m,
+// above its 0.70 m card, so no rung up to the card was on the reef), now
+// carries a floor: the table wedge (crest 0.912 m, beta 65.5) activates at
+// 0.305 m, the card line sits on it (59 %, alpha 30.4 against 31) and the
+// peel returns at 0.63 -> 0.64 (on-reef 0.00 -> 0.55). Its tide band is
+// [MLLW, 0]: at +0.01 m the floor rung is off the wedge again.
+// Sharks' tide band is [0, 0] by the criterion's own letter: the tide-0
+// floor holds at every rung from MLLW to -0.02 m and at 0, and FAILS at
+// -0.01 m alone (H0 0.61 m there sits 37 % on the reef — a one-rung
+// knife-edge, MEASUREMENT_LESSONS 14); the band is the contiguous interval
+// around 0, so it is a point, and peelFloorH0 declines at every other tide.
+// Months sit at tide 0 and are unaffected; a reader dragging the tide sees
+// the "NOT applied" line, which is the honest one.
 //
 // Everything below was read off ONE run of the instrument; every field is
 // checked against a fresh headless measurement by tests/peel-floor.test.js.
 export const PEEL_FLOOR_BASIS = {
-  measured: '2026-09-01',
-  modelCommit: 'c85bf62',   // the tree the floors were read off (bake inputs last moved 1a0b17e, thresholds 09c7f4a)
+  measured: '2026-09-24',
+  modelCommit: '12ffab7',   // the tree the floors were read off: the refit (bed.js table arm + data/model/pp_reef_fit.json)
+  tabulatedIn: 'docs/research/REEF_REFIT_2026-09-24.md',   // where the current floors and tide bands are tabulated (MODEL.md 4.6 carries the c85bf62 table until the coordinator folds this in)
   instrument: 'scripts/measure_break_activation.mjs --mode=floor',
   tideM: 0,                 // every spot: tide 0
   periodS: 'card',          // every spot: the site card's own T (basisT per row)
@@ -225,12 +223,72 @@ export const PEEL_FLOOR_BASIS = {
   // table was measured and not adopted — TIDE_FLOOR §4: above +0.33..+0.66 m
   // (spot-dependent) the CARD itself is off the reef and no floor exists, so
   // the table would have holes across a third to half of the accepted range.
-  tideMeasured: '2026-09-01',
+  tideMeasured: '2026-09-24',
   tideInstrument: 'scripts/measure_break_activation.mjs --mode=tide',
   tideStepM: 0.01, tideRangeM: [-0.862, 0.764],
   tideCriterion: 'contiguous interval of 0.01 m tide rungs around 0 at which floorH0(tide) <= floorH0(0) and the card H0 is a peel; the tide-0 floor is returned inside it and null outside',
 };
 export const PEEL_FLOOR = {
+  sewers: {
+    flipLo: 1.53, flipHi: 1.54, floorLo: 1.53, floorHi: 1.54, floorH0: 1.54,
+    alphaBelow: -7.8, alphaAbove: 21.6, onReefBelow: 0.28, onReefAbove: 0.62,
+    alphaTarget: 38, basisT: 15, basisTideM: 0, bakeDigest: 'bcd661f5eac8d3e3',
+    tideBandM: [-0.862, 0], tideDigest: '3b7b08ed10b2fbd1',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 16.8, onReefCard: 0.83, alphaFloor: 37, onReefFloor: 0.73 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 1.54, fails: "sign+reef", alphaAtEdge: 21.6, alphaBeyond: -7.8, onReefAtEdge: 0.62, onReefBeyond: 0.29, alphaCard: 38.1, onReefCard: 0.74, alphaFloor: 21.6, onReefFloor: 0.62 } } },
+  firstpeak: {
+    flipLo: 0.95, flipHi: 0.96, floorLo: 1.19, floorHi: 1.20, floorH0: 1.20,
+    alphaBelow: 5.2, alphaAbove: 13.1, onReefBelow: 0.79, onReefAbove: 0.82,
+    alphaTarget: 50, basisT: 14, basisTideM: 0, bakeDigest: '0e2ab6aeaa9015ba',
+    tideBandM: [-0.862, 0], tideDigest: '0628628ff60d3101',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 33.2, onReefCard: 1, alphaFloor: 44.7, onReefFloor: 1 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 1.2, fails: "alpha", alphaAtEdge: 13.1, alphaBeyond: 5.3, onReefAtEdge: 0.82, onReefBeyond: 0.81, alphaCard: 50, onReefCard: 1, alphaFloor: 13.1, onReefFloor: 0.82 } } },
+  secondpeak: {
+    flipLo: null, flipHi: null, floorLo: 0.46, floorHi: 0.47, floorH0: 0.47,
+    alphaBelow: 15.3, alphaAbove: 15.8, onReefBelow: 0.48, onReefAbove: 0.52,
+    alphaTarget: 41, basisT: 14, basisTideM: 0, bakeDigest: '262e8b6c866fbf4b',
+    tideBandM: [-0.81, 0], tideDigest: '638e18ed3fd63d6e',
+    tideEdges: { lo: { tide: -0.81, beyondTide: -0.82, failH0: 1.5, fails: "alpha", alphaAtEdge: 10.1, alphaBeyond: 9.7, onReefAtEdge: 0.73, onReefBeyond: 0.73, alphaCard: 10.1, onReefCard: 0.73, alphaFloor: 37.5, onReefFloor: 0.91 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 0.47, fails: "reef", alphaAtEdge: 15.8, alphaBeyond: 15, onReefAtEdge: 0.52, onReefBeyond: 0.49, alphaCard: 32.1, onReefCard: 0.93, alphaFloor: 15.8, onReefFloor: 0.52 } } },
+  jacks: {
+    flipLo: 0.46, flipHi: 0.47, floorLo: 0.46, floorHi: 0.47, floorH0: 0.47,
+    alphaBelow: 9.7, alphaAbove: 27.2, onReefBelow: 0.47, onReefAbove: 0.67,
+    alphaTarget: 37, basisT: 13, basisTideM: 0, bakeDigest: '67b21cf21762b099',
+    tideBandM: [-0.862, 0.01], tideDigest: '28c6d42e357c3a4f',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 29.9, onReefCard: 0.87, alphaFloor: 32.9, onReefFloor: 0.83 },
+                 hi: { tide: 0.01, beyondTide: 0.02, failH0: 0.47, fails: "alpha+reef", alphaAtEdge: 27.8, alphaBeyond: 9.8, onReefAtEdge: 0.67, onReefBeyond: 0.47, alphaCard: 35.1, onReefCard: 0.92, alphaFloor: 27.8, onReefFloor: 0.67 } } },
+  thehook: {
+    flipLo: 1.01, flipHi: 1.02, floorLo: 0.91, floorHi: 0.92, floorH0: 0.92,
+    alphaBelow: -4.8, alphaAbove: 12.2, onReefBelow: 0.51, onReefAbove: 0.54,
+    alphaTarget: 41, basisT: 13, basisTideM: 0, bakeDigest: '0a3ae5d50232c1d1',
+    tideBandM: [-0.862, 0], tideDigest: '1bc16e6356282fc1',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 22.2, onReefCard: 0.78, alphaFloor: 37.4, onReefFloor: 0.79 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 0.92, fails: "sign", alphaAtEdge: 12.2, alphaBeyond: -4.9, onReefAtEdge: 0.54, onReefBeyond: 0.52, alphaCard: 39.7, onReefCard: 0.81, alphaFloor: 12.2, onReefFloor: 0.54 } } },
+  sharks: {
+    flipLo: 0.45, flipHi: 0.46, floorLo: 0.45, floorHi: 0.46, floorH0: 0.46,
+    alphaBelow: 12.3, alphaAbove: 21.9, onReefBelow: 0.39, onReefAbove: 0.53,
+    alphaTarget: 36, basisT: 13, basisTideM: 0, bakeDigest: '386e89d6b816943e',
+    tideBandM: [0, 0], tideDigest: '2bb38ca3045c8a71',
+    tideEdges: { lo: { tide: 0, beyondTide: -0.01, failH0: 0.61, fails: "reef", alphaAtEdge: 39.3, alphaBeyond: 18.1, onReefAtEdge: 0.72, onReefBeyond: 0.37, alphaCard: 34.3, onReefCard: 0.84, alphaFloor: 21.9, onReefFloor: 0.53 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 0.46, fails: "reef", alphaAtEdge: 21.9, alphaBeyond: 17.5, onReefAtEdge: 0.53, onReefBeyond: 0.47, alphaCard: 34.3, onReefCard: 0.84, alphaFloor: 21.9, onReefFloor: 0.53 } } },
+  privates: {
+    flipLo: 0.55, flipHi: 0.56, floorLo: 0.63, floorHi: 0.64, floorH0: 0.64,
+    alphaBelow: 17.3, alphaAbove: 26.7, onReefBelow: 0.00, onReefAbove: 0.55,
+    alphaTarget: 31, basisT: 12, basisTideM: 0, bakeDigest: 'e15596316c313dfc',
+    tideBandM: [-0.862, 0], tideDigest: '9d43a2d8fe01113a',
+    tideEdges: { lo: { tide: -0.862, beyondTide: null, alphaCard: 33.7, onReefCard: 0.67, alphaFloor: 33.4, onReefFloor: 0.62 },
+                 hi: { tide: 0, beyondTide: 0.01, failH0: 0.64, fails: "reef", alphaAtEdge: 26.7, alphaBeyond: 17.1, onReefAtEdge: 0.55, onReefBeyond: 0, alphaCard: 30.4, onReefCard: 0.58, alphaFloor: 26.7, onReefFloor: 0.55 } } },
+};
+
+// THE LEGACY ARM'S FLOOR (#reef=legacy). The table above was re-measured on
+// 2026-09-24 for the refit wedge (research/REEF_REFIT_2026-09-24.md); this is
+// the c85bf62 table as it shipped before that, kept because the legacy arm
+// must reproduce the pre-refit bake bit-for-bit and its digests are the proof
+// (tests/reef-legacy-parity.test.js re-bakes bakeDigest and tideDigest on the
+// legacy arm). Not read by the runtime: peelFloorH0() serves the shipped arm
+// only, and a #reef=legacy boot draws derived oceans through PEEL_FLOOR — a
+// known, documented mismatch on an A/B arm, not a floor claim about it.
+export const PEEL_FLOOR_LEGACY = {
   sewers: {
     flipLo: 1.61, flipHi: 1.62, floorLo: 1.61, floorHi: 1.62, floorH0: 1.62,
     alphaBelow: -8.3, alphaAbove: 34.8, onReefBelow: 0.33, onReefAbove: 0.65,

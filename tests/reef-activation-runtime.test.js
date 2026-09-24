@@ -25,16 +25,21 @@ import { PRESETS } from '../shared/params.js';
 // X_RANGE and tests/break-field-gate.test.js pins that mirror against main.js.
 const X_RANGE = I.X_RANGE;
 
-// The six numbers the docs quote (REEF_ACTIVATION_2026-09-01 §1, MODEL.md 4.6,
-// NEXT_INVESTMENTS §1), tide 0, card T. If the bake moves them, the docs move
-// too — this is the test that says so.
-const DOCUMENTED = { sewers: 1.239, firstpeak: 1.143, secondpeak: 1.003,
-                     jacks: 0.616, thehook: 0.916, sharks: 0.726,
-                     // Private's mapped 2026-09-02 (--truncate 0.5 contour); measured
-                     // the same day with --mode=card. Its reef fit does not converge
-                     // (7.6 deg vs 31, 0 % of stations on the wedge), so this is the
-                     // activation of a wedge the line does not sit on.
-                     privates: 0.721 };
+// The numbers the docs quote (REEF_REFIT_2026-09-24 for the shipped table
+// arm; REEF_ACTIVATION_2026-09-01 §1 / MODEL.md 4.6 for the legacy arm), tide
+// 0, card T. If the bake moves them, the docs move too — this is the test
+// that says so.
+const DOCUMENTED = { sewers: 1.206, firstpeak: 0.707, secondpeak: 0.299,
+                     jacks: 0.288, thehook: 0.775, sharks: 0.439,
+                     // Private's mapped 2026-09-02 (--truncate 0.5 contour). Since the
+                     // 2026-09-24 refit its wedge is the table's (crest 0.912 m, beta
+                     // 65.5) and the card line sits on it (59 % of stations).
+                     privates: 0.305 };
+// The pre-refit numbers (REEF_ACTIVATION_2026-09-01 §1, MODEL.md 4.6 as
+// written then), the legacy arm's; tests/reef-legacy-parity.test.js pins the
+// legacy composite itself, this pins the activation the old docs quote.
+const DOCUMENTED_LEGACY = { sewers: 1.239, firstpeak: 1.143, secondpeak: 1.003,
+                            jacks: 0.616, thehook: 0.916, sharks: 0.726, privates: 0.721 };
 
 test('the runtime activation equals the instrument\'s bisection at every mapped spot, tide 0', () => {
   assert.equal(I.MAPPED.length, 7);
@@ -48,8 +53,16 @@ test('the runtime activation equals the instrument\'s bisection at every mapped 
     assert.equal(Math.round(mine.H0 * 1000) / 1000, DOCUMENTED[key],
       `${key}: activation ${mine.H0.toFixed(3)} is not the documented ${DOCUMENTED[key]} — `
       + 'the bake moved; re-run `node scripts/measure_break_activation.mjs --mode=card` and update '
-      + 'MODEL.md 4.6, NEXT_INVESTMENTS §1 and REEF_ACTIVATION_2026-09-01');
+      + 'REEF_REFIT_2026-09-24 (and MODEL.md 4.6 once the coordinator folds it in)');
   }
+  // and the legacy arm still reads the pre-refit activation at every spot
+  bed.setReefFitMode('legacy');
+  try {
+    for (const key of I.MAPPED) {
+      const mine = bed.reefActivationH0(PRESETS[key].geoSpot, X_RANGE, { T: PRESETS[key].T, tide: 0 });
+      assert.equal(Math.round(mine.H0 * 1000) / 1000, DOCUMENTED_LEGACY[key], `${key}: legacy activation ${mine.H0.toFixed(3)} is not the documented ${DOCUMENTED_LEGACY[key]}`);
+    }
+  } finally { bed.setReefFitMode('table'); }
 });
 
 test('…and off tide 0, where the HUD actually reads it (the band runs to MLLW)', () => {

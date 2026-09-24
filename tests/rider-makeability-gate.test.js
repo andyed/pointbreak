@@ -55,7 +55,13 @@ for (const key of SPOTS) {
 // where the pocket really fails, the metric can tell the two riders apart —
 // which is the property rideMetric cannot have at any threshold.
 test('rider gate — the metric separates a kinematic rider from a dynamic one', () => {
-  const r = G.runSpot('privates', 'bake');   // median V_peel 14 m/s: the knife-edge
+  // The knife-edge spot moved with the 2026-09-24 reef refit: Privates' line
+  // was the DEM platform's 15.7 deg peel at V_peel 14 m/s on the legacy wedge
+  // and is now a 30 deg peel on the table wedge at ~6 m/s, which every rider
+  // makes. On the refit bake the spot where the pocket really fails a 6 m/s
+  // board is Sharks (kinematic 0.14 vs dynamic 1.00; the instrument's own
+  // arm-2 line names it).
+  const r = G.runSpot('sharks', 'bake');
   const sep = r.dynamic.agreement - r.capped.agreement;
   assert.ok(sep >= G.MIN_SEPARATION,
     `at ${r.boardMps} m/s the dynamic rider scored ${r.dynamic.agreement} and the kinematic one `

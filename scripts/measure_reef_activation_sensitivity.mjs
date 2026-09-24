@@ -23,11 +23,13 @@
 //   crestDeltaM  added to the wedge crest depth, clamp(0.75*h_b, 1.2, 3.0) m.
 //                Positive = deeper. The DEM residual is 0.31-0.93 m; the sweep
 //                runs well past it in both directions.
-//   ceilLiftM    raises the -0.5 m NAVD88 reef ceiling used for the crest
-//                target and the post clamp. HYPOTHETICAL: the shipped
-//                invariant (reef-audit.test.js) forbids it; the dry-post gate
-//                at -0.5 m is left alone so land is never touched. Exists to
-//                show where the ceiling, not the crest rule, is what binds.
+//   ceilLiftM    raises the arm's crest cap (REEF_CREST_CEIL_EL = MLLW + 0.1 m
+//                on the shipped table arm since 2026-09-24; the old -0.5 m
+//                NAVD88 cap on #reef=legacy) used for the crest target and the
+//                post clamp. HYPOTHETICAL: the shipped invariant
+//                (reef-audit.test.js) forbids it; the dry-post gate at -0.5 m
+//                is left alone so land is never touched. Exists to show where
+//                the ceiling, not the crest rule, is what binds.
 //   winUpM / winDownM  extend (positive) or shrink the reef window's up-point
 //                (negative-x) and down-point bounds, metres. The shipped knots
 //                are the OSM stage bounds feathered inward (params.js
@@ -64,15 +66,18 @@ const BED_SRC = readFileSync(fileURLToPath(BED_URL), 'utf8');
 // still occurs exactly once in bed.js: a drift there must fail the test, not
 // silently sweep a constant that no longer exists.
 export const PATCHES = [
+  // Since 2026-09-24 (the refit) bed.js resolves the crest depth and the crest
+  // cap per arm on one line each — the table row's on the shipped arm, the
+  // legacy rule on #reef=legacy — so one patch reaches both arms.
   { name: 'crest depth',
-    find: 'const crestDepth = Math.min(Math.max(0.75 * hb, 1.2), 3.0);',
-    replace: 'const crestDepth = Math.min(Math.max(0.75 * hb, 1.2), 3.0) + __SWEEP.crestDeltaM;' },
+    find: 'const crestDepth = row ? row.crestDepthM : Math.min(Math.max(0.75 * hb, 1.2), 3.0);',
+    replace: 'const crestDepth = (row ? row.crestDepthM : Math.min(Math.max(0.75 * hb, 1.2), 3.0)) + __SWEEP.crestDeltaM;' },
   { name: 'crest target ceiling',
-    find: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, REEF_CEIL_EL - 0.2);',
-    replace: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, REEF_CEIL_EL + __SWEEP.ceilLiftM - 0.2);' },
+    find: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, crestCeil - crestMargin);',
+    replace: 'const targetEl = Math.min(MSL_ABOVE_NAVD88 - crestDepth, crestCeil + __SWEEP.ceilLiftM - crestMargin);' },
   { name: 'post ceiling',
-    find: 'return Math.max(Math.min(em + lift, REEF_CEIL_EL) - em, 0);',
-    replace: 'return Math.max(Math.min(em + lift, REEF_CEIL_EL + __SWEEP.ceilLiftM) - em, 0);' },
+    find: 'return Math.max(Math.min(em + lift, ceilEl) - em, 0);',
+    replace: 'return Math.max(Math.min(em + lift, ceilEl + __SWEEP.ceilLiftM) - em, 0);' },
   { name: 'reef window knots',
     find: '? reefWindowKnots(pr.stageBoundsM[0], pr.stageBoundsM[1])',
     replace: '? __sweepKnots(pr.stageBoundsM[0], pr.stageBoundsM[1])' },

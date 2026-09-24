@@ -46,10 +46,10 @@
 // knobs measure_peel_band_field.mjs serves through its load hook
 // (scripts/lib/reef-knobs.mjs); here they are served at bed.js's PLAIN URL,
 // so every instrument above scores the knob bake through the hooks it already
-// uses. `--bed=<tag>` is the ordinary bed-source switch. `--reef=<arm>` is a
-// pass-through: if the bake exports a reef-arm switch (setReefFitArm /
-// setReefArm / setReefFitMode) it is called with the arm; otherwise the flag is
-// recorded as ignored.
+// uses. `--bed=<tag>` is the ordinary bed-source switch. `--reef=<arm>` picks
+// the reef arm through bed.js setReefFitMode ('table' shipped since the
+// 2026-09-24 refit; 'legacy' the pre-refit bake bit-for-bit) and the gate
+// then reads that arm's records (gateAgainstRecords).
 //
 // VERDICT. One line per spot, PASS or FAIL naming the first failing criterion,
 // in this order: dry posts untouched; no wet post above MLLW + 0.1 m; the card
@@ -98,7 +98,7 @@ const PB = await import('./measure_peel_band_field.mjs');
 const S2 = await import('./compare_sentinel2_line.mjs');
 const LL = await import('./lib/lookout-line.mjs');
 const bed = await import('../web-three/js/bed.js');
-const { PRESETS, PEEL_FLOOR, PEEL_FLOOR_BASIS, peelFloorH0 } = await import('../shared/params.js');
+const { PRESETS, PEEL_FLOOR, PEEL_FLOOR_LEGACY, PEEL_FLOOR_BASIS, peelFloorH0 } = await import('../shared/params.js');
 const { PP_GEO_DATA } = await import('../data/model/pp_geo_profiles.js');
 const { PP_DEPTH_DATA } = await import('../data/model/pp_depth_patches.js');
 const D = await import('../web-three/js/dispersion.js');
@@ -115,15 +115,25 @@ export const FIELD_DAY = {
   cells: [{ label: 'SC116 Hs, verified tide', H0: 0.778, T: 16, tide: 0.5 },
           { label: 'Surfline 3 ft, predicted tide', H0: 0.914, T: 16, tide: 0.357 }],
 };
-// The reef-arm pass-through, if the bake exposes one.
-export const REEF_ARM = (() => {
-  const arm = isMain ? flag('reef', '') : '';
+// The reef arm. Since the 2026-09-24 refit bed.js exports setReefFitMode:
+// 'table' (shipped, data/model/pp_reef_fit.json under the MLLW + 0.1 m crest
+// cap) or 'legacy' (the pre-refit load-time fit under the -0.5 m cap,
+// bit-for-bit — tests/reef-legacy-parity.test.js). Set from --reef= on the
+// CLI, or by applyReefArm() from a test; the gate below reads the arm to pick
+// the records that describe it.
+export let REEF_ARM = null;
+export function applyReefArm(arm) {
   if (!arm) return null;
   for (const fn of ['setReefFitArm', 'setReefArm', 'setReefFitMode']) {
-    if (typeof bed[fn] === 'function') { bed[fn](arm); return { arm, applied: true, via: fn }; }
+    if (typeof bed[fn] === 'function') { bed[fn](arm); REEF_ARM = { arm, applied: true, via: fn }; return REEF_ARM; }
   }
-  return { arm, applied: false, note: 'the bake exports no reef-arm switch (setReefFitArm / setReefArm / setReefFitMode); flag ignored' };
-})();
+  REEF_ARM = { arm, applied: false, note: 'the bake exports no reef-arm switch (setReefFitArm / setReefArm / setReefFitMode); flag ignored' };
+  return REEF_ARM;
+}
+export function currentReefArm() {
+  return REEF_ARM?.applied ? REEF_ARM.arm : (typeof bed.getReefFitMode === 'function' ? bed.getReefFitMode() : 'table');
+}
+if (isMain) applyReefArm(flag('reef', ''));
 
 const round = (v, d = 2) => (Number.isFinite(v) ? Math.round(v * 10 ** d) / 10 ** d : (v === undefined ? null : v));
 const f = (v, d = 1) => (v === null || v === undefined || Number.isNaN(v) ? 'n/a' : Number(v).toFixed(d));
@@ -380,7 +390,19 @@ export function verdictOf(s) {
 }
 
 // ---------- the gate against the published records ----------
-export function gateAgainstRecords(spots, sentinel, lookout) {
+// The records are the ARM's. The legacy arm is the pre-refit bake, so its
+// records are the ones the notes published on it: PEEL_FLOOR_LEGACY, the
+// legacy scorecard's activation (qa/reef-fit/score.legacy.json, which
+// reef-legacy-parity pins to the pre-refit composite), physics-core R4,
+// sentinel2 residuals.json, lookout residual.json and peel-band field.json
+// (the last four are dated-note assets and were measured on that bake). The
+// table arm's records are the ones re-measured on it: PEEL_FLOOR, the
+// standing qa/break-field/summary.json activation, the field-day cells the
+// table was accepted at (pp_reef_fit.json) and the table scorecard's
+// Sentinel-2 verdicts (qa/reef-fit/score.table.json); it has no physics-core
+// or Lookout record yet, so those rows are skipped, not faked.
+export function gateAgainstRecords(spots, sentinel, lookout, arm = 'table') {
+  const legacy = arm === 'legacy';
   const rows = [];
   const add = (record, key, field, expected, got, tol = 0) => {
     const num = Number.isFinite(expected) && Number.isFinite(got);
@@ -388,28 +410,52 @@ export function gateAgainstRecords(spots, sentinel, lookout) {
     rows.push({ record, key, field, expected, got, ok });
   };
   const readJson = (rel) => { const p = join(ROOT, rel); return existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null; };
-  const qaSummary = readJson('qa/break-field/summary.json');
-  const physics = readJson('docs/research/assets/physics-core-2026-09-23/summary.json');
-  const s2 = readJson('docs/research/assets/sentinel2-locus-2026-09-23/residuals.json');
-  const lk = readJson('docs/research/assets/lookout-locus-2026-09-23/residual.json');
-  const field = readJson('docs/research/assets/peel-band-2026-09-24/field.json');
+  const qaSummary = legacy ? null : readJson('qa/break-field/summary.json');
+  const legacyScore = legacy ? readJson('qa/reef-fit/score.legacy.json') : null;
+  const tableScore = legacy ? null : readJson('qa/reef-fit/score.table.json');
+  const reefTable = legacy ? null : readJson('data/model/pp_reef_fit.json');
+  const physics = legacy ? readJson('docs/research/assets/physics-core-2026-09-23/summary.json') : null;
+  const s2 = legacy ? readJson('docs/research/assets/sentinel2-locus-2026-09-23/residuals.json') : null;
+  const lk = legacy ? readJson('docs/research/assets/lookout-locus-2026-09-23/residual.json') : null;
+  const field = legacy ? readJson('docs/research/assets/peel-band-2026-09-24/field.json') : null;
+  const FLOORS = legacy ? PEEL_FLOOR_LEGACY : PEEL_FLOOR;
+  const floorRecord = legacy ? 'PEEL_FLOOR_LEGACY' : 'PEEL_FLOOR';
   for (const s of spots) {
-    const key = s.key, pf = PEEL_FLOOR[key];
+    const key = s.key, pf = FLOORS[key];
     if (pf) {
-      for (const k of ['floorLo', 'floorHi', 'floorH0', 'flipLo', 'flipHi', 'basisT', 'bakeDigest']) add('PEEL_FLOOR', key, k, pf[k], s.floor[k]);
-      for (const k of ['alphaBelow', 'alphaAbove']) add('PEEL_FLOOR', key, k, pf[k], s.floor[k], 0.051);
-      for (const k of ['onReefBelow', 'onReefAbove']) add('PEEL_FLOOR', key, k, pf[k], s.floor[k], 0.0051);
+      for (const k of ['floorLo', 'floorHi', 'floorH0', 'flipLo', 'flipHi', 'basisT', 'bakeDigest']) add(floorRecord, key, k, pf[k], s.floor[k]);
+      for (const k of ['alphaBelow', 'alphaAbove']) add(floorRecord, key, k, pf[k], s.floor[k], 0.051);
+      for (const k of ['onReefBelow', 'onReefAbove']) add(floorRecord, key, k, pf[k], s.floor[k], 0.0051);
       if (s.band?.band) {
-        add('PEEL_FLOOR', key, 'tideBandM', pf.tideBandM, s.band.band);
-        add('PEEL_FLOOR', key, 'tideDigest', pf.tideDigest, s.band.tideDigest);
+        add(floorRecord, key, 'tideBandM', pf.tideBandM, s.band.band);
+        add(floorRecord, key, 'tideDigest', pf.tideDigest, s.band.tideDigest);
         for (const side of ['lo', 'hi']) for (const k of Object.keys(pf.tideEdges[side])) {
           const e = pf.tideEdges[side][k], g = s.band.tideEdges[side][k];
-          add('PEEL_FLOOR', key, `tideEdges.${side}.${k}`, e, g, typeof e === 'number' && (k.startsWith('alpha') ? 0.051 : k.startsWith('onReef') ? 0.0051 : 0));
+          add(floorRecord, key, `tideEdges.${side}.${k}`, e, g, typeof e === 'number' && (k.startsWith('alpha') ? 0.051 : k.startsWith('onReef') ? 0.0051 : 0));
         }
-      } else rows.push({ record: 'PEEL_FLOOR', key, field: 'tideBandM', expected: pf.tideBandM, got: s.band?.note || null, ok: null });
-    } else add('PEEL_FLOOR', key, 'floorH0', null, s.floor.floorH0);
-    const act = qaSummary?.presets?.[key]?.peelFloor?.reefActivationH0 ?? qaSummary?.reefActivation?.[key]?.H0;
-    if (act !== undefined) add('qa/break-field/summary.json', key, 'reefActivationH0', round(act, 4), round(s.floor.activationH0, 4));
+      } else rows.push({ record: floorRecord, key, field: 'tideBandM', expected: pf.tideBandM, got: s.band?.note || null, ok: null });
+    } else add(floorRecord, key, 'floorH0', null, s.floor.floorH0);
+    const act = legacy ? legacyScore?.spots?.[key]?.activationH0
+      : (qaSummary?.presets?.[key]?.peelFloor?.reefActivationH0 ?? qaSummary?.reefActivation?.[key]?.H0);
+    if (act !== undefined && act !== null) add(legacy ? 'qa/reef-fit/score.legacy.json' : 'qa/break-field/summary.json', key, 'reefActivationH0', round(act, legacy ? 3 : 4), round(s.floor.activationH0, legacy ? 3 : 4));
+    // the table arm's own records: the field-day cells the table was accepted
+    // at, and the table scorecard's Sentinel-2 verdicts (its replica takes the
+    // median of unrounded station offsets, compareScene rounds first: 0.1 m)
+    const row = reefTable?.spots?.[s.spot];
+    if (row?.fieldCells && s.fieldDay) {
+      for (let i = 0; i < s.fieldDay.length; i++) {
+        add('pp_reef_fit.json', key, `${s.fieldDay[i].H0}/${sgn(s.fieldDay[i].tide, 3)} alpha`, row.fieldCells[i].alpha, s.fieldDay[i].alpha, 0.051);
+        add('pp_reef_fit.json', key, `${s.fieldDay[i].H0}/${sgn(s.fieldDay[i].tide, 3)} Vp`, row.fieldCells[i].Vp, s.fieldDay[i].Vp, 0.051);
+      }
+    }
+    if (row) add('pp_reef_fit.json', key, 'cardAlphaDeg', row.cardAlphaDeg, s.card.alpha, 0.051);
+    if (tableScore && s.sentinel) {
+      for (const c of tableScore.sentinel.perCell.filter((x) => x.spot === s.spot && !x.supplementary)) {
+        const got = s.sentinel.cells.find((g) => g.date === c.date);
+        add('qa/reef-fit/score.table.json', key, `${c.date} reef verdict`, c.verdicts.reef, got?.verdict ?? null);
+        add('qa/reef-fit/score.table.json', key, `${c.date} reef h10 offset`, c.offsets.reef.h10, got?.h10 ?? null, 0.151);
+      }
+    }
     const w = physics?.windows?.find((x) => x.key === key);
     if (w) {
       add('physics-core summary.json', key, 'windowLoH0', w.windowLoH0, s.r4.windowLoH0);
@@ -433,6 +479,7 @@ export function gateAgainstRecords(spots, sentinel, lookout) {
     }
   }
   if (s2 && sentinel) for (const arm of ['reef', 'plane', 'measured']) add('sentinel2 residuals.json', 'all', `score.${arm}`, s2.summary.score[arm], sentinel.score[arm]);
+  if (tableScore && sentinel) for (const arm of ['reef', 'plane', 'measured']) add('qa/reef-fit/score.table.json', 'all', `score.${arm}`, tableScore.sentinel.score[arm], sentinel.score[arm]);
   if (lk && lookout) {
     for (const rec of lk.arms) {
       const got = lookout.arms.find((a) => a.h0Arm === rec.h0Arm && a.bed === rec.bed);
@@ -445,11 +492,11 @@ export function gateAgainstRecords(spots, sentinel, lookout) {
   }
   const checked = rows.filter((r) => r.ok !== null);
   const mismatches = checked.filter((r) => !r.ok);
-  return { applicable: true, checked: checked.length, matched: checked.length - mismatches.length, mismatches, skipped: rows.filter((r) => r.ok === null) };
+  return { applicable: true, arm, checked: checked.length, matched: checked.length - mismatches.length, mismatches, skipped: rows.filter((r) => r.ok === null) };
 }
 export function gateMarkdown(g) {
   if (!g.applicable) return `## Gate: not applicable — ${g.note}\n`;
-  const out = [`## Gate against the published records: ${g.matched}/${g.checked} matched${g.mismatches.length ? ` — ${g.mismatches.length} MISMATCH` : ''}${g.skipped.length ? ` (${g.skipped.length} not checked: ${g.skipped.map((s) => `${s.key} ${s.field} — ${s.got}`).join('; ')})` : ''}\n`];
+  const out = [`## Gate against the published records (${g.arm || 'table'} arm): ${g.matched}/${g.checked} matched${g.mismatches.length ? ` — ${g.mismatches.length} MISMATCH` : ''}${g.skipped.length ? ` (${g.skipped.length} not checked: ${g.skipped.map((s) => `${s.key} ${s.field} — ${s.got}`).join('; ')})` : ''}\n`];
   if (g.mismatches.length) out.push(mdTable(['record', 'spot', 'field', 'expected', 'got'], g.mismatches.map((m) => [m.record, m.key, m.field, JSON.stringify(m.expected), JSON.stringify(m.got)])));
   return out.join('\n');
 }
@@ -495,16 +542,18 @@ export function scorecardMarkdown(spots, sentinel, lookout, meta) {
 }
 
 // ---------- main ----------
-export async function run({ keys = KEYS, fast = false, log = null } = {}) {
+export async function run({ keys = KEYS, fast = false, log = null, reef = null } = {}) {
   const t0 = Date.now();
+  if (reef) applyReefArm(reef);
+  const arm = currentReefArm();
   const sentinel = sentinelAll();
   if (log) log(`Sentinel-2: reef ${sentinel.score.reef.contradicted}/${sentinel.score.reef.consistent}/${sentinel.score.reef.closest} over ${sentinel.cells} cells`);
   const lookout = lookoutAll();
   const spots = keys.map((k) => scoreSpot(k, { fast, log, sentinel, lookout }));
-  const gateApplicable = !hasKnobs(KNOBS) && !BED_SOURCE && !(REEF_ARM && REEF_ARM.applied);
-  const gate = gateApplicable ? gateAgainstRecords(spots, sentinel, lookout)
-    : { applicable: false, note: `gate is only defined on the shipped bake with zero knobs (knobs ${hasKnobs(KNOBS) ? 'active' : 'none'}, bed ${BED_SOURCE || 'shipped'}${REEF_ARM?.applied ? `, reef arm ${REEF_ARM.arm}` : ''})` };
-  return { gate, spots, sentinel, lookout, seconds: round((Date.now() - t0) / 1000, 1) };
+  const gateApplicable = !hasKnobs(KNOBS) && !BED_SOURCE;
+  const gate = gateApplicable ? gateAgainstRecords(spots, sentinel, lookout, arm)
+    : { applicable: false, note: `gate is only defined on the shipped bed with zero knobs (knobs ${hasKnobs(KNOBS) ? 'active' : 'none'}, bed ${BED_SOURCE || 'shipped'}, reef arm ${arm})` };
+  return { gate, arm, spots, sentinel, lookout, seconds: round((Date.now() - t0) / 1000, 1) };
 }
 
 function renderFromJson(path) {
@@ -520,7 +569,7 @@ async function main() {
   const keys = flag('spots', '') ? flag('spots', '').split(',') : KEYS;
   const outArg = flag('out', 'qa/reef-score');
   const outDir = isAbsolute(outArg) ? outArg : join(ROOT, outArg);
-  const label = flag('label', KNOBS_PATH ? basename(KNOBS_PATH).replace(/\.json$/, '') : 'shipped') + (BED_SOURCE ? `.${BED_SOURCE}` : '');
+  const label = flag('label', KNOBS_PATH ? basename(KNOBS_PATH).replace(/\.json$/, '') : (REEF_ARM?.applied ? REEF_ARM.arm : 'shipped')) + (BED_SOURCE ? `.${BED_SOURCE}` : '');
   mkdirSync(outDir, { recursive: true });
   const log = (m) => process.stderr.write(m + '\n');
   if (REEF_ARM) log(`reef arm: ${JSON.stringify(REEF_ARM)}`);

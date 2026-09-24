@@ -110,3 +110,11 @@ qa/rider-makeability/*
 !qa/size-headroom/
 qa/size-headroom/*
 !qa/size-headroom/summary.json
+# The reef refit (scripts/fit_reef.mjs): the scorecards per arm and the
+# per-spot search summaries are the measurement REEF_REFIT_2026-09-24.md cites
+# and tests/reef-legacy-parity.test.js re-bakes against, so they are
+# committed; the run logs are not.
+!qa/reef-fit/
+qa/reef-fit/*
+!qa/reef-fit/score.*.json
+!qa/reef-fit/fit.*.json
