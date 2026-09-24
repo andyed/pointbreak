@@ -1,0 +1,55 @@
+{
+ "sc116_source": "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/model/MOP_alongshore/SC116_hindcast.nc.ascii",
+ "coops_source": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter (station 9413450, water_level, datum MSL, metric, gmt)",
+ "fetched": "2026-09-23",
+ "windows": {
+  "fig14": {
+   "utc": "2006-08-15T19:20Z",
+   "local": "2006-08-15 12:20 PDT",
+   "caption_Hs_m": 0.5,
+   "sc116": {
+    "waveHs": 0.43347645,
+    "waveTp": 14.285714,
+    "waveDp": 187.59685,
+    "waveTa": 8.794907,
+    "waveTime": 1155668400
+   },
+   "sc116_index": 58051,
+   "tide_msl_m": 0.245,
+   "tide_time_utc": "2006-08-15 19:18",
+   "tide_quality": "v"
+  },
+  "fig15": {
+   "utc": "2006-09-20T18:41Z",
+   "local": "2006-09-20 11:41 PDT",
+   "caption_Hs_m": 1.5,
+   "sc116": {
+    "waveHs": 0.8879762,
+    "waveTp": 16.666668,
+    "waveDp": 192.3113,
+    "waveTa": 10.272933,
+    "waveTime": 1158775200
+   },
+   "sc116_index": 58914,
+   "tide_msl_m": 0.462,
+   "tide_time_utc": "2006-09-20 18:36",
+   "tide_quality": "v"
+  },
+  "fig13": {
+   "utc": "2006-08-02T22:49Z",
+   "local": "2006-08-02 15:49 PDT",
+   "caption_Hs_m": null,
+   "sc116": {
+    "waveHs": 0.65500486,
+    "waveTp": 18.181818,
+    "waveDp": 193.80734,
+    "waveTa": 8.9651575,
+    "waveTime": 1154556000
+   },
+   "sc116_index": 57742,
+   "tide_msl_m": 0.626,
+   "tide_time_utc": "2006-08-02 22:48",
+   "tide_quality": "v"
+  }
+ }
+}
