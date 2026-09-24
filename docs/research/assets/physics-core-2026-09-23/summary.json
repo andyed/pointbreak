@@ -1,0 +1,4479 @@
+{
+ "generated": "2026-09-24T04:33:43.272Z",
+ "bedSource": "ncei13 (shipped)",
+ "declared": {
+  "H0_MULTS": [
+   0.7,
+   1,
+   1.3
+  ],
+  "WINDOW_MULTS": [
+   0.7,
+   0.75,
+   0.8,
+   0.85,
+   0.9,
+   0.95,
+   1,
+   1.05,
+   1.1,
+   1.15,
+   1.2,
+   1.25,
+   1.3,
+   1.35,
+   1.4
+  ],
+  "slopeStencilM": 25,
+  "tide": 0,
+  "HUTT_LIMITS": [
+   {
+    "rating": 1,
+    "limitDeg": 90,
+    "label": "beginner"
+   },
+   {
+    "rating": 2,
+    "limitDeg": 70,
+    "label": "learner"
+   },
+   {
+    "rating": 3,
+    "limitDeg": 60,
+    "label": "pumping"
+   },
+   {
+    "rating": 4,
+    "limitDeg": 55,
+    "label": "occasional manoeuvres"
+   },
+   {
+    "rating": 5,
+    "limitDeg": 50,
+    "label": "consecutive manoeuvres"
+   },
+   {
+    "rating": 6,
+    "limitDeg": 40,
+    "label": "advanced on occasion"
+   },
+   {
+    "rating": 7,
+    "limitDeg": 29,
+    "label": "top amateur"
+   },
+   {
+    "rating": 8,
+    "limitDeg": 27,
+    "label": "professional"
+   }
+  ],
+  "WALKER_FLOOR_DEG": 30,
+  "CARINI_DEG": {
+   "spilling": 22,
+   "plunging": 30
+  },
+  "GT81_SETUP_PER_HS": 0.17
+ },
+ "pinned": {
+  "ksLo": 0.7,
+  "ksHi": 2.6,
+  "crestFrac": 0.8,
+  "ceilDispHi": 14,
+  "hmCap": 3.5,
+  "sizeGate": 1.5,
+  "skewGain": 0.82,
+  "skewCap": 0.8,
+  "offsetHi": 160,
+  "offsetLo": 60,
+  "h0Slider": 3,
+  "vis": 3.2,
+  "coverStandoff": 16,
+  "coverEye": 2.4,
+  "stageZ0": 10,
+  "stageD": 500
+ },
+ "rows": [
+  {
+   "key": "sewers",
+   "label": "Sewers",
+   "spot": "Sewer Peak",
+   "state": {
+    "H0": 1.54,
+    "T": 15,
+    "tide": 0
+   },
+   "mult": 0.7,
+   "basis": {
+    "H0": 1.54,
+    "T": 15,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 351.295,
+    "stations": 129,
+    "clean": 129,
+    "pinned": 0,
+    "gapFrac": 0,
+    "shelter": true,
+    "belowPeelFloor": true,
+    "peelFloorH0": 1.62
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 128,
+    "g3Fails": 0,
+    "g3Pinned": 0,
+    "g3NcFails": 128,
+    "g3RelP99": 0.04502060711537126,
+    "g3RelMax": 0.055757825679020774,
+    "g3NcRelMedian": 3.203200562857606
+   },
+   "breaking": {
+    "hbM": 3.073,
+    "HbM": 2.397,
+    "HbOverH0": 1.557,
+    "tanBetaLocal": 0.015,
+    "betaLocalDeg": 0.876,
+    "betaPlaneDeg": 0.874,
+    "HbKomarGaughanM": 2.555,
+    "HbResidualVsKG": -0.062,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.884,
+    "gammaBattjesStive": 0.557,
+    "hbFromKGWeggelM": 2.892,
+    "hbFromKGMcCowanM": 3.275,
+    "hbResidualVsKGWeggel": 0.063,
+    "gammaResidualVsWeggel": -0.117
+   },
+   "shoaling": {
+    "KsShipped": 1.478,
+    "KsExact": 1.481,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.46,
+    "KsVsGreen": 0.012,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.236
+   },
+   "iribarren": {
+    "authored": 1.15,
+    "plane": 0.23,
+    "local0": 0.231,
+    "localB": 0.185,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 4.977
+   },
+   "peel": {
+    "alphaAuthoredDeg": 38,
+    "alphaDerivedDeg": -7.809,
+    "alphaResidualDeg": -45.809,
+    "breakBearingDeg": -7.951,
+    "crestBearingDeg": -0.418,
+    "zLineMedianM": -31.17,
+    "cShallowMps": 5.491,
+    "cLinearMps": 5.462,
+    "cgLinearMps": 5.363,
+    "cPhaseBakeMps": 5.147,
+    "vp": {
+     "authSW": 8.919,
+     "authLin": 8.871,
+     "derivedSW": 40.411,
+     "derivedLin": 40.196,
+     "cgAuth": 8.711,
+     "cgDerived": 39.471,
+     "bakeLine": 26.507
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.963,
+    "s": 0.8,
+    "HbK": 0.184,
+    "frontDegPhys": 13.351,
+    "frontDegDisp": 37.215,
+    "frontOverBack": 3.046,
+    "phaseCompressionAtMax": 1.48,
+    "frontDegPhysS0": 9.214,
+    "frontDegPhysS1": 14.217,
+    "steepnessHbOverL": 0.029,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 8.649,
+    "ratioToCarini": 0.607,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.462,
+    "modelDispM": 1.478,
+    "gt81M": 0.262,
+    "lhsBowenM": 0.571,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.117,
+    "band015HbM": 0.36,
+    "band020HbM": 0.479
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.809,
+    "modelOverHb": 0.193
+   }
+  },
+  {
+   "key": "sewers",
+   "label": "Sewers",
+   "spot": "Sewer Peak",
+   "state": {
+    "H0": 2.2,
+    "T": 15,
+    "tide": 0
+   },
+   "mult": 1,
+   "basis": {
+    "H0": 2.2,
+    "T": 15,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 351.295,
+    "stations": 129,
+    "clean": 101,
+    "pinned": 25,
+    "gapFrac": 0.217,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 1.62
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 116,
+    "g3Fails": 0,
+    "g3Pinned": 12,
+    "g3NcFails": 111,
+    "g3RelP99": 0.004685615574418204,
+    "g3RelMax": 0.006288826424813356,
+    "g3NcRelMedian": 2.673535215070741
+   },
+   "breaking": {
+    "hbM": 4.04,
+    "HbM": 3.151,
+    "HbOverH0": 1.432,
+    "tanBetaLocal": 0.03,
+    "betaLocalDeg": 1.733,
+    "betaPlaneDeg": 0.874,
+    "HbKomarGaughanM": 3.398,
+    "HbResidualVsKG": -0.073,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.976,
+    "gammaBattjesStive": 0.582,
+    "hbFromKGWeggelM": 3.481,
+    "hbFromKGMcCowanM": 4.357,
+    "hbResidualVsKGWeggel": 0.161,
+    "gammaResidualVsWeggel": -0.201
+   },
+   "shoaling": {
+    "KsShipped": 1.385,
+    "KsExact": 1.389,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.364,
+    "KsVsGreen": 0.016,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.271
+   },
+   "iribarren": {
+    "authored": 1.15,
+    "plane": 0.193,
+    "local0": 0.382,
+    "localB": 0.32,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 3.007
+   },
+   "peel": {
+    "alphaAuthoredDeg": 38,
+    "alphaDerivedDeg": 36.337,
+    "alphaResidualDeg": -1.663,
+    "breakBearingDeg": 33.871,
+    "crestBearingDeg": -4.078,
+    "zLineMedianM": -176.179,
+    "cShallowMps": 6.296,
+    "cLinearMps": 6.249,
+    "cgLinearMps": 6.101,
+    "cPhaseBakeMps": 5.928,
+    "vp": {
+     "authSW": 10.226,
+     "authLin": 10.15,
+     "derivedSW": 10.625,
+     "derivedLin": 10.546,
+     "cgAuth": 9.91,
+     "cgDerived": 10.297,
+     "bakeLine": 10.236
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": true
+   },
+   "face": {
+    "q": 3.963,
+    "s": 0.8,
+    "HbK": 0.211,
+    "frontDegPhys": 15.254,
+    "frontDegDisp": 41.111,
+    "frontOverBack": 3.046,
+    "phaseCompressionAtMax": 1.48,
+    "frontDegPhysS0": 10.559,
+    "frontDegPhysS1": 16.231,
+    "steepnessHbOverL": 0.034,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 6.746,
+    "ratioToCarini": 0.693,
+    "gpu": {
+     "sims": [
+      42,
+      48,
+      54
+     ],
+     "stations": 9,
+     "frontDegPhysDisplaced": 54.07,
+     "frontDegPhysRaw": 13.926,
+     "frontDegDisplayed": 77.24,
+     "foldsMedian": 15,
+     "H0": 2.2,
+     "T": 15,
+     "xi": 1.15,
+     "prov": {
+      "modelInVert": true,
+      "sliceFound": true,
+      "sliceIsSubstring": true,
+      "sliceHasChoppyPos": true,
+      "sliceHasFarFade": true,
+      "sliceLen": 53686,
+      "modelLen": 118991,
+      "choppySignature": "vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer, out float curl)",
+      "choppyOuts": [
+       "foam",
+       "pocket",
+       "brk",
+       "crest",
+       "aer",
+       "curl"
+      ],
+      "autoDeclared": [
+       "u_carrierAmp",
+       "u_sGrow",
+       "u_sApp",
+       "u_sScale",
+       "u_throwLen",
+       "u_legacyDrop",
+       "u_earn",
+       "u_lipAer",
+       "u_time",
+       "u_offKnee",
+       "u_lamCap",
+       "u_offUnbound"
+      ]
+     }
+    }
+   },
+   "setup": {
+    "modelM": 0.66,
+    "modelDispM": 2.112,
+    "gt81M": 0.374,
+    "lhsBowenM": 0.751,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.154,
+    "band015HbM": 0.473,
+    "band020HbM": 0.63
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.879,
+    "modelOverHb": 0.209
+   }
+  },
+  {
+   "key": "sewers",
+   "label": "Sewers",
+   "spot": "Sewer Peak",
+   "state": {
+    "H0": 2.86,
+    "T": 15,
+    "tide": 0
+   },
+   "mult": 1.3,
+   "basis": {
+    "H0": 2.86,
+    "T": 15,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 351.295,
+    "stations": 129,
+    "clean": 109,
+    "pinned": 12,
+    "gapFrac": 0.155,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 1.62
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 120,
+    "g3Fails": 0,
+    "g3Pinned": 8,
+    "g3NcFails": 106,
+    "g3RelP99": 0.029428912423720578,
+    "g3RelMax": 0.047929576033071,
+    "g3NcRelMedian": 2.2258062013855917
+   },
+   "breaking": {
+    "hbM": 5.027,
+    "HbM": 3.921,
+    "HbOverH0": 1.371,
+    "tanBetaLocal": 0.028,
+    "betaLocalDeg": 1.609,
+    "betaPlaneDeg": 0.874,
+    "HbKomarGaughanM": 4.192,
+    "HbResidualVsKG": -0.065,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.956,
+    "gammaBattjesStive": 0.605,
+    "hbFromKGWeggelM": 4.383,
+    "hbFromKGMcCowanM": 5.374,
+    "hbResidualVsKGWeggel": 0.147,
+    "gammaResidualVsWeggel": -0.184
+   },
+   "shoaling": {
+    "KsShipped": 1.317,
+    "KsExact": 1.321,
+    "KsResidual": -0.003,
+    "KsGreenShallow": 1.291,
+    "KsVsGreen": 0.02,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.303
+   },
+   "iribarren": {
+    "authored": 1.15,
+    "plane": 0.169,
+    "local0": 0.311,
+    "localB": 0.266,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 3.694
+   },
+   "peel": {
+    "alphaAuthoredDeg": 38,
+    "alphaDerivedDeg": 14.978,
+    "alphaResidualDeg": -23.022,
+    "breakBearingDeg": 14.651,
+    "crestBearingDeg": -3.772,
+    "zLineMedianM": -212.974,
+    "cShallowMps": 7.022,
+    "cLinearMps": 6.954,
+    "cgLinearMps": 6.75,
+    "cPhaseBakeMps": 6.864,
+    "vp": {
+     "authSW": 11.406,
+     "authLin": 11.295,
+     "derivedSW": 27.17,
+     "derivedLin": 26.905,
+     "cgAuth": 10.964,
+     "cgDerived": 26.116,
+     "bakeLine": 9.243
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.963,
+    "s": 0.8,
+    "HbK": 0.236,
+    "frontDegPhys": 16.956,
+    "frontDegDisp": 44.295,
+    "frontOverBack": 3.046,
+    "phaseCompressionAtMax": 1.48,
+    "frontDegPhysS0": 11.772,
+    "frontDegPhysS1": 18.029,
+    "steepnessHbOverL": 0.038,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 5.044,
+    "ratioToCarini": 0.771,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.858,
+    "modelDispM": 2.746,
+    "gt81M": 0.486,
+    "lhsBowenM": 0.934,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.191,
+    "band015HbM": 0.588,
+    "band020HbM": 0.784
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.919,
+    "modelOverHb": 0.219
+   }
+  },
+  {
+   "key": "firstpeak",
+   "label": "First Peak",
+   "spot": "First Peak",
+   "state": {
+    "H0": 1.26,
+    "T": 14,
+    "tide": 0
+   },
+   "mult": 0.7,
+   "basis": {
+    "H0": 1.26,
+    "T": 14,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 306.017,
+    "stations": 57,
+    "clean": 57,
+    "pinned": 0,
+    "gapFrac": 0,
+    "shelter": true,
+    "belowPeelFloor": true,
+    "peelFloorH0": 1.38
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 128,
+    "g3Fails": 0,
+    "g3Pinned": 0,
+    "g3NcFails": 128,
+    "g3RelP99": 0.06383344162303037,
+    "g3RelMax": 0.1585333958100124,
+    "g3NcRelMedian": 3.075842763125263
+   },
+   "breaking": {
+    "hbM": 2.481,
+    "HbM": 1.934,
+    "HbOverH0": 1.535,
+    "tanBetaLocal": 0.013,
+    "betaLocalDeg": 0.734,
+    "betaPlaneDeg": 0.956,
+    "HbKomarGaughanM": 2.117,
+    "HbResidualVsKG": -0.086,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.867,
+    "gammaBattjesStive": 0.554,
+    "hbFromKGWeggelM": 2.44,
+    "hbFromKGMcCowanM": 2.714,
+    "hbResidualVsKGWeggel": 0.017,
+    "gammaResidualVsWeggel": -0.101
+   },
+   "shoaling": {
+    "KsShipped": 1.505,
+    "KsExact": 1.508,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.488,
+    "KsVsGreen": 0.011,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.227
+   },
+   "iribarren": {
+    "authored": 0.85,
+    "plane": 0.26,
+    "local0": 0.2,
+    "localB": 0.161,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 4.256
+   },
+   "peel": {
+    "alphaAuthoredDeg": 50,
+    "alphaDerivedDeg": 8.543,
+    "alphaResidualDeg": -41.457,
+    "breakBearingDeg": 1.03,
+    "crestBearingDeg": -9.08,
+    "zLineMedianM": 2.762,
+    "cShallowMps": 4.933,
+    "cLinearMps": 4.909,
+    "cgLinearMps": 4.827,
+    "cPhaseBakeMps": 4.898,
+    "vp": {
+     "authSW": 6.44,
+     "authLin": 6.409,
+     "derivedSW": 33.208,
+     "derivedLin": 33.048,
+     "cgAuth": 6.301,
+     "cgDerived": 32.495,
+     "bakeLine": 32.971
+    },
+    "huttAuthored": {
+     "rating": 5,
+     "limitDeg": 50,
+     "label": "consecutive manoeuvres"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.738,
+    "s": 0.8,
+    "HbK": 0.177,
+    "frontDegPhys": 12.613,
+    "frontDegDisp": 35.604,
+    "frontOverBack": 3.039,
+    "phaseCompressionAtMax": 1.49,
+    "frontDegPhysS0": 8.634,
+    "frontDegPhysS1": 13.445,
+    "steepnessHbOverL": 0.028,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 9.387,
+    "ratioToCarini": 0.573,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.378,
+    "modelDispM": 1.21,
+    "gt81M": 0.214,
+    "lhsBowenM": 0.461,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.094,
+    "band015HbM": 0.29,
+    "band020HbM": 0.387
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.82,
+    "modelOverHb": 0.195
+   }
+  },
+  {
+   "key": "firstpeak",
+   "label": "First Peak",
+   "spot": "First Peak",
+   "state": {
+    "H0": 1.8,
+    "T": 14,
+    "tide": 0
+   },
+   "mult": 1,
+   "basis": {
+    "H0": 1.8,
+    "T": 14,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 306.017,
+    "stations": 57,
+    "clean": 41,
+    "pinned": 13,
+    "gapFrac": 0.281,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 1.38
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 121,
+    "g3Fails": 0,
+    "g3Pinned": 7,
+    "g3NcFails": 119,
+    "g3RelP99": 0.020861020323816034,
+    "g3RelMax": 0.038230302627950435,
+    "g3NcRelMedian": 2.7157594702590497
+   },
+   "breaking": {
+    "hbM": 3.278,
+    "HbM": 2.557,
+    "HbOverH0": 1.42,
+    "tanBetaLocal": 0.034,
+    "betaLocalDeg": 1.945,
+    "betaPlaneDeg": 0.956,
+    "HbKomarGaughanM": 2.815,
+    "HbResidualVsKG": -0.092,
+    "gammaModel": 0.78,
+    "gammaWeggel": 1.002,
+    "gammaBattjesStive": 0.577,
+    "hbFromKGWeggelM": 2.811,
+    "hbFromKGMcCowanM": 3.61,
+    "hbResidualVsKGWeggel": 0.166,
+    "gammaResidualVsWeggel": -0.221
+   },
+   "shoaling": {
+    "KsShipped": 1.409,
+    "KsExact": 1.412,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.388,
+    "KsVsGreen": 0.015,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.261
+   },
+   "iribarren": {
+    "authored": 0.85,
+    "plane": 0.218,
+    "local0": 0.443,
+    "localB": 0.371,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 1.92
+   },
+   "peel": {
+    "alphaAuthoredDeg": 50,
+    "alphaDerivedDeg": 60.694,
+    "alphaResidualDeg": 10.694,
+    "breakBearingDeg": 50.21,
+    "crestBearingDeg": -10.578,
+    "zLineMedianM": -97.495,
+    "cShallowMps": 5.671,
+    "cLinearMps": 5.632,
+    "cgLinearMps": 5.508,
+    "cPhaseBakeMps": 5.275,
+    "vp": {
+     "authSW": 7.402,
+     "authLin": 7.352,
+     "derivedSW": 6.503,
+     "derivedLin": 6.459,
+     "cgAuth": 7.19,
+     "cgDerived": 6.316,
+     "bakeLine": 6.334
+    },
+    "huttAuthored": {
+     "rating": 5,
+     "limitDeg": 50,
+     "label": "consecutive manoeuvres"
+    },
+    "huttDerived": {
+     "rating": 3,
+     "limitDeg": 60,
+     "label": "pumping"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": true
+   },
+   "face": {
+    "q": 3.738,
+    "s": 0.8,
+    "HbK": 0.204,
+    "frontDegPhys": 14.457,
+    "frontDegDisp": 39.523,
+    "frontOverBack": 3.039,
+    "phaseCompressionAtMax": 1.49,
+    "frontDegPhysS0": 9.924,
+    "frontDegPhysS1": 15.4,
+    "steepnessHbOverL": 0.032,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 7.543,
+    "ratioToCarini": 0.657,
+    "gpu": {
+     "sims": [
+      42,
+      48,
+      54
+     ],
+     "stations": 9,
+     "frontDegPhysDisplaced": 14.76,
+     "frontDegPhysRaw": 12.62,
+     "frontDegDisplayed": 40.13,
+     "foldsMedian": 0,
+     "H0": 1.8,
+     "T": 14,
+     "xi": 0.85,
+     "prov": {
+      "modelInVert": true,
+      "sliceFound": true,
+      "sliceIsSubstring": true,
+      "sliceHasChoppyPos": true,
+      "sliceHasFarFade": true,
+      "sliceLen": 53686,
+      "modelLen": 118991,
+      "choppySignature": "vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer, out float curl)",
+      "choppyOuts": [
+       "foam",
+       "pocket",
+       "brk",
+       "crest",
+       "aer",
+       "curl"
+      ],
+      "autoDeclared": [
+       "u_carrierAmp",
+       "u_sGrow",
+       "u_sApp",
+       "u_sScale",
+       "u_throwLen",
+       "u_legacyDrop",
+       "u_earn",
+       "u_lipAer",
+       "u_time",
+       "u_offKnee",
+       "u_lamCap",
+       "u_offUnbound"
+      ]
+     }
+    }
+   },
+   "setup": {
+    "modelM": 0.54,
+    "modelDispM": 1.728,
+    "gt81M": 0.306,
+    "lhsBowenM": 0.609,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.125,
+    "band015HbM": 0.384,
+    "band020HbM": 0.511
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.887,
+    "modelOverHb": 0.211
+   }
+  },
+  {
+   "key": "firstpeak",
+   "label": "First Peak",
+   "spot": "First Peak",
+   "state": {
+    "H0": 2.34,
+    "T": 14,
+    "tide": 0
+   },
+   "mult": 1.3,
+   "basis": {
+    "H0": 2.34,
+    "T": 14,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 306.017,
+    "stations": 57,
+    "clean": 45,
+    "pinned": 9,
+    "gapFrac": 0.211,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 1.38
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 123,
+    "g3Fails": 0,
+    "g3Pinned": 5,
+    "g3NcFails": 115,
+    "g3RelP99": 0.008002459597928915,
+    "g3RelMax": 0.042380250106861,
+    "g3NcRelMedian": 2.5024753363794847
+   },
+   "breaking": {
+    "hbM": 4.072,
+    "HbM": 3.175,
+    "HbOverH0": 1.357,
+    "tanBetaLocal": 0.047,
+    "betaLocalDeg": 2.695,
+    "betaPlaneDeg": 0.956,
+    "HbKomarGaughanM": 3.473,
+    "HbResidualVsKG": -0.086,
+    "gammaModel": 0.78,
+    "gammaWeggel": 1.072,
+    "gammaBattjesStive": 0.599,
+    "hbFromKGWeggelM": 3.239,
+    "hbFromKGMcCowanM": 4.453,
+    "hbResidualVsKGWeggel": 0.257,
+    "gammaResidualVsWeggel": -0.272
+   },
+   "shoaling": {
+    "KsShipped": 1.339,
+    "KsExact": 1.343,
+    "KsResidual": -0.003,
+    "KsGreenShallow": 1.315,
+    "KsVsGreen": 0.018,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.292
+   },
+   "iribarren": {
+    "authored": 0.85,
+    "plane": 0.191,
+    "local0": 0.538,
+    "localB": 0.462,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "plunging",
+    "authoredOverLocal0": 1.579
+   },
+   "peel": {
+    "alphaAuthoredDeg": 50,
+    "alphaDerivedDeg": 56.628,
+    "alphaResidualDeg": 6.628,
+    "breakBearingDeg": 45.442,
+    "crestBearingDeg": -12.368,
+    "zLineMedianM": -130.205,
+    "cShallowMps": 6.32,
+    "cLinearMps": 6.264,
+    "cgLinearMps": 6.093,
+    "cPhaseBakeMps": 6.167,
+    "vp": {
+     "authSW": 8.25,
+     "authLin": 8.177,
+     "derivedSW": 7.568,
+     "derivedLin": 7.5,
+     "cgAuth": 7.954,
+     "cgDerived": 7.296,
+     "bakeLine": 7.171
+    },
+    "huttAuthored": {
+     "rating": 5,
+     "limitDeg": 50,
+     "label": "consecutive manoeuvres"
+    },
+    "huttDerived": {
+     "rating": 4,
+     "limitDeg": 55,
+     "label": "occasional manoeuvres"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": true
+   },
+   "face": {
+    "q": 3.738,
+    "s": 0.8,
+    "HbK": 0.227,
+    "frontDegPhys": 16.057,
+    "frontDegDisp": 42.647,
+    "frontOverBack": 3.039,
+    "phaseCompressionAtMax": 1.49,
+    "frontDegPhysS0": 11.052,
+    "frontDegPhysS1": 17.093,
+    "steepnessHbOverL": 0.036,
+    "cariniDeg": 30,
+    "cariniClass": "plunging",
+    "deficitDeg": 13.943,
+    "ratioToCarini": 0.535,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.702,
+    "modelDispM": 2.246,
+    "gt81M": 0.398,
+    "lhsBowenM": 0.756,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.155,
+    "band015HbM": 0.476,
+    "band020HbM": 0.635
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.928,
+    "modelOverHb": 0.221
+   }
+  },
+  {
+   "key": "secondpeak",
+   "label": "Second Peak",
+   "spot": "Second Peak",
+   "state": {
+    "H0": 1.05,
+    "T": 14,
+    "tide": 0
+   },
+   "mult": 0.7,
+   "basis": {
+    "H0": 1.05,
+    "T": 14,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 306.017,
+    "stations": 97,
+    "clean": 80,
+    "pinned": 10,
+    "gapFrac": 0.175,
+    "shelter": true,
+    "belowPeelFloor": true,
+    "peelFloorH0": 1.11
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 121,
+    "g3Fails": 0,
+    "g3Pinned": 7,
+    "g3NcFails": 121,
+    "g3RelP99": 0.014290659978459998,
+    "g3RelMax": 0.018895182022458615,
+    "g3NcRelMedian": 3.0953806350228086
+   },
+   "breaking": {
+    "hbM": 2.065,
+    "HbM": 1.611,
+    "HbOverH0": 1.534,
+    "tanBetaLocal": 0.014,
+    "betaLocalDeg": 0.779,
+    "betaPlaneDeg": 1.048,
+    "HbKomarGaughanM": 1.829,
+    "HbResidualVsKG": -0.119,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.874,
+    "gammaBattjesStive": 0.545,
+    "hbFromKGWeggelM": 2.092,
+    "hbFromKGMcCowanM": 2.345,
+    "hbResidualVsKGWeggel": -0.013,
+    "gammaResidualVsWeggel": -0.108
+   },
+   "shoaling": {
+    "KsShipped": 1.573,
+    "KsExact": 1.575,
+    "KsResidual": -0.001,
+    "KsGreenShallow": 1.558,
+    "KsVsGreen": 0.009,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.207
+   },
+   "iribarren": {
+    "authored": 0.65,
+    "plane": 0.312,
+    "local0": 0.232,
+    "localB": 0.187,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 2.799
+   },
+   "peel": {
+    "alphaAuthoredDeg": 41,
+    "alphaDerivedDeg": 4.102,
+    "alphaResidualDeg": -36.898,
+    "breakBearingDeg": -0.249,
+    "crestBearingDeg": -4.961,
+    "zLineMedianM": 4.906,
+    "cShallowMps": 4.501,
+    "cLinearMps": 4.484,
+    "cgLinearMps": 4.421,
+    "cPhaseBakeMps": 4.563,
+    "vp": {
+     "authSW": 6.861,
+     "authLin": 6.835,
+     "derivedSW": 62.932,
+     "derivedLin": 62.69,
+     "cgAuth": 6.739,
+     "cgDerived": 61.815,
+     "bakeLine": 38.493
+    },
+    "huttAuthored": {
+     "rating": 6,
+     "limitDeg": 40,
+     "label": "advanced on occasion"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.588,
+    "s": 0.8,
+    "HbK": 0.161,
+    "frontDegPhys": 11.377,
+    "frontDegDisp": 32.778,
+    "frontOverBack": 2.942,
+    "phaseCompressionAtMax": 1.498,
+    "frontDegPhysS0": 7.737,
+    "frontDegPhysS1": 12.14,
+    "steepnessHbOverL": 0.026,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 10.623,
+    "ratioToCarini": 0.517,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.315,
+    "modelDispM": 1.008,
+    "gt81M": 0.179,
+    "lhsBowenM": 0.384,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.079,
+    "band015HbM": 0.242,
+    "band020HbM": 0.322
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.821,
+    "modelOverHb": 0.196
+   }
+  },
+  {
+   "key": "secondpeak",
+   "label": "Second Peak",
+   "spot": "Second Peak",
+   "state": {
+    "H0": 1.5,
+    "T": 14,
+    "tide": 0
+   },
+   "mult": 1,
+   "basis": {
+    "H0": 1.5,
+    "T": 14,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 306.017,
+    "stations": 97,
+    "clean": 87,
+    "pinned": 7,
+    "gapFrac": 0.103,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 1.11
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 124,
+    "g3Fails": 0,
+    "g3Pinned": 4,
+    "g3NcFails": 124,
+    "g3RelP99": 0.013551747784868408,
+    "g3RelMax": 0.015133190244356639,
+    "g3NcRelMedian": 2.6725536052525665
+   },
+   "breaking": {
+    "hbM": 2.762,
+    "HbM": 2.154,
+    "HbOverH0": 1.436,
+    "tanBetaLocal": 0.021,
+    "betaLocalDeg": 1.212,
+    "betaPlaneDeg": 1.048,
+    "HbKomarGaughanM": 2.433,
+    "HbResidualVsKG": -0.115,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.922,
+    "gammaBattjesStive": 0.564,
+    "hbFromKGWeggelM": 2.638,
+    "hbFromKGMcCowanM": 3.12,
+    "hbResidualVsKGWeggel": 0.047,
+    "gammaResidualVsWeggel": -0.154
+   },
+   "shoaling": {
+    "KsShipped": 1.467,
+    "KsExact": 1.47,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.449,
+    "KsVsGreen": 0.012,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.239
+   },
+   "iribarren": {
+    "authored": 0.65,
+    "plane": 0.261,
+    "local0": 0.302,
+    "localB": 0.252,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 2.151
+   },
+   "peel": {
+    "alphaAuthoredDeg": 41,
+    "alphaDerivedDeg": 25.776,
+    "alphaResidualDeg": -15.224,
+    "breakBearingDeg": 24.481,
+    "crestBearingDeg": -5.845,
+    "zLineMedianM": -50.009,
+    "cShallowMps": 5.205,
+    "cLinearMps": 5.177,
+    "cgLinearMps": 5.08,
+    "cPhaseBakeMps": 4.73,
+    "vp": {
+     "authSW": 7.934,
+     "authLin": 7.891,
+     "derivedSW": 11.971,
+     "derivedLin": 11.905,
+     "cgAuth": 7.744,
+     "cgDerived": 11.683,
+     "bakeLine": 8.099
+    },
+    "huttAuthored": {
+     "rating": 6,
+     "limitDeg": 40,
+     "label": "advanced on occasion"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.588,
+    "s": 0.8,
+    "HbK": 0.187,
+    "frontDegPhys": 13.121,
+    "frontDegDisp": 36.719,
+    "frontOverBack": 2.942,
+    "phaseCompressionAtMax": 1.498,
+    "frontDegPhysS0": 8.944,
+    "frontDegPhysS1": 13.992,
+    "steepnessHbOverL": 0.03,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 8.879,
+    "ratioToCarini": 0.596,
+    "gpu": {
+     "sims": [
+      42,
+      48,
+      54
+     ],
+     "stations": 9,
+     "frontDegPhysDisplaced": 13.62,
+     "frontDegPhysRaw": 12.281,
+     "frontDegDisplayed": 37.8,
+     "foldsMedian": 0,
+     "H0": 1.5,
+     "T": 14,
+     "xi": 0.65,
+     "prov": {
+      "modelInVert": true,
+      "sliceFound": true,
+      "sliceIsSubstring": true,
+      "sliceHasChoppyPos": true,
+      "sliceHasFarFade": true,
+      "sliceLen": 53686,
+      "modelLen": 118991,
+      "choppySignature": "vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer, out float curl)",
+      "choppyOuts": [
+       "foam",
+       "pocket",
+       "brk",
+       "crest",
+       "aer",
+       "curl"
+      ],
+      "autoDeclared": [
+       "u_carrierAmp",
+       "u_sGrow",
+       "u_sApp",
+       "u_sScale",
+       "u_throwLen",
+       "u_legacyDrop",
+       "u_earn",
+       "u_lipAer",
+       "u_time",
+       "u_offKnee",
+       "u_lamCap",
+       "u_offUnbound"
+      ]
+     }
+    }
+   },
+   "setup": {
+    "modelM": 0.45,
+    "modelDispM": 1.44,
+    "gt81M": 0.255,
+    "lhsBowenM": 0.513,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.105,
+    "band015HbM": 0.323,
+    "band020HbM": 0.431
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.877,
+    "modelOverHb": 0.209
+   }
+  },
+  {
+   "key": "secondpeak",
+   "label": "Second Peak",
+   "spot": "Second Peak",
+   "state": {
+    "H0": 1.95,
+    "T": 14,
+    "tide": 0
+   },
+   "mult": 1.3,
+   "basis": {
+    "H0": 1.95,
+    "T": 14,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 306.017,
+    "stations": 97,
+    "clean": 97,
+    "pinned": 0,
+    "gapFrac": 0,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 1.11
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 128,
+    "g3Fails": 0,
+    "g3Pinned": 0,
+    "g3NcFails": 128,
+    "g3RelP99": 0.00515108539434665,
+    "g3RelMax": 0.005836807713293748,
+    "g3NcRelMedian": 2.53093743680964
+   },
+   "breaking": {
+    "hbM": 3.433,
+    "HbM": 2.677,
+    "HbOverH0": 1.373,
+    "tanBetaLocal": 0.024,
+    "betaLocalDeg": 1.352,
+    "betaPlaneDeg": 1.048,
+    "HbKomarGaughanM": 3.002,
+    "HbResidualVsKG": -0.108,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.934,
+    "gammaBattjesStive": 0.583,
+    "hbFromKGWeggelM": 3.212,
+    "hbFromKGMcCowanM": 3.848,
+    "hbResidualVsKGWeggel": 0.069,
+    "gammaResidualVsWeggel": -0.165
+   },
+   "shoaling": {
+    "KsShipped": 1.393,
+    "KsExact": 1.397,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.372,
+    "KsVsGreen": 0.015,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.267
+   },
+   "iribarren": {
+    "authored": 0.65,
+    "plane": 0.229,
+    "local0": 0.296,
+    "localB": 0.252,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 2.198
+   },
+   "peel": {
+    "alphaAuthoredDeg": 41,
+    "alphaDerivedDeg": 14.47,
+    "alphaResidualDeg": -26.53,
+    "breakBearingDeg": 8.507,
+    "crestBearingDeg": -6.65,
+    "zLineMedianM": -87.174,
+    "cShallowMps": 5.803,
+    "cLinearMps": 5.761,
+    "cgLinearMps": 5.629,
+    "cPhaseBakeMps": 4.913,
+    "vp": {
+     "authSW": 8.846,
+     "authLin": 8.782,
+     "derivedSW": 23.225,
+     "derivedLin": 23.058,
+     "cgAuth": 8.579,
+     "cgDerived": 22.526,
+     "bakeLine": 8.516
+    },
+    "huttAuthored": {
+     "rating": 6,
+     "limitDeg": 40,
+     "label": "advanced on occasion"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.588,
+    "s": 0.8,
+    "HbK": 0.209,
+    "frontDegPhys": 14.588,
+    "frontDegDisp": 39.787,
+    "frontOverBack": 2.942,
+    "phaseCompressionAtMax": 1.498,
+    "frontDegPhysS0": 9.966,
+    "frontDegPhysS1": 15.547,
+    "steepnessHbOverL": 0.033,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 7.412,
+    "ratioToCarini": 0.663,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.585,
+    "modelDispM": 1.872,
+    "gt81M": 0.332,
+    "lhsBowenM": 0.638,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.131,
+    "band015HbM": 0.402,
+    "band020HbM": 0.535
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.917,
+    "modelOverHb": 0.219
+   }
+  },
+  {
+   "key": "jacks",
+   "label": "Jack's (38th)",
+   "spot": "38th",
+   "state": {
+    "H0": 0.77,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 0.7,
+   "basis": {
+    "H0": 0.77,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 156,
+    "clean": 156,
+    "pinned": 0,
+    "gapFrac": 0,
+    "shelter": true,
+    "belowPeelFloor": true,
+    "peelFloorH0": 0.78
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 128,
+    "g3Fails": 0,
+    "g3Pinned": 0,
+    "g3NcFails": 128,
+    "g3RelP99": 0.1655334030924725,
+    "g3RelMax": 0.16771288851919083,
+    "g3NcRelMedian": 3.311894520375391
+   },
+   "breaking": {
+    "hbM": 1.608,
+    "HbM": 1.253,
+    "HbOverH0": 1.628,
+    "tanBetaLocal": 0.013,
+    "betaLocalDeg": 0.729,
+    "betaPlaneDeg": 1.07,
+    "HbKomarGaughanM": 1.386,
+    "HbResidualVsKG": -0.096,
+    "gammaModel": 0.779,
+    "gammaWeggel": 0.869,
+    "gammaBattjesStive": 0.538,
+    "hbFromKGWeggelM": 1.594,
+    "hbFromKGMcCowanM": 1.776,
+    "hbResidualVsKGWeggel": 0.009,
+    "gammaResidualVsWeggel": -0.103
+   },
+   "shoaling": {
+    "KsShipped": 1.612,
+    "KsExact": 1.614,
+    "KsResidual": -0.001,
+    "KsGreenShallow": 1.598,
+    "KsVsGreen": 0.008,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.196
+   },
+   "iribarren": {
+    "authored": 0.5,
+    "plane": 0.346,
+    "local0": 0.235,
+    "localB": 0.185,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 2.124
+   },
+   "peel": {
+    "alphaAuthoredDeg": 37,
+    "alphaDerivedDeg": 10.557,
+    "alphaResidualDeg": -26.443,
+    "breakBearingDeg": 3.162,
+    "crestBearingDeg": -6.88,
+    "zLineMedianM": 11.667,
+    "cShallowMps": 3.972,
+    "cLinearMps": 3.958,
+    "cgLinearMps": 3.908,
+    "cPhaseBakeMps": 3.961,
+    "vp": {
+     "authSW": 6.6,
+     "authLin": 6.577,
+     "derivedSW": 21.678,
+     "derivedLin": 21.605,
+     "cgAuth": 6.494,
+     "cgDerived": 21.332,
+     "bakeLine": 21.776
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.475,
+    "s": 0.8,
+    "HbK": 0.153,
+    "frontDegPhys": 10.698,
+    "frontDegDisp": 31.155,
+    "frontOverBack": 2.87,
+    "phaseCompressionAtMax": 1.504,
+    "frontDegPhysS0": 7.241,
+    "frontDegPhysS1": 11.423,
+    "steepnessHbOverL": 0.024,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 11.302,
+    "ratioToCarini": 0.486,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.231,
+    "modelDispM": 0.739,
+    "gt81M": 0.131,
+    "lhsBowenM": 0.299,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.061,
+    "band015HbM": 0.188,
+    "band020HbM": 0.251
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.773,
+    "modelOverHb": 0.184
+   }
+  },
+  {
+   "key": "jacks",
+   "label": "Jack's (38th)",
+   "spot": "38th",
+   "state": {
+    "H0": 1.1,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 1,
+   "basis": {
+    "H0": 1.1,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 156,
+    "clean": 135,
+    "pinned": 18,
+    "gapFrac": 0.135,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 0.78
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 119,
+    "g3Fails": 0,
+    "g3Pinned": 9,
+    "g3NcFails": 117,
+    "g3RelP99": 0.013277033533044689,
+    "g3RelMax": 0.04414532243657722,
+    "g3NcRelMedian": 2.472774224448592
+   },
+   "breaking": {
+    "hbM": 2.116,
+    "HbM": 1.65,
+    "HbOverH0": 1.5,
+    "tanBetaLocal": 0.024,
+    "betaLocalDeg": 1.366,
+    "betaPlaneDeg": 1.07,
+    "HbKomarGaughanM": 1.843,
+    "HbResidualVsKG": -0.105,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.942,
+    "gammaBattjesStive": 0.555,
+    "hbFromKGWeggelM": 1.956,
+    "hbFromKGMcCowanM": 2.363,
+    "hbResidualVsKGWeggel": 0.082,
+    "gammaResidualVsWeggel": -0.172
+   },
+   "shoaling": {
+    "KsShipped": 1.509,
+    "KsExact": 1.511,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.492,
+    "KsVsGreen": 0.011,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.226
+   },
+   "iribarren": {
+    "authored": 0.5,
+    "plane": 0.289,
+    "local0": 0.369,
+    "localB": 0.302,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 1.354
+   },
+   "peel": {
+    "alphaAuthoredDeg": 37,
+    "alphaDerivedDeg": 37.131,
+    "alphaResidualDeg": 0.131,
+    "breakBearingDeg": 31.263,
+    "crestBearingDeg": -7.192,
+    "zLineMedianM": -40.787,
+    "cShallowMps": 4.556,
+    "cLinearMps": 4.534,
+    "cgLinearMps": 4.459,
+    "cPhaseBakeMps": 4.036,
+    "vp": {
+     "authSW": 7.571,
+     "authLin": 7.535,
+     "derivedSW": 7.548,
+     "derivedLin": 7.512,
+     "cgAuth": 7.41,
+     "cgDerived": 7.387,
+     "bakeLine": 7.42
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": true
+   },
+   "face": {
+    "q": 3.475,
+    "s": 0.8,
+    "HbK": 0.176,
+    "frontDegPhys": 12.254,
+    "frontDegDisp": 34.8,
+    "frontOverBack": 2.87,
+    "phaseCompressionAtMax": 1.504,
+    "frontDegPhysS0": 8.311,
+    "frontDegPhysS1": 13.078,
+    "steepnessHbOverL": 0.028,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 9.746,
+    "ratioToCarini": 0.557,
+    "gpu": {
+     "sims": [
+      42,
+      48,
+      54
+     ],
+     "stations": 9,
+     "frontDegPhysDisplaced": 15.51,
+     "frontDegPhysRaw": 10.284,
+     "frontDegDisplayed": 41.6,
+     "foldsMedian": 0,
+     "H0": 1.1,
+     "T": 13,
+     "xi": 0.5,
+     "prov": {
+      "modelInVert": true,
+      "sliceFound": true,
+      "sliceIsSubstring": true,
+      "sliceHasChoppyPos": true,
+      "sliceHasFarFade": true,
+      "sliceLen": 53686,
+      "modelLen": 118991,
+      "choppySignature": "vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer, out float curl)",
+      "choppyOuts": [
+       "foam",
+       "pocket",
+       "brk",
+       "crest",
+       "aer",
+       "curl"
+      ],
+      "autoDeclared": [
+       "u_carrierAmp",
+       "u_sGrow",
+       "u_sApp",
+       "u_sScale",
+       "u_throwLen",
+       "u_legacyDrop",
+       "u_earn",
+       "u_lipAer",
+       "u_time",
+       "u_offKnee",
+       "u_lamCap",
+       "u_offUnbound"
+      ]
+     }
+    }
+   },
+   "setup": {
+    "modelM": 0.33,
+    "modelDispM": 1.056,
+    "gt81M": 0.187,
+    "lhsBowenM": 0.393,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.08,
+    "band015HbM": 0.248,
+    "band020HbM": 0.33
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.84,
+    "modelOverHb": 0.2
+   }
+  },
+  {
+   "key": "jacks",
+   "label": "Jack's (38th)",
+   "spot": "38th",
+   "state": {
+    "H0": 1.43,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 1.3,
+   "basis": {
+    "H0": 1.43,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 156,
+    "clean": 137,
+    "pinned": 16,
+    "gapFrac": 0.122,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 0.78
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 120,
+    "g3Fails": 0,
+    "g3Pinned": 8,
+    "g3NcFails": 107,
+    "g3RelP99": 0.021432530620052688,
+    "g3RelMax": 0.025854911419628777,
+    "g3NcRelMedian": 2.210609602839931
+   },
+   "breaking": {
+    "hbM": 2.624,
+    "HbM": 2.046,
+    "HbOverH0": 1.431,
+    "tanBetaLocal": 0.033,
+    "betaLocalDeg": 1.889,
+    "betaPlaneDeg": 1.07,
+    "HbKomarGaughanM": 2.274,
+    "HbResidualVsKG": -0.1,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.997,
+    "gammaBattjesStive": 0.571,
+    "hbFromKGWeggelM": 2.28,
+    "hbFromKGMcCowanM": 2.915,
+    "hbResidualVsKGWeggel": 0.151,
+    "gammaResidualVsWeggel": -0.218
+   },
+   "shoaling": {
+    "KsShipped": 1.433,
+    "KsExact": 1.437,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.414,
+    "KsVsGreen": 0.014,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.252
+   },
+   "iribarren": {
+    "authored": 0.5,
+    "plane": 0.254,
+    "local0": 0.448,
+    "localB": 0.375,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 1.116
+   },
+   "peel": {
+    "alphaAuthoredDeg": 37,
+    "alphaDerivedDeg": 39.28,
+    "alphaResidualDeg": 2.28,
+    "breakBearingDeg": 32.219,
+    "crestBearingDeg": -7.508,
+    "zLineMedianM": -65.359,
+    "cShallowMps": 5.074,
+    "cLinearMps": 5.042,
+    "cgLinearMps": 4.939,
+    "cPhaseBakeMps": 4.213,
+    "vp": {
+     "authSW": 8.43,
+     "authLin": 8.378,
+     "derivedSW": 8.014,
+     "derivedLin": 7.964,
+     "cgAuth": 8.206,
+     "cgDerived": 7.801,
+     "bakeLine": 7.989
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": true
+   },
+   "face": {
+    "q": 3.475,
+    "s": 0.8,
+    "HbK": 0.196,
+    "frontDegPhys": 13.611,
+    "frontDegDisp": 37.768,
+    "frontOverBack": 2.87,
+    "phaseCompressionAtMax": 1.504,
+    "frontDegPhysS0": 9.249,
+    "frontDegPhysS1": 14.518,
+    "steepnessHbOverL": 0.031,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 8.389,
+    "ratioToCarini": 0.619,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.429,
+    "modelDispM": 1.373,
+    "gt81M": 0.243,
+    "lhsBowenM": 0.487,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.1,
+    "band015HbM": 0.307,
+    "band020HbM": 0.409
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.88,
+    "modelOverHb": 0.21
+   }
+  },
+  {
+   "key": "thehook",
+   "label": "The Hook",
+   "spot": "The Hook",
+   "state": {
+    "H0": 1.05,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 0.7,
+   "basis": {
+    "H0": 1.05,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 145,
+    "clean": 118,
+    "pinned": 20,
+    "gapFrac": 0.186,
+    "shelter": true,
+    "belowPeelFloor": true,
+    "peelFloorH0": 1.09
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 117,
+    "g3Fails": 0,
+    "g3Pinned": 11,
+    "g3NcFails": 117,
+    "g3RelP99": 0.06566199956328107,
+    "g3RelMax": 0.07077337803706156,
+    "g3NcRelMedian": 2.8145379919452522
+   },
+   "breaking": {
+    "hbM": 2.12,
+    "HbM": 1.654,
+    "HbOverH0": 1.575,
+    "tanBetaLocal": 0.018,
+    "betaLocalDeg": 1.054,
+    "betaPlaneDeg": 1.087,
+    "HbKomarGaughanM": 1.776,
+    "HbResidualVsKG": -0.069,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.906,
+    "gammaBattjesStive": 0.552,
+    "hbFromKGWeggelM": 1.961,
+    "hbFromKGMcCowanM": 2.277,
+    "hbResidualVsKGWeggel": 0.081,
+    "gammaResidualVsWeggel": -0.139
+   },
+   "shoaling": {
+    "KsShipped": 1.516,
+    "KsExact": 1.511,
+    "KsResidual": 0.003,
+    "KsGreenShallow": 1.492,
+    "KsVsGreen": 0.016,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.226
+   },
+   "iribarren": {
+    "authored": 0.8,
+    "plane": 0.301,
+    "local0": 0.292,
+    "localB": 0.232,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 2.744
+   },
+   "peel": {
+    "alphaAuthoredDeg": 41,
+    "alphaDerivedDeg": -5.474,
+    "alphaResidualDeg": -46.474,
+    "breakBearingDeg": -6.209,
+    "crestBearingDeg": -2.82,
+    "zLineMedianM": -19.275,
+    "cShallowMps": 4.56,
+    "cLinearMps": 4.539,
+    "cgLinearMps": 4.463,
+    "cPhaseBakeMps": 4.284,
+    "vp": {
+     "authSW": 6.951,
+     "authLin": 6.918,
+     "derivedSW": 47.805,
+     "derivedLin": 47.577,
+     "cgAuth": 6.803,
+     "cgDerived": 46.787,
+     "bakeLine": 7.959
+    },
+    "huttAuthored": {
+     "rating": 6,
+     "limitDeg": 40,
+     "label": "advanced on occasion"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.7,
+    "s": 0.8,
+    "HbK": 0.176,
+    "frontDegPhys": 12.52,
+    "frontDegDisp": 35.398,
+    "frontOverBack": 3.015,
+    "phaseCompressionAtMax": 1.492,
+    "frontDegPhysS0": 8.559,
+    "frontDegPhysS1": 13.349,
+    "steepnessHbOverL": 0.028,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 9.48,
+    "ratioToCarini": 0.569,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.315,
+    "modelDispM": 1.008,
+    "gt81M": 0.179,
+    "lhsBowenM": 0.394,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.081,
+    "band015HbM": 0.248,
+    "band020HbM": 0.331
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.8,
+    "modelOverHb": 0.19
+   }
+  },
+  {
+   "key": "thehook",
+   "label": "The Hook",
+   "spot": "The Hook",
+   "state": {
+    "H0": 1.5,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 1,
+   "basis": {
+    "H0": 1.5,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 145,
+    "clean": 123,
+    "pinned": 19,
+    "gapFrac": 0.152,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 1.09
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 119,
+    "g3Fails": 0,
+    "g3Pinned": 9,
+    "g3NcFails": 112,
+    "g3RelP99": 0.07564322123860144,
+    "g3RelMax": 0.09104765509351706,
+    "g3NcRelMedian": 2.255717996791407
+   },
+   "breaking": {
+    "hbM": 2.756,
+    "HbM": 2.149,
+    "HbOverH0": 1.433,
+    "tanBetaLocal": 0.026,
+    "betaLocalDeg": 1.468,
+    "betaPlaneDeg": 1.087,
+    "HbKomarGaughanM": 2.362,
+    "HbResidualVsKG": -0.09,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.949,
+    "gammaBattjesStive": 0.574,
+    "hbFromKGWeggelM": 2.489,
+    "hbFromKGMcCowanM": 3.029,
+    "hbResidualVsKGWeggel": 0.107,
+    "gammaResidualVsWeggel": -0.178
+   },
+   "shoaling": {
+    "KsShipped": 1.417,
+    "KsExact": 1.42,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.397,
+    "KsVsGreen": 0.014,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.258
+   },
+   "iribarren": {
+    "authored": 0.8,
+    "plane": 0.252,
+    "local0": 0.34,
+    "localB": 0.284,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 2.354
+   },
+   "peel": {
+    "alphaAuthoredDeg": 41,
+    "alphaDerivedDeg": 36.802,
+    "alphaResidualDeg": -4.198,
+    "breakBearingDeg": 28.117,
+    "crestBearingDeg": -9.297,
+    "zLineMedianM": -82.804,
+    "cShallowMps": 5.199,
+    "cLinearMps": 5.165,
+    "cgLinearMps": 5.054,
+    "cPhaseBakeMps": 4.436,
+    "vp": {
+     "authSW": 7.925,
+     "authLin": 7.873,
+     "derivedSW": 8.679,
+     "derivedLin": 8.622,
+     "cgAuth": 7.704,
+     "cgDerived": 8.437,
+     "bakeLine": 6.751
+    },
+    "huttAuthored": {
+     "rating": 6,
+     "limitDeg": 40,
+     "label": "advanced on occasion"
+    },
+    "huttDerived": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": true
+   },
+   "face": {
+    "q": 3.7,
+    "s": 0.8,
+    "HbK": 0.201,
+    "frontDegPhys": 14.233,
+    "frontDegDisp": 39.065,
+    "frontOverBack": 3.015,
+    "phaseCompressionAtMax": 1.492,
+    "frontDegPhysS0": 9.755,
+    "frontDegPhysS1": 15.165,
+    "steepnessHbOverL": 0.032,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 7.767,
+    "ratioToCarini": 0.647,
+    "gpu": {
+     "sims": [
+      42,
+      48,
+      54
+     ],
+     "stations": 9,
+     "frontDegPhysDisplaced": 21.52,
+     "frontDegPhysRaw": 14.673,
+     "frontDegDisplayed": 51.6,
+     "foldsMedian": 0,
+     "H0": 1.5,
+     "T": 13,
+     "xi": 0.8,
+     "prov": {
+      "modelInVert": true,
+      "sliceFound": true,
+      "sliceIsSubstring": true,
+      "sliceHasChoppyPos": true,
+      "sliceHasFarFade": true,
+      "sliceLen": 53686,
+      "modelLen": 118991,
+      "choppySignature": "vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer, out float curl)",
+      "choppyOuts": [
+       "foam",
+       "pocket",
+       "brk",
+       "crest",
+       "aer",
+       "curl"
+      ],
+      "autoDeclared": [
+       "u_carrierAmp",
+       "u_sGrow",
+       "u_sApp",
+       "u_sScale",
+       "u_throwLen",
+       "u_legacyDrop",
+       "u_earn",
+       "u_lipAer",
+       "u_time",
+       "u_offKnee",
+       "u_lamCap",
+       "u_offUnbound"
+      ]
+     }
+    }
+   },
+   "setup": {
+    "modelM": 0.45,
+    "modelDispM": 1.44,
+    "gt81M": 0.255,
+    "lhsBowenM": 0.512,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.105,
+    "band015HbM": 0.322,
+    "band020HbM": 0.43
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.879,
+    "modelOverHb": 0.209
+   }
+  },
+  {
+   "key": "thehook",
+   "label": "The Hook",
+   "spot": "The Hook",
+   "state": {
+    "H0": 1.95,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 1.3,
+   "basis": {
+    "H0": 1.95,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 145,
+    "clean": 128,
+    "pinned": 14,
+    "gapFrac": 0.117,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 1.09
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 121,
+    "g3Fails": 0,
+    "g3Pinned": 7,
+    "g3NcFails": 101,
+    "g3RelP99": 0.0460590803809946,
+    "g3RelMax": 0.05104085264510652,
+    "g3NcRelMedian": 2.1689143015921055
+   },
+   "breaking": {
+    "hbM": 3.423,
+    "HbM": 2.669,
+    "HbOverH0": 1.369,
+    "tanBetaLocal": 0.037,
+    "betaLocalDeg": 2.093,
+    "betaPlaneDeg": 1.087,
+    "HbKomarGaughanM": 2.914,
+    "HbResidualVsKG": -0.084,
+    "gammaModel": 0.78,
+    "gammaWeggel": 1.011,
+    "gammaBattjesStive": 0.596,
+    "hbFromKGWeggelM": 2.881,
+    "hbFromKGMcCowanM": 3.736,
+    "hbResidualVsKGWeggel": 0.188,
+    "gammaResidualVsWeggel": -0.229
+   },
+   "shoaling": {
+    "KsShipped": 1.347,
+    "KsExact": 1.351,
+    "KsResidual": -0.003,
+    "KsGreenShallow": 1.323,
+    "KsVsGreen": 0.018,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.288
+   },
+   "iribarren": {
+    "authored": 0.8,
+    "plane": 0.221,
+    "local0": 0.425,
+    "localB": 0.363,
+    "classAuthored": "plunging",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 1.882
+   },
+   "peel": {
+    "alphaAuthoredDeg": 41,
+    "alphaDerivedDeg": 21.046,
+    "alphaResidualDeg": -19.954,
+    "breakBearingDeg": 13.318,
+    "crestBearingDeg": -9.529,
+    "zLineMedianM": -119.263,
+    "cShallowMps": 5.795,
+    "cLinearMps": 5.745,
+    "cgLinearMps": 5.592,
+    "cPhaseBakeMps": 4.368,
+    "vp": {
+     "authSW": 8.833,
+     "authLin": 8.756,
+     "derivedSW": 16.136,
+     "derivedLin": 15.997,
+     "cgAuth": 8.523,
+     "cgDerived": 15.571,
+     "bakeLine": 7.379
+    },
+    "huttAuthored": {
+     "rating": 6,
+     "limitDeg": 40,
+     "label": "advanced on occasion"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.7,
+    "s": 0.8,
+    "HbK": 0.225,
+    "frontDegPhys": 15.813,
+    "frontDegDisp": 42.186,
+    "frontOverBack": 3.015,
+    "phaseCompressionAtMax": 1.492,
+    "frontDegPhysS0": 10.866,
+    "frontDegPhysS1": 16.838,
+    "steepnessHbOverL": 0.036,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 6.187,
+    "ratioToCarini": 0.719,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.585,
+    "modelDispM": 1.872,
+    "gt81M": 0.332,
+    "lhsBowenM": 0.636,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.13,
+    "band015HbM": 0.4,
+    "band020HbM": 0.534
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.92,
+    "modelOverHb": 0.219
+   }
+  },
+  {
+   "key": "sharks",
+   "label": "Sharks",
+   "spot": "Shark's Cove",
+   "state": {
+    "H0": 0.7,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 0.7,
+   "basis": {
+    "H0": 0.7,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 152,
+    "clean": 152,
+    "pinned": 0,
+    "gapFrac": 0,
+    "shelter": true,
+    "belowPeelFloor": true,
+    "peelFloorH0": 0.81
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 128,
+    "g3Fails": 0,
+    "g3Pinned": 0,
+    "g3NcFails": 128,
+    "g3RelP99": 0.007343520324134649,
+    "g3RelMax": 0.012558181532464078,
+    "g3NcRelMedian": 3.4067908223120575
+   },
+   "breaking": {
+    "hbM": 1.475,
+    "HbM": 1.15,
+    "HbOverH0": 1.643,
+    "tanBetaLocal": 0.01,
+    "betaLocalDeg": 0.548,
+    "betaPlaneDeg": 1.037,
+    "HbKomarGaughanM": 1.284,
+    "HbResidualVsKG": -0.104,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.847,
+    "gammaBattjesStive": 0.535,
+    "hbFromKGWeggelM": 1.515,
+    "hbFromKGMcCowanM": 1.646,
+    "hbResidualVsKGWeggel": -0.027,
+    "gammaResidualVsWeggel": -0.08
+   },
+   "shoaling": {
+    "KsShipped": 1.646,
+    "KsExact": 1.648,
+    "KsResidual": -0.001,
+    "KsGreenShallow": 1.633,
+    "KsVsGreen": 0.008,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.188
+   },
+   "iribarren": {
+    "authored": 0.45,
+    "plane": 0.351,
+    "local0": 0.186,
+    "localB": 0.145,
+    "classAuthored": "spilling",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 2.424
+   },
+   "peel": {
+    "alphaAuthoredDeg": 36,
+    "alphaDerivedDeg": 10.457,
+    "alphaResidualDeg": -25.543,
+    "breakBearingDeg": 4.337,
+    "crestBearingDeg": -6.105,
+    "zLineMedianM": 11.622,
+    "cShallowMps": 3.803,
+    "cLinearMps": 3.792,
+    "cgLinearMps": 3.748,
+    "cPhaseBakeMps": 3.626,
+    "vp": {
+     "authSW": 6.471,
+     "authLin": 6.451,
+     "derivedSW": 20.957,
+     "derivedLin": 20.893,
+     "cgAuth": 6.376,
+     "cgDerived": 20.651,
+     "bakeLine": 16.299
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.438,
+    "s": 0.8,
+    "HbK": 0.147,
+    "frontDegPhys": 10.223,
+    "frontDegDisp": 29.989,
+    "frontOverBack": 2.846,
+    "phaseCompressionAtMax": 1.506,
+    "frontDegPhysS0": 6.906,
+    "frontDegPhysS1": 10.919,
+    "steepnessHbOverL": 0.023,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 11.777,
+    "ratioToCarini": 0.465,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.21,
+    "modelDispM": 0.672,
+    "gt81M": 0.119,
+    "lhsBowenM": 0.274,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.056,
+    "band015HbM": 0.173,
+    "band020HbM": 0.23
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.767,
+    "modelOverHb": 0.183
+   }
+  },
+  {
+   "key": "sharks",
+   "label": "Sharks",
+   "spot": "Shark's Cove",
+   "state": {
+    "H0": 1,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 1,
+   "basis": {
+    "H0": 1,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 152,
+    "clean": 133,
+    "pinned": 15,
+    "gapFrac": 0.125,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 0.81
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 120,
+    "g3Fails": 0,
+    "g3Pinned": 8,
+    "g3NcFails": 120,
+    "g3RelP99": 0.03556690523162755,
+    "g3RelMax": 0.04272362871470908,
+    "g3NcRelMedian": 2.933975978251085
+   },
+   "breaking": {
+    "hbM": 1.944,
+    "HbM": 1.516,
+    "HbOverH0": 1.516,
+    "tanBetaLocal": 0.017,
+    "betaLocalDeg": 0.964,
+    "betaPlaneDeg": 1.037,
+    "HbKomarGaughanM": 1.708,
+    "HbResidualVsKG": -0.112,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.896,
+    "gammaBattjesStive": 0.55,
+    "hbFromKGWeggelM": 1.906,
+    "hbFromKGMcCowanM": 2.19,
+    "hbResidualVsKGWeggel": 0.02,
+    "gammaResidualVsWeggel": -0.129
+   },
+   "shoaling": {
+    "KsShipped": 1.54,
+    "KsExact": 1.542,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.525,
+    "KsVsGreen": 0.01,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.216
+   },
+   "iribarren": {
+    "authored": 0.45,
+    "plane": 0.294,
+    "local0": 0.273,
+    "localB": 0.222,
+    "classAuthored": "spilling",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 1.646
+   },
+   "peel": {
+    "alphaAuthoredDeg": 36,
+    "alphaDerivedDeg": 30.467,
+    "alphaResidualDeg": -5.533,
+    "breakBearingDeg": 22.893,
+    "crestBearingDeg": -7.609,
+    "zLineMedianM": -35.545,
+    "cShallowMps": 4.367,
+    "cLinearMps": 4.348,
+    "cgLinearMps": 4.282,
+    "cPhaseBakeMps": 3.991,
+    "vp": {
+     "authSW": 7.429,
+     "authLin": 7.397,
+     "derivedSW": 8.612,
+     "derivedLin": 8.575,
+     "cgAuth": 7.284,
+     "cgDerived": 8.444,
+     "bakeLine": 7.459
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": true
+   },
+   "face": {
+    "q": 3.438,
+    "s": 0.8,
+    "HbK": 0.169,
+    "frontDegPhys": 11.712,
+    "frontDegDisp": 33.559,
+    "frontOverBack": 2.846,
+    "phaseCompressionAtMax": 1.506,
+    "frontDegPhysS0": 7.926,
+    "frontDegPhysS1": 12.503,
+    "steepnessHbOverL": 0.027,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 10.288,
+    "ratioToCarini": 0.532,
+    "gpu": {
+     "sims": [
+      42,
+      48,
+      54
+     ],
+     "stations": 9,
+     "frontDegPhysDisplaced": 14.71,
+     "frontDegPhysRaw": 10.119,
+     "frontDegDisplayed": 40.02,
+     "foldsMedian": 0,
+     "H0": 1,
+     "T": 13,
+     "xi": 0.45,
+     "prov": {
+      "modelInVert": true,
+      "sliceFound": true,
+      "sliceIsSubstring": true,
+      "sliceHasChoppyPos": true,
+      "sliceHasFarFade": true,
+      "sliceLen": 53686,
+      "modelLen": 118991,
+      "choppySignature": "vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer, out float curl)",
+      "choppyOuts": [
+       "foam",
+       "pocket",
+       "brk",
+       "crest",
+       "aer",
+       "curl"
+      ],
+      "autoDeclared": [
+       "u_carrierAmp",
+       "u_sGrow",
+       "u_sApp",
+       "u_sScale",
+       "u_throwLen",
+       "u_legacyDrop",
+       "u_earn",
+       "u_lipAer",
+       "u_time",
+       "u_offKnee",
+       "u_lamCap",
+       "u_offUnbound"
+      ]
+     }
+    }
+   },
+   "setup": {
+    "modelM": 0.3,
+    "modelDispM": 0.96,
+    "gt81M": 0.17,
+    "lhsBowenM": 0.361,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.074,
+    "band015HbM": 0.227,
+    "band020HbM": 0.303
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.831,
+    "modelOverHb": 0.198
+   }
+  },
+  {
+   "key": "sharks",
+   "label": "Sharks",
+   "spot": "Shark's Cove",
+   "state": {
+    "H0": 1.3,
+    "T": 13,
+    "tide": 0
+   },
+   "mult": 1.3,
+   "basis": {
+    "H0": 1.3,
+    "T": 13,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 263.861,
+    "stations": 152,
+    "clean": 136,
+    "pinned": 13,
+    "gapFrac": 0.105,
+    "shelter": true,
+    "belowPeelFloor": false,
+    "peelFloorH0": 0.81
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 121,
+    "g3Fails": 0,
+    "g3Pinned": 7,
+    "g3NcFails": 117,
+    "g3RelP99": 0.008522503332373232,
+    "g3RelMax": 0.02534324089798331,
+    "g3NcRelMedian": 2.7148703798553897
+   },
+   "breaking": {
+    "hbM": 2.408,
+    "HbM": 1.879,
+    "HbOverH0": 1.445,
+    "tanBetaLocal": 0.024,
+    "betaLocalDeg": 1.364,
+    "betaPlaneDeg": 1.037,
+    "HbKomarGaughanM": 2.107,
+    "HbResidualVsKG": -0.108,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.94,
+    "gammaBattjesStive": 0.564,
+    "hbFromKGWeggelM": 2.242,
+    "hbFromKGMcCowanM": 2.701,
+    "hbResidualVsKGWeggel": 0.074,
+    "gammaResidualVsWeggel": -0.17
+   },
+   "shoaling": {
+    "KsShipped": 1.463,
+    "KsExact": 1.466,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.445,
+    "KsVsGreen": 0.012,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.241
+   },
+   "iribarren": {
+    "authored": 0.45,
+    "plane": 0.258,
+    "local0": 0.339,
+    "localB": 0.282,
+    "classAuthored": "spilling",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 1.327
+   },
+   "peel": {
+    "alphaAuthoredDeg": 36,
+    "alphaDerivedDeg": 27.417,
+    "alphaResidualDeg": -8.583,
+    "breakBearingDeg": 19.661,
+    "crestBearingDeg": -8.046,
+    "zLineMedianM": -61.833,
+    "cShallowMps": 4.861,
+    "cLinearMps": 4.834,
+    "cgLinearMps": 4.743,
+    "cPhaseBakeMps": 4.033,
+    "vp": {
+     "authSW": 8.27,
+     "authLin": 8.223,
+     "derivedSW": 10.556,
+     "derivedLin": 10.497,
+     "cgAuth": 8.069,
+     "cgDerived": 10.3,
+     "bakeLine": 8.439
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 8,
+     "limitDeg": 27,
+     "label": "professional"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.438,
+    "s": 0.8,
+    "HbK": 0.188,
+    "frontDegPhys": 13.011,
+    "frontDegDisp": 36.48,
+    "frontOverBack": 2.846,
+    "phaseCompressionAtMax": 1.506,
+    "frontDegPhysS0": 8.822,
+    "frontDegPhysS1": 13.884,
+    "steepnessHbOverL": 0.03,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 8.989,
+    "ratioToCarini": 0.591,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.39,
+    "modelDispM": 1.248,
+    "gt81M": 0.221,
+    "lhsBowenM": 0.447,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.092,
+    "band015HbM": 0.282,
+    "band020HbM": 0.376
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.872,
+    "modelOverHb": 0.208
+   }
+  },
+  {
+   "key": "privates",
+   "label": "Privates",
+   "spot": "Private's",
+   "state": {
+    "H0": 0.49,
+    "T": 12,
+    "tide": 0
+   },
+   "mult": 0.7,
+   "basis": {
+    "H0": 0.49,
+    "T": 12,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 224.829,
+    "stations": 115,
+    "clean": 115,
+    "pinned": 0,
+    "gapFrac": 0,
+    "shelter": true,
+    "belowPeelFloor": null,
+    "peelFloorH0": null
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 128,
+    "g3Fails": 0,
+    "g3Pinned": 0,
+    "g3NcFails": 128,
+    "g3RelP99": 0.06037075244687861,
+    "g3RelMax": 0.08883516061943056,
+    "g3NcRelMedian": 9.794645409745042
+   },
+   "breaking": {
+    "hbM": 1.121,
+    "HbM": 0.874,
+    "HbOverH0": 1.785,
+    "tanBetaLocal": 0.006,
+    "betaLocalDeg": 0.344,
+    "betaPlaneDeg": 0.944,
+    "HbKomarGaughanM": 0.935,
+    "HbResidualVsKG": -0.065,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.823,
+    "gammaBattjesStive": 0.529,
+    "hbFromKGWeggelM": 1.136,
+    "hbFromKGMcCowanM": 1.198,
+    "hbResidualVsKGWeggel": -0.013,
+    "gammaResidualVsWeggel": -0.052
+   },
+   "shoaling": {
+    "KsShipped": 1.692,
+    "KsExact": 1.694,
+    "KsResidual": -0.001,
+    "KsGreenShallow": 1.681,
+    "KsVsGreen": 0.007,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.177
+   },
+   "iribarren": {
+    "authored": 0.35,
+    "plane": 0.353,
+    "local0": 0.129,
+    "localB": 0.096,
+    "classAuthored": "spilling",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 2.72
+   },
+   "peel": {
+    "alphaAuthoredDeg": 31,
+    "alphaDerivedDeg": 22.241,
+    "alphaResidualDeg": -8.759,
+    "breakBearingDeg": 13.777,
+    "crestBearingDeg": -7.089,
+    "zLineMedianM": 42.742,
+    "cShallowMps": 3.316,
+    "cLinearMps": 3.308,
+    "cgLinearMps": 3.273,
+    "cPhaseBakeMps": 3.369,
+    "vp": {
+     "authSW": 6.439,
+     "authLin": 6.422,
+     "derivedSW": 8.762,
+     "derivedLin": 8.739,
+     "cgAuth": 6.355,
+     "cgDerived": 8.648,
+     "bakeLine": 8.836
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.363,
+    "s": 0.8,
+    "HbK": 0.138,
+    "frontDegPhys": 9.594,
+    "frontDegDisp": 28.408,
+    "frontOverBack": 2.799,
+    "phaseCompressionAtMax": 1.51,
+    "frontDegPhysS0": 6.459,
+    "frontDegPhysS1": 10.252,
+    "steepnessHbOverL": 0.022,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 12.406,
+    "ratioToCarini": 0.436,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.147,
+    "modelDispM": 0.47,
+    "gt81M": 0.083,
+    "lhsBowenM": 0.208,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.043,
+    "band015HbM": 0.131,
+    "band020HbM": 0.175
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.706,
+    "modelOverHb": 0.168
+   }
+  },
+  {
+   "key": "privates",
+   "label": "Privates",
+   "spot": "Private's",
+   "state": {
+    "H0": 0.7,
+    "T": 12,
+    "tide": 0
+   },
+   "mult": 1,
+   "basis": {
+    "H0": 0.7,
+    "T": 12,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 224.829,
+    "stations": 115,
+    "clean": 115,
+    "pinned": 0,
+    "gapFrac": 0,
+    "shelter": true,
+    "belowPeelFloor": null,
+    "peelFloorH0": null
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 128,
+    "g3Fails": 0,
+    "g3Pinned": 0,
+    "g3NcFails": 128,
+    "g3RelP99": 0.02368915765618562,
+    "g3RelMax": 0.031209204331452002,
+    "g3NcRelMedian": 6.512204534093318
+   },
+   "breaking": {
+    "hbM": 1.494,
+    "HbM": 1.165,
+    "HbOverH0": 1.665,
+    "tanBetaLocal": 0.006,
+    "betaLocalDeg": 0.364,
+    "betaPlaneDeg": 0.944,
+    "HbKomarGaughanM": 1.243,
+    "HbResidualVsKG": -0.063,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.824,
+    "gammaBattjesStive": 0.541,
+    "hbFromKGWeggelM": 1.509,
+    "hbFromKGMcCowanM": 1.594,
+    "hbResidualVsKGWeggel": -0.01,
+    "gammaResidualVsWeggel": -0.054
+   },
+   "shoaling": {
+    "KsShipped": 1.578,
+    "KsExact": 1.581,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.564,
+    "KsVsGreen": 0.009,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.205
+   },
+   "iribarren": {
+    "authored": 0.35,
+    "plane": 0.295,
+    "local0": 0.114,
+    "localB": 0.088,
+    "classAuthored": "spilling",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 3.072
+   },
+   "peel": {
+    "alphaAuthoredDeg": 31,
+    "alphaDerivedDeg": 15.748,
+    "alphaResidualDeg": -15.252,
+    "breakBearingDeg": 7.505,
+    "crestBearingDeg": -7.928,
+    "zLineMedianM": -8.775,
+    "cShallowMps": 3.829,
+    "cLinearMps": 3.814,
+    "cgLinearMps": 3.762,
+    "cPhaseBakeMps": 3.795,
+    "vp": {
+     "authSW": 7.433,
+     "authLin": 7.406,
+     "derivedSW": 14.106,
+     "derivedLin": 14.053,
+     "cgAuth": 7.304,
+     "cgDerived": 13.86,
+     "bakeLine": 13.968
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.363,
+    "s": 0.8,
+    "HbK": 0.16,
+    "frontDegPhys": 11.054,
+    "frontDegDisp": 32.011,
+    "frontOverBack": 2.799,
+    "phaseCompressionAtMax": 1.51,
+    "frontDegPhysS0": 7.455,
+    "frontDegPhysS1": 11.807,
+    "steepnessHbOverL": 0.025,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 10.946,
+    "ratioToCarini": 0.502,
+    "gpu": {
+     "sims": [
+      42,
+      48,
+      54
+     ],
+     "stations": 9,
+     "frontDegPhysDisplaced": 12.78,
+     "frontDegPhysRaw": 9.915,
+     "frontDegDisplayed": 35.98,
+     "foldsMedian": 0,
+     "H0": 0.7,
+     "T": 12,
+     "xi": 0.35,
+     "prov": {
+      "modelInVert": true,
+      "sliceFound": true,
+      "sliceIsSubstring": true,
+      "sliceHasChoppyPos": true,
+      "sliceHasFarFade": true,
+      "sliceLen": 53686,
+      "modelLen": 118991,
+      "choppySignature": "vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float brk, out float crest, out float aer, out float curl)",
+      "choppyOuts": [
+       "foam",
+       "pocket",
+       "brk",
+       "crest",
+       "aer",
+       "curl"
+      ],
+      "autoDeclared": [
+       "u_carrierAmp",
+       "u_sGrow",
+       "u_sApp",
+       "u_sScale",
+       "u_throwLen",
+       "u_legacyDrop",
+       "u_earn",
+       "u_lipAer",
+       "u_time",
+       "u_offKnee",
+       "u_lamCap",
+       "u_offUnbound"
+      ]
+     }
+    }
+   },
+   "setup": {
+    "modelM": 0.21,
+    "modelDispM": 0.672,
+    "gt81M": 0.119,
+    "lhsBowenM": 0.278,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.057,
+    "band015HbM": 0.175,
+    "band020HbM": 0.233
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.757,
+    "modelOverHb": 0.18
+   }
+  },
+  {
+   "key": "privates",
+   "label": "Privates",
+   "spot": "Private's",
+   "state": {
+    "H0": 0.91,
+    "T": 12,
+    "tide": 0
+   },
+   "mult": 1.3,
+   "basis": {
+    "H0": 0.91,
+    "T": 12,
+    "tide": 0,
+    "bedSource": "ncei13 (shipped)",
+    "L0": 224.829,
+    "stations": 115,
+    "clean": 115,
+    "pinned": 0,
+    "gapFrac": 0,
+    "shelter": true,
+    "belowPeelFloor": null,
+    "peelFloorH0": null
+   },
+   "gate": {
+    "g1": 0,
+    "latticeMismatch": 0,
+    "g2": 0,
+    "g3Checked": 128,
+    "g3Fails": 0,
+    "g3Pinned": 0,
+    "g3NcFails": 128,
+    "g3RelP99": 0.04400667178695631,
+    "g3RelMax": 0.08040878947086431,
+    "g3NcRelMedian": 4.268539491742678
+   },
+   "breaking": {
+    "hbM": 1.845,
+    "HbM": 1.439,
+    "HbOverH0": 1.582,
+    "tanBetaLocal": 0.012,
+    "betaLocalDeg": 0.701,
+    "betaPlaneDeg": 0.944,
+    "HbKomarGaughanM": 1.534,
+    "HbResidualVsKG": -0.062,
+    "gammaModel": 0.78,
+    "gammaWeggel": 0.863,
+    "gammaBattjesStive": 0.553,
+    "hbFromKGWeggelM": 1.777,
+    "hbFromKGMcCowanM": 1.967,
+    "hbResidualVsKGWeggel": 0.039,
+    "gammaResidualVsWeggel": -0.097
+   },
+   "shoaling": {
+    "KsShipped": 1.5,
+    "KsExact": 1.503,
+    "KsResidual": -0.002,
+    "KsGreenShallow": 1.484,
+    "KsVsGreen": 0.011,
+    "clampLiveFrac": 0,
+    "growSynLive": false,
+    "khAtLine": 0.228
+   },
+   "iribarren": {
+    "authored": 0.35,
+    "plane": 0.259,
+    "local0": 0.192,
+    "localB": 0.153,
+    "classAuthored": "spilling",
+    "classPlane": "spilling",
+    "classLocal0": "spilling",
+    "authoredOverLocal0": 1.82
+   },
+   "peel": {
+    "alphaAuthoredDeg": 31,
+    "alphaDerivedDeg": 22.226,
+    "alphaResidualDeg": -8.774,
+    "breakBearingDeg": 15.22,
+    "crestBearingDeg": -8.8,
+    "zLineMedianM": -69.472,
+    "cShallowMps": 4.255,
+    "cLinearMps": 4.234,
+    "cgLinearMps": 4.162,
+    "cPhaseBakeMps": 4.404,
+    "vp": {
+     "authSW": 8.261,
+     "authLin": 8.22,
+     "derivedSW": 11.248,
+     "derivedLin": 11.193,
+     "cgAuth": 8.081,
+     "cgDerived": 11.003,
+     "bakeLine": 11.319
+    },
+    "huttAuthored": {
+     "rating": 7,
+     "limitDeg": 29,
+     "label": "top amateur"
+    },
+    "huttDerived": {
+     "rating": 9,
+     "limitDeg": null,
+     "label": "not reached (below the rating-8 limit)"
+    },
+    "aboveWalkerFloorAuthored": true,
+    "aboveWalkerFloorDerived": false
+   },
+   "face": {
+    "q": 3.363,
+    "s": 0.8,
+    "HbK": 0.178,
+    "frontDegPhys": 12.262,
+    "frontDegDisp": 34.818,
+    "frontOverBack": 2.799,
+    "phaseCompressionAtMax": 1.51,
+    "frontDegPhysS0": 8.283,
+    "frontDegPhysS1": 13.092,
+    "steepnessHbOverL": 0.028,
+    "cariniDeg": 22,
+    "cariniClass": "spilling",
+    "deficitDeg": 9.738,
+    "ratioToCarini": 0.557,
+    "gpu": null
+   },
+   "setup": {
+    "modelM": 0.273,
+    "modelDispM": 0.874,
+    "gt81M": 0.155,
+    "lhsBowenM": 0.343,
+    "lhsK": 0.186,
+    "setdownAtBreakM": -0.07,
+    "band015HbM": 0.216,
+    "band020HbM": 0.288
+   },
+   "setupResiduals": {
+    "modelOverGT81": 1.765,
+    "modelOverLHSBowen": 0.796,
+    "modelOverHb": 0.19
+   }
+  }
+ ],
+ "windows": [
+  {
+   "key": "sewers",
+   "label": "Sewers",
+   "alphaAuthoredDeg": 38,
+   "floorDeg": 30,
+   "peelFloorH0": 1.62,
+   "cardH0": 2.2,
+   "windowLoH0": 1.65,
+   "windowHiH0": 2.42,
+   "rungs": [
+    {
+     "mult": 0.7,
+     "H0": 1.54,
+     "alphaDeg": -7.809,
+     "zMedianM": -31.17,
+     "hbM": 3.073,
+     "breakBearingDeg": -7.951,
+     "crestBearingDeg": -0.418,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.75,
+     "H0": 1.65,
+     "alphaDeg": 36.895,
+     "zMedianM": -125.329,
+     "hbM": 3.223,
+     "breakBearingDeg": 30.409,
+     "crestBearingDeg": -2.171,
+     "gapFrac": 0.357
+    },
+    {
+     "mult": 0.8,
+     "H0": 1.76,
+     "alphaDeg": 38.186,
+     "zMedianM": -138.941,
+     "hbM": 3.393,
+     "breakBearingDeg": 33.685,
+     "crestBearingDeg": -2.522,
+     "gapFrac": 0.341
+    },
+    {
+     "mult": 0.85,
+     "H0": 1.87,
+     "alphaDeg": 39.175,
+     "zMedianM": -150.294,
+     "hbM": 3.554,
+     "breakBearingDeg": 34.867,
+     "crestBearingDeg": -3.216,
+     "gapFrac": 0.31
+    },
+    {
+     "mult": 0.9,
+     "H0": 1.98,
+     "alphaDeg": 39.148,
+     "zMedianM": -157.914,
+     "hbM": 3.711,
+     "breakBearingDeg": 35.785,
+     "crestBearingDeg": -3.931,
+     "gapFrac": 0.24
+    },
+    {
+     "mult": 0.95,
+     "H0": 2.09,
+     "alphaDeg": 37.501,
+     "zMedianM": -166.731,
+     "hbM": 3.877,
+     "breakBearingDeg": 35.798,
+     "crestBearingDeg": -3.923,
+     "gapFrac": 0.217
+    },
+    {
+     "mult": 1,
+     "H0": 2.2,
+     "alphaDeg": 36.337,
+     "zMedianM": -172.822,
+     "hbM": 4.04,
+     "breakBearingDeg": 33.871,
+     "crestBearingDeg": -4.078,
+     "gapFrac": 0.217
+    },
+    {
+     "mult": 1.05,
+     "H0": 2.31,
+     "alphaDeg": 33.816,
+     "zMedianM": -180.372,
+     "hbM": 4.213,
+     "breakBearingDeg": 31.775,
+     "crestBearingDeg": -3.993,
+     "gapFrac": 0.194
+    },
+    {
+     "mult": 1.1,
+     "H0": 2.42,
+     "alphaDeg": 30.975,
+     "zMedianM": -186.143,
+     "hbM": 4.379,
+     "breakBearingDeg": 29.538,
+     "crestBearingDeg": -3.849,
+     "gapFrac": 0.178
+    },
+    {
+     "mult": 1.15,
+     "H0": 2.53,
+     "alphaDeg": 26.476,
+     "zMedianM": -193.719,
+     "hbM": 4.555,
+     "breakBearingDeg": 25.067,
+     "crestBearingDeg": -3.687,
+     "gapFrac": 0.147
+    },
+    {
+     "mult": 1.2,
+     "H0": 2.64,
+     "alphaDeg": 23.221,
+     "zMedianM": -199.878,
+     "hbM": 4.705,
+     "breakBearingDeg": 23.448,
+     "crestBearingDeg": -4.01,
+     "gapFrac": 0.171
+    },
+    {
+     "mult": 1.25,
+     "H0": 2.75,
+     "alphaDeg": 19.365,
+     "zMedianM": -207.876,
+     "hbM": 4.868,
+     "breakBearingDeg": 18.41,
+     "crestBearingDeg": -3.626,
+     "gapFrac": 0.147
+    },
+    {
+     "mult": 1.3,
+     "H0": 2.86,
+     "alphaDeg": 14.978,
+     "zMedianM": -209.543,
+     "hbM": 5.027,
+     "breakBearingDeg": 14.651,
+     "crestBearingDeg": -3.772,
+     "gapFrac": 0.155
+    },
+    {
+     "mult": 1.35,
+     "H0": 2.97,
+     "alphaDeg": 11.367,
+     "zMedianM": -212.417,
+     "hbM": 5.182,
+     "breakBearingDeg": 11.347,
+     "crestBearingDeg": -4.162,
+     "gapFrac": 0.171
+    },
+    {
+     "mult": 1.4,
+     "H0": 3.08,
+     "alphaDeg": 7.411,
+     "zMedianM": -216.509,
+     "hbM": 5.346,
+     "breakBearingDeg": 7.703,
+     "crestBearingDeg": -3.738,
+     "gapFrac": 0.147
+    }
+   ]
+  },
+  {
+   "key": "firstpeak",
+   "label": "First Peak",
+   "alphaAuthoredDeg": 50,
+   "floorDeg": 30,
+   "peelFloorH0": 1.38,
+   "cardH0": 1.8,
+   "windowLoH0": 1.44,
+   "windowHiH0": {
+    "openAbove": 2.52
+   },
+   "rungs": [
+    {
+     "mult": 0.7,
+     "H0": 1.26,
+     "alphaDeg": 8.543,
+     "zMedianM": 2.762,
+     "hbM": 2.481,
+     "breakBearingDeg": 1.03,
+     "crestBearingDeg": -9.08,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.75,
+     "H0": 1.35,
+     "alphaDeg": 6.283,
+     "zMedianM": -50.949,
+     "hbM": 2.619,
+     "breakBearingDeg": 0.501,
+     "crestBearingDeg": -9.773,
+     "gapFrac": 0.456
+    },
+    {
+     "mult": 0.8,
+     "H0": 1.44,
+     "alphaDeg": 38.307,
+     "zMedianM": -60.266,
+     "hbM": 2.754,
+     "breakBearingDeg": 17.468,
+     "crestBearingDeg": -10.026,
+     "gapFrac": 0.456
+    },
+    {
+     "mult": 0.85,
+     "H0": 1.53,
+     "alphaDeg": 54.923,
+     "zMedianM": -73.455,
+     "hbM": 2.894,
+     "breakBearingDeg": 44.438,
+     "crestBearingDeg": -10.248,
+     "gapFrac": 0.509
+    },
+    {
+     "mult": 0.9,
+     "H0": 1.62,
+     "alphaDeg": 57.289,
+     "zMedianM": -81.204,
+     "hbM": 3.03,
+     "breakBearingDeg": 46.701,
+     "crestBearingDeg": -10.404,
+     "gapFrac": 0.439
+    },
+    {
+     "mult": 0.95,
+     "H0": 1.71,
+     "alphaDeg": 60.016,
+     "zMedianM": -89.212,
+     "hbM": 3.146,
+     "breakBearingDeg": 49.834,
+     "crestBearingDeg": -9.994,
+     "gapFrac": 0.298
+    },
+    {
+     "mult": 1,
+     "H0": 1.8,
+     "alphaDeg": 60.694,
+     "zMedianM": -95.111,
+     "hbM": 3.278,
+     "breakBearingDeg": 50.21,
+     "crestBearingDeg": -10.578,
+     "gapFrac": 0.281
+    },
+    {
+     "mult": 1.05,
+     "H0": 1.89,
+     "alphaDeg": 60.763,
+     "zMedianM": -102.659,
+     "hbM": 3.418,
+     "breakBearingDeg": 49.933,
+     "crestBearingDeg": -10.845,
+     "gapFrac": 0.246
+    },
+    {
+     "mult": 1.1,
+     "H0": 1.98,
+     "alphaDeg": 60.562,
+     "zMedianM": -107.794,
+     "hbM": 3.55,
+     "breakBearingDeg": 49.312,
+     "crestBearingDeg": -11.124,
+     "gapFrac": 0.281
+    },
+    {
+     "mult": 1.15,
+     "H0": 2.07,
+     "alphaDeg": 60.128,
+     "zMedianM": -112.858,
+     "hbM": 3.678,
+     "breakBearingDeg": 48.706,
+     "crestBearingDeg": -11.411,
+     "gapFrac": 0.246
+    },
+    {
+     "mult": 1.2,
+     "H0": 2.16,
+     "alphaDeg": 59.728,
+     "zMedianM": -117.907,
+     "hbM": 3.809,
+     "breakBearingDeg": 48.154,
+     "crestBearingDeg": -11.969,
+     "gapFrac": 0.246
+    },
+    {
+     "mult": 1.25,
+     "H0": 2.25,
+     "alphaDeg": 58.41,
+     "zMedianM": -123,
+     "hbM": 3.941,
+     "breakBearingDeg": 47.243,
+     "crestBearingDeg": -12.165,
+     "gapFrac": 0.211
+    },
+    {
+     "mult": 1.3,
+     "H0": 2.34,
+     "alphaDeg": 56.628,
+     "zMedianM": -128.041,
+     "hbM": 4.072,
+     "breakBearingDeg": 45.442,
+     "crestBearingDeg": -12.368,
+     "gapFrac": 0.211
+    },
+    {
+     "mult": 1.35,
+     "H0": 2.43,
+     "alphaDeg": 54.165,
+     "zMedianM": -132.841,
+     "hbM": 4.197,
+     "breakBearingDeg": 43.073,
+     "crestBearingDeg": -12.499,
+     "gapFrac": 0.175
+    },
+    {
+     "mult": 1.4,
+     "H0": 2.52,
+     "alphaDeg": 51.085,
+     "zMedianM": -135.378,
+     "hbM": 4.328,
+     "breakBearingDeg": 40.368,
+     "crestBearingDeg": -12.435,
+     "gapFrac": 0.123
+    }
+   ]
+  },
+  {
+   "key": "secondpeak",
+   "label": "Second Peak",
+   "alphaAuthoredDeg": 41,
+   "floorDeg": 30,
+   "peelFloorH0": 1.11,
+   "cardH0": 1.5,
+   "windowLoH0": null,
+   "windowHiH0": null,
+   "rungs": [
+    {
+     "mult": 0.7,
+     "H0": 1.05,
+     "alphaDeg": 4.102,
+     "zMedianM": 2.343,
+     "hbM": 2.065,
+     "breakBearingDeg": -0.249,
+     "crestBearingDeg": -4.961,
+     "gapFrac": 0.175
+    },
+    {
+     "mult": 0.75,
+     "H0": 1.125,
+     "alphaDeg": 10.38,
+     "zMedianM": -8.874,
+     "hbM": 2.193,
+     "breakBearingDeg": 4.297,
+     "crestBearingDeg": -5.641,
+     "gapFrac": 0.093
+    },
+    {
+     "mult": 0.8,
+     "H0": 1.2,
+     "alphaDeg": 16.552,
+     "zMedianM": -22.392,
+     "hbM": 2.304,
+     "breakBearingDeg": 16.212,
+     "crestBearingDeg": -5.559,
+     "gapFrac": 0.124
+    },
+    {
+     "mult": 0.85,
+     "H0": 1.275,
+     "alphaDeg": 21.747,
+     "zMedianM": -33.194,
+     "hbM": 2.423,
+     "breakBearingDeg": 21.368,
+     "crestBearingDeg": -5.597,
+     "gapFrac": 0.113
+    },
+    {
+     "mult": 0.9,
+     "H0": 1.35,
+     "alphaDeg": 24.196,
+     "zMedianM": -41.32,
+     "hbM": 2.537,
+     "breakBearingDeg": 25.102,
+     "crestBearingDeg": -5.641,
+     "gapFrac": 0.113
+    },
+    {
+     "mult": 0.95,
+     "H0": 1.425,
+     "alphaDeg": 27.846,
+     "zMedianM": -48.973,
+     "hbM": 2.647,
+     "breakBearingDeg": 25.83,
+     "crestBearingDeg": -5.686,
+     "gapFrac": 0.124
+    },
+    {
+     "mult": 1,
+     "H0": 1.5,
+     "alphaDeg": 25.776,
+     "zMedianM": -56.022,
+     "hbM": 2.762,
+     "breakBearingDeg": 24.481,
+     "crestBearingDeg": -5.845,
+     "gapFrac": 0.103
+    },
+    {
+     "mult": 1.05,
+     "H0": 1.575,
+     "alphaDeg": 26.054,
+     "zMedianM": -61.984,
+     "hbM": 2.878,
+     "breakBearingDeg": 22.717,
+     "crestBearingDeg": -6.008,
+     "gapFrac": 0.072
+    },
+    {
+     "mult": 1.1,
+     "H0": 1.65,
+     "alphaDeg": 19.96,
+     "zMedianM": -67.742,
+     "hbM": 2.992,
+     "breakBearingDeg": 18.111,
+     "crestBearingDeg": -6.279,
+     "gapFrac": 0.041
+    },
+    {
+     "mult": 1.15,
+     "H0": 1.725,
+     "alphaDeg": 18.567,
+     "zMedianM": -73.261,
+     "hbM": 3.103,
+     "breakBearingDeg": 17.256,
+     "crestBearingDeg": -6.201,
+     "gapFrac": 0.052
+    },
+    {
+     "mult": 1.2,
+     "H0": 1.8,
+     "alphaDeg": 17.802,
+     "zMedianM": -78.407,
+     "hbM": 3.211,
+     "breakBearingDeg": 16.535,
+     "crestBearingDeg": -6.232,
+     "gapFrac": 0.052
+    },
+    {
+     "mult": 1.25,
+     "H0": 1.875,
+     "alphaDeg": 17.33,
+     "zMedianM": -82.411,
+     "hbM": 3.32,
+     "breakBearingDeg": 15.861,
+     "crestBearingDeg": -6.264,
+     "gapFrac": 0.052
+    },
+    {
+     "mult": 1.3,
+     "H0": 1.95,
+     "alphaDeg": 14.47,
+     "zMedianM": -87.174,
+     "hbM": 3.433,
+     "breakBearingDeg": 8.507,
+     "crestBearingDeg": -6.65,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.35,
+     "H0": 2.025,
+     "alphaDeg": 11.852,
+     "zMedianM": -92.021,
+     "hbM": 3.54,
+     "breakBearingDeg": 7.99,
+     "crestBearingDeg": -6.69,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.4,
+     "H0": 2.1,
+     "alphaDeg": 11.386,
+     "zMedianM": -96.588,
+     "hbM": 3.645,
+     "breakBearingDeg": 7.293,
+     "crestBearingDeg": -6.747,
+     "gapFrac": 0
+    }
+   ]
+  },
+  {
+   "key": "jacks",
+   "label": "Jack's (38th)",
+   "alphaAuthoredDeg": 37,
+   "floorDeg": 30,
+   "peelFloorH0": 0.78,
+   "cardH0": 1.1,
+   "windowLoH0": 0.88,
+   "windowHiH0": {
+    "openAbove": 1.54
+   },
+   "rungs": [
+    {
+     "mult": 0.7,
+     "H0": 0.77,
+     "alphaDeg": 10.557,
+     "zMedianM": 11.667,
+     "hbM": 1.608,
+     "breakBearingDeg": 3.162,
+     "crestBearingDeg": -6.88,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.75,
+     "H0": 0.825,
+     "alphaDeg": 12.134,
+     "zMedianM": -0.352,
+     "hbM": 1.687,
+     "breakBearingDeg": 3.792,
+     "crestBearingDeg": -6.968,
+     "gapFrac": 0.064
+    },
+    {
+     "mult": 0.8,
+     "H0": 0.88,
+     "alphaDeg": 31.129,
+     "zMedianM": -23.649,
+     "hbM": 1.768,
+     "breakBearingDeg": 24.509,
+     "crestBearingDeg": -7.028,
+     "gapFrac": 0.135
+    },
+    {
+     "mult": 0.85,
+     "H0": 0.935,
+     "alphaDeg": 33.995,
+     "zMedianM": -32.192,
+     "hbM": 1.857,
+     "breakBearingDeg": 29.078,
+     "crestBearingDeg": -7.05,
+     "gapFrac": 0.154
+    },
+    {
+     "mult": 0.9,
+     "H0": 0.99,
+     "alphaDeg": 34.825,
+     "zMedianM": -37.459,
+     "hbM": 1.943,
+     "breakBearingDeg": 28.227,
+     "crestBearingDeg": -7.126,
+     "gapFrac": 0.135
+    },
+    {
+     "mult": 0.95,
+     "H0": 1.045,
+     "alphaDeg": 35.213,
+     "zMedianM": -43.005,
+     "hbM": 2.032,
+     "breakBearingDeg": 29.51,
+     "crestBearingDeg": -7.157,
+     "gapFrac": 0.135
+    },
+    {
+     "mult": 1,
+     "H0": 1.1,
+     "alphaDeg": 37.131,
+     "zMedianM": -49.587,
+     "hbM": 2.116,
+     "breakBearingDeg": 31.263,
+     "crestBearingDeg": -7.192,
+     "gapFrac": 0.135
+    },
+    {
+     "mult": 1.05,
+     "H0": 1.155,
+     "alphaDeg": 38.046,
+     "zMedianM": -52.734,
+     "hbM": 2.203,
+     "breakBearingDeg": 31.414,
+     "crestBearingDeg": -7.211,
+     "gapFrac": 0.135
+    },
+    {
+     "mult": 1.1,
+     "H0": 1.21,
+     "alphaDeg": 38.011,
+     "zMedianM": -55.856,
+     "hbM": 2.289,
+     "breakBearingDeg": 31.886,
+     "crestBearingDeg": -7.243,
+     "gapFrac": 0.135
+    },
+    {
+     "mult": 1.15,
+     "H0": 1.265,
+     "alphaDeg": 39.053,
+     "zMedianM": -62.472,
+     "hbM": 2.374,
+     "breakBearingDeg": 33.088,
+     "crestBearingDeg": -7.26,
+     "gapFrac": 0.141
+    },
+    {
+     "mult": 1.2,
+     "H0": 1.32,
+     "alphaDeg": 38.385,
+     "zMedianM": -64.916,
+     "hbM": 2.456,
+     "breakBearingDeg": 32.149,
+     "crestBearingDeg": -7.321,
+     "gapFrac": 0.122
+    },
+    {
+     "mult": 1.25,
+     "H0": 1.375,
+     "alphaDeg": 38.743,
+     "zMedianM": -68.633,
+     "hbM": 2.539,
+     "breakBearingDeg": 32.038,
+     "crestBearingDeg": -7.404,
+     "gapFrac": 0.122
+    },
+    {
+     "mult": 1.3,
+     "H0": 1.43,
+     "alphaDeg": 39.28,
+     "zMedianM": -73.536,
+     "hbM": 2.624,
+     "breakBearingDeg": 32.219,
+     "crestBearingDeg": -7.508,
+     "gapFrac": 0.122
+    },
+    {
+     "mult": 1.35,
+     "H0": 1.485,
+     "alphaDeg": 38.409,
+     "zMedianM": -76.967,
+     "hbM": 2.707,
+     "breakBearingDeg": 31.415,
+     "crestBearingDeg": -7.679,
+     "gapFrac": 0.109
+    },
+    {
+     "mult": 1.4,
+     "H0": 1.54,
+     "alphaDeg": 38.242,
+     "zMedianM": -81.658,
+     "hbM": 2.791,
+     "breakBearingDeg": 31.032,
+     "crestBearingDeg": -7.782,
+     "gapFrac": 0.103
+    }
+   ]
+  },
+  {
+   "key": "thehook",
+   "label": "The Hook",
+   "alphaAuthoredDeg": 41,
+   "floorDeg": 30,
+   "peelFloorH0": 1.09,
+   "cardH0": 1.5,
+   "windowLoH0": 1.2,
+   "windowHiH0": 1.65,
+   "rungs": [
+    {
+     "mult": 0.7,
+     "H0": 1.05,
+     "alphaDeg": -5.474,
+     "zMedianM": -21.304,
+     "hbM": 2.12,
+     "breakBearingDeg": -6.209,
+     "crestBearingDeg": -2.82,
+     "gapFrac": 0.186
+    },
+    {
+     "mult": 0.75,
+     "H0": 1.125,
+     "alphaDeg": 13.46,
+     "zMedianM": -29.536,
+     "hbM": 2.187,
+     "breakBearingDeg": 6.075,
+     "crestBearingDeg": -8.381,
+     "gapFrac": 0.145
+    },
+    {
+     "mult": 0.8,
+     "H0": 1.2,
+     "alphaDeg": 30.18,
+     "zMedianM": -57.478,
+     "hbM": 2.299,
+     "breakBearingDeg": 23.051,
+     "crestBearingDeg": -8.717,
+     "gapFrac": 0.166
+    },
+    {
+     "mult": 0.85,
+     "H0": 1.275,
+     "alphaDeg": 40.163,
+     "zMedianM": -68.612,
+     "hbM": 2.415,
+     "breakBearingDeg": 32.254,
+     "crestBearingDeg": -8.876,
+     "gapFrac": 0.166
+    },
+    {
+     "mult": 0.9,
+     "H0": 1.35,
+     "alphaDeg": 40.057,
+     "zMedianM": -77.435,
+     "hbM": 2.528,
+     "breakBearingDeg": 33.158,
+     "crestBearingDeg": -8.975,
+     "gapFrac": 0.159
+    },
+    {
+     "mult": 0.95,
+     "H0": 1.425,
+     "alphaDeg": 39.15,
+     "zMedianM": -82.437,
+     "hbM": 2.651,
+     "breakBearingDeg": 31.145,
+     "crestBearingDeg": -9.148,
+     "gapFrac": 0.159
+    },
+    {
+     "mult": 1,
+     "H0": 1.5,
+     "alphaDeg": 36.802,
+     "zMedianM": -90.2,
+     "hbM": 2.756,
+     "breakBearingDeg": 28.117,
+     "crestBearingDeg": -9.297,
+     "gapFrac": 0.152
+    },
+    {
+     "mult": 1.05,
+     "H0": 1.575,
+     "alphaDeg": 33.644,
+     "zMedianM": -97.682,
+     "hbM": 2.875,
+     "breakBearingDeg": 26.364,
+     "crestBearingDeg": -9.438,
+     "gapFrac": 0.145
+    },
+    {
+     "mult": 1.1,
+     "H0": 1.65,
+     "alphaDeg": 30.734,
+     "zMedianM": -101.241,
+     "hbM": 2.985,
+     "breakBearingDeg": 24.515,
+     "crestBearingDeg": -9.536,
+     "gapFrac": 0.145
+    },
+    {
+     "mult": 1.15,
+     "H0": 1.725,
+     "alphaDeg": 28.122,
+     "zMedianM": -108.411,
+     "hbM": 3.095,
+     "breakBearingDeg": 19.677,
+     "crestBearingDeg": -9.506,
+     "gapFrac": 0.124
+    },
+    {
+     "mult": 1.2,
+     "H0": 1.8,
+     "alphaDeg": 25.739,
+     "zMedianM": -112.323,
+     "hbM": 3.207,
+     "breakBearingDeg": 17.778,
+     "crestBearingDeg": -9.498,
+     "gapFrac": 0.124
+    },
+    {
+     "mult": 1.25,
+     "H0": 1.875,
+     "alphaDeg": 23.43,
+     "zMedianM": -119.744,
+     "hbM": 3.314,
+     "breakBearingDeg": 16.627,
+     "crestBearingDeg": -9.555,
+     "gapFrac": 0.131
+    },
+    {
+     "mult": 1.3,
+     "H0": 1.95,
+     "alphaDeg": 21.046,
+     "zMedianM": -123.123,
+     "hbM": 3.423,
+     "breakBearingDeg": 13.318,
+     "crestBearingDeg": -9.529,
+     "gapFrac": 0.117
+    },
+    {
+     "mult": 1.35,
+     "H0": 2.025,
+     "alphaDeg": 20.109,
+     "zMedianM": -126.289,
+     "hbM": 3.528,
+     "breakBearingDeg": 12.129,
+     "crestBearingDeg": -9.501,
+     "gapFrac": 0.117
+    },
+    {
+     "mult": 1.4,
+     "H0": 2.1,
+     "alphaDeg": 18.57,
+     "zMedianM": -133.704,
+     "hbM": 3.634,
+     "breakBearingDeg": 9.951,
+     "crestBearingDeg": -9.565,
+     "gapFrac": 0.11
+    }
+   ]
+  },
+  {
+   "key": "sharks",
+   "label": "Sharks",
+   "alphaAuthoredDeg": 36,
+   "floorDeg": 30,
+   "peelFloorH0": 0.81,
+   "cardH0": 1,
+   "windowLoH0": 0.95,
+   "windowHiH0": 1.05,
+   "rungs": [
+    {
+     "mult": 0.7,
+     "H0": 0.7,
+     "alphaDeg": 10.457,
+     "zMedianM": 11.622,
+     "hbM": 1.475,
+     "breakBearingDeg": 4.337,
+     "crestBearingDeg": -6.105,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.75,
+     "H0": 0.75,
+     "alphaDeg": 9.768,
+     "zMedianM": 5.49,
+     "hbM": 1.561,
+     "breakBearingDeg": 3.214,
+     "crestBearingDeg": -6.285,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.8,
+     "H0": 0.8,
+     "alphaDeg": 15.037,
+     "zMedianM": -3.044,
+     "hbM": 1.631,
+     "breakBearingDeg": 6.62,
+     "crestBearingDeg": -6.974,
+     "gapFrac": 0.092
+    },
+    {
+     "mult": 0.85,
+     "H0": 0.85,
+     "alphaDeg": 27.598,
+     "zMedianM": -16.404,
+     "hbM": 1.708,
+     "breakBearingDeg": 19.147,
+     "crestBearingDeg": -7.297,
+     "gapFrac": 0.125
+    },
+    {
+     "mult": 0.9,
+     "H0": 0.9,
+     "alphaDeg": 29.336,
+     "zMedianM": -26.525,
+     "hbM": 1.789,
+     "breakBearingDeg": 21.451,
+     "crestBearingDeg": -7.477,
+     "gapFrac": 0.125
+    },
+    {
+     "mult": 0.95,
+     "H0": 0.95,
+     "alphaDeg": 30.107,
+     "zMedianM": -33.176,
+     "hbM": 1.868,
+     "breakBearingDeg": 21.962,
+     "crestBearingDeg": -7.551,
+     "gapFrac": 0.125
+    },
+    {
+     "mult": 1,
+     "H0": 1,
+     "alphaDeg": 30.467,
+     "zMedianM": -40.556,
+     "hbM": 1.944,
+     "breakBearingDeg": 22.893,
+     "crestBearingDeg": -7.609,
+     "gapFrac": 0.125
+    },
+    {
+     "mult": 1.05,
+     "H0": 1.05,
+     "alphaDeg": 30.48,
+     "zMedianM": -45.196,
+     "hbM": 2.026,
+     "breakBearingDeg": 22.484,
+     "crestBearingDeg": -7.674,
+     "gapFrac": 0.125
+    },
+    {
+     "mult": 1.1,
+     "H0": 1.1,
+     "alphaDeg": 29.868,
+     "zMedianM": -49.128,
+     "hbM": 2.102,
+     "breakBearingDeg": 22.473,
+     "crestBearingDeg": -7.781,
+     "gapFrac": 0.125
+    },
+    {
+     "mult": 1.15,
+     "H0": 1.15,
+     "alphaDeg": 31.203,
+     "zMedianM": -54.597,
+     "hbM": 2.18,
+     "breakBearingDeg": 22.642,
+     "crestBearingDeg": -7.86,
+     "gapFrac": 0.125
+    },
+    {
+     "mult": 1.2,
+     "H0": 1.2,
+     "alphaDeg": 29.248,
+     "zMedianM": -58.625,
+     "hbM": 2.254,
+     "breakBearingDeg": 21.298,
+     "crestBearingDeg": -7.902,
+     "gapFrac": 0.112
+    },
+    {
+     "mult": 1.25,
+     "H0": 1.25,
+     "alphaDeg": 28.371,
+     "zMedianM": -63.105,
+     "hbM": 2.334,
+     "breakBearingDeg": 20.977,
+     "crestBearingDeg": -7.966,
+     "gapFrac": 0.105
+    },
+    {
+     "mult": 1.3,
+     "H0": 1.3,
+     "alphaDeg": 27.417,
+     "zMedianM": -66.573,
+     "hbM": 2.408,
+     "breakBearingDeg": 19.661,
+     "crestBearingDeg": -8.046,
+     "gapFrac": 0.105
+    },
+    {
+     "mult": 1.35,
+     "H0": 1.35,
+     "alphaDeg": 27.457,
+     "zMedianM": -70.63,
+     "hbM": 2.481,
+     "breakBearingDeg": 18.603,
+     "crestBearingDeg": -8.169,
+     "gapFrac": 0.112
+    },
+    {
+     "mult": 1.4,
+     "H0": 1.4,
+     "alphaDeg": 25.607,
+     "zMedianM": -73.856,
+     "hbM": 2.56,
+     "breakBearingDeg": 16.82,
+     "crestBearingDeg": -8.231,
+     "gapFrac": 0.099
+    }
+   ]
+  },
+  {
+   "key": "privates",
+   "label": "Privates",
+   "alphaAuthoredDeg": 31,
+   "floorDeg": 30,
+   "peelFloorH0": null,
+   "cardH0": 0.7,
+   "windowLoH0": null,
+   "windowHiH0": null,
+   "rungs": [
+    {
+     "mult": 0.7,
+     "H0": 0.49,
+     "alphaDeg": 22.241,
+     "zMedianM": 42.742,
+     "hbM": 1.121,
+     "breakBearingDeg": 13.777,
+     "crestBearingDeg": -7.089,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.75,
+     "H0": 0.525,
+     "alphaDeg": 20.277,
+     "zMedianM": 32.729,
+     "hbM": 1.185,
+     "breakBearingDeg": 13.295,
+     "crestBearingDeg": -7.239,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.8,
+     "H0": 0.56,
+     "alphaDeg": 19.235,
+     "zMedianM": 23.451,
+     "hbM": 1.248,
+     "breakBearingDeg": 11.531,
+     "crestBearingDeg": -7.383,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.85,
+     "H0": 0.595,
+     "alphaDeg": 18.679,
+     "zMedianM": 14.663,
+     "hbM": 1.311,
+     "breakBearingDeg": 9.81,
+     "crestBearingDeg": -7.541,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.9,
+     "H0": 0.63,
+     "alphaDeg": 17.743,
+     "zMedianM": 6.432,
+     "hbM": 1.373,
+     "breakBearingDeg": 9.214,
+     "crestBearingDeg": -7.678,
+     "gapFrac": 0
+    },
+    {
+     "mult": 0.95,
+     "H0": 0.665,
+     "alphaDeg": 16.554,
+     "zMedianM": -1.54,
+     "hbM": 1.434,
+     "breakBearingDeg": 8.297,
+     "crestBearingDeg": -7.813,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1,
+     "H0": 0.7,
+     "alphaDeg": 15.748,
+     "zMedianM": -8.775,
+     "hbM": 1.494,
+     "breakBearingDeg": 7.505,
+     "crestBearingDeg": -7.928,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.05,
+     "H0": 0.735,
+     "alphaDeg": 15.695,
+     "zMedianM": -15.676,
+     "hbM": 1.554,
+     "breakBearingDeg": 7.793,
+     "crestBearingDeg": -8.029,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.1,
+     "H0": 0.77,
+     "alphaDeg": 15.615,
+     "zMedianM": -38.439,
+     "hbM": 1.611,
+     "breakBearingDeg": 7.352,
+     "crestBearingDeg": -8.003,
+     "gapFrac": 0.043
+    },
+    {
+     "mult": 1.15,
+     "H0": 0.805,
+     "alphaDeg": 26.824,
+     "zMedianM": -49.699,
+     "hbM": 1.673,
+     "breakBearingDeg": 20.362,
+     "crestBearingDeg": -8.494,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.2,
+     "H0": 0.84,
+     "alphaDeg": 24.126,
+     "zMedianM": -58.108,
+     "hbM": 1.731,
+     "breakBearingDeg": 17.787,
+     "crestBearingDeg": -8.558,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.25,
+     "H0": 0.875,
+     "alphaDeg": 22.962,
+     "zMedianM": -64.37,
+     "hbM": 1.789,
+     "breakBearingDeg": 16.508,
+     "crestBearingDeg": -8.699,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.3,
+     "H0": 0.91,
+     "alphaDeg": 22.226,
+     "zMedianM": -69.472,
+     "hbM": 1.845,
+     "breakBearingDeg": 15.22,
+     "crestBearingDeg": -8.8,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.35,
+     "H0": 0.945,
+     "alphaDeg": 21.945,
+     "zMedianM": -73.908,
+     "hbM": 1.904,
+     "breakBearingDeg": 14.433,
+     "crestBearingDeg": -8.897,
+     "gapFrac": 0
+    },
+    {
+     "mult": 1.4,
+     "H0": 0.98,
+     "alphaDeg": 21.61,
+     "zMedianM": -77.737,
+     "hbM": 1.96,
+     "breakBearingDeg": 13.572,
+     "crestBearingDeg": -8.98,
+     "gapFrac": 0
+    }
+   ]
+  }
+ ]
+}
