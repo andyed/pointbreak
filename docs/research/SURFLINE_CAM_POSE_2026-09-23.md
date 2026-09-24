@@ -155,9 +155,14 @@ band cancels in the ratio exactly (both scale with H).
 ## Model side
 
 `scripts/compare_peel_speed.mjs`, headless, reading `bed.derivedPeelGeometry`
-(peel-geometry.js: `alphaDeg`, `phaseSpeedMps` = c, `lineVelocityMps` = Vp,
-the one definition the HUD and rider use). Second Peak stage, x ∈ [−290,
-290] at 2 m, non-gap stations. Pre-registered forcing: T = 16 s, tide +0.357 m
+(peel-geometry.js: `alphaDeg`, `phaseSpeedMps` = c, and `lineVelocityMps` =
+Vp from `peelVelocity`, the one definition the HUD and rider share). One
+caveat that definition carries: the stencil is the call site's, and
+`derivedPeelGeometry` uses bed.js's 14.06 m line step, which the
+peel-geometry.js comment measures as disagreeing with the rider's 1.5 m
+stencil by up to 51 % on Vp at Second Peak. A factor of 1.5 on the model's
+37 m/s does not reach 5 m/s. Second Peak stage, x ∈ [−290, 290] at 2 m,
+non-gap stations. Pre-registered forcing: T = 16 s, tide +0.357 m
 MSL, H0 = 0.914 m (3 ft) directly, and de-shoaled from the 15 m MOP depth
 (Ks = 1.072, H0 = 0.853 m). `swellDeg` is the preset's 41°, as `main.js`
 passes it; the reported 202° SSW is not wired.
