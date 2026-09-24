@@ -353,12 +353,21 @@ seconds would notice:
 
 Measured, proposed, not done. Product calls are Andy's.
 
-1. **Re-measure the peel floor's tide band against the 2026-08-15 day** — an
-   observed peel at +0.36 m, H0 0.78–0.91 m, Second Peak. `PEEL_FLOOR`'s
-   basis is the model's own α ≥ 10° criterion at tide 0; the field day is
-   the first external point and it fails the band by 0.35 m. Instrument:
-   `scripts/measure_break_activation.mjs --mode=tide` re-run with the
-   observed forcing, then `compare_peel_speed.mjs` (T6).
+1. ~~Re-measure the peel floor's tide band against the 2026-08-15 day~~ —
+   **DONE 2026-09-24, verdict REEF FIT WRONG AT DEPTH**
+   (`PEEL_BAND_FIELD_2026-09-24.md`). The band is a correct statement about
+   the model: no cell of the (0.6–1.6 m) × (−0.3…+0.8 m) field at T 14/16/17
+   reaches α 30° at Second Peak. At the observed cells the line sits 33–72 m
+   *shoreward* of the wedge crest on the natural bed's 1.7 m isobath (on-reef
+   0.00; reef and no-reef bakes bit-identical), because `REEF_CEIL_EL`
+   (−0.5 m NAVD88) caps the crest at 1.6 m below MSL while the day's waves
+   break in 1.6–2.0 m of water. No in-invariant knob moves it. A crest
+   0.6–0.8 m below MSL at β 45° (an intertidal shelf, outside the invariant)
+   gives α 41°, Vp 5.9–6.4, c 4.2 at both cells — inside the observed
+   4.7–6.7 / 3.8–5.3 — keeps the card at 27–31°, leaves all four Sentinel-2
+   Second Peak cells consistent and Jack's T3 line untouched. So item 1
+   becomes a product call on the shoreline ceiling invariant, and item 3
+   gains the apex and the tide axis.
 2. **Adopt the comparison protocol** (T2 §7.1): observed 9413450 water
    level, not predicted, for every same-hour comparison; both day hashes in
    T2 already do this.

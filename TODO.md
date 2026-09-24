@@ -48,8 +48,15 @@ quantities the data now contradicts:
 - **Side findings.** Camera submersion and the audio zipper still read the
   synthetic twin / authored contour (FIDELITY_AUDIT T7).
 
-Ranked next actions are in the audit's last section; the first is to
-re-measure the peel floor's tide band against the 08-15 day. Two MODEL.md
+Ranked next actions are in the audit's last section. The first one ran on
+2026-09-24 (`PEEL_BAND_FIELD_2026-09-24.md`): the tide band is a correct
+statement about the model; the 08-15 closeout is the **reef fit at depth** —
+`REEF_CEIL_EL` (−0.5 m NAVD88) caps the wedge crest at 1.6 m below MSL while
+the day's waves break in 1.6–2.0 m, so the line lands on the natural bed's
+shore-parallel 1.7 m isobath, on-reef 0.00. An intertidal crest (0.6–0.8 m
+below MSL, β 45°) reproduces the observed Vp/c/α and keeps the card,
+Sentinel-2 and Lookout verdicts, but breaks the ceiling invariant (235–256
+wet posts). Product call, then the signed apex refit (item 3). Two MODEL.md
 wording errors were corrected (`e51ff93`: shoaling is the full linear Ks,
 not Green's law; the skew map steepens the front by at most 1+s and h(x) is
 single-valued).
