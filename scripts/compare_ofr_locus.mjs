@@ -194,5 +194,6 @@ for (const w of WINDOWS) {
 }
 const tag = BED_SOURCE ? `.${BED_SOURCE}` : '';
 writeFileSync(join(ASSETS, `locus_compare${tag}.json`), JSON.stringify({ bedSource: BED_SOURCE || 'shipped', windows: WINDOWS, rows }, null, 1));
+while (L.length && L[L.length - 1] === '') L.pop();
 writeFileSync(join(ASSETS, `locus_compare${tag}.md`), L.join('\n') + '\n');
 console.log(L.join('\n'));
