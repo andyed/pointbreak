@@ -35,9 +35,15 @@ quantities the data now contradicts:
   shallow 38th → Shark's; NCEI ~0.8 m too deep at Sewers. The Hook's line
   breaks in 2.78 m of interpolant where the swath reads 5.09 m.
   `OFR_2007_1270_EVIDENCE_2026-09-23.md`. Data request still unsent.
-- **Side findings.** Every `#cam=` render may be the horizontal mirror of the
-  site (T3 §6; independent verification in `MIRROR_VERIFICATION_2026-09-23.md`
-  if present). Camera submersion and the audio zipper still read the
+- **Mirror (confirmed).** Every `#cam=` render is the horizontal mirror of
+  the site: (along, up, shore) is left-handed and three.js embeds it as a
+  reflection, so the right-hander drawn in stage coordinates shows as a
+  left-hander on screen (land bottom-left where the photograph has it
+  bottom-right; lip front moves screen-right from the cliff). Fix is world
+  z = −stage z at the stage → world boundary in `main.js`, plus `GRID_FRAG`'s
+  bed sample and the audio pan; every fixture re-captures.
+  `MIRROR_VERIFICATION_2026-09-23.md`.
+- **Side findings.** Camera submersion and the audio zipper still read the
   synthetic twin / authored contour (FIDELITY_AUDIT T7).
 
 Ranked next actions are in the audit's last section; the first is to

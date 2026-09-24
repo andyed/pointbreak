@@ -150,7 +150,7 @@ the significant wave's, and surfers sit outside it. The lineup is 29–50 m
 
 Side findings: **every `#cam=` render is the horizontal mirror of the site**
 (land bottom-left in the render, bottom-right in the photograph; three
-independent checks in §6 of the note; verification track T8 below); the
+independent checks in §6 of the note; confirmed by T8 below); the
 render's horizon is the mesh edge, 27 px low; Second Peak is not in the frame,
 so this is a Jack's residual; `#h0=` bypasses the peel floor entirely.
 
@@ -258,6 +258,30 @@ thresholded tracker joined the older bore), continuity-gated, seeded head;
 locked 270/300 frames per sequence; alongshore lag-linearity r² 0.93 / 0.997;
 fixed-rail null drift 0.007 px/s.
 
+## T8 — Mirror verification (`MIRROR_VERIFICATION_2026-09-23.md`)
+
+**Confirmed.** With the actual profile numbers (38th along a = (0.791,
+0.612), shore s = (−0.612, 0.791)), a × s = +up, so the stage frame is a
+proper rotation of ENU; but (a × up)·s = −1, so (along, up, shore) is
+left-handed and placing it as three.js (x, y, z) is a reflection. The pose
+read back from the running app at `#cam=lookout` has screen-right
+(+0.707, 0, −0.707), so the land side projects left: all 15,197 land-coloured
+pixels sit in the left half (median column 80/1280), while the photograph
+and a camera-free ray-cast across the OSM coastline put the land
+bottom-right. From `#cam=cliff` the lip front moves screen-right over sim
+42 → 45 s; a right-hander peeling +x = NE should move image-left from that
+cliff, as FIELD_WAVE_MOTION recorded for the real cam.
+
+Fix location: the stage → world boundary in `main.js` (world z = −stage z:
+a root `THREE.Group` with `scale.z = −1` plus one `toWorld` helper for camera
+pos/target/`setView`), not `enuToStage`, the profiles, the model or the bed.
+Not one line in practice: `GRID_FRAG` samples `bedElevM(vWorldPos.xz)` and
+must move to a stage-space varying; audio pan is world-x; Drone/Tour
+left–right swap; every rendered fixture and QA sheet re-captures.
+`coordinate-ownership.test.js` pins `worldXZ = vWorldPos.xz` and
+`incident-direction.test.js` pins the identity basis, both safe for a
+renderer-side fix. Permalinks survive.
+
 ## T7 — Who still reads the CPU twin (code audit, no instrument)
 
 `web-three/js/model-js.js` `oceanH` is the synthetic pre-bathymetry path:
@@ -348,9 +372,11 @@ Measured, proposed, not done. Product calls are Andy's.
    numbers and makes the next fixture a bed test only.
 5. **`#deshoal=1` and `#T=`** (T2 §7.2, §7.5): pure twin and tests already
    ship (`scripts/lib/deshoal.mjs`).
-6. **Mirror** (T3 §6, T8): if verified, one sign in the stage → three.js
-   embedding, behind its own A/B, with the rider `vx`, audio pan, `#cam=`
-   presets and the captured fixtures re-checked after.
+6. **Mirror** (T8, confirmed): world z = −stage z at the stage → world
+   boundary in `main.js`, behind its own A/B, with `GRID_FRAG`'s bed sample
+   moved to a stage-space varying, audio pan re-derived camera-relative, and
+   every fixture re-captured. Product call: the shipped screensaver has
+   shown a left-hander since the bed landed.
 7. **Wire `u_camUnder` to `surfaceQuery` and the audio zipper to the baked
    `zbFn`** (T7).
 8. **Get the Surfline cam's focal length** (T6): one capture with the 38th
@@ -375,7 +401,7 @@ Measured, proposed, not done. Product calls are Andy's.
   Vp claim, which is focal-length-free.
 - A CPS transect under The Hook within 0.5 m of NCEI would clear the
   interpolant and put the 114 m Hook shift on the reef fit alone.
-- T8 refuting the mirror.
+- A `#cam=lookout` capture with the land bottom-right after a *profile*-side change would mean the reflection was in the data, not the embedding; T8 says it is the embedding.
 
 ## Reproduction
 
