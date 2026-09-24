@@ -1,0 +1,4844 @@
+{
+ "generated_utc": "2026-09-24T04:50:43Z",
+ "bed_source": "cudem19",
+ "sign": "offset = z_model - z_obs (stage m, shore normal); positive = model shoreward of the observed outer whitewater edge",
+ "pixel_reg_sigma_m": 8,
+ "scenes": {
+  "S2A_MSIL2A_20230926T185131_R113_T10SEF_20230927T023437": {
+   "forcing": {
+    "T": 15.38,
+    "Ks12": 1.1029,
+    "tideRaw": 0.221,
+    "tide": 0.221,
+    "tideClamped": false,
+    "H0": {
+     "hs": 1.505,
+     "deshoaled": 1.3645943820884738,
+     "h10": 1.9113499999999999
+    },
+    "H0_hs": 1.505,
+    "H0_deshoaled": 1.365,
+    "H0_h10": 1.911
+   },
+   "supplementary": false,
+   "reject_reason": "",
+   "spots": {
+    "First Peak": {
+     "preset": "firstpeak",
+     "nStations": 11,
+     "nWithWhitewater": 11,
+     "cloudFracOnStations": 0,
+     "zObsMedian": -68,
+     "zObsQ10": -72,
+     "zDenseMedian": -60,
+     "zObsBand_k9_k4": [
+      -64,
+      -72
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": -93.2,
+        "gapFrac": 0.64,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -21.2,
+          "mean": -19.1,
+          "q25": -49.3,
+          "q75": 16.9,
+          "absMedian": 21.2
+         },
+         "k6": {
+          "n": 11,
+          "median": -23.2,
+          "mean": -25.9,
+          "q25": -62.3,
+          "q75": 8.7,
+          "absMedian": 23.2
+         },
+         "k9": {
+          "n": 11,
+          "median": -23.2,
+          "mean": -29,
+          "q25": -62.3,
+          "q75": 6.9,
+          "absMedian": 23.2
+         }
+        },
+        "offEnvelope": -21.2
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": -47.5,
+        "gapFrac": 0.36,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 28.5,
+          "mean": 8.8,
+          "q25": -14.2,
+          "q75": 32.4,
+          "absMedian": 28.5
+         },
+         "k6": {
+          "n": 11,
+          "median": 18.5,
+          "mean": 2,
+          "q25": -19.2,
+          "q75": 26.5,
+          "absMedian": 18.5
+         },
+         "k9": {
+          "n": 11,
+          "median": 18.5,
+          "mean": -1.1,
+          "q25": -26.2,
+          "q75": 23.9,
+          "absMedian": 18.5
+         }
+        },
+        "offEnvelope": 24.5
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -130.8,
+        "gapFrac": 0.36,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -62.8,
+          "mean": -49.7,
+          "q25": -79.6,
+          "q75": -21.8,
+          "absMedian": 62.8
+         },
+         "k6": {
+          "n": 11,
+          "median": -62.8,
+          "mean": -56.5,
+          "q25": -93.2,
+          "q75": -26.9,
+          "absMedian": 62.8
+         },
+         "k9": {
+          "n": 11,
+          "median": -65.6,
+          "mean": -59.6,
+          "q25": -93.2,
+          "q75": -31.8,
+          "absMedian": 65.6
+         }
+        },
+        "offEnvelope": -58.8
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": 22.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 98.1,
+          "mean": 95.3,
+          "q25": 88.9,
+          "q75": 101.1,
+          "absMedian": 98.1
+         },
+         "k6": {
+          "n": 11,
+          "median": 90.1,
+          "mean": 88.6,
+          "q25": 84.9,
+          "q75": 93.2,
+          "absMedian": 90.1
+         },
+         "k9": {
+          "n": 11,
+          "median": 90.1,
+          "mean": 85.5,
+          "q25": 76.9,
+          "q75": 93.2,
+          "absMedian": 90.1
+         }
+        },
+        "offEnvelope": 94.1
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": 34.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 110.6,
+          "mean": 107.7,
+          "q25": 101.1,
+          "q75": 113.6,
+          "absMedian": 110.6
+         },
+         "k6": {
+          "n": 11,
+          "median": 102.4,
+          "mean": 100.9,
+          "q25": 97.1,
+          "q75": 105.8,
+          "absMedian": 102.4
+         },
+         "k9": {
+          "n": 11,
+          "median": 102.4,
+          "mean": 97.8,
+          "q25": 89,
+          "q75": 105.8,
+          "absMedian": 102.4
+         }
+        },
+        "offEnvelope": 106.4
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -12.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 63.1,
+          "mean": 60.7,
+          "q25": 54.9,
+          "q75": 66.1,
+          "absMedian": 63.1
+         },
+         "k6": {
+          "n": 11,
+          "median": 55.3,
+          "mean": 53.9,
+          "q25": 50.8,
+          "q75": 57.9,
+          "absMedian": 55.3
+         },
+         "k9": {
+          "n": 11,
+          "median": 55.3,
+          "mean": 50.8,
+          "q25": 42.8,
+          "q75": 57.9,
+          "absMedian": 55.3
+         }
+        },
+        "offEnvelope": 59.4
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": -49,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 24.2,
+          "mean": 24.7,
+          "q25": 22.6,
+          "q75": 27.1,
+          "absMedian": 24.2
+         },
+         "k6": {
+          "n": 11,
+          "median": 18.4,
+          "mean": 18,
+          "q25": 16,
+          "q75": 22,
+          "absMedian": 18.4
+         },
+         "k9": {
+          "n": 11,
+          "median": 15.2,
+          "mean": 14.9,
+          "q25": 11.6,
+          "q75": 18.4,
+          "absMedian": 15.2
+         }
+        },
+        "offEnvelope": 23
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": -41.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 31.6,
+          "mean": 32.6,
+          "q25": 30.8,
+          "q75": 35.2,
+          "absMedian": 31.6
+         },
+         "k6": {
+          "n": 11,
+          "median": 26.6,
+          "mean": 25.9,
+          "q25": 23.7,
+          "q75": 30.1,
+          "absMedian": 26.6
+         },
+         "k9": {
+          "n": 11,
+          "median": 23.4,
+          "mean": 22.8,
+          "q25": 19.5,
+          "q75": 26.2,
+          "absMedian": 23.4
+         }
+        },
+        "offEnvelope": 30.9
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -72.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 2.6,
+          "mean": 1.9,
+          "q25": -0.9,
+          "q75": 4.2,
+          "absMedian": 2.6
+         },
+         "k6": {
+          "n": 11,
+          "median": -4.3,
+          "mean": -4.9,
+          "q25": -6.2,
+          "q75": -0.9,
+          "absMedian": 4.3
+         },
+         "k9": {
+          "n": 11,
+          "median": -6.8,
+          "mean": -8,
+          "q25": -11.9,
+          "q75": -4.1,
+          "absMedian": 6.8
+         }
+        },
+        "offEnvelope": -0.3
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "contradicted",
+      "measured": "consistent"
+     }
+    },
+    "Second Peak": {
+     "preset": "secondpeak",
+     "nStations": 19,
+     "nWithWhitewater": 19,
+     "cloudFracOnStations": 0,
+     "zObsMedian": -96,
+     "zObsQ10": -106,
+     "zDenseMedian": -87,
+     "zObsBand_k9_k4": [
+      -89,
+      -106
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": -92.8,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 13.6,
+          "mean": 5.4,
+          "q25": -12.2,
+          "q75": 18.5,
+          "absMedian": 13.6
+         },
+         "k6": {
+          "n": 19,
+          "median": -2,
+          "mean": -8.8,
+          "q25": -20.2,
+          "q75": 11.7,
+          "absMedian": 2
+         },
+         "k9": {
+          "n": 18,
+          "median": -20.1,
+          "mean": -23,
+          "q25": -34.8,
+          "q75": -8.8,
+          "absMedian": 20.1
+         }
+        },
+        "offEnvelope": 13.2
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": -79.3,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 24.8,
+          "mean": 19.2,
+          "q25": 6.1,
+          "q75": 37.1,
+          "absMedian": 24.8
+         },
+         "k6": {
+          "n": 19,
+          "median": 10.8,
+          "mean": 5,
+          "q25": -11.2,
+          "q75": 23.7,
+          "absMedian": 10.8
+         },
+         "k9": {
+          "n": 18,
+          "median": -7.7,
+          "mean": -9.4,
+          "q25": -24.6,
+          "q75": 7.3,
+          "absMedian": 7.7
+         }
+        },
+        "offEnvelope": 26.7
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -132.4,
+        "gapFrac": 0.05,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": -27.4,
+          "mean": -28.5,
+          "q25": -40.1,
+          "q75": -13.4,
+          "absMedian": 27.4
+         },
+         "k6": {
+          "n": 19,
+          "median": -40.3,
+          "mean": -42.8,
+          "q25": -56.8,
+          "q75": -23.6,
+          "absMedian": 40.3
+         },
+         "k9": {
+          "n": 18,
+          "median": -53.8,
+          "mean": -56.1,
+          "q25": -66.2,
+          "q75": -39.1,
+          "absMedian": 53.9
+         }
+        },
+        "offEnvelope": -26.4
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": -68.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 47.2,
+          "mean": 37.7,
+          "q25": 15.3,
+          "q75": 61.6,
+          "absMedian": 47.2
+         },
+         "k6": {
+          "n": 19,
+          "median": 33.7,
+          "mean": 23.4,
+          "q25": -2.9,
+          "q75": 52.6,
+          "absMedian": 33.7
+         },
+         "k9": {
+          "n": 18,
+          "median": 24.5,
+          "mean": 12.4,
+          "q25": -8.6,
+          "q75": 52.9,
+          "absMedian": 24.5
+         }
+        },
+        "offEnvelope": 37.7
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": -54.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 61.5,
+          "mean": 51.9,
+          "q25": 29.1,
+          "q75": 76.1,
+          "absMedian": 61.5
+         },
+         "k6": {
+          "n": 19,
+          "median": 47.9,
+          "mean": 37.6,
+          "q25": 10.9,
+          "q75": 67.1,
+          "absMedian": 47.9
+         },
+         "k9": {
+          "n": 18,
+          "median": 38.7,
+          "mean": 26.7,
+          "q25": 5.3,
+          "q75": 67.4,
+          "absMedian": 38.7
+         }
+        },
+        "offEnvelope": 51.9
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -108.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 7.3,
+          "mean": -2.1,
+          "q25": -23.5,
+          "q75": 20.9,
+          "absMedian": 7.3
+         },
+         "k6": {
+          "n": 19,
+          "median": -6.1,
+          "mean": -16.4,
+          "q25": -41.7,
+          "q75": 11.9,
+          "absMedian": 6.1
+         },
+         "k9": {
+          "n": 18,
+          "median": -15.4,
+          "mean": -27.5,
+          "q25": -47.7,
+          "q75": 12.2,
+          "absMedian": 15.4
+         }
+        },
+        "offEnvelope": -2.1
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": -71.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 35.6,
+          "mean": 32.7,
+          "q25": 30.8,
+          "q75": 40.3,
+          "absMedian": 35.6
+         },
+         "k6": {
+          "n": 19,
+          "median": 30.6,
+          "mean": 18.5,
+          "q25": 11.9,
+          "q75": 33.3,
+          "absMedian": 30.6
+         },
+         "k9": {
+          "n": 18,
+          "median": 20.6,
+          "mean": 5.8,
+          "q25": 1.7,
+          "q75": 29,
+          "absMedian": 20.6
+         }
+        },
+        "offEnvelope": 34.6
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": -59.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 46.4,
+          "mean": 44.6,
+          "q25": 42.4,
+          "q75": 51.4,
+          "absMedian": 46.4
+         },
+         "k6": {
+          "n": 19,
+          "median": 42.1,
+          "mean": 30.4,
+          "q25": 24.8,
+          "q75": 43.9,
+          "absMedian": 42.1
+         },
+         "k9": {
+          "n": 18,
+          "median": 32.1,
+          "mean": 17.5,
+          "q25": 13.9,
+          "q75": 39.4,
+          "absMedian": 32.1
+         }
+        },
+        "offEnvelope": 46.1
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -106.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 3.4,
+          "mean": -3.9,
+          "q25": -11.8,
+          "q75": 5.7,
+          "absMedian": 3.4
+         },
+         "k6": {
+          "n": 19,
+          "median": -2.8,
+          "mean": -18.1,
+          "q25": -29.8,
+          "q75": 0.5,
+          "absMedian": 2.8
+         },
+         "k9": {
+          "n": 18,
+          "median": -14.5,
+          "mean": -30.1,
+          "q25": -37.5,
+          "q75": -1,
+          "absMedian": 14.6
+         }
+        },
+        "offEnvelope": -0.3
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    },
+    "38th": {
+     "preset": "jacks",
+     "nStations": 31,
+     "nWithWhitewater": 31,
+     "cloudFracOnStations": 0,
+     "zObsMedian": -210,
+     "zObsQ10": -312,
+     "zDenseMedian": 70,
+     "zObsBand_k9_k4": [
+      60,
+      -306
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": -106.3,
+        "gapFrac": 0.1,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 171.9,
+          "mean": 163,
+          "q25": 133.6,
+          "q75": 226.2,
+          "absMedian": 171.9
+         },
+         "k6": {
+          "n": 31,
+          "median": 122.4,
+          "mean": 70.2,
+          "q25": -34.1,
+          "q75": 133.6,
+          "absMedian": 122.4
+         },
+         "k9": {
+          "n": 30,
+          "median": -118,
+          "mean": -87,
+          "q25": -181.2,
+          "q75": -1.8,
+          "absMedian": 118.1
+         }
+        },
+        "offEnvelope": 205.7
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": -91.7,
+        "gapFrac": 0.13,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 194.2,
+          "mean": 176.2,
+          "q25": 144.1,
+          "q75": 237.3,
+          "absMedian": 194.2
+         },
+         "k6": {
+          "n": 31,
+          "median": 130.2,
+          "mean": 83.5,
+          "q25": -28.8,
+          "q75": 162.5,
+          "absMedian": 130.2
+         },
+         "k9": {
+          "n": 30,
+          "median": -105.6,
+          "mean": -73.5,
+          "q25": -174.3,
+          "q75": 30,
+          "absMedian": 105.6
+         }
+        },
+        "offEnvelope": 220.3
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -131.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 156.7,
+          "mean": 134.4,
+          "q25": 120.2,
+          "q75": 186.1,
+          "absMedian": 156.7
+         },
+         "k6": {
+          "n": 31,
+          "median": 98.5,
+          "mean": 41.7,
+          "q25": -56.4,
+          "q75": 120.2,
+          "absMedian": 98.5
+         },
+         "k9": {
+          "n": 30,
+          "median": -160.4,
+          "mean": -116,
+          "q25": -198.2,
+          "q75": -58.3,
+          "absMedian": 160.5
+         }
+        },
+        "offEnvelope": 180.6
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": -83.5,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 220,
+          "mean": 190.5,
+          "q25": 206.9,
+          "q75": 229.5,
+          "absMedian": 220
+         },
+         "k6": {
+          "n": 31,
+          "median": 132.6,
+          "mean": 97.7,
+          "q25": 16.9,
+          "q75": 215.9,
+          "absMedian": 132.6
+         },
+         "k9": {
+          "n": 30,
+          "median": -129.2,
+          "mean": -60.6,
+          "q25": -145.7,
+          "q75": 12.2,
+          "absMedian": 129.2
+         }
+        },
+        "offEnvelope": 228.5
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": -69.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 234.6,
+          "mean": 204.5,
+          "q25": 220.9,
+          "q75": 243.3,
+          "absMedian": 234.6
+         },
+         "k6": {
+          "n": 31,
+          "median": 146.2,
+          "mean": 111.7,
+          "q25": 31.8,
+          "q75": 230.4,
+          "absMedian": 146.2
+         },
+         "k9": {
+          "n": 30,
+          "median": -116,
+          "mean": -46.6,
+          "q25": -132,
+          "q75": 27.2,
+          "absMedian": 116.1
+         }
+        },
+        "offEnvelope": 242.4
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -122.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 180.2,
+          "mean": 151.4,
+          "q25": 167.6,
+          "q75": 190.7,
+          "absMedian": 180.2
+         },
+         "k6": {
+          "n": 31,
+          "median": 94.2,
+          "mean": 58.6,
+          "q25": -25.1,
+          "q75": 175.4,
+          "absMedian": 94.2
+         },
+         "k9": {
+          "n": 30,
+          "median": -166.2,
+          "mean": -99.7,
+          "q25": -184.2,
+          "q75": -29.6,
+          "absMedian": 166.2
+         }
+        },
+        "offEnvelope": 189.4
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.505,
+        "zModelMedian": -72.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 237.6,
+          "mean": 204.6,
+          "q25": 220.8,
+          "q75": 242.2,
+          "absMedian": 237.6
+         },
+         "k6": {
+          "n": 31,
+          "median": 143.9,
+          "mean": 111.8,
+          "q25": 30.7,
+          "q75": 232.7,
+          "absMedian": 143.9
+         },
+         "k9": {
+          "n": 30,
+          "median": -116.5,
+          "mean": -46.6,
+          "q25": -133.4,
+          "q75": 26.5,
+          "absMedian": 116.6
+         }
+        },
+        "offEnvelope": 239.9
+       },
+       "deshoaled": {
+        "H0": 1.365,
+        "zModelMedian": -51.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 253.5,
+          "mean": 222.1,
+          "q25": 235.2,
+          "q75": 261.4,
+          "absMedian": 253.5
+         },
+         "k6": {
+          "n": 31,
+          "median": 159.1,
+          "mean": 129.3,
+          "q25": 47.6,
+          "q75": 253.4,
+          "absMedian": 159.1
+         },
+         "k9": {
+          "n": 30,
+          "median": -101.1,
+          "mean": -29.2,
+          "q25": -117.1,
+          "q75": 44.3,
+          "absMedian": 101.2
+         }
+        },
+        "offEnvelope": 260.4
+       },
+       "h10": {
+        "H0": 1.911,
+        "zModelMedian": -116.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 191.4,
+          "mean": 160,
+          "q25": 177,
+          "q75": 197.5,
+          "absMedian": 191.4
+         },
+         "k6": {
+          "n": 31,
+          "median": 99.9,
+          "mean": 67.2,
+          "q25": -12,
+          "q75": 187,
+          "absMedian": 99.9
+         },
+         "k9": {
+          "n": 30,
+          "median": -160.4,
+          "mean": -91.1,
+          "q25": -178.1,
+          "q75": -16.2,
+          "absMedian": 160.5
+         }
+        },
+        "offEnvelope": 195.1
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "contradicted",
+      "plane": "contradicted",
+      "measured": "contradicted"
+     }
+    }
+   }
+  },
+  "S2A_MSIL2A_20231125T185721_R113_T10SEF_20241111T023436": {
+   "forcing": {
+    "T": 20,
+    "Ks12": 1.2325,
+    "tideRaw": 0.472,
+    "tide": 0.472,
+    "tideClamped": false,
+    "H0": {
+     "hs": 1.411,
+     "deshoaled": 1.1448738686696653,
+     "h10": 1.79197
+    },
+    "H0_hs": 1.411,
+    "H0_deshoaled": 1.145,
+    "H0_h10": 1.792
+   },
+   "supplementary": false,
+   "reject_reason": "",
+   "spots": {
+    "First Peak": {
+     "preset": "firstpeak",
+     "nStations": 11,
+     "nWithWhitewater": 11,
+     "cloudFracOnStations": 0,
+     "zObsMedian": 16,
+     "zObsQ10": 6,
+     "zDenseMedian": 16,
+     "zObsBand_k9_k4": [
+      16,
+      16
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": -89.5,
+        "gapFrac": 0.45,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -109.5,
+          "mean": -99.1,
+          "q25": -127.2,
+          "q75": -71.1,
+          "absMedian": 109.5
+         },
+         "k6": {
+          "n": 11,
+          "median": -109.5,
+          "mean": -100,
+          "q25": -128.2,
+          "q75": -71.1,
+          "absMedian": 109.5
+         },
+         "k9": {
+          "n": 11,
+          "median": -109.5,
+          "mean": -101.1,
+          "q25": -132.7,
+          "q75": -71.1,
+          "absMedian": 109.5
+         }
+        },
+        "offEnvelope": -95.5
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -28.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -44.3,
+          "mean": -42.4,
+          "q25": -47.8,
+          "q75": -36.5,
+          "absMedian": 44.3
+         },
+         "k6": {
+          "n": 11,
+          "median": -44.3,
+          "mean": -43.3,
+          "q25": -47.8,
+          "q75": -40.3,
+          "absMedian": 44.3
+         },
+         "k9": {
+          "n": 11,
+          "median": -44.6,
+          "mean": -44.4,
+          "q25": -47.8,
+          "q75": -42.5,
+          "absMedian": 44.6
+         }
+        },
+        "offEnvelope": -34.6
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -128.9,
+        "gapFrac": 0.36,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -138.9,
+          "mean": -134.3,
+          "q25": -160.6,
+          "q75": -102.4,
+          "absMedian": 138.9
+         },
+         "k6": {
+          "n": 11,
+          "median": -138.9,
+          "mean": -135.2,
+          "q25": -160.6,
+          "q75": -104,
+          "absMedian": 138.9
+         },
+         "k9": {
+          "n": 11,
+          "median": -138.9,
+          "mean": -136.3,
+          "q25": -166.6,
+          "q75": -104,
+          "absMedian": 138.9
+         }
+        },
+        "offEnvelope": -134.9
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": 27.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 15.4,
+          "mean": 13.4,
+          "q25": 11.4,
+          "q75": 15.4,
+          "absMedian": 15.4
+         },
+         "k6": {
+          "n": 11,
+          "median": 13.4,
+          "mean": 12.5,
+          "q25": 9.4,
+          "q75": 15.4,
+          "absMedian": 13.4
+         },
+         "k9": {
+          "n": 11,
+          "median": 11.4,
+          "mean": 11.4,
+          "q25": 7.4,
+          "q75": 15.4,
+          "absMedian": 11.4
+         }
+        },
+        "offEnvelope": 21.4
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": 53.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 41.2,
+          "mean": 39.9,
+          "q25": 37.8,
+          "q75": 42.4,
+          "absMedian": 41.2
+         },
+         "k6": {
+          "n": 11,
+          "median": 39.9,
+          "mean": 39,
+          "q25": 35.6,
+          "q75": 42.4,
+          "absMedian": 39.9
+         },
+         "k9": {
+          "n": 11,
+          "median": 38.1,
+          "mean": 37.9,
+          "q25": 33.7,
+          "q75": 41.8,
+          "absMedian": 38.1
+         }
+        },
+        "offEnvelope": 47.9
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -8.8,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -21.8,
+          "mean": -22.8,
+          "q25": -24.7,
+          "q75": -20.4,
+          "absMedian": 21.8
+         },
+         "k6": {
+          "n": 11,
+          "median": -22.8,
+          "mean": -23.8,
+          "q25": -26.8,
+          "q75": -20.7,
+          "absMedian": 22.8
+         },
+         "k9": {
+          "n": 11,
+          "median": -24.3,
+          "mean": -24.8,
+          "q25": -28.5,
+          "q75": -21.6,
+          "absMedian": 24.3
+         }
+        },
+        "offEnvelope": -14.8
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": -45.5,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -59.9,
+          "mean": -59.1,
+          "q25": -63.8,
+          "q75": -53.8,
+          "absMedian": 59.9
+         },
+         "k6": {
+          "n": 11,
+          "median": -59.9,
+          "mean": -60,
+          "q25": -63.8,
+          "q75": -57.7,
+          "absMedian": 59.9
+         },
+         "k9": {
+          "n": 11,
+          "median": -61.9,
+          "mean": -61.1,
+          "q25": -64.3,
+          "q75": -59.7,
+          "absMedian": 61.9
+         }
+        },
+        "offEnvelope": -51.5
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -28.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -44.3,
+          "mean": -42.4,
+          "q25": -47.8,
+          "q75": -36.5,
+          "absMedian": 44.3
+         },
+         "k6": {
+          "n": 11,
+          "median": -44.3,
+          "mean": -43.3,
+          "q25": -47.8,
+          "q75": -40.3,
+          "absMedian": 44.3
+         },
+         "k9": {
+          "n": 11,
+          "median": -44.6,
+          "mean": -44.4,
+          "q25": -47.8,
+          "q75": -42.5,
+          "absMedian": 44.6
+         }
+        },
+        "offEnvelope": -34.6
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -69.7,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -82.6,
+          "mean": -82.9,
+          "q25": -86.8,
+          "q75": -78.4,
+          "absMedian": 82.6
+         },
+         "k6": {
+          "n": 11,
+          "median": -84.2,
+          "mean": -83.8,
+          "q25": -86.8,
+          "q75": -81.5,
+          "absMedian": 84.2
+         },
+         "k9": {
+          "n": 11,
+          "median": -85.5,
+          "mean": -84.9,
+          "q25": -87.7,
+          "q75": -83.2,
+          "absMedian": 85.5
+         }
+        },
+        "offEnvelope": -75.7
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    },
+    "Second Peak": {
+     "preset": "secondpeak",
+     "nStations": 19,
+     "nWithWhitewater": 17,
+     "cloudFracOnStations": 0,
+     "zObsMedian": 12,
+     "zObsQ10": -6.8,
+     "zDenseMedian": 17,
+     "zObsBand_k9_k4": [
+      14,
+      12
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": -85.3,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -126,
+          "mean": -126.2,
+          "q25": -175.3,
+          "q75": -117.6,
+          "absMedian": 126
+         },
+         "k6": {
+          "n": 17,
+          "median": -127.6,
+          "mean": -130.2,
+          "q25": -175.3,
+          "q75": -124.7,
+          "absMedian": 127.6
+         },
+         "k9": {
+          "n": 17,
+          "median": -127.6,
+          "mean": -131.5,
+          "q25": -175.3,
+          "q75": -124.7,
+          "absMedian": 127.6
+         }
+        },
+        "offEnvelope": -78.5
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -49.5,
+        "gapFrac": 0.16,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -84.6,
+          "mean": -84.2,
+          "q25": -135.8,
+          "q75": -38.2,
+          "absMedian": 84.6
+         },
+         "k6": {
+          "n": 17,
+          "median": -88.7,
+          "mean": -88.2,
+          "q25": -135.8,
+          "q75": -38.2,
+          "absMedian": 88.7
+         },
+         "k9": {
+          "n": 17,
+          "median": -88.7,
+          "mean": -89.5,
+          "q25": -135.8,
+          "q75": -49.8,
+          "absMedian": 88.7
+         }
+        },
+        "offEnvelope": -42.7
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -129.1,
+        "gapFrac": 0.05,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -152.6,
+          "mean": -161.8,
+          "q25": -204.2,
+          "q75": -145.7,
+          "absMedian": 152.6
+         },
+         "k6": {
+          "n": 17,
+          "median": -152.8,
+          "mean": -165.8,
+          "q25": -204.2,
+          "q75": -146,
+          "absMedian": 152.8
+         },
+         "k9": {
+          "n": 17,
+          "median": -152.8,
+          "mean": -167.1,
+          "q25": -204.2,
+          "q75": -146,
+          "absMedian": 152.8
+         }
+        },
+        "offEnvelope": -122.3
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": -61.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -68.2,
+          "mean": -87.9,
+          "q25": -168.1,
+          "q75": -30.3,
+          "absMedian": 68.2
+         },
+         "k6": {
+          "n": 17,
+          "median": -68.2,
+          "mean": -91.9,
+          "q25": -168.1,
+          "q75": -30.3,
+          "absMedian": 68.2
+         },
+         "k9": {
+          "n": 17,
+          "median": -68.2,
+          "mean": -93.2,
+          "q25": -168.1,
+          "q75": -31.9,
+          "absMedian": 68.2
+         }
+        },
+        "offEnvelope": -54.8
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -31.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -37.6,
+          "mean": -57.5,
+          "q25": -138.2,
+          "q75": 0.8,
+          "absMedian": 37.6
+         },
+         "k6": {
+          "n": 17,
+          "median": -37.6,
+          "mean": -61.5,
+          "q25": -138.2,
+          "q75": 0.8,
+          "absMedian": 37.6
+         },
+         "k9": {
+          "n": 17,
+          "median": -37.6,
+          "mean": -62.8,
+          "q25": -138.2,
+          "q75": -0.4,
+          "absMedian": 37.6
+         }
+        },
+        "offEnvelope": -24.5
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -103.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -110,
+          "mean": -129.7,
+          "q25": -209.1,
+          "q75": -72.9,
+          "absMedian": 110
+         },
+         "k6": {
+          "n": 17,
+          "median": -110,
+          "mean": -133.7,
+          "q25": -209.1,
+          "q75": -72.9,
+          "absMedian": 110
+         },
+         "k9": {
+          "n": 17,
+          "median": -110,
+          "mean": -135,
+          "q25": -209.1,
+          "q75": -75.2,
+          "absMedian": 110
+         }
+        },
+        "offEnvelope": -96.5
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": -66,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -77,
+          "mean": -96.4,
+          "q25": -160.1,
+          "q75": -56.5,
+          "absMedian": 77
+         },
+         "k6": {
+          "n": 17,
+          "median": -77,
+          "mean": -100.4,
+          "q25": -160.1,
+          "q75": -56.5,
+          "absMedian": 77
+         },
+         "k9": {
+          "n": 17,
+          "median": -77,
+          "mean": -101.7,
+          "q25": -160.1,
+          "q75": -59.7,
+          "absMedian": 77
+         }
+        },
+        "offEnvelope": -59.2
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -42.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -53.2,
+          "mean": -72.8,
+          "q25": -135.7,
+          "q75": -33.6,
+          "absMedian": 53.2
+         },
+         "k6": {
+          "n": 17,
+          "median": -53.2,
+          "mean": -76.8,
+          "q25": -135.7,
+          "q75": -33.6,
+          "absMedian": 53.2
+         },
+         "k9": {
+          "n": 17,
+          "median": -53.2,
+          "mean": -78.1,
+          "q25": -135.7,
+          "q75": -36.9,
+          "absMedian": 53.2
+         }
+        },
+        "offEnvelope": -35.3
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -101.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 17,
+          "median": -112.2,
+          "mean": -133.5,
+          "q25": -199.5,
+          "q75": -88.9,
+          "absMedian": 112.2
+         },
+         "k6": {
+          "n": 17,
+          "median": -112.2,
+          "mean": -137.5,
+          "q25": -199.5,
+          "q75": -88.9,
+          "absMedian": 112.2
+         },
+         "k9": {
+          "n": 17,
+          "median": -112.2,
+          "mean": -138.8,
+          "q25": -199.5,
+          "q75": -91.1,
+          "absMedian": 112.2
+         }
+        },
+        "offEnvelope": -95.1
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    },
+    "38th": {
+     "preset": "jacks",
+     "nStations": 31,
+     "nWithWhitewater": 31,
+     "cloudFracOnStations": 0,
+     "zObsMedian": 48,
+     "zObsQ10": 20,
+     "zDenseMedian": 52,
+     "zObsBand_k9_k4": [
+      48,
+      36
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": -96.9,
+        "gapFrac": 0.13,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -156.5,
+          "mean": -142,
+          "q25": -171.2,
+          "q75": -95.8,
+          "absMedian": 156.5
+         },
+         "k6": {
+          "n": 31,
+          "median": -156.5,
+          "mean": -150.4,
+          "q25": -171.2,
+          "q75": -121.6,
+          "absMedian": 156.5
+         },
+         "k9": {
+          "n": 31,
+          "median": -157,
+          "mean": -153.2,
+          "q25": -171.2,
+          "q75": -121.6,
+          "absMedian": 157
+         }
+        },
+        "offEnvelope": -116.9
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -65.8,
+        "gapFrac": 0.13,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -124,
+          "mean": -110.1,
+          "q25": -145.3,
+          "q75": -73.7,
+          "absMedian": 124
+         },
+         "k6": {
+          "n": 31,
+          "median": -128,
+          "mean": -118.5,
+          "q25": -151.4,
+          "q75": -90.6,
+          "absMedian": 128
+         },
+         "k9": {
+          "n": 31,
+          "median": -128,
+          "mean": -121.3,
+          "q25": -151.4,
+          "q75": -90.6,
+          "absMedian": 128
+         }
+        },
+        "offEnvelope": -85.8
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -129.3,
+        "gapFrac": 0.03,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -178.6,
+          "mean": -172.7,
+          "q25": -196.3,
+          "q75": -137.7,
+          "absMedian": 178.6
+         },
+         "k6": {
+          "n": 31,
+          "median": -178.6,
+          "mean": -181.1,
+          "q25": -204.9,
+          "q75": -155.5,
+          "absMedian": 178.6
+         },
+         "k9": {
+          "n": 31,
+          "median": -178.6,
+          "mean": -183.9,
+          "q25": -208.9,
+          "q75": -157.3,
+          "absMedian": 178.6
+         }
+        },
+        "offEnvelope": -149.3
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": -77.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -109.8,
+          "mean": -113.7,
+          "q25": -139,
+          "q75": -95.1,
+          "absMedian": 109.8
+         },
+         "k6": {
+          "n": 31,
+          "median": -122.9,
+          "mean": -122.1,
+          "q25": -141.9,
+          "q75": -102.9,
+          "absMedian": 122.9
+         },
+         "k9": {
+          "n": 31,
+          "median": -126.4,
+          "mean": -124.9,
+          "q25": -141.9,
+          "q75": -105.2,
+          "absMedian": 126.4
+         }
+        },
+        "offEnvelope": -97.3
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -47.5,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -80.3,
+          "mean": -83.8,
+          "q25": -109.8,
+          "q75": -64.1,
+          "absMedian": 80.3
+         },
+         "k6": {
+          "n": 31,
+          "median": -93,
+          "mean": -92.3,
+          "q25": -111.6,
+          "q75": -73.6,
+          "absMedian": 93
+         },
+         "k9": {
+          "n": 31,
+          "median": -97.6,
+          "mean": -95,
+          "q25": -111.6,
+          "q75": -75.9,
+          "absMedian": 97.6
+         }
+        },
+        "offEnvelope": -67.5
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -118.2,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -151.7,
+          "mean": -154.6,
+          "q25": -179.1,
+          "q75": -138,
+          "absMedian": 151.7
+         },
+         "k6": {
+          "n": 31,
+          "median": -164,
+          "mean": -163.1,
+          "q25": -182.8,
+          "q75": -142.8,
+          "absMedian": 164
+         },
+         "k9": {
+          "n": 31,
+          "median": -165.9,
+          "mean": -165.8,
+          "q25": -183.4,
+          "q75": -144.9,
+          "absMedian": 165.9
+         }
+        },
+        "offEnvelope": -138.2
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.411,
+        "zModelMedian": -63.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -94.5,
+          "mean": -98.2,
+          "q25": -126.8,
+          "q75": -75.8,
+          "absMedian": 94.5
+         },
+         "k6": {
+          "n": 31,
+          "median": -107.5,
+          "mean": -106.7,
+          "q25": -127.3,
+          "q75": -86.4,
+          "absMedian": 107.5
+         },
+         "k9": {
+          "n": 31,
+          "median": -111.3,
+          "mean": -109.4,
+          "q25": -127.3,
+          "q75": -89.7,
+          "absMedian": 111.3
+         }
+        },
+        "offEnvelope": -83.6
+       },
+       "deshoaled": {
+        "H0": 1.145,
+        "zModelMedian": -27.2,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -60.2,
+          "mean": -63.6,
+          "q25": -89,
+          "q75": -41.2,
+          "absMedian": 60.2
+         },
+         "k6": {
+          "n": 31,
+          "median": -76.1,
+          "mean": -72,
+          "q25": -90.6,
+          "q75": -56,
+          "absMedian": 76.1
+         },
+         "k9": {
+          "n": 31,
+          "median": -76.8,
+          "mean": -74.8,
+          "q25": -93.3,
+          "q75": -59.3,
+          "absMedian": 76.8
+         }
+        },
+        "offEnvelope": -47.2
+       },
+       "h10": {
+        "H0": 1.792,
+        "zModelMedian": -112,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -141,
+          "mean": -145.5,
+          "q25": -172.7,
+          "q75": -125.6,
+          "absMedian": 141
+         },
+         "k6": {
+          "n": 31,
+          "median": -154.9,
+          "mean": -154,
+          "q25": -173.9,
+          "q75": -134.6,
+          "absMedian": 154.9
+         },
+         "k9": {
+          "n": 31,
+          "median": -158.5,
+          "mean": -156.7,
+          "q25": -173.9,
+          "q75": -137.2,
+          "absMedian": 158.5
+         }
+        },
+        "offEnvelope": -132
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    }
+   }
+  },
+  "S2A_MSIL2A_20240104T185801_R113_T10SEF_20240104T231055": {
+   "forcing": {
+    "T": 14.29,
+    "Ks12": 1.0717,
+    "tideRaw": -0.264,
+    "tide": -0.264,
+    "tideClamped": false,
+    "H0": {
+     "hs": 1.374,
+     "deshoaled": 1.2820930496701426,
+     "h10": 1.7449800000000002
+    },
+    "H0_hs": 1.374,
+    "H0_deshoaled": 1.282,
+    "H0_h10": 1.745
+   },
+   "supplementary": false,
+   "reject_reason": "",
+   "spots": {
+    "First Peak": {
+     "preset": "firstpeak",
+     "nStations": 11,
+     "nWithWhitewater": 11,
+     "cloudFracOnStations": 0,
+     "zObsMedian": -120,
+     "zObsQ10": -130,
+     "zDenseMedian": -110,
+     "zObsBand_k9_k4": [
+      -120,
+      -124
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": -101.4,
+        "gapFrac": 0.55,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 22.6,
+          "mean": 23.2,
+          "q25": -1,
+          "q75": 54.1,
+          "absMedian": 22.6
+         },
+         "k6": {
+          "n": 11,
+          "median": 14.6,
+          "mean": 19.7,
+          "q25": -8,
+          "q75": 54.1,
+          "absMedian": 14.6
+         },
+         "k9": {
+          "n": 11,
+          "median": 8.6,
+          "mean": 16.4,
+          "q25": -15,
+          "q75": 52.9,
+          "absMedian": 8.6
+         }
+        },
+        "offEnvelope": 28.6
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -95,
+        "gapFrac": 0.55,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 29,
+          "mean": 29.7,
+          "q25": 4.7,
+          "q75": 60,
+          "absMedian": 29
+         },
+         "k6": {
+          "n": 11,
+          "median": 21,
+          "mean": 26.3,
+          "q25": -2.3,
+          "q75": 60,
+          "absMedian": 21
+         },
+         "k9": {
+          "n": 11,
+          "median": 15,
+          "mean": 23,
+          "q25": -9.3,
+          "q75": 59.8,
+          "absMedian": 15
+         }
+        },
+        "offEnvelope": 35
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -134.4,
+        "gapFrac": 0.27,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -0.4,
+          "mean": -5.5,
+          "q25": -35.5,
+          "q75": 16.1,
+          "absMedian": 0.4
+         },
+         "k6": {
+          "n": 11,
+          "median": -6.4,
+          "mean": -9,
+          "q25": -42,
+          "q75": 16.1,
+          "absMedian": 6.4
+         },
+         "k9": {
+          "n": 11,
+          "median": -14.4,
+          "mean": -12.2,
+          "q25": -45,
+          "q75": 16.1,
+          "absMedian": 14.4
+         }
+        },
+        "offEnvelope": -4.4
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": 11.2,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 137.5,
+          "mean": 136.1,
+          "q25": 134.4,
+          "q75": 139.2,
+          "absMedian": 137.5
+         },
+         "k6": {
+          "n": 11,
+          "median": 131.4,
+          "mean": 132.6,
+          "q25": 130,
+          "q75": 135.3,
+          "absMedian": 131.4
+         },
+         "k9": {
+          "n": 11,
+          "median": 127.3,
+          "mean": 129.4,
+          "q25": 125,
+          "q75": 132.4,
+          "absMedian": 127.3
+         }
+        },
+        "offEnvelope": 141.2
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": 19.2,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 145.6,
+          "mean": 144.1,
+          "q25": 142.5,
+          "q75": 147.2,
+          "absMedian": 145.6
+         },
+         "k6": {
+          "n": 11,
+          "median": 139.5,
+          "mean": 140.7,
+          "q25": 137.9,
+          "q75": 143.4,
+          "absMedian": 139.5
+         },
+         "k9": {
+          "n": 11,
+          "median": 135.4,
+          "mean": 137.4,
+          "q25": 132.9,
+          "q75": 140.5,
+          "absMedian": 135.4
+         }
+        },
+        "offEnvelope": 149.2
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -20.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 106.1,
+          "mean": 104.8,
+          "q25": 102.8,
+          "q75": 108,
+          "absMedian": 106.1
+         },
+         "k6": {
+          "n": 11,
+          "median": 100.1,
+          "mean": 101.4,
+          "q25": 98.9,
+          "q75": 103.9,
+          "absMedian": 100.1
+         },
+         "k9": {
+          "n": 11,
+          "median": 95.9,
+          "mean": 98.1,
+          "q25": 93.9,
+          "q75": 100.8,
+          "absMedian": 95.9
+         }
+        },
+        "offEnvelope": 109.9
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": -56.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 69,
+          "mean": 69.3,
+          "q25": 66.7,
+          "q75": 73.5,
+          "absMedian": 69
+         },
+         "k6": {
+          "n": 11,
+          "median": 65.7,
+          "mean": 65.8,
+          "q25": 60.7,
+          "q75": 71.4,
+          "absMedian": 65.7
+         },
+         "k9": {
+          "n": 11,
+          "median": 62.8,
+          "mean": 62.5,
+          "q25": 59.4,
+          "q75": 65.6,
+          "absMedian": 62.8
+         }
+        },
+        "offEnvelope": 73.6
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -51.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 74.4,
+          "mean": 74.5,
+          "q25": 71.8,
+          "q75": 78.8,
+          "absMedian": 74.4
+         },
+         "k6": {
+          "n": 11,
+          "median": 70.6,
+          "mean": 71,
+          "q25": 65.7,
+          "q75": 76.5,
+          "absMedian": 70.6
+         },
+         "k9": {
+          "n": 11,
+          "median": 68.2,
+          "mean": 67.7,
+          "q25": 64.4,
+          "q75": 70.7,
+          "absMedian": 68.2
+         }
+        },
+        "offEnvelope": 78.9
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -77.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 48.3,
+          "mean": 48.4,
+          "q25": 46,
+          "q75": 52.9,
+          "absMedian": 48.3
+         },
+         "k6": {
+          "n": 11,
+          "median": 45.4,
+          "mean": 45,
+          "q25": 40.5,
+          "q75": 50.5,
+          "absMedian": 45.4
+         },
+         "k9": {
+          "n": 11,
+          "median": 41.5,
+          "mean": 41.7,
+          "q25": 38.4,
+          "q75": 44.7,
+          "absMedian": 41.5
+         }
+        },
+        "offEnvelope": 52.6
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "contradicted",
+      "measured": "contradicted"
+     }
+    },
+    "Second Peak": {
+     "preset": "secondpeak",
+     "nStations": 19,
+     "nWithWhitewater": 19,
+     "cloudFracOnStations": 0,
+     "zObsMedian": -110,
+     "zObsQ10": -124.4,
+     "zDenseMedian": -90,
+     "zObsBand_k9_k4": [
+      -106,
+      -110
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": -108.3,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": -4.6,
+          "mean": -2.2,
+          "q25": -14.3,
+          "q75": 1.4,
+          "absMedian": 4.6
+         },
+         "k6": {
+          "n": 19,
+          "median": -10,
+          "mean": -6.1,
+          "q25": -18.9,
+          "q75": -3.1,
+          "absMedian": 10
+         },
+         "k9": {
+          "n": 19,
+          "median": -13.3,
+          "mean": -9.9,
+          "q25": -24.1,
+          "q75": -4.8,
+          "absMedian": 13.3
+         }
+        },
+        "offEnvelope": 16.1
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -98.7,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 3.7,
+          "mean": 6.1,
+          "q25": -9.4,
+          "q75": 11,
+          "absMedian": 3.7
+         },
+         "k6": {
+          "n": 19,
+          "median": -0.6,
+          "mean": 2.2,
+          "q25": -13.5,
+          "q75": 5.4,
+          "absMedian": 0.6
+         },
+         "k9": {
+          "n": 19,
+          "median": -5.8,
+          "mean": -1.6,
+          "q25": -15.6,
+          "q75": 2.9,
+          "absMedian": 5.8
+         }
+        },
+        "offEnvelope": 25.7
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -142.6,
+        "gapFrac": 0.05,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": -32.6,
+          "mean": -31.6,
+          "q25": -41.4,
+          "q75": -26.4,
+          "absMedian": 32.6
+         },
+         "k6": {
+          "n": 19,
+          "median": -37.7,
+          "mean": -35.5,
+          "q25": -44.7,
+          "q75": -28.3,
+          "absMedian": 37.7
+         },
+         "k9": {
+          "n": 19,
+          "median": -41.7,
+          "mean": -39.3,
+          "q25": -48,
+          "q75": -33.4,
+          "absMedian": 41.7
+         }
+        },
+        "offEnvelope": -18.2
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": -81.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 34,
+          "mean": 28.9,
+          "q25": -11.2,
+          "q75": 66.8,
+          "absMedian": 34
+         },
+         "k6": {
+          "n": 19,
+          "median": 34,
+          "mean": 25,
+          "q25": -12.9,
+          "q75": 66.6,
+          "absMedian": 34
+         },
+         "k9": {
+          "n": 19,
+          "median": 20.4,
+          "mean": 21.2,
+          "q25": -15.9,
+          "q75": 62.6,
+          "absMedian": 20.4
+         }
+        },
+        "offEnvelope": 42.8
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -72.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 43.2,
+          "mean": 38,
+          "q25": -2.2,
+          "q75": 76.2,
+          "absMedian": 43.2
+         },
+         "k6": {
+          "n": 19,
+          "median": 43.2,
+          "mean": 34.1,
+          "q25": -3.9,
+          "q75": 76,
+          "absMedian": 43.2
+         },
+         "k9": {
+          "n": 19,
+          "median": 29.6,
+          "mean": 30.4,
+          "q25": -6.9,
+          "q75": 72,
+          "absMedian": 29.6
+         }
+        },
+        "offEnvelope": 52
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -117.5,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": -2.1,
+          "mean": -7.1,
+          "q25": -46.6,
+          "q75": 30.2,
+          "absMedian": 2.1
+         },
+         "k6": {
+          "n": 19,
+          "median": -2.1,
+          "mean": -11,
+          "q25": -48,
+          "q75": 29.9,
+          "absMedian": 2.1
+         },
+         "k9": {
+          "n": 19,
+          "median": -15.5,
+          "mean": -14.8,
+          "q25": -51,
+          "q75": 25.9,
+          "absMedian": 15.5
+         }
+        },
+        "offEnvelope": 6.9
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": -82.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 29,
+          "mean": 25,
+          "q25": 1.9,
+          "q75": 49.7,
+          "absMedian": 29
+         },
+         "k6": {
+          "n": 19,
+          "median": 29,
+          "mean": 21.1,
+          "q25": -2.1,
+          "q75": 47.2,
+          "absMedian": 29
+         },
+         "k9": {
+          "n": 19,
+          "median": 21.8,
+          "mean": 17.3,
+          "q25": -4.7,
+          "q75": 40.8,
+          "absMedian": 21.8
+         }
+        },
+        "offEnvelope": 41.8
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -74.8,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 36.5,
+          "mean": 33.4,
+          "q25": 11.7,
+          "q75": 56.8,
+          "absMedian": 36.5
+         },
+         "k6": {
+          "n": 19,
+          "median": 36.5,
+          "mean": 29.5,
+          "q25": 7.1,
+          "q75": 54.5,
+          "absMedian": 36.5
+         },
+         "k9": {
+          "n": 19,
+          "median": 29.9,
+          "mean": 25.7,
+          "q25": 4.4,
+          "q75": 48.3,
+          "absMedian": 29.9
+         }
+        },
+        "offEnvelope": 49.6
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -115.2,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": -2.6,
+          "mean": -8.5,
+          "q25": -37.2,
+          "q75": 20.2,
+          "absMedian": 2.6
+         },
+         "k6": {
+          "n": 19,
+          "median": -2.6,
+          "mean": -12.4,
+          "q25": -38.4,
+          "q75": 18.2,
+          "absMedian": 2.6
+         },
+         "k9": {
+          "n": 19,
+          "median": -12.1,
+          "mean": -16.2,
+          "q25": -41.1,
+          "q75": 12.6,
+          "absMedian": 12.1
+         }
+        },
+        "offEnvelope": 9.2
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    },
+    "38th": {
+     "preset": "jacks",
+     "nStations": 31,
+     "nWithWhitewater": 31,
+     "cloudFracOnStations": 0,
+     "zObsMedian": -70,
+     "zObsQ10": -96,
+     "zDenseMedian": -56,
+     "zObsBand_k9_k4": [
+      -66,
+      -82
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": -112.4,
+        "gapFrac": 0.06,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -39.5,
+          "mean": -47.5,
+          "q25": -65.7,
+          "q75": -27.5,
+          "absMedian": 39.5
+         },
+         "k6": {
+          "n": 31,
+          "median": -51.1,
+          "mean": -63,
+          "q25": -80.1,
+          "q75": -36.2,
+          "absMedian": 51.1
+         },
+         "k9": {
+          "n": 31,
+          "median": -67.1,
+          "mean": -68.7,
+          "q25": -84.4,
+          "q75": -37,
+          "absMedian": 67.1
+         }
+        },
+        "offEnvelope": -16.4
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -108,
+        "gapFrac": 0.1,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -31.2,
+          "mean": -40.6,
+          "q25": -61.5,
+          "q75": -21.9,
+          "absMedian": 31.2
+         },
+         "k6": {
+          "n": 31,
+          "median": -47.2,
+          "mean": -56.1,
+          "q25": -76.5,
+          "q75": -28.4,
+          "absMedian": 47.2
+         },
+         "k9": {
+          "n": 31,
+          "median": -61.4,
+          "mean": -61.7,
+          "q25": -77.1,
+          "q75": -31.7,
+          "absMedian": 61.4
+         }
+        },
+        "offEnvelope": -12
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -136,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -72.6,
+          "mean": -73,
+          "q25": -81.1,
+          "q75": -53.9,
+          "absMedian": 72.6
+         },
+         "k6": {
+          "n": 31,
+          "median": -76.4,
+          "mean": -88.5,
+          "q25": -96.4,
+          "q75": -65.7,
+          "absMedian": 76.4
+         },
+         "k9": {
+          "n": 31,
+          "median": -84.9,
+          "mean": -94.1,
+          "q25": -100.1,
+          "q75": -71.2,
+          "absMedian": 84.9
+         }
+        },
+        "offEnvelope": -40
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": -96,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -13.2,
+          "mean": -22.8,
+          "q25": -40.9,
+          "q75": -5.3,
+          "absMedian": 13.2
+         },
+         "k6": {
+          "n": 31,
+          "median": -23.7,
+          "mean": -38.3,
+          "q25": -45.3,
+          "q75": -17.3,
+          "absMedian": 23.7
+         },
+         "k9": {
+          "n": 31,
+          "median": -32.3,
+          "mean": -43.9,
+          "q25": -45.3,
+          "q75": -23.1,
+          "absMedian": 32.3
+         }
+        },
+        "offEnvelope": 0
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -87,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -4.2,
+          "mean": -13.7,
+          "q25": -32.4,
+          "q75": 3.8,
+          "absMedian": 4.2
+         },
+         "k6": {
+          "n": 31,
+          "median": -14.8,
+          "mean": -29.3,
+          "q25": -36.6,
+          "q75": -8.2,
+          "absMedian": 14.8
+         },
+         "k9": {
+          "n": 31,
+          "median": -23.4,
+          "mean": -34.9,
+          "q25": -36.6,
+          "q75": -14.2,
+          "absMedian": 23.4
+         }
+        },
+        "offEnvelope": 9
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -131.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -49.3,
+          "mean": -58.1,
+          "q25": -73.9,
+          "q75": -41.2,
+          "absMedian": 49.3
+         },
+         "k6": {
+          "n": 31,
+          "median": -58.5,
+          "mean": -73.6,
+          "q25": -78.8,
+          "q75": -53.1,
+          "absMedian": 58.5
+         },
+         "k9": {
+          "n": 31,
+          "median": -66.9,
+          "mean": -79.3,
+          "q25": -78.8,
+          "q75": -58.1,
+          "absMedian": 66.9
+         }
+        },
+        "offEnvelope": -35.3
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.374,
+        "zModelMedian": -87.2,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -2.2,
+          "mean": -10.8,
+          "q25": -33.2,
+          "q75": 7.6,
+          "absMedian": 2.2
+         },
+         "k6": {
+          "n": 31,
+          "median": -12.2,
+          "mean": -26.3,
+          "q25": -35.2,
+          "q75": -4.6,
+          "absMedian": 12.2
+         },
+         "k9": {
+          "n": 31,
+          "median": -22.6,
+          "mean": -32,
+          "q25": -35.2,
+          "q75": -12.4,
+          "absMedian": 22.6
+         }
+        },
+        "offEnvelope": 8.8
+       },
+       "deshoaled": {
+        "H0": 1.282,
+        "zModelMedian": -75.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": 8,
+          "mean": -0.3,
+          "q25": -23.5,
+          "q75": 18.1,
+          "absMedian": 8
+         },
+         "k6": {
+          "n": 31,
+          "median": -1.2,
+          "mean": -15.8,
+          "q25": -25.3,
+          "q75": 5.9,
+          "absMedian": 1.2
+         },
+         "k9": {
+          "n": 31,
+          "median": -12.3,
+          "mean": -21.4,
+          "q25": -25.3,
+          "q75": -1.3,
+          "absMedian": 12.3
+         }
+        },
+        "offEnvelope": 20.1
+       },
+       "h10": {
+        "H0": 1.745,
+        "zModelMedian": -126.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -41.5,
+          "mean": -50.4,
+          "q25": -71,
+          "q75": -32.8,
+          "absMedian": 41.5
+         },
+         "k6": {
+          "n": 31,
+          "median": -53.2,
+          "mean": -65.9,
+          "q25": -74.2,
+          "q75": -45.2,
+          "absMedian": 53.2
+         },
+         "k9": {
+          "n": 31,
+          "median": -62.2,
+          "mean": -71.5,
+          "q25": -74.2,
+          "q75": -53,
+          "absMedian": 62.2
+         }
+        },
+        "offEnvelope": -30.4
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    }
+   }
+  },
+  "S2A_MSIL2A_20210109T185751_R113_T10SEF_20210110T053434": {
+   "forcing": {
+    "T": 15.38,
+    "Ks12": 1.1029,
+    "tideRaw": -0.3,
+    "tide": -0.3,
+    "tideClamped": false,
+    "H0": {
+     "hs": 1.321,
+     "deshoaled": 1.197760251653737,
+     "h10": 1.67767
+    },
+    "H0_hs": 1.321,
+    "H0_deshoaled": 1.198,
+    "H0_h10": 1.678
+   },
+   "supplementary": false,
+   "reject_reason": "",
+   "spots": {
+    "First Peak": {
+     "preset": "firstpeak",
+     "nStations": 11,
+     "nWithWhitewater": 11,
+     "cloudFracOnStations": 0.04,
+     "zObsMedian": -160,
+     "zObsQ10": -164,
+     "zDenseMedian": -156,
+     "zObsBand_k9_k4": [
+      -150,
+      -164
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": -102.7,
+        "gapFrac": 0.55,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 43.9,
+          "mean": 59.8,
+          "q25": 29.8,
+          "q75": 92.6,
+          "absMedian": 43.9
+         },
+         "k6": {
+          "n": 11,
+          "median": 41.9,
+          "mean": 52.6,
+          "q25": 25.3,
+          "q75": 77.6,
+          "absMedian": 41.9
+         },
+         "k9": {
+          "n": 11,
+          "median": 41.9,
+          "mean": 45.5,
+          "q25": 15.3,
+          "q75": 74.6,
+          "absMedian": 41.9
+         }
+        },
+        "offEnvelope": 61.3
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -93.7,
+        "gapFrac": 0.55,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 54.6,
+          "mean": 69.1,
+          "q25": 39,
+          "q75": 102.5,
+          "absMedian": 54.6
+         },
+         "k6": {
+          "n": 11,
+          "median": 52.6,
+          "mean": 61.8,
+          "q25": 33.6,
+          "q75": 87.4,
+          "absMedian": 52.6
+         },
+         "k9": {
+          "n": 11,
+          "median": 52.6,
+          "mean": 54.7,
+          "q25": 22.5,
+          "q75": 84.4,
+          "absMedian": 52.6
+         }
+        },
+        "offEnvelope": 70.3
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -135,
+        "gapFrac": 0.27,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 21.7,
+          "mean": 31.5,
+          "q25": 4.1,
+          "q75": 53.2,
+          "absMedian": 21.7
+         },
+         "k6": {
+          "n": 11,
+          "median": 11,
+          "mean": 24.3,
+          "q25": 4.1,
+          "q75": 38.2,
+          "absMedian": 11
+         },
+         "k9": {
+          "n": 11,
+          "median": -0.9,
+          "mean": 17.2,
+          "q25": -7.3,
+          "q75": 35.2,
+          "absMedian": 0.9
+         }
+        },
+        "offEnvelope": 29
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": 9.8,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 178,
+          "mean": 172.5,
+          "q25": 162.5,
+          "q75": 184,
+          "absMedian": 178
+         },
+         "k6": {
+          "n": 11,
+          "median": 171.6,
+          "mean": 165.2,
+          "q25": 155.5,
+          "q75": 175.1,
+          "absMedian": 171.6
+         },
+         "k9": {
+          "n": 11,
+          "median": 164,
+          "mean": 158.1,
+          "q25": 146.4,
+          "q75": 170,
+          "absMedian": 164
+         }
+        },
+        "offEnvelope": 173.8
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": 20.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 189.2,
+          "mean": 183.6,
+          "q25": 173.4,
+          "q75": 195.2,
+          "absMedian": 189.2
+         },
+         "k6": {
+          "n": 11,
+          "median": 182.7,
+          "mean": 176.3,
+          "q25": 166.4,
+          "q75": 186.3,
+          "absMedian": 182.7
+         },
+         "k9": {
+          "n": 11,
+          "median": 175.2,
+          "mean": 169.2,
+          "q25": 157.4,
+          "q75": 181.2,
+          "absMedian": 175.2
+         }
+        },
+        "offEnvelope": 184.9
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -21.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 146.5,
+          "mean": 141.3,
+          "q25": 131.7,
+          "q75": 152.5,
+          "absMedian": 146.5
+         },
+         "k6": {
+          "n": 11,
+          "median": 140.6,
+          "mean": 134,
+          "q25": 124.7,
+          "q75": 143.5,
+          "absMedian": 140.6
+         },
+         "k9": {
+          "n": 11,
+          "median": 132.5,
+          "mean": 126.9,
+          "q25": 115.7,
+          "q75": 138.5,
+          "absMedian": 132.5
+         }
+        },
+        "offEnvelope": 142.6
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": -57.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 107.8,
+          "mean": 106.1,
+          "q25": 99.9,
+          "q75": 114.3,
+          "absMedian": 107.8
+         },
+         "k6": {
+          "n": 11,
+          "median": 102.7,
+          "mean": 98.9,
+          "q25": 92.9,
+          "q75": 106,
+          "absMedian": 102.7
+         },
+         "k9": {
+          "n": 11,
+          "median": 93.8,
+          "mean": 91.8,
+          "q25": 85,
+          "q75": 100.3,
+          "absMedian": 93.8
+         }
+        },
+        "offEnvelope": 106.7
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -50,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 114.9,
+          "mean": 113.4,
+          "q25": 107.4,
+          "q75": 121.3,
+          "absMedian": 114.9
+         },
+         "k6": {
+          "n": 11,
+          "median": 110,
+          "mean": 106.1,
+          "q25": 100.4,
+          "q75": 113.3,
+          "absMedian": 110
+         },
+         "k9": {
+          "n": 11,
+          "median": 100.9,
+          "mean": 99,
+          "q25": 92.5,
+          "q75": 107.3,
+          "absMedian": 100.9
+         }
+        },
+        "offEnvelope": 114
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -78.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": 87.4,
+          "mean": 85.4,
+          "q25": 78.6,
+          "q75": 93.8,
+          "absMedian": 87.4
+         },
+         "k6": {
+          "n": 11,
+          "median": 82.5,
+          "mean": 78.1,
+          "q25": 71.6,
+          "q75": 85.2,
+          "absMedian": 82.5
+         },
+         "k9": {
+          "n": 11,
+          "median": 73.4,
+          "mean": 71,
+          "q25": 63.6,
+          "q75": 79.8,
+          "absMedian": 73.4
+         }
+        },
+        "offEnvelope": 85.6
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "contradicted",
+      "measured": "contradicted"
+     }
+    },
+    "Second Peak": {
+     "preset": "secondpeak",
+     "nStations": 19,
+     "nWithWhitewater": 19,
+     "cloudFracOnStations": 0.017,
+     "zObsMedian": -116,
+     "zObsQ10": -139.2,
+     "zDenseMedian": -116,
+     "zObsBand_k9_k4": [
+      -18,
+      -126
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": -110.6,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 5.9,
+          "mean": 1.6,
+          "q25": -10.2,
+          "q75": 15.9,
+          "absMedian": 5.9
+         },
+         "k6": {
+          "n": 19,
+          "median": -11.2,
+          "mean": -13.5,
+          "q25": -26.3,
+          "q75": 0.8,
+          "absMedian": 11.2
+         },
+         "k9": {
+          "n": 19,
+          "median": -83.9,
+          "mean": -60.5,
+          "q25": -95.7,
+          "q75": -39.2,
+          "absMedian": 83.9
+         }
+        },
+        "offEnvelope": 28.6
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -97.5,
+        "gapFrac": 0.11,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 16.7,
+          "mean": 13.2,
+          "q25": -3.4,
+          "q75": 27.5,
+          "absMedian": 16.7
+         },
+         "k6": {
+          "n": 19,
+          "median": -2.5,
+          "mean": -1.9,
+          "q25": -16.4,
+          "q75": 8.7,
+          "absMedian": 2.5
+         },
+         "k9": {
+          "n": 19,
+          "median": -74,
+          "mean": -48.9,
+          "q25": -80,
+          "q75": -24.9,
+          "absMedian": 74
+         }
+        },
+        "offEnvelope": 41.7
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -143.3,
+        "gapFrac": 0.05,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": -21.8,
+          "mean": -27.5,
+          "q25": -27,
+          "q75": -11.9,
+          "absMedian": 21.8
+         },
+         "k6": {
+          "n": 19,
+          "median": -35.8,
+          "mean": -42.7,
+          "q25": -47.9,
+          "q75": -21.1,
+          "absMedian": 35.8
+         },
+         "k9": {
+          "n": 19,
+          "median": -118.8,
+          "mean": -89.7,
+          "q25": -122.2,
+          "q75": -63,
+          "absMedian": 118.8
+         }
+        },
+        "offEnvelope": -4.1
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": -83.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 53.9,
+          "mean": 32.5,
+          "q25": 5.3,
+          "q75": 84.9,
+          "absMedian": 53.9
+         },
+         "k6": {
+          "n": 19,
+          "median": 32.6,
+          "mean": 17.3,
+          "q25": -21.7,
+          "q75": 70.9,
+          "absMedian": 32.6
+         },
+         "k9": {
+          "n": 19,
+          "median": -69.4,
+          "mean": -29.6,
+          "q25": -95.8,
+          "q75": 29.3,
+          "absMedian": 69.4
+         }
+        },
+        "offEnvelope": 55.8
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -70.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 66.7,
+          "mean": 45.2,
+          "q25": 17.9,
+          "q75": 97.9,
+          "absMedian": 66.7
+         },
+         "k6": {
+          "n": 19,
+          "median": 45.4,
+          "mean": 30.1,
+          "q25": -9.1,
+          "q75": 83.9,
+          "absMedian": 45.4
+         },
+         "k9": {
+          "n": 19,
+          "median": -56.6,
+          "mean": -16.9,
+          "q25": -83.3,
+          "q75": 42.3,
+          "absMedian": 56.6
+         }
+        },
+        "offEnvelope": 68.6
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -119.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 17.8,
+          "mean": -3.3,
+          "q25": -29.6,
+          "q75": 48.3,
+          "absMedian": 17.8
+         },
+         "k6": {
+          "n": 19,
+          "median": -3.1,
+          "mean": -18.5,
+          "q25": -56.6,
+          "q75": 34.3,
+          "absMedian": 3.1
+         },
+         "k9": {
+          "n": 19,
+          "median": -105.1,
+          "mean": -65.4,
+          "q25": -130.9,
+          "q75": -7.1,
+          "absMedian": 105.1
+         }
+        },
+        "offEnvelope": 20.1
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": -84.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 44.9,
+          "mean": 28.8,
+          "q25": 18.5,
+          "q75": 64.8,
+          "absMedian": 44.9
+         },
+         "k6": {
+          "n": 19,
+          "median": 31.9,
+          "mean": 13.6,
+          "q25": -8.3,
+          "q75": 51.9,
+          "absMedian": 31.9
+         },
+         "k9": {
+          "n": 19,
+          "median": -70.1,
+          "mean": -33.4,
+          "q25": -83.1,
+          "q75": 14.5,
+          "absMedian": 70.1
+         }
+        },
+        "offEnvelope": 55.1
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -73.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 55.2,
+          "mean": 40.4,
+          "q25": 30.8,
+          "q75": 74.7,
+          "absMedian": 55.2
+         },
+         "k6": {
+          "n": 19,
+          "median": 42.7,
+          "mean": 25.2,
+          "q25": 4.4,
+          "q75": 62,
+          "absMedian": 42.7
+         },
+         "k9": {
+          "n": 19,
+          "median": -59.3,
+          "mean": -21.7,
+          "q25": -70.2,
+          "q75": 24.5,
+          "absMedian": 59.3
+         }
+        },
+        "offEnvelope": 65.9
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -116.7,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 19,
+          "median": 14.3,
+          "mean": -4.7,
+          "q25": -19.2,
+          "q75": 36.1,
+          "absMedian": 14.3
+         },
+         "k6": {
+          "n": 19,
+          "median": -0.7,
+          "mean": -19.8,
+          "q25": -46.2,
+          "q75": 23,
+          "absMedian": 0.7
+         },
+         "k9": {
+          "n": 19,
+          "median": -102.7,
+          "mean": -66.8,
+          "q25": -121.1,
+          "q75": -15.3,
+          "absMedian": 102.7
+         }
+        },
+        "offEnvelope": 22.5
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    },
+    "38th": {
+     "preset": "jacks",
+     "nStations": 31,
+     "nWithWhitewater": 31,
+     "cloudFracOnStations": 0.01,
+     "zObsMedian": -46,
+     "zObsQ10": -64,
+     "zDenseMedian": -64,
+     "zObsBand_k9_k4": [
+      -44,
+      -56
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": -113.6,
+        "gapFrac": 0.06,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -55.5,
+          "mean": -70.4,
+          "q25": -98.8,
+          "q75": -26.5,
+          "absMedian": 55.5
+         },
+         "k6": {
+          "n": 31,
+          "median": -55.5,
+          "mean": -82.2,
+          "q25": -98.8,
+          "q75": -38.3,
+          "absMedian": 55.5
+         },
+         "k9": {
+          "n": 31,
+          "median": -72.3,
+          "mean": -91.6,
+          "q25": -109.8,
+          "q75": -40.7,
+          "absMedian": 72.3
+         }
+        },
+        "offEnvelope": -49.6
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -107.1,
+        "gapFrac": 0.1,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -49.5,
+          "mean": -60.4,
+          "q25": -94.9,
+          "q75": -17.7,
+          "absMedian": 49.5
+         },
+         "k6": {
+          "n": 31,
+          "median": -49.5,
+          "mean": -72.3,
+          "q25": -94.9,
+          "q75": -29.8,
+          "absMedian": 49.5
+         },
+         "k9": {
+          "n": 31,
+          "median": -66.4,
+          "mean": -81.7,
+          "q25": -105.9,
+          "q75": -33.8,
+          "absMedian": 66.4
+         }
+        },
+        "offEnvelope": -43.1
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -136.8,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -84.4,
+          "mean": -95.7,
+          "q25": -111.8,
+          "q75": -61.2,
+          "absMedian": 84.4
+         },
+         "k6": {
+          "n": 31,
+          "median": -84.4,
+          "mean": -107.5,
+          "q25": -118.8,
+          "q75": -68.5,
+          "absMedian": 84.4
+         },
+         "k9": {
+          "n": 31,
+          "median": -88.4,
+          "mean": -116.9,
+          "q25": -134,
+          "q75": -74.2,
+          "absMedian": 88.4
+         }
+        },
+        "offEnvelope": -72.8
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": -97.7,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -38.4,
+          "mean": -46,
+          "q25": -50.2,
+          "q75": -30.4,
+          "absMedian": 38.4
+         },
+         "k6": {
+          "n": 31,
+          "median": -43.1,
+          "mean": -57.8,
+          "q25": -52.2,
+          "q75": -37.3,
+          "absMedian": 43.1
+         },
+         "k9": {
+          "n": 31,
+          "median": -48.9,
+          "mean": -67.3,
+          "q25": -78.4,
+          "q75": -43.5,
+          "absMedian": 48.9
+         }
+        },
+        "offEnvelope": -33.7
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -85.2,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -25.5,
+          "mean": -33.5,
+          "q25": -38.3,
+          "q75": -17.9,
+          "absMedian": 25.5
+         },
+         "k6": {
+          "n": 31,
+          "median": -30.7,
+          "mean": -45.3,
+          "q25": -40,
+          "q75": -25.2,
+          "absMedian": 30.7
+         },
+         "k9": {
+          "n": 31,
+          "median": -36.3,
+          "mean": -54.7,
+          "q25": -65.6,
+          "q75": -30.9,
+          "absMedian": 36.3
+         }
+        },
+        "offEnvelope": -21.2
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -132.8,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -72.5,
+          "mean": -81.2,
+          "q25": -83,
+          "q75": -65.2,
+          "absMedian": 72.5
+         },
+         "k6": {
+          "n": 31,
+          "median": -78.9,
+          "mean": -93,
+          "q25": -86.4,
+          "q75": -72.3,
+          "absMedian": 78.9
+         },
+         "k9": {
+          "n": 31,
+          "median": -84.1,
+          "mean": -102.4,
+          "q25": -114.6,
+          "q75": -78.5,
+          "absMedian": 84.1
+         }
+        },
+        "offEnvelope": -68.8
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.321,
+        "zModelMedian": -89.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -27.3,
+          "mean": -34.4,
+          "q25": -39.6,
+          "q75": -18.3,
+          "absMedian": 27.3
+         },
+         "k6": {
+          "n": 31,
+          "median": -30.7,
+          "mean": -46.2,
+          "q25": -44.6,
+          "q75": -27.4,
+          "absMedian": 30.7
+         },
+         "k9": {
+          "n": 31,
+          "median": -37.5,
+          "mean": -55.6,
+          "q25": -65.6,
+          "q75": -30.7,
+          "absMedian": 37.5
+         }
+        },
+        "offEnvelope": -25.1
+       },
+       "deshoaled": {
+        "H0": 1.198,
+        "zModelMedian": -73.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -12.8,
+          "mean": -19.6,
+          "q25": -24.8,
+          "q75": -3.3,
+          "absMedian": 12.8
+         },
+         "k6": {
+          "n": 31,
+          "median": -15.4,
+          "mean": -31.5,
+          "q25": -31.9,
+          "q75": -11.9,
+          "absMedian": 15.4
+         },
+         "k9": {
+          "n": 31,
+          "median": -23.9,
+          "mean": -40.9,
+          "q25": -50.6,
+          "q75": -16,
+          "absMedian": 23.9
+         }
+        },
+        "offEnvelope": -9.4
+       },
+       "h10": {
+        "H0": 1.678,
+        "zModelMedian": -128,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 31,
+          "median": -66.9,
+          "mean": -73.6,
+          "q25": -78,
+          "q75": -57.8,
+          "absMedian": 66.9
+         },
+         "k6": {
+          "n": 31,
+          "median": -70.5,
+          "mean": -85.4,
+          "q25": -82.1,
+          "q75": -66.3,
+          "absMedian": 70.5
+         },
+         "k9": {
+          "n": 31,
+          "median": -77.5,
+          "mean": -94.9,
+          "q25": -104.6,
+          "q75": -70.2,
+          "absMedian": 77.5
+         }
+        },
+        "offEnvelope": -64
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    }
+   }
+  },
+  "S2B_MSIL2A_20240218T185439_R113_T10SEF_20240218T223624": {
+   "forcing": {
+    "T": 16.67,
+    "Ks12": 1.1397,
+    "tideRaw": -0.428,
+    "tide": -0.428,
+    "tideClamped": false,
+    "H0": {
+     "hs": 1.835,
+     "deshoaled": 1.6101182802398406,
+     "h10": 2.33045
+    },
+    "H0_hs": 1.835,
+    "H0_deshoaled": 1.61,
+    "H0_h10": 2.33
+   },
+   "supplementary": true,
+   "reject_reason": "surf-strip cloud 10%",
+   "spots": {
+    "First Peak": {
+     "preset": "firstpeak",
+     "nStations": 11,
+     "nWithWhitewater": 9,
+     "cloudFracOnStations": 0.172,
+     "zObsMedian": -6,
+     "zObsQ10": -104.8,
+     "zDenseMedian": -98,
+     "zObsBand_k9_k4": [
+      17,
+      -16
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -156.3,
+        "gapFrac": 0.27,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -116.5,
+          "mean": -107.2,
+          "q25": -127.9,
+          "q75": -66.2,
+          "absMedian": 116.5
+         },
+         "k6": {
+          "n": 9,
+          "median": -125.4,
+          "mean": -119.2,
+          "q25": -136.8,
+          "q75": -116.5,
+          "absMedian": 125.4
+         },
+         "k9": {
+          "n": 4,
+          "median": -154.3,
+          "mean": -156.3,
+          "q25": -175.4,
+          "q75": -135.2,
+          "absMedian": 154.3
+         }
+        },
+        "offEnvelope": -51.5
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -138,
+        "gapFrac": 0.27,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -101.5,
+          "mean": -94.2,
+          "q25": -114.1,
+          "q75": -62.4,
+          "absMedian": 101.5
+         },
+         "k6": {
+          "n": 9,
+          "median": -112.5,
+          "mean": -104.2,
+          "q25": -122,
+          "q75": -101.5,
+          "absMedian": 112.5
+         },
+         "k9": {
+          "n": 4,
+          "median": -126.5,
+          "mean": -133.2,
+          "q25": -150,
+          "q75": -109.7,
+          "absMedian": 126.5
+         }
+        },
+        "offEnvelope": -33.2
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -172.9,
+        "gapFrac": 0.09,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -140.4,
+          "mean": -127,
+          "q25": -158.9,
+          "q75": -75.6,
+          "absMedian": 140.4
+         },
+         "k6": {
+          "n": 9,
+          "median": -147.4,
+          "mean": -141.7,
+          "q25": -170.3,
+          "q75": -140.4,
+          "absMedian": 147.4
+         },
+         "k9": {
+          "n": 4,
+          "median": -188.7,
+          "mean": -187.5,
+          "q25": -194.2,
+          "q75": -182,
+          "absMedian": 188.7
+         }
+        },
+        "offEnvelope": -68.1
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -47.7,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -37.4,
+          "mean": -6.7,
+          "q25": -56.7,
+          "q75": 49.5,
+          "absMedian": 37.4
+         },
+         "k6": {
+          "n": 9,
+          "median": -49.3,
+          "mean": -23.8,
+          "q25": -54.3,
+          "q75": -27.5,
+          "absMedian": 49.3
+         },
+         "k9": {
+          "n": 4,
+          "median": -57.4,
+          "mean": -58.2,
+          "q25": -61.4,
+          "q75": -54.3,
+          "absMedian": 57.4
+         }
+        },
+        "offEnvelope": 57.1
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -28,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -17.9,
+          "mean": 13,
+          "q25": -37,
+          "q75": 69,
+          "absMedian": 17.9
+         },
+         "k6": {
+          "n": 9,
+          "median": -29.9,
+          "mean": -4.1,
+          "q25": -34.2,
+          "q75": -8,
+          "absMedian": 29.9
+         },
+         "k9": {
+          "n": 4,
+          "median": -37.2,
+          "mean": -38.2,
+          "q25": -41.2,
+          "q75": -34.2,
+          "absMedian": 37.3
+         }
+        },
+        "offEnvelope": 76.8
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -89.7,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -78.7,
+          "mean": -48.6,
+          "q25": -98.6,
+          "q75": 7.8,
+          "absMedian": 78.7
+         },
+         "k6": {
+          "n": 9,
+          "median": -90.4,
+          "mean": -65.8,
+          "q25": -97.1,
+          "q75": -69,
+          "absMedian": 90.4
+         },
+         "k9": {
+          "n": 4,
+          "median": -100.3,
+          "mean": -100.9,
+          "q25": -104.2,
+          "q75": -97,
+          "absMedian": 100.3
+         }
+        },
+        "offEnvelope": 15.1
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -96.5,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -81.8,
+          "mean": -54.4,
+          "q25": -102.8,
+          "q75": 2.5,
+          "absMedian": 81.8
+         },
+         "k6": {
+          "n": 9,
+          "median": -91.8,
+          "mean": -71.4,
+          "q25": -105.3,
+          "q75": -73.8,
+          "absMedian": 91.8
+         },
+         "k9": {
+          "n": 4,
+          "median": -109,
+          "mean": -109.5,
+          "q25": -112.8,
+          "q75": -105.7,
+          "absMedian": 109.1
+         }
+        },
+        "offEnvelope": 8.3
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -82.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -68.1,
+          "mean": -40.8,
+          "q25": -89.1,
+          "q75": 16.2,
+          "absMedian": 68.1
+         },
+         "k6": {
+          "n": 9,
+          "median": -78.1,
+          "mean": -57.8,
+          "q25": -91.7,
+          "q75": -60,
+          "absMedian": 78.1
+         },
+         "k9": {
+          "n": 4,
+          "median": -95.6,
+          "mean": -96,
+          "q25": -99.4,
+          "q75": -92.2,
+          "absMedian": 95.7
+         }
+        },
+        "offEnvelope": 21.9
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -126.3,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 11,
+          "median": -112.1,
+          "mean": -84.4,
+          "q25": -132.9,
+          "q75": -27.4,
+          "absMedian": 112.1
+         },
+         "k6": {
+          "n": 9,
+          "median": -122.2,
+          "mean": -101.4,
+          "q25": -135,
+          "q75": -103.7,
+          "absMedian": 122.2
+         },
+         "k9": {
+          "n": 4,
+          "median": -138.8,
+          "mean": -139.2,
+          "q25": -142.5,
+          "q75": -135.4,
+          "absMedian": 138.8
+         }
+        },
+        "offEnvelope": -21.5
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    },
+    "Second Peak": {
+     "preset": "secondpeak",
+     "nStations": 19,
+     "nWithWhitewater": 9,
+     "cloudFracOnStations": 0.024,
+     "zObsMedian": -80,
+     "zObsQ10": -100.8,
+     "zDenseMedian": -84,
+     "zObsBand_k9_k4": [
+      null,
+      -80
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -169.7,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -73.8,
+          "mean": -88.8,
+          "q25": -105.6,
+          "q75": -66.2,
+          "absMedian": 73.8
+         },
+         "k6": {
+          "n": 9,
+          "median": -95.4,
+          "mean": -103.8,
+          "q25": -129.4,
+          "q75": -83.3,
+          "absMedian": 95.4
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -68.9
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -149.7,
+        "gapFrac": 0.05,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -60,
+          "mean": -70.9,
+          "q25": -92.1,
+          "q75": -53,
+          "absMedian": 60.1
+         },
+         "k6": {
+          "n": 9,
+          "median": -84.7,
+          "mean": -86.2,
+          "q25": -103.7,
+          "q75": -73.7,
+          "absMedian": 84.7
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -48.9
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -201.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -120.7,
+          "mean": -128,
+          "q25": -154.7,
+          "q75": -90.7,
+          "absMedian": 120.7
+         },
+         "k6": {
+          "n": 9,
+          "median": -118.7,
+          "mean": -139.6,
+          "q25": -184.8,
+          "q75": -106.7,
+          "absMedian": 118.7
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -101.1
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -149.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -59.9,
+          "mean": -69.1,
+          "q25": -107.7,
+          "q75": -34.4,
+          "absMedian": 60
+         },
+         "k6": {
+          "n": 9,
+          "median": -59,
+          "mean": -74.8,
+          "q25": -135.7,
+          "q75": -29.7,
+          "absMedian": 59
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -48.8
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -127,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -37.1,
+          "mean": -46.4,
+          "q25": -85.5,
+          "q75": -11.5,
+          "absMedian": 37.1
+         },
+         "k6": {
+          "n": 9,
+          "median": -36.1,
+          "mean": -52,
+          "q25": -113.7,
+          "q75": -6.4,
+          "absMedian": 36.1
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -26.2
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -197.8,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -108.6,
+          "mean": -117.3,
+          "q25": -154.8,
+          "q75": -83.3,
+          "absMedian": 108.6
+         },
+         "k6": {
+          "n": 9,
+          "median": -107.6,
+          "mean": -123.1,
+          "q25": -182.5,
+          "q75": -79.3,
+          "absMedian": 107.6
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -97
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -145.8,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -60.4,
+          "mean": -70.2,
+          "q25": -101,
+          "q75": -36.2,
+          "absMedian": 60.4
+         },
+         "k6": {
+          "n": 9,
+          "median": -59.1,
+          "mean": -77.7,
+          "q25": -129.4,
+          "q75": -39.5,
+          "absMedian": 59.1
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -45
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -124,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -39.8,
+          "mean": -48.1,
+          "q25": -76.1,
+          "q75": -16.1,
+          "absMedian": 39.9
+         },
+         "k6": {
+          "n": 9,
+          "median": -38.6,
+          "mean": -56.1,
+          "q25": -103.7,
+          "q75": -20.9,
+          "absMedian": 38.6
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -23.2
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -193.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 18,
+          "median": -105.5,
+          "mean": -117.8,
+          "q25": -154.7,
+          "q75": -80.2,
+          "absMedian": 105.6
+         },
+         "k6": {
+          "n": 9,
+          "median": -103.9,
+          "mean": -124.4,
+          "q25": -184.8,
+          "q75": -80.2,
+          "absMedian": 103.9
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -92.8
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    },
+    "38th": {
+     "preset": "jacks",
+     "nStations": 31,
+     "nWithWhitewater": 9,
+     "cloudFracOnStations": 0.048,
+     "zObsMedian": -96,
+     "zObsQ10": -106.8,
+     "zDenseMedian": -74,
+     "zObsBand_k9_k4": [
+      null,
+      -92
+     ],
+     "arms": {
+      "reef": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -159.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -85.1,
+          "mean": -91.8,
+          "q25": -105.2,
+          "q75": -74.1,
+          "absMedian": 85.1
+         },
+         "k6": {
+          "n": 9,
+          "median": -96.8,
+          "mean": -112.2,
+          "q25": -118.9,
+          "q75": -81.9,
+          "absMedian": 96.8
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -52.3
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -141.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -72.6,
+          "mean": -76.4,
+          "q25": -98.1,
+          "q75": -54.9,
+          "absMedian": 72.6
+         },
+         "k6": {
+          "n": 9,
+          "median": -88.3,
+          "mean": -105.3,
+          "q25": -112.5,
+          "q75": -75.3,
+          "absMedian": 88.3
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -34.3
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -204.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -115.7,
+          "mean": -125.3,
+          "q25": -128.2,
+          "q75": -110.3,
+          "absMedian": 115.7
+         },
+         "k6": {
+          "n": 9,
+          "median": -128.9,
+          "mean": -132.3,
+          "q25": -133.5,
+          "q75": -103.7,
+          "absMedian": 128.9
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -97.8
+       }
+      },
+      "plane": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -162.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -70.8,
+          "mean": -82.9,
+          "q25": -83.2,
+          "q75": -67.2,
+          "absMedian": 70.8
+         },
+         "k6": {
+          "n": 9,
+          "median": -87.6,
+          "mean": -92.5,
+          "q25": -93.5,
+          "q75": -67.3,
+          "absMedian": 87.6
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -55.8
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -140.4,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -49.5,
+          "mean": -60.5,
+          "q25": -61.8,
+          "q75": -44.2,
+          "absMedian": 49.6
+         },
+         "k6": {
+          "n": 9,
+          "median": -64,
+          "mean": -69.3,
+          "q25": -70.9,
+          "q75": -44.5,
+          "absMedian": 64
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -33.6
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -209.9,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -120,
+          "mean": -130.6,
+          "q25": -129.5,
+          "q75": -115.6,
+          "absMedian": 120.1
+         },
+         "k6": {
+          "n": 9,
+          "median": -137.7,
+          "mean": -141.7,
+          "q25": -141.8,
+          "q75": -115.7,
+          "absMedian": 137.7
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -103.1
+       }
+      },
+      "measured": {
+       "hs": {
+        "H0": 1.835,
+        "zModelMedian": -159.1,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -64.5,
+          "mean": -75.7,
+          "q25": -81.5,
+          "q75": -53.8,
+          "absMedian": 64.6
+         },
+         "k6": {
+          "n": 9,
+          "median": -72.8,
+          "mean": -80.4,
+          "q25": -80.4,
+          "q75": -57.9,
+          "absMedian": 72.8
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -52.3
+       },
+       "deshoaled": {
+        "H0": 1.61,
+        "zModelMedian": -136.2,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -42.2,
+          "mean": -52.7,
+          "q25": -58.1,
+          "q75": -31,
+          "absMedian": 42.2
+         },
+         "k6": {
+          "n": 9,
+          "median": -50.1,
+          "mean": -57.4,
+          "q25": -57.7,
+          "q75": -34.9,
+          "absMedian": 50.1
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -29.4
+       },
+       "h10": {
+        "H0": 2.33,
+        "zModelMedian": -204.6,
+        "gapFrac": 0,
+        "offsets": {
+         "k4": {
+          "n": 24,
+          "median": -109.8,
+          "mean": -121.5,
+          "q25": -128.2,
+          "q75": -99.9,
+          "absMedian": 109.8
+         },
+         "k6": {
+          "n": 9,
+          "median": -118.2,
+          "mean": -126.1,
+          "q25": -125.6,
+          "q75": -103.7,
+          "absMedian": 118.2
+         },
+         "k9": {
+          "n": 0,
+          "median": null,
+          "mean": null,
+          "q25": null,
+          "q75": null,
+          "absMedian": null
+         }
+        },
+        "offEnvelope": -97.8
+       }
+      }
+     },
+     "verdicts": {
+      "reef": "consistent",
+      "plane": "consistent",
+      "measured": "consistent"
+     }
+    }
+   }
+  }
+ },
+ "summary": {
+  "rule": "per (scene, spot) on the main scenes, K = 6: an arm is CONTRADICTED when its H1/10 line sits more than 2σ (16 m) shoreward of the median station outer foam edge; among consistent arms the Hs/Ks line nearest the median foam edge is 'closest' when it leads the next by >= 2σ; the q10 envelope is a bound, not scored",
+  "cells": 12,
+  "score": {
+   "reef": {
+    "contradicted": 1,
+    "consistent": 11,
+    "closest": 5
+   },
+   "plane": {
+    "contradicted": 4,
+    "consistent": 8,
+    "closest": 0
+   },
+   "measured": {
+    "contradicted": 3,
+    "consistent": 9,
+    "closest": 1
+   }
+  }
+ }
+}
