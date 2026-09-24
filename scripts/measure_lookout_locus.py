@@ -13,9 +13,11 @@ a known range on the water plane. Four lines of trigonometry:
 
 F is the forward axis (true heading, pitched down), R = F rotated clockwise in
 the horizontal plane (right of north is east), U = R x F. This is the
-right-handed frame the site actually has; the renderer's three.js embedding is
-its mirror (see the doc), which is why a `#cam=lookout` capture has to be
-flipped before it is overlaid.
+right-handed frame the site actually has. Until 2026-09-24 the renderer's
+three.js embedding was its mirror (see the doc), so a `#cam=lookout` capture
+had to be flipped before it was overlaid; the fix landed with `#mirror=0` as
+the revert, so captures are overlaid as-is now and `--flip` is for captures
+made under the old embedding (or with `#mirror=0`).
 
 Pose numbers are READ from model-lines.json (written by
 scripts/measure_lookout_line.mjs from manifest.json + main.js LOOKOUT), never
@@ -34,7 +36,7 @@ Steps, in order, each printed:
 Usage:
   python3 scripts/measure_lookout_locus.py                       # measure + residual + figures
   python3 scripts/measure_lookout_locus.py --no-model            # observation side only
-  python3 scripts/measure_lookout_locus.py --renders reef=a.png,plane=b.png,measured=c.png [--no-mirror]
+  python3 scripts/measure_lookout_locus.py --renders reef=a.png,plane=b.png,measured=c.png [--flip]
   python3 scripts/measure_lookout_locus.py --crops DIR            # the 2x annotation crops
 """
 import argparse
@@ -317,7 +319,7 @@ def main():
     ap.add_argument('--no-model', action='store_true')
     ap.add_argument('--out-dir', default=ASSETS)
     ap.add_argument('--renders', default='', help='bed=path,... 1280x960 #cam=lookout captures to overlay')
-    ap.add_argument('--no-mirror', action='store_true', help='do not flip the renders horizontally')
+    ap.add_argument('--flip', action='store_true', help='flip the renders horizontally (captures made under the pre-2026-09-24 mirrored embedding, or with #mirror=0)')
     ap.add_argument('--crops', default='', help='write the 2x annotation crops to this directory')
     args = ap.parse_args()
 
@@ -520,7 +522,7 @@ def main():
                 sys.exit(f'cannot read render {path}')
             if r.shape[:2] != (H, W):
                 r = cv2.resize(r, (W, H))
-            if not args.no_mirror:
+            if args.flip:
                 r = r[:, ::-1].copy()
             draw_observation(r, pose, ann, bands, hz_row)
             arm = next(a for a in jacks['arms'] if a['h0Arm'] == 'raw' and a['bed'] == bed)
@@ -528,7 +530,7 @@ def main():
             panel = cv2.resize(r, (W // 2, H // 2), interpolation=cv2.INTER_AREA)
             # legend after the downscale so the text stays readable
             legend(panel, [(f'jacks, lookout, bed={bed}; H0 0.90 T 16.7 tide +0.32'
-                            + ('' if args.no_mirror else '; MIRRORED'), (255, 255, 255)),
+                            + ('; FLIPPED' if args.flip else ''), (255, 255, 255)),
                            (f'model line ({bed}) + photo locus', COL[bed])], x=6, y=18)
             panels.append(panel)
         strip = np.concatenate(panels, axis=1)

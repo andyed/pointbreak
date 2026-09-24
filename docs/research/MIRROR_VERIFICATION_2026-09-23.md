@@ -201,3 +201,50 @@ Handedness: read `stageAlongENU`/`stageShoreENU` from
 from `data/osm/pp_geometry.json`, cross product of the coast tangent with the
 lookout offset, and ray/segment intersection from (817.1, 542.3) along
 bearings 167.3°..207.3°. Pixel counts as in §3-4 (PIL + numpy on the PNGs).
+
+## 7. Fix landed — 2026-09-24 (`#mirror=0` reverts)
+
+Implemented as the verdict recommended, at the stage → world boundary only:
+
+- `main.js`: every mesh hangs under one root `THREE.Group` with
+  `scale.z = Z_SIGN` (−1 by default, +1 under `#mirror=0`, boot-only); every
+  camera write (`applyCam`, `cutToShot`, the aim re-pose, Follow, POV,
+  `__pointbreak.setView`) goes through `toWorld`; every camera *read* that
+  feeds a stage-space lookup (`cameraFloorY` in the collision clamp, the
+  submersion `oceanH`, the sky dome's centre, the audio) converts back. The
+  bake, model, rider, `pos()`/`target()` closures and the instrument API all
+  stay in stage coordinates; `__pointbreak.camera` is the one world-space
+  object, and `aimProbe` now reports `camPosStage` beside `camPos`.
+- `shaders.js`: the fragment shaders' eye is a new `u_camStage` uniform (the
+  eye in stage coordinates, set each frame) in place of three.js's world-space
+  `cameraPosition`. This is the "not one line" case §5 predicted, resolved
+  the cheap way: `vWorldPos` is assigned the pre-matrix displaced position
+  `P`, so it was always stage-space and `bedElevM(worldXZ)` needed no change —
+  only the eye it is compared against did.
+- `sound.js`: the pan follows screen-right (`dot(zipper − eye, right)`)
+  instead of world +x; the legacy path remains for callers without a right
+  vector.
+- `tests/mirror.test.js` pins the profiles' handedness, the root group, the
+  camera conversions and the absence of `cameraPosition` in the shaders.
+
+Verification (Playwright, 1280×800, sim 42; scratchpad captures):
+
+| check | result |
+|---|---|
+| `#mirror=0` vs the pre-change build (590edaa) at Lookout, Cliff, Drone | **0 differing pixels** on all three |
+| mirror on vs horizontally flipped mirror off | ≤ 0.03 % of pixels differ by > 8 levels, none by > 32: the on arm is the exact mirror image, so every shading term (fog, sun, fresnel, bed return) moved with the geometry |
+| Lookout land side (warm pixels, bottom 40 % of frame) | on: median column 1132 of 1280, 0 % in the left half; off: 147, 100 % left. The photograph has the land bottom-right |
+| Cliff at Second Peak, the breaking head sim 42 → 45 | moves image-**left**, as the real Surfline cam does (FIELD_WAVE_MOTION); before the fix it moved right |
+| Drone | seaward at the top of frame, down-point now screen-left (map orientation with south up) |
+| rider (`#surfer=1`) | on the face at the head; no page or console errors on any arm |
+
+One consequence to judge by eye rather than by instrument: the sun is an
+authored direction in stage space (`sunDir` in SKY_GLSL), so it mirrored
+with the scene and now lights from the other side of the frame at every
+preset camera. That is the geographically consistent side (the light came
+from the mirrored sky before), but it is a look call whether the authored
+azimuth was chosen for the picture or for the site.
+
+Every rendered fixture captured before this date (`docs/research/assets/*`,
+`qa/published/*`) is the mirror image of the site; `render-overlay.jpg` in
+`lookout-locus-2026-09-23/` is re-rendered unflipped below.

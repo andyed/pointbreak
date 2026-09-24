@@ -21,10 +21,12 @@
 // lookoutStation() computes it, so the camera here IS `#cam=lookout`.
 //
 // PROJECTION is done in ENU, right-handed, with the camera's right vector
-// = forward rotated clockwise (right of north is east). The renderer embeds
-// the stage as three.js (x = along, y = up, z = shore), which is the
-// left-handed image of that frame, so a `#cam=lookout` capture is the
-// horizontal MIRROR of this projection; see the residual doc for the check.
+// = forward rotated clockwise (right of north is east). Until 2026-09-24 the
+// renderer embedded the stage as three.js (x = along, y = up, z = shore), the
+// left-handed image of that frame, so a `#cam=lookout` capture was the
+// horizontal MIRROR of this projection (the residual doc's check). The
+// embedding is now world z = -stage z (#mirror=0 reverts), so captures and
+// this projection agree without a flip.
 //
 // H0 ARMS. SC116 publishes Hs at the -15 m MOP point (CDIP_LIVE_DATA.md). The
 // bake treats H0 as deep water (dispersion.js shoaledHeight), so the raw Hs is

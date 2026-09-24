@@ -372,11 +372,11 @@ Measured, proposed, not done. Product calls are Andy's.
    numbers and makes the next fixture a bed test only.
 5. **`#deshoal=1` and `#T=`** (T2 §7.2, §7.5): pure twin and tests already
    ship (`scripts/lib/deshoal.mjs`).
-6. **Mirror** (T8, confirmed): world z = −stage z at the stage → world
-   boundary in `main.js`, behind its own A/B, with `GRID_FRAG`'s bed sample
-   moved to a stage-space varying, audio pan re-derived camera-relative, and
-   every fixture re-captured. Product call: the shipped screensaver has
-   shown a left-hander since the bed landed.
+6. **Mirror** (T8, confirmed) — **LANDED 2026-09-24** as a root world group
+   with `scale.z = −1`, `#mirror=0` the pixel-identical revert
+   (MIRROR_VERIFICATION §7). `vWorldPos` turned out to be stage-space
+   already, so only the shaders' eye moved (`u_camStage`); the audio pan is
+   camera-relative. Fixtures captured before this date are mirror images.
 7. **Wire `u_camUnder` to `surfaceQuery` and the audio zipper to the baked
    `zbFn`** (T7).
 8. **Get the Surfline cam's focal length** (T6): one capture with the 38th

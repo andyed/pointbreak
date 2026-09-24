@@ -292,6 +292,10 @@ vec3 skyColor(vec3 rd, float t){
 // HAZE_H metres of haze — without this the top-down view greys out.
 // Requires MODEL_GLSL (vnoise2) and SKY_GLSL (u_fogAmt) spliced first.
 export const FOG_GLSL = `
+// The eye in STAGE coordinates. three.js's built-in camera-position uniform is WORLD
+// space, and world z is -stage z under the #mirror embedding (main.js), while
+// every varying here (vWorldPos = the displaced P, vBedPos) is stage space.
+uniform vec3 u_camStage;
 const float FOG_DENSITY = 0.0011;
 const float HAZE_H      = 70.0;
 // Drifting fog-bank modulation depth (#bank=, condition days). 0 = the
@@ -314,7 +318,7 @@ float fogAmount(float dist, float dy, vec2 xz, float t){
   // bank density averaged at the target and the ray midpoint: a bank sitting
   // BETWEEN the eye and the wave still thickens the air in front of it,
   // which is what makes banks read as volume rather than surface tint
-  float bank = 0.5*(fogBankMul(xz, t) + fogBankMul(0.5*(cameraPosition.xz + xz), t));
+  float bank = 0.5*(fogBankMul(xz, t) + fogBankMul(0.5*(u_camStage.xz + xz), t));
   float f = 1.0 - exp(-dist * inLayer * FOG_DENSITY * u_fogAmt * bank);
   // HORIZON FLOOR (2026-08-27, "minimum fog is not great"): the dial sets
   // haze THICKNESS, but the world must still end in air — the grid's far
@@ -1444,8 +1448,8 @@ void main() {
   vec2 sourceXZ = vSourceXZ;
   vec2 worldXZ = vWorldPos.xz;
   float t = u_time;
-  vec3 V = normalize(cameraPosition - vWorldPos);
-  float dist = length(cameraPosition - vWorldPos);
+  vec3 V = normalize(u_camStage - vWorldPos);
+  float dist = length(u_camStage - vWorldPos);
   float boil  = clamp(vBoil, 0.0, 1.0);
 
   // ---- 0. land ----
@@ -1584,7 +1588,7 @@ void main() {
       // every seam it could draw, ends before the geometry does.
       landCol = mix(vec3(0.60, 0.63, 0.64), landCol, smoothstep(0.0, 0.35, provL));
     }
-    float dyL = max(cameraPosition.y - vWorldPos.y, 0.0);
+    float dyL = max(u_camStage.y - vWorldPos.y, 0.0);
     vec3 colL = mix(landCol, skyColor(-V, t), fogAmount(dist, dyL, worldXZ, t));
     gl_FragColor = vec4(colL, 1.0);
     return;
@@ -2180,7 +2184,7 @@ void main() {
   // ---- 5. aerial perspective ----
   // fog toward the same procedural sky the dome draws, evaluated along the
   // view ray — the far plane converges on exactly what surrounds it
-  float dy = max(cameraPosition.y - vWorldPos.y, 0.0);
+  float dy = max(u_camStage.y - vWorldPos.y, 0.0);
   float fog = fogAmount(dist, dy, worldXZ, t);
   col = mix(col, skyColor(-V, t), fog);
 
@@ -2190,7 +2194,7 @@ void main() {
   // Sharing the ABOVE-water branch here is what made an early dive look like a
   // grey lid: the surface was being lit as if the sun were on this side of it.
   if (u_camUnder > 0.5) {
-    float up = clamp(dot(Ng, normalize(vWorldPos - cameraPosition)), 0.0, 1.0);
+    float up = clamp(dot(Ng, normalize(vWorldPos - u_camStage)), 0.0, 1.0);
     float window = smoothstep(0.62, 0.80, up);       // sin(48.6deg) ~ 0.75
     vec3 through = skyColor(refract(-V, -Ng, 1.0/1.333), t);
     vec3 mirror  = vec3(0.07, 0.16, 0.17) * 1.4;     // the water column, mirrored back
@@ -2803,7 +2807,7 @@ void main(){
       lightAtBed += vec3(0.9, 0.95, 1.0) * c * causticFade * 1.1;
   }
 
-  float sight = length(cameraPosition - vBedPos);
+  float sight = length(u_camStage - vBedPos);
   vec3 col = albedo * lam * lightAtBed;
   vec3 murk = vec3(0.05, 0.12, 0.13);
   col = mix(col, murk, 1.0 - exp(-0.028 * sight));   // e-fold ~36 m
@@ -2818,8 +2822,8 @@ void main(){
   // seabed cannot be darker than the air in front of it.
   // Same law, same constants as GRID_FRAG's section 5, so the two surfaces
   // converge on one horizon rather than meeting at a seam.
-  float dyB = max(cameraPosition.y - vBedPos.y, 0.0);
-  vec3 VB = normalize(cameraPosition - vBedPos);
+  float dyB = max(u_camStage.y - vBedPos.y, 0.0);
+  vec3 VB = normalize(u_camStage - vBedPos);
   col = mix(col, skyColor(-VB, u_time), fogAmount(sight, dyB, xz, u_time));
   gl_FragColor = vec4(col, 1.0);
 }

@@ -120,7 +120,11 @@ const smoothstep = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 
-export function updateAudio(camera, t, P, camUnder = false) {
+// `camera` is any object with a .position in STAGE coordinates (main.js hands
+// in the eye converted from world space). `rightStage`, when given, is the
+// screen-right direction in the same frame; the pan follows it so a zipper
+// that is screen-left sounds left whatever the world's handedness.
+export function updateAudio(camera, t, P, camUnder = false, rightStage = null) {
   if (!enabled || !built || audioCtx.state !== 'running') return;
 
   const camX = camera.position.x, camZ = camera.position.z;
@@ -231,7 +235,12 @@ export function updateAudio(camera, t, P, camUnder = false) {
     v.gain.gain.setTargetAtTime(gain, audioCtx.currentTime, TIME_CONST);
     v.filter.frequency.setTargetAtTime(freq, audioCtx.currentTime, TIME_CONST);
     if (v.panner.pan) {
-      const pan = Math.max(-1, Math.min(1, dx / 50)) * distAtten;
+      // zipper - eye, projected on screen-right (stage frame); legacy world-x
+      // when no right vector is supplied (instrument/back-compat path).
+      const lateral = rightStage
+        ? dx * rightStage.x + (zCrest - camZ) * rightStage.z
+        : dx;
+      const pan = Math.max(-1, Math.min(1, lateral / 50)) * distAtten;
       v.panner.pan.setTargetAtTime(pan, audioCtx.currentTime, TIME_CONST);
     }
   }

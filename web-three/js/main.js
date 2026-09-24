@@ -126,6 +126,24 @@ const ROLLER_BUILD = (() => {
   return Number.isFinite(v) && v > 0;
 })();
 
+// ---------- the stage -> world embedding (#mirror=0 reverts; 2026-09-24) ----------
+// The stage frame (x = along-shore, z = shore-normal, y = up) is a proper
+// rotation of east/north, so (along, up, shore) is LEFT-handed
+// ((a x up) . s = -1 on every mapped profile). Mounting it directly as
+// three.js (x, y, z) reflected the site: every render was the horizontal
+// mirror of Pleasure Point and the +x right-hander read as a LEFT on screen
+// (research/MIRROR_VERIFICATION_2026-09-23.md). World z = -stage z makes the
+// embedding a rotation. Everything the app computes stays in STAGE
+// coordinates (bake, model, rider, cameras' pos()/target(), clamp floors);
+// the sign is applied at exactly two kinds of place: the root `world` group
+// every mesh hangs under, and the camera, which three.js keeps in world
+// space. toWorld/toStage are those conversions; nothing else may negate z.
+// Boot-only: the group's scale is set here at module load.
+const MIRROR = readHashParams().get('mirror') !== '0';
+const Z_SIGN = MIRROR ? -1 : 1;
+const toWorld = ([x, y, z]) => [x, y, z * Z_SIGN];
+const toStage = toWorld;   // an involution: the same sign flip both ways
+
 const canvas = document.getElementById('gl');
 let renderer;
 try {
@@ -140,6 +158,12 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xdfe3e5);   // horizon grey fallback behind the sky dome
+// Every mesh hangs under this group; see the stage -> world embedding above.
+// three.js flips the front face for a negative-determinant object, so culling
+// stays correct under the mirror.
+const world = new THREE.Group();
+world.scale.z = Z_SIGN;
+scene.add(world);
 
 const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 5000);
 
@@ -212,6 +236,7 @@ const fftSea = createFftSea(THREE, renderer);
 
 const uniforms = {
   u_time:     { value: 0 },
+  u_camStage: { value: new THREE.Vector3() }, // the eye in STAGE coordinates (replaces three.js cameraPosition, which is world)
   u_fft:        { value: 1 },   // FFT wind-sea ripple; #fft=0 reverts to DETAIL_GLSL's value noise
   u_fftGain:    { value: 2.0 }, // FFT slope gain, #fftg= (look knob; 2.0 matched the noise's slope energy by eye)
   u_fftSlope0:  { value: fftSea.slope[0] },   // 211 m tile: (slope.x, slope.z, h)
@@ -461,7 +486,7 @@ const mat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
 const waterMesh = new THREE.Mesh(geo, mat);
-scene.add(waterMesh);
+world.add(waterMesh);
 
 // ---------- adaptive quality (auto-fallback) ----------
 // Reported 2026-08-12: slow on a mid-end Windows box. We cannot profile that
@@ -549,7 +574,7 @@ const sprayMat = new THREE.ShaderMaterial({
 });
 const sprayPoints = new THREE.Mesh(makeSprayGeometry(), sprayMat);
 sprayPoints.frustumCulled = false; // positions are shader-authored from seeds
-scene.add(sprayPoints);
+world.add(sprayPoints);
 
 // ---------- the curtain (default ON; #curtain=0 reverts) ----------
 // The falling sheet joining the bent lip back down to the face — the geometry
@@ -570,7 +595,7 @@ const curtainMat = new THREE.ShaderMaterial({
 const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 12), curtainMat);
 curtainMesh.frustumCulled = false;  // positions are shader-authored
 curtainMesh.visible = true;
-scene.add(curtainMesh);
+world.add(curtainMesh);
 
 // ---------- the splash-up sheet (#roller= builds only) ----------
 // The transported crash's thrown mass: a strip like the curtain, its foot on
@@ -593,7 +618,7 @@ if (ROLLER_BUILD) {
   });
   splashUpMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 10), splashUpMat);
   splashUpMesh.frustumCulled = false;  // positions are shader-authored
-  scene.add(splashUpMesh);
+  world.add(splashUpMesh);
 }
 
 // ---------- the seabed ----------
@@ -617,7 +642,7 @@ const bedMat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,
 });
 const bedMesh = new THREE.Mesh(bedGeo, bedMat);
-scene.add(bedMesh);
+world.add(bedMesh);
 
 // ---------- sky dome ----------
 // Same procedural marine-layer sky the water reflects and fogs toward, drawn
@@ -634,7 +659,7 @@ const skyMat = new THREE.ShaderMaterial({
 });
 const skyMesh = new THREE.Mesh(new THREE.SphereGeometry(4200, 48, 24), skyMat);
 skyMesh.frustumCulled = false;   // it surrounds the camera by construction
-scene.add(skyMesh);
+world.add(skyMesh);
 
 // ---------- the surfer (M3) ----------
 // Procedural low-poly rider behind the S toggle (default off). Pose comes
@@ -642,7 +667,7 @@ scene.add(skyMesh);
 // the same displaced surface the vertex shader draws. The wake foam is the
 // model's own u_surfer path; it lines up because both read surferState.
 const surferGroup = makeSurferMesh();
-scene.add(surferGroup);
+world.add(surferGroup);
 
 // Runtime surface authority for the rider and first-person camera. It evaluates
 // the shipped GPU surfacePos() at exactly three points (P, Px, Pz) in one tiny
@@ -1061,11 +1086,14 @@ const TOUR_CUT_S = 24;
 let tourLeg = -1;   // last leg applied; -1 forces a cut on the first frame
 
 const _worldUp = new THREE.Vector3(0, 1, 0);
+const _audioCam = { position: new THREE.Vector3() };   // the eye in STAGE coordinates, for sound.js
+const _camRight = new THREE.Vector3();                  // screen-right in STAGE coordinates
 const _povDesiredEye = new THREE.Vector3();
 const _povDesiredForward = new THREE.Vector3(1, 0, 0);
 const _povDesiredUp = new THREE.Vector3(0, 1, 0);
 const _povNormalHorizontal = new THREE.Vector3();
 const _povTarget = new THREE.Vector3();
+const _povFwdWorld = new THREE.Vector3();   // povState.forward with the stage -> world sign
 const povState = {
   ready: false,
   eye: new THREE.Vector3(),
@@ -1089,8 +1117,8 @@ function applyCam(i) {
   camIdx = i;
   userOrbited = false;
   const p = CAM_PRESETS[i];
-  camera.position.set(...p.pos());
-  controls.target.set(...p.target());
+  camera.position.set(...toWorld(p.pos()));
+  controls.target.set(...toWorld(p.target()));
   // Follow, POV and Tour own the camera every frame; OrbitControls would fight the
   // track. Leaving them restores free orbiting and the wide field of view.
   const scripted = p.name === 'Follow' || p.name === 'POV' || p.name === 'Tour';
@@ -1110,8 +1138,8 @@ function applyCam(i) {
 function cutToShot(name) {
   userOrbited = false;
   const p = CAM_PRESETS.find((c) => c.name === name);
-  camera.position.set(...p.pos());
-  controls.target.set(...p.target());
+  camera.position.set(...toWorld(p.pos()));
+  controls.target.set(...toWorld(p.target()));
   camera.fov = p.fov || BASE_FOV;
   camera.updateProjectionMatrix();
   camera.lookAt(controls.target);
@@ -1125,12 +1153,14 @@ function updateFollowCam(sWorld) {
   // said Follow was on the real cliff, but this hardcoded an offset off the old
   // tilted break line instead, which put it out to sea once the line moved.
   const [cx, cy, cz] = cliffStation(cliffStationX());
-  camera.position.set(cx, cy, cz);
+  camera.position.set(cx, cy, cz * Z_SIGN);
+  // sWorld is the rider group's position, i.e. STAGE coordinates (the group
+  // lives under `world`); the camera alone is in world space.
   const dist = Math.hypot(sWorld.x - cx, sWorld.z - cz);
   const zoom = Math.min(Math.max(1500 / Math.max(dist, 40), 2.0), 6.5);
   camera.fov = 2 * Math.atan(1 / zoom) * 180 / Math.PI;
   camera.updateProjectionMatrix();
-  controls.target.set(sWorld.x, 2.0, sWorld.z);   // web/ aims at (x, 2, z)
+  controls.target.set(sWorld.x, 2.0, sWorld.z * Z_SIGN);   // web/ aims at (x, 2, z)
   camera.lookAt(controls.target);
 }
 
@@ -1174,13 +1204,15 @@ function updatePovCam(sWorld, ride, surface, simDt) {
   povState.surface.copy(surface.position);
   povState.sourceX = ride.x;
   povState.sourceZ = ride.z;
-  camera.position.copy(povState.eye);
-  camera.up.copy(povState.up);
+  // povState is kept in STAGE coordinates; the camera is the world-space thing.
+  camera.position.set(povState.eye.x, povState.eye.y, povState.eye.z * Z_SIGN);
+  camera.up.set(povState.up.x, povState.up.y, povState.up.z * Z_SIGN);
   camera.fov = POV_FOV_DEG;
   camera.near = POV_NEAR_M;
   camera.updateProjectionMatrix();
-  _povTarget.copy(camera.position).addScaledVector(povState.forward, 24)
-    .addScaledVector(povState.up, 0.25);
+  _povFwdWorld.set(povState.forward.x, povState.forward.y, povState.forward.z * Z_SIGN);
+  _povTarget.copy(camera.position).addScaledVector(_povFwdWorld, 24)
+    .addScaledVector(camera.up, 0.25);
   controls.target.copy(_povTarget);
   camera.lookAt(_povTarget);
 }
@@ -2361,8 +2393,8 @@ function frame(now) {
     const shot = touring ? TOUR_SHOTS[tourLeg] : CAM_PRESETS[camIdx].name;
     if (AIM_SHOTS.has(shot)) {
       const p = CAM_PRESETS.find((c) => c.name === shot);
-      camera.position.set(...p.pos());
-      controls.target.set(...p.target());
+      camera.position.set(...toWorld(p.pos()));
+      controls.target.set(...toWorld(p.target()));
       // Tour skips controls.update() below, so orient explicitly there.
       if (touring) camera.lookAt(controls.target);
     }
@@ -2392,7 +2424,7 @@ function frame(now) {
       // null) the "floor" was -999 m and the eye fell a kilometre through the
       // world and stayed there (measured 2026-08-21: settled 269 m under the
       // drawn ground, 982 m under a held pan, and it never came back).
-      const measured = cameraFloorY(state.geoSpot, v.x, v.z, state.bedShape || 0,
+      const measured = cameraFloorY(state.geoSpot, v.x, v.z * Z_SIGN, state.bedShape || 0,
                                     uniforms.u_waterLevel.value);
       // No bed bound means no bed is DRAWN either (u_depthMix 0 hides the
       // seabed mesh and the water grid's land path), so there is nothing to
@@ -2420,12 +2452,21 @@ function frame(now) {
   // existing cheap JS camera-height read.
   const camSurfaceY = pov && lastRiderSurface?.valid
     ? lastRiderSurface.position.y
-    : oceanHJS(camera.position.x, camera.position.z, simTime, modelP());
+    : oceanHJS(camera.position.x, camera.position.z * Z_SIGN, simTime, modelP());
   uniforms.u_camUnder.value = camera.position.y < camSurfaceY ? 1 : 0;
-  skyMesh.position.copy(camera.position);   // keep the dome centered on the eye
-  
+  // The dome sits under `world`, so its position is the eye in STAGE
+  // coordinates; the same vector is the fragment shaders' eye (u_camStage).
+  skyMesh.position.set(camera.position.x, camera.position.y, camera.position.z * Z_SIGN);
+  uniforms.u_camStage.value.copy(skyMesh.position);
+
   if (!state.paused) {
-    updateAudio(camera, simTime, modelP(), uniforms.u_camUnder.value > 0.5);
+    // The audio solves in stage coordinates; give it the eye there, and the
+    // screen-right direction in the same frame so the pan follows the picture
+    // rather than a fixed world axis.
+    _audioCam.position.copy(skyMesh.position);
+    _camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    _camRight.z *= Z_SIGN;
+    updateAudio(_audioCam, simTime, modelP(), uniforms.u_camUnder.value > 0.5, _camRight);
   }
   
   // the FFT sea is a pure function of sim time, so it advances only when the
@@ -2656,6 +2697,9 @@ function applyHashParams() {
   if (h.get('fpf') === '0')   uniforms.u_fpf.value = 0;
   if (h.has('churn')) { const g = Number.parseFloat(h.get('churn')); if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_churn.value = g; }
   if (h.get('fft') === '0')   uniforms.u_fft.value = 0;
+  // #mirror=0 is boot-only (the world group's scale is set at module load);
+  // re-read here only so evidence can say which arm this boot is.
+  state.mirror = h.get('mirror') === '0' ? 0 : 1;
   // head hump experiment (2026-09-10): a foam-covered rise at the zipper head,
   // default OFF pending the cliff verdict; #hump=1 is the nominal size
   if (h.has('moundh')) { const g = Number.parseFloat(h.get('moundh')); if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_moundH.value = g; }
@@ -2895,7 +2939,11 @@ window.__pointbreak = {
   // instruments: the FFT wind sea (fft-sea.js) and a free-camera setter so a
   // headless capture can stand anywhere without a CAM_PRESETS entry
   fftSea,
-  setView: (pos, target) => { camera.position.set(...pos); controls.target.set(...target); controls.update(); },
+  // setView takes STAGE coordinates, like every pos()/target() closure.
+  setView: (pos, target) => { camera.position.set(...toWorld(pos)); controls.target.set(...toWorld(target)); controls.update(); },
+  // The stage -> world sign (see MIRROR above). `camera` below is WORLD space;
+  // instruments that want the eye in stage coordinates use toStage.
+  mirror: MIRROR, zSign: Z_SIGN, toWorld, toStage,
   camera, controls, state, surferGroup, sprayPoints, uniforms,
   sim: () => simTime,
   setSim: (t) => {
@@ -3153,7 +3201,7 @@ window.__pointbreak = {
     const fwd = camera.getWorldDirection(new THREE.Vector3());
     let errDeg = null;
     if (raw) {
-      const to = new THREE.Vector3(raw.x, 0, raw.z).sub(camera.position).normalize();
+      const to = new THREE.Vector3(raw.x, 0, raw.z * Z_SIGN).sub(camera.position).normalize();
       errDeg = Math.acos(Math.min(Math.max(fwd.dot(to), -1), 1)) * 180 / Math.PI;
     }
     return {
@@ -3165,7 +3213,8 @@ window.__pointbreak = {
       coverAim: bakedCoverAim(),
       coverSmoothed: aimState.ok ? { x: aimState.cx, z: aimState.cz } : null,
       cam: CAM_PRESETS[camIdx].name,
-      camPos: camera.position.toArray(),
+      camPos: camera.position.toArray(),          // world
+      camPosStage: toStage(camera.position.toArray()),
       target: controls.target.toArray(),
     };
   },

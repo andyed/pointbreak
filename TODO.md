@@ -35,14 +35,16 @@ quantities the data now contradicts:
   shallow 38th → Shark's; NCEI ~0.8 m too deep at Sewers. The Hook's line
   breaks in 2.78 m of interpolant where the swath reads 5.09 m.
   `OFR_2007_1270_EVIDENCE_2026-09-23.md`. Data request still unsent.
-- **Mirror (confirmed).** Every `#cam=` render is the horizontal mirror of
-  the site: (along, up, shore) is left-handed and three.js embeds it as a
-  reflection, so the right-hander drawn in stage coordinates shows as a
-  left-hander on screen (land bottom-left where the photograph has it
-  bottom-right; lip front moves screen-right from the cliff). Fix is world
-  z = −stage z at the stage → world boundary in `main.js`, plus `GRID_FRAG`'s
-  bed sample and the audio pan; every fixture re-captures.
-  `MIRROR_VERIFICATION_2026-09-23.md`.
+- **Mirror — FIXED 2026-09-24.** Every `#cam=` render was the horizontal
+  mirror of the site: (along, up, shore) is left-handed and three.js embedded
+  it as a reflection, so the right-hander drawn in stage coordinates showed
+  as a left-hander. Now every mesh hangs under a root group with
+  `scale.z = −1` and the camera goes through `toWorld`; `#mirror=0` is the
+  pixel-identical revert (0 differing pixels vs 590edaa). Land is
+  bottom-right at `#cam=lookout` like the photograph and the head peels
+  image-left from the cliff like the real cam. Sun now lights from the other
+  side (authored in stage space) — look call. Fixtures captured before this
+  date are mirror images. `MIRROR_VERIFICATION_2026-09-23.md` §7.
 - **Side findings.** Camera submersion and the audio zipper still read the
   synthetic twin / authored contour (FIDELITY_AUDIT T7).
 
