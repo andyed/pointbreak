@@ -1,0 +1,127 @@
+{
+ "question": "How often is the 'condition, not character' band (188-216 deg, MODEL.md 2.6.5) violated when there is surf (Hs > 1 m)?",
+ "mop_shore_normal_deg_true": 136.46,
+ "shore_normal_note": "metaShoreNormal in both SC116 files and column 8 of the transect definitions is 136.46 deg, not the '~200 deg' CDIP_LIVE_DATA.md:95 quotes and MODEL.md 2.6.5 flags as unverified. 136 deg sits inside the 115-169 deg the model's own estimators land (2.6.3). Median Dp 194 deg is therefore +58 deg off MOP's normal at SC116, a near-grazing incidence, which is consistent with 2.6.5's corrected +42..+70 deg.",
+ "hindcast_2000_2024": {
+  "all": {
+   "hours": 33039,
+   "outside_188_216_pct": 8.43,
+   "below_188_pct": 5.7,
+   "above_216_pct": 2.73,
+   "outside_187_221_pct": 4.56,
+   "dp_p5": 187.6,
+   "dp_p50": 204.5,
+   "dp_p95": 213.4,
+   "incidence_p50_vs_mop_normal_deg": 68.0
+  },
+  "DJF": {
+   "hours": 19587,
+   "outside_188_216_pct": 8.62,
+   "below_188_pct": 6.14,
+   "above_216_pct": 2.48,
+   "outside_187_221_pct": 4.92,
+   "dp_p5": 187.4,
+   "dp_p50": 205.1,
+   "dp_p95": 212.5,
+   "incidence_p50_vs_mop_normal_deg": 68.6
+  },
+  "MAM": {
+   "hours": 7872,
+   "outside_188_216_pct": 8.41,
+   "below_188_pct": 4.27,
+   "above_216_pct": 4.14,
+   "outside_187_221_pct": 3.66,
+   "dp_p5": 188.4,
+   "dp_p50": 203.2,
+   "dp_p95": 215.4,
+   "incidence_p50_vs_mop_normal_deg": 66.8
+  },
+  "JJA": {
+   "hours": 552,
+   "outside_188_216_pct": 3.62,
+   "below_188_pct": 2.36,
+   "above_216_pct": 1.27,
+   "outside_187_221_pct": 0.54,
+   "dp_p5": 188.5,
+   "dp_p50": 192.1,
+   "dp_p95": 209.9,
+   "incidence_p50_vs_mop_normal_deg": 55.6
+  },
+  "SON": {
+   "hours": 5028,
+   "outside_188_216_pct": 8.23,
+   "below_188_pct": 6.58,
+   "above_216_pct": 1.65,
+   "outside_187_221_pct": 5.05,
+   "dp_p5": 187.3,
+   "dp_p50": 204.8,
+   "dp_p95": 212.7,
+   "incidence_p50_vs_mop_normal_deg": 68.4
+  },
+  "all_hours_any_hs": {
+   "hours": 218975,
+   "outside_188_216_pct": 7.07
+  }
+ },
+ "nowcast_2025_04_to_2026_09": {
+  "all": {
+   "hours": 1159,
+   "outside_188_216_pct": 10.79,
+   "below_188_pct": 2.76,
+   "above_216_pct": 8.02,
+   "outside_187_221_pct": 1.81,
+   "dp_p5": 188.9,
+   "dp_p50": 203.3,
+   "dp_p95": 217.3,
+   "incidence_p50_vs_mop_normal_deg": 66.9
+  },
+  "DJF": {
+   "hours": 513,
+   "outside_188_216_pct": 13.65,
+   "below_188_pct": 1.95,
+   "above_216_pct": 11.7,
+   "outside_187_221_pct": 1.75,
+   "dp_p5": 190.6,
+   "dp_p50": 208.3,
+   "dp_p95": 217.7,
+   "incidence_p50_vs_mop_normal_deg": 71.9
+  },
+  "MAM": {
+   "hours": 157,
+   "outside_188_216_pct": 14.01,
+   "below_188_pct": 0.0,
+   "above_216_pct": 14.01,
+   "outside_187_221_pct": 1.91,
+   "dp_p5": 190.3,
+   "dp_p50": 202.7,
+   "dp_p95": 219.0,
+   "incidence_p50_vs_mop_normal_deg": 66.3
+  },
+  "JJA": {
+   "hours": 246,
+   "outside_188_216_pct": 4.88,
+   "below_188_pct": 4.88,
+   "above_216_pct": 0.0,
+   "outside_187_221_pct": 2.03,
+   "dp_p5": 188.3,
+   "dp_p50": 191.3,
+   "dp_p95": 195.6,
+   "incidence_p50_vs_mop_normal_deg": 54.9
+  },
+  "SON": {
+   "hours": 243,
+   "outside_188_216_pct": 8.64,
+   "below_188_pct": 4.12,
+   "above_216_pct": 4.53,
+   "outside_187_221_pct": 1.65,
+   "dp_p5": 188.7,
+   "dp_p50": 201.4,
+   "dp_p95": 215.7,
+   "incidence_p50_vs_mop_normal_deg": 65.0
+  },
+  "all_hours_any_hs": {
+   "hours": 12988,
+   "outside_188_216_pct": 8.77
+  }
+ }
+}

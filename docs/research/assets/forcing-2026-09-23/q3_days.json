@@ -1,0 +1,364 @@
+{
+ "question": "What SC116 record and 9413450 tide correspond to the two field clips, and what hash reproduces each?",
+ "nowcast_coverage": [
+  "2025-03-31T23:30:00Z",
+  "2026-09-24T03:30:00Z"
+ ],
+ "hindcast_coverage": [
+  "1999-12-31T23:30:00Z",
+  "2025-03-31T23:30:00Z"
+ ],
+ "coverage_note": "SC116_hindcast.nc still ends 2025-03-31T23:30Z; SC116_nowcast.nc now starts 2025-04-01T00:00Z and runs to the present, so both 2026 days are in the nowcast and nothing has rolled out of it. No newer hindcast file is published for SC116 (catalog checked 2026-09-23).",
+ "datums_9413450_m_station_datum": {
+  "MSL": 1.893,
+  "MLLW": 1.031,
+  "MHHW": 2.657,
+  "NAVD88": 0.988,
+  "MHW": 2.443,
+  "MLW": 1.364,
+  "MTL": 1.904
+ },
+ "days": [
+  {
+   "day": "2026-08-15",
+   "note": "docs/research/PLEASURE_POINT_CAPTURE_2026-08-15.md (afternoon Surfline cam clip, 15:28 PDT; page reported 3 ft at 16 s SSW 202 deg, tide 4.0 ft after a 5.2 ft high at 13:22)",
+   "when_local": "2026-08-15 15:28 PDT",
+   "when_utc": "2026-08-15T22:28:00Z",
+   "sc116_product": "SC116_nowcast.nc (buoy-forced; waveModelInputSource 071p1-222p1-157p1-029p1-642p1:157p1-642p1-156p1-626p1 at both records)",
+   "sc116_record": {
+    "index": 12046,
+    "utc": "2026-08-15T22:00Z",
+    "hs_m": 0.778,
+    "tp_s": 16.67,
+    "ta_s": 13.5,
+    "dp_deg": 187.5,
+    "flag": 1,
+    "is_target": true
+   },
+   "sc116_neighbours": [
+    {
+     "index": 12043,
+     "utc": "2026-08-15T19:00Z",
+     "hs_m": 0.874,
+     "tp_s": 16.67,
+     "ta_s": 14.06,
+     "dp_deg": 189.2,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12044,
+     "utc": "2026-08-15T20:00Z",
+     "hs_m": 0.833,
+     "tp_s": 16.67,
+     "ta_s": 13.89,
+     "dp_deg": 188.3,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12045,
+     "utc": "2026-08-15T21:00Z",
+     "hs_m": 0.785,
+     "tp_s": 16.67,
+     "ta_s": 13.6,
+     "dp_deg": 187.6,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12046,
+     "utc": "2026-08-15T22:00Z",
+     "hs_m": 0.778,
+     "tp_s": 16.67,
+     "ta_s": 13.5,
+     "dp_deg": 187.5,
+     "flag": 1,
+     "is_target": true
+    },
+    {
+     "index": 12047,
+     "utc": "2026-08-15T23:00Z",
+     "hs_m": 0.776,
+     "tp_s": 16.67,
+     "ta_s": 13.45,
+     "dp_deg": 187.7,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12048,
+     "utc": "2026-08-16T00:00Z",
+     "hs_m": 0.791,
+     "tp_s": 16.67,
+     "ta_s": 13.47,
+     "dp_deg": 188.1,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12049,
+     "utc": "2026-08-16T01:00Z",
+     "hs_m": 0.793,
+     "tp_s": 16.67,
+     "ta_s": 13.53,
+     "dp_deg": 188.8,
+     "flag": 1,
+     "is_target": false
+    }
+   ],
+   "reported_in_note": {
+    "hs_ft": 3,
+    "tp_s": 16,
+    "dp_deg": 202,
+    "tide_ft_mllw": 4.0
+   },
+   "tide_9413450_msl_m": {
+    "predicted": 0.373,
+    "observed": 0.5,
+    "observed_quality": null,
+    "residual_obs_minus_pred": 0.127,
+    "predicted_mllw_ft": 4.05,
+    "observed_mllw_ft": 4.47
+   },
+   "hilo_9413450_mllw_ft": [
+    {
+     "t": "2026-08-15 00:20",
+     "v": "5.397",
+     "type": "H"
+    },
+    {
+     "t": "2026-08-15 06:57",
+     "v": "0.184",
+     "type": "L"
+    },
+    {
+     "t": "2026-08-15 13:24",
+     "v": "5.035",
+     "type": "H"
+    },
+    {
+     "t": "2026-08-15 19:23",
+     "v": "1.44",
+     "type": "L"
+    }
+   ],
+   "hilo_9413745_mllw_ft": [
+    {
+     "t": "2026-08-15 00:14",
+     "v": "5.235",
+     "type": "H"
+    },
+    {
+     "t": "2026-08-15 06:46",
+     "v": "0.182",
+     "type": "L"
+    },
+    {
+     "t": "2026-08-15 13:18",
+     "v": "4.884",
+     "type": "H"
+    },
+    {
+     "t": "2026-08-15 19:12",
+     "v": "1.426",
+     "type": "L"
+    }
+   ],
+   "period_carrier": {
+    "day_key": "overhead",
+    "T_in_app": 16,
+    "tp_nowcast": 16.67,
+    "period_evidence_s": 16.25,
+    "period_evidence": "measured in the clip (PLEASURE_POINT_CAPTURE_2026-08-15 'What the afternoon recording establishes')",
+    "dT_app_minus_evidence": -0.25,
+    "ks_at_T_app": 1.0719,
+    "ks_at_tp": 1.089,
+    "alternate_day": "big",
+    "alternate_T": 17
+   },
+   "hash_as_shipped_live_convention": "#preset=secondpeak&day=overhead&h0=0.778&tide=+0.50",
+   "hash_deshoaled": "#preset=secondpeak&day=overhead&h0=0.726&tide=+0.50",
+   "hash_as_shipped_predicted_tide": "#preset=secondpeak&day=overhead&h0=0.778&tide=+0.37",
+   "hash_deshoaled_predicted_tide": "#preset=secondpeak&day=overhead&h0=0.726&tide=+0.37",
+   "hash_alternate_period_as_shipped": "#preset=secondpeak&day=big&h0=0.778&tide=+0.50",
+   "hash_alternate_period_deshoaled": "#preset=secondpeak&day=big&h0=0.709&tide=+0.50",
+   "hash_notes": [
+    "cam= is deliberately absent: the Lookout / cam-pose tracks own it.",
+    "day=overhead also sets chop/dF/fog for that day and a tide of -0.60 m, which the explicit tide= overrides (main.js reads #tide= after #day=).",
+    "h0= is clamped to [0.4, 3.0] and NOT snapped to 0.1 m (main.js applyHashParams), so three decimals survive.",
+    "tide is the Monterey OBSERVED water level on the MSL axis (the model's axis); the predicted-tide variants are for cross-reference with the pre-registration tables."
+   ]
+  },
+  {
+   "day": "2026-09-05",
+   "note": "docs/research/FIELD_CAPTURE_2026-09-05.md (iPhone/Osmo at Second Peak from the cliff, 11:12 PDT; pre-registered 08:00 PDT record 0.828 m / 16.7 s / 189 deg)",
+   "when_local": "2026-09-05 11:12 PDT",
+   "when_utc": "2026-09-05T18:12:00Z",
+   "sc116_product": "SC116_nowcast.nc (buoy-forced; waveModelInputSource 071p1-222p1-157p1-029p1-642p1:157p1-642p1-156p1-626p1 at both records)",
+   "sc116_record": {
+    "index": 12546,
+    "utc": "2026-09-05T18:00Z",
+    "hs_m": 0.91,
+    "tp_s": 16.67,
+    "ta_s": 12.94,
+    "dp_deg": 189.4,
+    "flag": 1,
+    "is_target": true
+   },
+   "sc116_neighbours": [
+    {
+     "index": 12543,
+     "utc": "2026-09-05T15:00Z",
+     "hs_m": 0.838,
+     "tp_s": 16.67,
+     "ta_s": 12.29,
+     "dp_deg": 188.9,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12544,
+     "utc": "2026-09-05T16:00Z",
+     "hs_m": 0.876,
+     "tp_s": 16.67,
+     "ta_s": 12.59,
+     "dp_deg": 188.7,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12545,
+     "utc": "2026-09-05T17:00Z",
+     "hs_m": 0.899,
+     "tp_s": 16.67,
+     "ta_s": 12.78,
+     "dp_deg": 188.9,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12546,
+     "utc": "2026-09-05T18:00Z",
+     "hs_m": 0.91,
+     "tp_s": 16.67,
+     "ta_s": 12.94,
+     "dp_deg": 189.4,
+     "flag": 1,
+     "is_target": true
+    },
+    {
+     "index": 12547,
+     "utc": "2026-09-05T19:00Z",
+     "hs_m": 0.928,
+     "tp_s": 16.67,
+     "ta_s": 13.13,
+     "dp_deg": 190.1,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12548,
+     "utc": "2026-09-05T20:00Z",
+     "hs_m": 0.923,
+     "tp_s": 16.67,
+     "ta_s": 13.07,
+     "dp_deg": 189.9,
+     "flag": 1,
+     "is_target": false
+    },
+    {
+     "index": 12549,
+     "utc": "2026-09-05T21:00Z",
+     "hs_m": 0.914,
+     "tp_s": 16.67,
+     "ta_s": 12.92,
+     "dp_deg": 190.3,
+     "flag": 1,
+     "is_target": false
+    }
+   ],
+   "reported_in_note": {
+    "hs_m": 0.902,
+    "tp_s": 16.67,
+    "dp_deg": 188.5
+   },
+   "tide_9413450_msl_m": {
+    "predicted": 0.14,
+    "observed": 0.316,
+    "observed_quality": "p",
+    "residual_obs_minus_pred": 0.176,
+    "predicted_mllw_ft": 3.29,
+    "observed_mllw_ft": 3.86
+   },
+   "hilo_9413450_mllw_ft": [
+    {
+     "t": "2026-09-05 00:34",
+     "v": "0.067",
+     "type": "L"
+    },
+    {
+     "t": "2026-09-05 08:02",
+     "v": "3.574",
+     "type": "H"
+    },
+    {
+     "t": "2026-09-05 11:08",
+     "v": "3.286",
+     "type": "L"
+    },
+    {
+     "t": "2026-09-05 17:39",
+     "v": "5.777",
+     "type": "H"
+    }
+   ],
+   "hilo_9413745_mllw_ft": [
+    {
+     "t": "2026-09-05 00:23",
+     "v": "0.066",
+     "type": "L"
+    },
+    {
+     "t": "2026-09-05 07:56",
+     "v": "3.467",
+     "type": "H"
+    },
+    {
+     "t": "2026-09-05 10:57",
+     "v": "3.253",
+     "type": "L"
+    },
+    {
+     "t": "2026-09-05 17:33",
+     "v": "5.604",
+     "type": "H"
+    }
+   ],
+   "period_carrier": {
+    "day_key": "big",
+    "T_in_app": 17,
+    "tp_nowcast": 16.67,
+    "period_evidence_s": 16.67,
+    "period_evidence": "none in-clip yet; the nowcast Tp band centre is the only period evidence",
+    "dT_app_minus_evidence": 0.33,
+    "ks_at_T_app": 1.0975,
+    "ks_at_tp": 1.089,
+    "alternate_day": "overhead",
+    "alternate_T": 16
+   },
+   "hash_as_shipped_live_convention": "#preset=secondpeak&day=big&h0=0.910&tide=+0.32",
+   "hash_deshoaled": "#preset=secondpeak&day=big&h0=0.829&tide=+0.32",
+   "hash_as_shipped_predicted_tide": "#preset=secondpeak&day=big&h0=0.910&tide=+0.14",
+   "hash_deshoaled_predicted_tide": "#preset=secondpeak&day=big&h0=0.829&tide=+0.14",
+   "hash_alternate_period_as_shipped": "#preset=secondpeak&day=overhead&h0=0.910&tide=+0.32",
+   "hash_alternate_period_deshoaled": "#preset=secondpeak&day=overhead&h0=0.849&tide=+0.32",
+   "hash_notes": [
+    "cam= is deliberately absent: the Lookout / cam-pose tracks own it.",
+    "day=big also sets chop/dF/fog for that day and a tide of -0.20 m, which the explicit tide= overrides (main.js reads #tide= after #day=).",
+    "h0= is clamped to [0.4, 3.0] and NOT snapped to 0.1 m (main.js applyHashParams), so three decimals survive.",
+    "tide is the Monterey OBSERVED water level on the MSL axis (the model's axis); the predicted-tide variants are for cross-reference with the pre-registration tables."
+   ]
+  }
+ ]
+}

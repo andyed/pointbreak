@@ -1,0 +1,73 @@
+{
+ "question": "Every tide constant against CO-OPS 9413450, and whether Santa Cruz 9413745 differs enough to matter.",
+ "epoch": {
+  "tidal_datum_epoch": "1983-2001",
+  "accepted": "Oct 07 2011",
+  "note": "CO-OPS is migrating to the 2002-2020 NTDE; the API still returns the 1983-2001 epoch as accepted for 9413450 on 2026-09-23. A new epoch moves MSL/MLLW/MHHW by the local sea-level trend over ~19 years, order 0.02-0.04 m at Monterey."
+ },
+ "chain": [
+  {
+   "constant": "MSL - NAVD88 (bed.js MSL_ABOVE_NAVD88)",
+   "model": 0.905,
+   "coops": 0.905,
+   "basis": "9413450 datums.json: MSL 1.893, NAVD88 0.988 (station datum, m)",
+   "delta_m": 0.0
+  },
+  {
+   "constant": "MLLW about MSL (TIDE_RANGE[0])",
+   "model": -0.862,
+   "coops": -0.862,
+   "basis": "MLLW 1.031 - MSL 1.893",
+   "delta_m": 0.0
+  },
+  {
+   "constant": "MHHW about MSL (TIDE_RANGE[1])",
+   "model": 0.764,
+   "coops": 0.764,
+   "basis": "MHHW 2.657 - MSL 1.893",
+   "delta_m": 0.0
+  },
+  {
+   "constant": "reef ceiling -0.5 m NAVD88, on the MSL axis",
+   "model": -1.405,
+   "coops": -1.405,
+   "basis": "authored bed.js REEF_CEIL_EL; = -0.543 m above MLLW",
+   "delta_m": 0.0
+  },
+  {
+   "constant": "observed extremes about MSL (not accepted by the model)",
+   "model": null,
+   "coops": [
+    -1.592,
+    1.539
+   ],
+   "basis": "min 0.301 (20090111), max 3.432 (19830127)"
+  },
+  {
+   "constant": "HAT / LAT about MSL",
+   "model": null,
+   "coops": [
+    -1.454,
+    1.292
+   ],
+   "basis": "LAT 0.439 (20080604), HAT 3.185 (20251205)"
+  }
+ ],
+ "santa_cruz_9413745": {
+  "type": "S",
+  "reference_id": "9413450",
+  "lat": 36.9583,
+  "lng": -122.017,
+  "datums_published": false,
+  "prediction_offsets": {
+   "heightOffsetHighTide": 0.97,
+   "heightOffsetLowTide": 0.99,
+   "timeOffsetHighTide": -6,
+   "timeOffsetLowTide": -11,
+   "heightAdjustedType": "R"
+  },
+  "reading": "subordinate station: predictions are Monterey's scaled by 0.97 (highs) / 0.99 (lows) on MLLW and shifted -6 / -11 min. No NAVD88 tie is published, so the DEM cannot be hung on Santa Cruz directly; Monterey is the only datum path.",
+  "same_hour_effect_m": "at a mid-tide +0.4 m MSL (1.26 m MLLW) the height ratio moves the level by -0.01 to -0.04 m; an 8 min lead on a tide falling at 0.26 m/h (2026-08-15 15:28) is -0.03 m. Both below the non-tidal residual measured on the field days (+0.13 and +0.18 m, Q3)."
+ },
+ "unresolved": "MSL-NAVD88 at Pleasure Point itself (vs Monterey, 40 km) was not resolved: the VDatum REST API returned errorCode 412 on four attempts (2026-09-23). Expected magnitude is a few cm (geoid slope + local MSL); it is a residual, not a defect, until VDatum answers."
+}
