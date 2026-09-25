@@ -161,3 +161,13 @@ qa/section-gap-foam-2026-09-24/*
 !qa/crash-2026-09-24/
 qa/crash-2026-09-24/*
 !qa/crash-2026-09-24/manifest.json
+
+# Second Peak field day (docs/research/SECONDPEAK_FIELDDAY_2026-09-24.md): the
+# bake JSON, the capture manifest with the projected line, the 25 matched
+# frames (JPG q80, ~1 MB) and the contact sheet are the evidence; anything else
+# the rigs drop there regenerates from scripts/measure_secondpeak_fieldday.mjs
+# and scripts/capture_secondpeak_fieldday.mjs.
+!qa/secondpeak-fieldday-2026-09-24/
+qa/secondpeak-fieldday-2026-09-24/*
+!qa/secondpeak-fieldday-2026-09-24/*.json
+!qa/secondpeak-fieldday-2026-09-24/*.jpg
