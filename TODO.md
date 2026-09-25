@@ -96,6 +96,15 @@ Open, in order:
       plumes → bores in 1.7 s on the shared clock while the head spills.
       Limits: flank 12–16 m vs the footage's 1–2 H_f (50 m lattice);
       `tube.js` still reads `u_xi` (one-line follow-up).
+- [x] **Mesh follows profile v2** (L, `TUBE_V2_2026-09-24.md`): landing seam on
+      `bpReach` (landRatio = GPU bpReach/hC to 1e-4), back seam 0.000 m for the
+      whole life, face leg on `bpFaceClosure`, receiver plunge-scaled under
+      TUBE (via `plungeAt(x)`), carve extent on bpReach; probe_tube repaired.
+      52 s Sewers head: a compact hook half the old blade with an open lens
+      under the root. Residuals: plume contact takes bpReach in physical metres
+      (one-line `*VIS`, I1's block); foot 2–3 m above the profile's y = 0 (§6
+      `L = (sL, yL)` contract); `#tube=1` alone still a triangle — judge the
+      classic arm only.
 - [x] **Ribbon material** (H, `TUBE_LOOK_2026-09-24.md`, `#tubelook`, default
       aerated, `0` = glass): white scalloped lip edge, translucent green root,
       streaked grey-white curtain. From the jury camera a sub-pixel shading
