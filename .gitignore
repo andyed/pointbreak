@@ -147,3 +147,10 @@ qa/tube-2026-09-24/*
 !qa/tube-2026-09-24/manifest.json
 !qa/tube-2026-09-24/parity.json
 !qa/tube-2026-09-24/*.jpg
+
+# Section-gap paint verification (docs/research/SECTION_GAP_FOAM_2026-09-24.md):
+# the per-column GPU probe JSON (nine cells, plus the Sewers sim 42 base vs
+# #gap=0 pair) is the evidence; frames and crops live under docs/research/assets.
+!qa/section-gap-foam-2026-09-24/
+qa/section-gap-foam-2026-09-24/*
+!qa/section-gap-foam-2026-09-24/*.json
