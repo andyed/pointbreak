@@ -1,0 +1,1037 @@
+{
+  "baseUrl": "http://127.0.0.1:8145",
+  "viewport": [
+    1000,
+    625
+  ],
+  "sims": [
+    50,
+    52,
+    54,
+    56
+  ],
+  "jpegQuality": 80,
+  "frames": [
+    {
+      "rig": "sewers_close",
+      "arm": "default",
+      "sim": 50,
+      "file": "sewers_close_default_50.jpg",
+      "bytes": 26806,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "default",
+      "sim": 52,
+      "file": "sewers_close_default_52.jpg",
+      "bytes": 25292,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "default",
+      "sim": 54,
+      "file": "sewers_close_default_54.jpg",
+      "bytes": 28772,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "default",
+      "sim": 56,
+      "file": "sewers_close_default_56.jpg",
+      "bytes": 25344,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "bore",
+      "sim": 50,
+      "file": "sewers_close_bore_50.jpg",
+      "bytes": 28477,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "bore",
+      "sim": 52,
+      "file": "sewers_close_bore_52.jpg",
+      "bytes": 26694,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "bore",
+      "sim": 54,
+      "file": "sewers_close_bore_54.jpg",
+      "bytes": 29392,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "bore",
+      "sim": 56,
+      "file": "sewers_close_bore_56.jpg",
+      "bytes": 25377,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "boretube",
+      "sim": 50,
+      "file": "sewers_close_boretube_50.jpg",
+      "bytes": 27385,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "boretube",
+      "sim": 52,
+      "file": "sewers_close_boretube_52.jpg",
+      "bytes": 28200,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "boretube",
+      "sim": 54,
+      "file": "sewers_close_boretube_54.jpg",
+      "bytes": 28052,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "boretube",
+      "sim": 56,
+      "file": "sewers_close_boretube_56.jpg",
+      "bytes": 24214,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "default",
+      "sim": 50,
+      "file": "secondpeak_lookout_default_50.jpg",
+      "bytes": 38467,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "default",
+      "sim": 52,
+      "file": "secondpeak_lookout_default_52.jpg",
+      "bytes": 40404,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "default",
+      "sim": 54,
+      "file": "secondpeak_lookout_default_54.jpg",
+      "bytes": 43059,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "default",
+      "sim": 56,
+      "file": "secondpeak_lookout_default_56.jpg",
+      "bytes": 42576,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "bore",
+      "sim": 50,
+      "file": "secondpeak_lookout_bore_50.jpg",
+      "bytes": 38939,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "bore",
+      "sim": 52,
+      "file": "secondpeak_lookout_bore_52.jpg",
+      "bytes": 39092,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "bore",
+      "sim": 54,
+      "file": "secondpeak_lookout_bore_54.jpg",
+      "bytes": 41784,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "bore",
+      "sim": 56,
+      "file": "secondpeak_lookout_bore_56.jpg",
+      "bytes": 42924,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "boretube",
+      "sim": 50,
+      "file": "secondpeak_lookout_boretube_50.jpg",
+      "bytes": 38918,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": true,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "boretube",
+      "sim": 52,
+      "file": "secondpeak_lookout_boretube_52.jpg",
+      "bytes": 39069,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": true,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "boretube",
+      "sim": 54,
+      "file": "secondpeak_lookout_boretube_54.jpg",
+      "bytes": 41789,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": true,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_lookout",
+      "arm": "boretube",
+      "sim": 56,
+      "file": "secondpeak_lookout_boretube_56.jpg",
+      "bytes": 42898,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": true,
+      "camera": [
+        474.164,
+        13.206,
+        -56.929
+      ],
+      "target": [
+        365.099,
+        0,
+        22.503
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 17,
+        "xi": 0.65,
+        "tide": 0.732
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "default",
+      "sim": 50,
+      "file": "secondpeak_cliff_default_50.jpg",
+      "bytes": 35384,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        54.567,
+        2,
+        73.212
+      ],
+      "state": {
+        "H0": 1.5,
+        "T": 14,
+        "xi": 0.65
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "default",
+      "sim": 52,
+      "file": "secondpeak_cliff_default_52.jpg",
+      "bytes": 34840,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        54.567,
+        2,
+        73.212
+      ],
+      "state": {
+        "H0": 1.5,
+        "T": 14,
+        "xi": 0.65
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "default",
+      "sim": 54,
+      "file": "secondpeak_cliff_default_54.jpg",
+      "bytes": 32994,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        54.567,
+        2,
+        73.212
+      ],
+      "state": {
+        "H0": 1.5,
+        "T": 14,
+        "xi": 0.65
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "default",
+      "sim": 56,
+      "file": "secondpeak_cliff_default_56.jpg",
+      "bytes": 31547,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        54.567,
+        2,
+        73.212
+      ],
+      "state": {
+        "H0": 1.5,
+        "T": 14,
+        "xi": 0.65
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "bore",
+      "sim": 50,
+      "file": "secondpeak_cliff_bore_50.jpg",
+      "bytes": 39663,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        54.567,
+        2,
+        73.212
+      ],
+      "state": {
+        "H0": 1.5,
+        "T": 14,
+        "xi": 0.65
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "bore",
+      "sim": 52,
+      "file": "secondpeak_cliff_bore_52.jpg",
+      "bytes": 38843,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        54.567,
+        2,
+        73.212
+      ],
+      "state": {
+        "H0": 1.5,
+        "T": 14,
+        "xi": 0.65
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "bore",
+      "sim": 54,
+      "file": "secondpeak_cliff_bore_54.jpg",
+      "bytes": 36648,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        54.567,
+        2,
+        73.212
+      ],
+      "state": {
+        "H0": 1.5,
+        "T": 14,
+        "xi": 0.65
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "bore",
+      "sim": 56,
+      "file": "secondpeak_cliff_bore_56.jpg",
+      "bytes": 35672,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        54.567,
+        2,
+        73.212
+      ],
+      "state": {
+        "H0": 1.5,
+        "T": 14,
+        "xi": 0.65
+      }
+    },
+    {
+      "rig": "secondpeak_fieldday",
+      "arm": "default",
+      "sim": 50,
+      "file": "secondpeak_fieldday_default_50.jpg",
+      "bytes": 34108,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        60.173,
+        2,
+        53.572
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.5
+      }
+    },
+    {
+      "rig": "secondpeak_fieldday",
+      "arm": "default",
+      "sim": 52,
+      "file": "secondpeak_fieldday_default_52.jpg",
+      "bytes": 35457,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        60.173,
+        2,
+        53.572
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.5
+      }
+    },
+    {
+      "rig": "secondpeak_fieldday",
+      "arm": "default",
+      "sim": 54,
+      "file": "secondpeak_fieldday_default_54.jpg",
+      "bytes": 37896,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        60.173,
+        2,
+        53.572
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.5
+      }
+    },
+    {
+      "rig": "secondpeak_fieldday",
+      "arm": "default",
+      "sim": 56,
+      "file": "secondpeak_fieldday_default_56.jpg",
+      "bytes": 35987,
+      "bore": 0,
+      "boreBuild": false,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        60.173,
+        2,
+        53.572
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.5
+      }
+    },
+    {
+      "rig": "secondpeak_fieldday",
+      "arm": "bore",
+      "sim": 50,
+      "file": "secondpeak_fieldday_bore_50.jpg",
+      "bytes": 39845,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        60.173,
+        2,
+        53.572
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.5
+      }
+    },
+    {
+      "rig": "secondpeak_fieldday",
+      "arm": "bore",
+      "sim": 52,
+      "file": "secondpeak_fieldday_bore_52.jpg",
+      "bytes": 40855,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        60.173,
+        2,
+        53.572
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.5
+      }
+    },
+    {
+      "rig": "secondpeak_fieldday",
+      "arm": "bore",
+      "sim": 54,
+      "file": "secondpeak_fieldday_bore_54.jpg",
+      "bytes": 41476,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        60.173,
+        2,
+        53.572
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.5
+      }
+    },
+    {
+      "rig": "secondpeak_fieldday",
+      "arm": "bore",
+      "sim": 56,
+      "file": "secondpeak_fieldday_bore_56.jpg",
+      "bytes": 39929,
+      "bore": 1,
+      "boreBuild": true,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        60.173,
+        2,
+        53.572
+      ],
+      "state": {
+        "H0": 1.4,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.5
+      }
+    }
+  ],
+  "totalBytes": 1405068
+}
