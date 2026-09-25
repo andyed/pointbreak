@@ -17,10 +17,12 @@
 // local propagation direction (the rayPhase gradient, the classic block's
 // waveDir), vertically by VIS — the same exaggeration the rest of the water is
 // drawn at. Both ends are evaluations of the shipped surfacePos, so the ribbon
-// is C0 on the drawn water at a back seam behind the crest and at the shared
-// landing (breakerLandingFrameAt — the point the deposit, roller and spray are
-// seeded from). Where the profile weight is zero the vertex collapses onto the
-// shipped surface, so nothing pokes out of a spilling wave or a lull.
+// is C0 on the drawn water at a back seam behind the crest and at the
+// profile's own landing (bpReach*VIS along the sweep axis from the crest
+// source; since 2026-09-24 the shared receiver breakerLandingFrameAt — the
+// point the deposit, roller and spray are seeded from — is plunge-scaled under
+// TUBE to sit there too). Where the profile weight is zero the vertex collapses
+// onto the shipped surface, so nothing pokes out of a spilling wave or a lull.
 //
 // WHAT THE GRID GIVES UP. Under TUBE, choppyPos caps the cusp parameter at
 // S = 0.98 and zeroes the bend at plunging stations (shaders.js, the
@@ -59,8 +61,9 @@ varying vec2  vTubeUV;    // (alongshore metres, u) for the streak texture
 varying vec3  vTubeN;     // normal oriented AWAY from the cavity
 varying vec3  vTubeW;     // world position
 varying vec3  vTubeK;     // (age s, jet fraction 0..1, displayed ceiling m)
-varying vec3  vTubeM;     // material inputs (TUBE_FRAG, #tubelook): (sheet thinness 0 root .. ~0.45 tip,
-                          //  grid white at the back seam, grid white at the crest anchor)
+varying vec4  vTubeM;     // material inputs (TUBE_FRAG, #tubelook): (sheet thinness 0 root .. ~0.45 tip,
+                          //  grid white at the back seam, grid white at the crest anchor,
+                          //  cavity closure 0 open .. 1 face risen onto the roof)
 
 // The grid's own whiteness at a surfacePos evaluation, on the grid's own
 // mapping: GRID_FRAG soft-knees the foam mask (1 - exp(-1.55 foam)) and ramps
@@ -117,31 +120,60 @@ void main(){
   // back seam (3) — read for the material (vTubeM), not for placement.
   float f1 = 0.0, a1 = 0.0, f3 = 0.0, a3 = 0.0;
   vec3 Pc = vec3(x0, -2.0, zc), PL = Pc, PB = Pc;
-  vec2  pEnd  = breakerProfile(1.0, CRASH_PEAK_S, u_xi, hC, c);
-  float sL    = max(pEnd.x, 0.05);
-  float D     = 0.35*hCd;
+  // The profile's own landing L = (sL, 0): the ground-frame ballistic reach
+  // (BREAKER_PROFILE_V2_2026-09-24 sec 2; 0.75 hC at Sewers, 0.12 at Second
+  // Peak, 0.895 at any depth-limited full-plunge pair).
+  float sL    = max(bpReach(u_xi, hC, c), 0.05);
+  // Horizontal stretch sigma = VIS (sec 5.1). The world draws vertical metres
+  // at VIS and horizontal metres at 1; the shared receiver already places its
+  // landing CURT_REACH*hC with hC DISPLAYED, i.e. VIS times the physical reach
+  // along the ground, and the ribbon takes the same anisotropy so the section
+  // keeps the aspect the probe measured on it (a 0.69 by 0.63 hC lens at
+  // Sewers, not a sliver). Until 2026-09-24 sigma was D/sL with D the drawn
+  // distance to breakerLandingFrameAt's zL (0.9 hC, 1.6 under classic descent),
+  // which stretched the v2 reach 1.2-2.1x at Sewers and ~7x at Second Peak.
+  float sigma = VIS;
+  // Drawn crest-to-landing-seam distance along the sweep axis: reported to
+  // the probe (reachRatio); the tip is placed at sL*sigma regardless.
+  float D     = sL*sigma;
   if (live) {
     // Anchor: the shipped surface at the live crest source. Under TUBE the grid
     // does not bend at plunging stations, so this is the capped crest.
     float p1, b1, c1, k1;
     Pc = surfacePos(vec2(x0, zc), u_time, f1, p1, b1, c1, l1, a1, k1);
-    // Landing seam: the shared frame's landing z, reached along the sweep axis
-    // (dir.y >= 0.3 is guaranteed above). Its x drifts from x0 by the swell
-    // obliquity, ~1 m at Sewers — the deposit/roller seeded at (x0, zL) are
-    // several metres wide, so the two stay under one another.
-    vec2 srcL = vec2(x0, zc) + dir*((zL - zc)/max(dir.y, 0.3));
+    // Landing seam: the drawn water under the tip, sL*VIS along the sweep axis
+    // from the DRAWN crest (dir.y >= 0.3 is guaranteed above). The receiver
+    // seeds the deposit, roller and spray at the SOURCE point zc + CURT_REACH*
+    // hC*plunge, the same distance in source space; but the grid's choppy
+    // offset draws a source point ahead of the crest pulled back toward it
+    // (MEASURED 2026-09-24, probe_tube: 2.4 m at Sewers for a 7 m reach), so
+    // one evaluation there lands 0.6 hC behind the tip. One fixed-point step
+    // inverts the drift: re-evaluate at the source moved by the miss, which
+    // puts the seam within centimetres of the tip's plan position. The
+    // vertical miss that remains (the carved face stands 0.35 hC above the
+    // profile's y = 0) is the sec 6 seam contract, absorbed on the face leg's
+    // flat run into the landing over u 0.85..1.
+    vec2 tgt  = Pc.xz + dir*(sL*sigma);
+    vec2 srcL = vec2(x0, zc) + dir*(sL*sigma);
     float f2, p2, b2, c2, a2, k2;
     PL = surfacePos(srcL, u_time, f2, p2, b2, c2, l2, a2, k2);
-    // Horizontal stretch sigma: the profile's own landing distance sL (physical,
-    // evaluated at impact so neither tip nor clearing clips it) is mapped onto
-    // the distance between the DRAWN crest and the DRAWN landing. The vertical
-    // is VIS-exaggerated like the rest of the water; sigma is what keeps the
-    // foot on the landing every other impact consumer uses.
-    D = max(dot(PL.xz - Pc.xz, dir), 0.35*hCd);   // landing stays ahead of the crest
-  }
-  float sigma = D/sL;
-  if (live) {
-    // Back seam: the profile's u = 0 end (age 0: no clearing yet) at s = -0.5 hC.
+    // Two steps, each bounded by the reach itself: on the default landing the
+    // residual fold under the ribbon (TUBE_MESH sec "cusp cap") makes the
+    // source->drawn map non-monotone and the first miss reads 4-7 m; an
+    // unbounded step there would chase the overhang. A miss the bound refuses
+    // is left to the seam blend.
+    float bound = sL*sL*sigma*sigma;
+    vec2 miss = tgt - PL.xz;
+    if (dot(miss, miss) > 0.01 && dot(miss, miss) < bound) {
+      srcL += miss;
+      PL = surfacePos(srcL, u_time, f2, p2, b2, c2, l2, a2, k2);
+      miss = tgt - PL.xz;
+      if (dot(miss, miss) > 0.01 && dot(miss, miss) < bound) {
+        PL = surfacePos(srcL + miss, u_time, f2, p2, b2, c2, l2, a2, k2);
+      }
+    }
+    D  = dot(PL.xz - Pc.xz, dir);
+    // Back seam: the profile's u = 0 end at s = -0.5 hC (fixed for all ages).
     vec2 pBack = breakerProfile(0.0, 0.0, u_xi, hC, c);
     vec2 srcB  = vec2(x0, zc) + dir*(pBack.x*sigma);
     float p3, b3, c3, l3, k3;
@@ -152,15 +184,17 @@ void main(){
   vec2 pr = breakerProfile(u, age, u_xi, hC, c);
   vec3 W  = vec3(Pc.x + dir.x*pr.x*sigma, Pc.y + (pr.y - hC)*VIS, Pc.z + dir.y*pr.x*sigma);
 
-  // Seams. The back seam holds until the upper edge starts clearing after
-  // impact (a cleared edge is the trailing edge of falling water, and pulling
-  // it back up the face is the defect the descent experiment removed). The
-  // landing seam attaches as the jet ARRIVES: a jet in flight has a free tip —
-  // that open edge is the mouth of the tube — and is C0 on the landing from
-  // impact on.
+  // Seams. The back seam holds for the WHOLE life (sec 5.2): v2's roof stays
+  // rooted at the crest and thins in place, so there is no cleared trailing
+  // edge to release — v1 let go after impact (1 - smoothstep(0, 0.25, clearP))
+  // because its upper edge slid down the parabola, and with the v2 family
+  // that release only let the u = 0 row drift off surfacePos after 0.42 s.
+  // The landing seam attaches as the jet ARRIVES: a jet in flight has a free
+  // tip — that open edge is the mouth of the tube — and is C0 on the landing
+  // from impact on.
   float tip    = clamp(age/CRASH_PEAK_S, 0.0, 1.0);
-  float clearP = smoothstep(CRASH_PEAK_S, CRASH_PEAK_S + 1.5*CRASH_SIGMA_S, age);
-  float wB = (1.0 - smoothstep(0.0, 0.15, u)) * (1.0 - smoothstep(0.0, 0.25, clearP));
+  float clearP = bpCollapse(age);   // post-impact collapse 0..1 (read back by the probe; not a seam key)
+  float wB = 1.0 - smoothstep(0.0, 0.15, u);
   float wL = smoothstep(0.85, 1.0, u) * smoothstep(0.75, 1.0, tip);
   vec3 P = mix(W, PB, wB);
   P = mix(P, PL, wL);
@@ -182,7 +216,7 @@ void main(){
   N = normalize(N);
   // Orient away from the cavity: its centre is half way to the landing and
   // half a ceiling below the crest.
-  vec3 cav = Pc + vec3(dir.x, 0.0, dir.y)*(0.5*D) - vec3(0.0, 0.5*hCd, 0.0);
+  vec3 cav = Pc + vec3(dir.x, 0.0, dir.y)*(0.5*sL*sigma) - vec3(0.0, 0.5*hCd, 0.0);
   if (dot(N, W - cav) < 0.0) N = -N;
 
   float gate = weight * breakMask(x0) * farFadeAt(vec2(x0, zc)) * (1.0 - l1) * (1.0 - l2);
@@ -202,13 +236,23 @@ void main(){
   float thick0 = BP_ROOT_THICK*hC*bpPlunge(u_xi);
   float thin   = 1.0 - bpThickness(sigM, u_xi, hC, c)/max(thick0, 1e-4);
   if (!(thin == thin)) thin = 0.0;   // NaN guard (house rule)
+  // Cavity closure for the material (sec 5.3): on the face leg, bpFaceClosure
+  // is 1 where the face has risen onto the roof's underside (that water is
+  // the bore) and 0 where the lens is still open (that water is the cavity's
+  // dark wall). The sheet legs take the closure of the face point at the SAME
+  // sigma — the face rises to the underside at sigma = f — so the roof's
+  // underside and the risen face, coincident there, are shaded alike.
+  float closure = (u >= BP_U_ROOT) ? bpFaceClosure(u, age)
+                : (u > BP_U_APEX)  ? bpFaceClosure(BP_U_ROOT + (1.0 - BP_U_ROOT)*sigM, age)
+                : 0.0;
+  if (!(closure == closure)) closure = 0.0;   // NaN guard (house rule)
 
   vTubeA  = clamp(gate, 0.0, 1.0);
   vTubeUV = vec2(x0, u);
   vTubeN  = N;
   vTubeW  = P;
   vTubeK  = vec3(age, sigM, hCd);
-  vTubeM  = vec3(clamp(thin, 0.0, 1.0), tubeGridWhite(f3, a3), tubeGridWhite(f1, a1));
+  vTubeM  = vec4(clamp(thin, 0.0, 1.0), tubeGridWhite(f3, a3), tubeGridWhite(f1, a1), clamp(closure, 0.0, 1.0));
   gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
 }
 `;
@@ -253,7 +297,7 @@ varying vec2  vTubeUV;
 varying vec3  vTubeN;
 varying vec3  vTubeW;
 varying vec3  vTubeK;
-varying vec3  vTubeM;
+varying vec4  vTubeM;
 uniform float u_time;
 uniform vec3  u_camStage;   // the eye in STAGE coordinates (main.js frame loop)
 uniform float u_tubeLook;   // 1 aerated (default in a TUBE build), 0 the glass ribbon (#tubelook=0)
@@ -335,6 +379,7 @@ void main(){
     float age  = vTubeK.x;           // s since this station's crest crossed the line
     float sig  = vTubeK.y;           // fraction of the ballistic reach: 0 root, 1 tip/landing
     float thin = vTubeM.x;           // kinematic sheet thinness, 0 root .. ~0.45 tip
+    float closure = vTubeM.w;        // bpFaceClosure: 1 where the face has risen onto the roof (bore), 0 where the lens is open
     float lam  = 0.45 + 0.55*clamp(dot(Nf, TUBE_SUN), 0.0, 1.0);
 
     // Legs. Soft 0.03 shoulders so the boundaries do not draw lines.
@@ -358,7 +403,11 @@ void main(){
     // weight on the inside, so the hollow stays dark between streaks.
     vec3  cav  = vec3(0.012, 0.062, 0.058);
     cav = mix(cav, vec3(0.06, 0.26, 0.24), 0.35*fres);
-    float cavW = max(0.60*inside, onFace);
+    // Behind the closure front there is no hollow to be inside of: the
+    // underside is the top of the bore there, so the seen-from-inside darkening
+    // fades with closure. The face leg keeps its dark base; the bore white
+    // below is laid over it where the face has risen.
+    float cavW = max(0.60*inside*(1.0 - closure), onFace);
     col = mix(body, cav, cavW);
 
     // ---- the white ----
@@ -393,13 +442,18 @@ void main(){
     // 0.42 is CRASH_PEAK_S; MODEL_GLSL is not spliced into this fragment.
     float aerLand   = 0.80*smoothstep(0.42, 0.62, age)*smoothstep(0.35, 1.0, sig)*onJet;
     // 4. Landing seam: foam where the jet meets the face, from impact on. And
-    //    the face leg itself after impact: once the sheet has landed, the water
-    //    between the root and the landing is the collapsing bore (CURL_TRUTH §4
-    //    criterion 4, 0.4–0.65 H_f of saturated white, lumpy), not dark face —
-    //    dark only while the lip is still in the air over it.
+    //    the bore: the water between the root and the landing that has risen
+    //    onto the roof's underside is the collapsing bore (CURL_TRUTH §4
+    //    criterion 4, 0.4–0.65 H_f of saturated white, lumpy). Keyed on the
+    //    profile's own closure front (bpFaceClosure, BREAKER_PROFILE_V2 §5.3),
+    //    not the clock: white behind the front, the cavity's dark wall ahead of
+    //    it, at every station. Until 2026-09-24 this was smoothstep(0.40, 0.60,
+    //    age) over the whole face leg, which whitened the open lens too.
+    //    The sheet legs carry the closure of the face point at their sigma, so
+    //    the roof's underside — coincident with the risen face — whitens with it.
     float seamL = smoothstep(0.86, 1.0, u) * smoothstep(0.36, 0.50, age) * (0.60 + 0.40*streak);
     float lump  = tnoise2(vec2(x*1.6 + 3.0, u*6.0 - u_time*0.9));
-    float boreW = onFace * smoothstep(0.40, 0.60, age) * (0.70 + 0.30*lump);
+    float boreW = (1.0 - onBack) * closure * (0.70 + 0.30*lump);
     // 5. Back seam: the grid's own white at the seam (vTubeM.y) grading to the
     //    apex over the back leg; the apex is at least the grid's crest white
     //    and, with age, a hooked knuckle of its own.
@@ -407,7 +461,7 @@ void main(){
     float backW = mix(vTubeM.y, apexW, smoothstep(0.0, TL_U_APEX, u)) * onBack;
 
     float W = max(max(aerThin, max(max(aerStreak, aerFall), aerLand)), max(max(seamL, boreW), backW));
-    W *= mix(1.0, 0.5, inside);       // the hollow stays dark between streaks
+    W *= mix(1.0, 0.5, inside*(1.0 - closure));   // the hollow stays dark between streaks while it is a hollow
     W  = max(W, lipLine);             // the lip line is white from both sides
     W  = clamp(W, 0.0, 0.95);         // never whiter than the grid's crest foam
 

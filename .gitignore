@@ -206,3 +206,19 @@ qa/section-curl-2026-09-24/*
 !qa/section-curl-2026-09-24/*.jpg
 !qa/section-curl-2026-09-24/*.png
 !qa/section-curl-2026-09-24/*.json
+# Ribbon follows profile v2 (docs/research/TUBE_V2_2026-09-24.md): the two
+# probe summaries (tube+classic and tube-only arms), the capture manifests, the
+# parity record and the matched before/after JPEG frames the note cites are
+# committed (under 2 MB); raw per-vertex readbacks are not.
+!qa/tube-v2-2026-09-24/
+qa/tube-v2-2026-09-24/*
+!qa/tube-v2-2026-09-24/probe-tubeclassic/
+qa/tube-v2-2026-09-24/probe-tubeclassic/*
+!qa/tube-v2-2026-09-24/probe-tubeclassic/probe.json
+!qa/tube-v2-2026-09-24/probe-tube/
+qa/tube-v2-2026-09-24/probe-tube/*
+!qa/tube-v2-2026-09-24/probe-tube/probe.json
+!qa/tube-v2-2026-09-24/parity/
+!qa/tube-v2-2026-09-24/before/
+!qa/tube-v2-2026-09-24/after/
+!qa/tube-v2-2026-09-24/after-secondpeak/

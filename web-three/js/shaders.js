@@ -381,8 +381,9 @@ ${MODEL_GLSL}
 #ifdef TUBE
 // #tube=1 (TUBE builds only, the #roller precedent): the swept breaker ribbon
 // (tube.js) and the grid handover in choppyPos read the shared profile. Under
-// the define so a default build compiles the pristine text.
-uniform float u_tube;   // 0 off, 1 on; live-toggled by __pointbreak.setTube
+// the define so a default build compiles the pristine text. u_tube (0 off,
+// 1 on; live-toggled by __pointbreak.setTube) is declared in MODEL_GLSL's own
+// TUBE guard since the receiver reads it (breakerLandingFrameAt).
 uniform float u_tubeS;  // cusp-parameter cap under the ribbon (see choppyPos);
                         // JS-settable instrument (__pointbreak.setTubeS) for
                         // the fold sweep in scripts/probe_tube.mjs
@@ -1050,7 +1051,17 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   float dzCT = -(mod(thetaRaw + PI, 2.0*PI) - PI)/max(kzC, 1e-3);   // + shoreward of the crest phase
   if (tubeGate > 0.0) {
     float hCT   = max(crestCeilM(depQ, KsQ), 0.5);
-    float ceilF = max(1.03 - 1.4*sqrt(max(dzCT, 0.0)/hCT), 0.35);
+    // The carve's horizontal extent follows the ribbon's own landing
+    // (BREAKER_PROFILE_V2_2026-09-24 sec 5.5): the sqrt face was cut against
+    // the 0.9 hC receiver, so its argument is dzCT over the profile's reach
+    // (bpReach, displayed with the receiver's VIS anisotropy) normalised by
+    // CURT_REACH — identical text-for-value where the reach IS 0.9 hC, and
+    // compressed where the lip lands short (0.12 hC at Second Peak), so the
+    // carve does not open a cavity ahead of a foot that is not there. Floored
+    // at 0.05 hC so a zero-reach spiller (weight 0 anyway) divides by nothing.
+    float cT     = wT/max(kk, 1e-4);
+    float reachT = max(bpReach(u_xi, hCT/VIS, cT)*VIS, 0.05*hCT);
+    float ceilF  = max(1.03 - 1.4*sqrt(max(dzCT, 0.0)*CURT_REACH/reachT), 0.35);
     float kneeF = ceilF - 0.08;
     float overT = max(h/hCT - kneeF, 0.0);
     float e2T   = exp(-2.0*overT/0.08);                    // tanh, written out (GLSL ES has none)

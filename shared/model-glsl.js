@@ -85,6 +85,12 @@ uniform float u_roller;
 // See boreWedgeAt() and docs/research/BORE_2026-09-24.md.
 #ifdef BORE
 uniform float u_bore;
+// #tube=1 (TUBE builds only, 2026-09-24): the ribbon's live gain, declared
+// here rather than in the renderer's prelude because breakerLandingFrameAt
+// below reads it (the receiver is plunge-scaled under the ribbon). Same
+// discipline as u_roller: guarded so the default compiles the pristine text.
+#ifdef TUBE
+uniform float u_tube;
 #endif
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
 uniform float u_hump;       // head hump gain, #hump= (EXPERIMENT 2026-09-10, default 0 = off)
@@ -1104,6 +1110,21 @@ vec4 breakerLandingFrameAt(float x, float t){
   // Authored in the wave's length and tested on the displaced surface; this
   // is not a physical ratio inferred from the uncalibrated field video.
   float classic = classicDescentWeightAt(x);
+#ifdef TUBE
+  // Under the ribbon (#tube=1, BREAKER_PROFILE_V2_2026-09-24 sec 5.1) the
+  // receiver is PLUNGE-SCALED and the classic 1.6 extension is retired, so the
+  // deposit, roller, spray and plume land under the ribbon's foot. The
+  // profile's ground-frame launch lands a depth-limited lip at 0.895 hC times
+  // its plunge blend, which is CURT_REACH times the same blend to 0.5%; the
+  // blend is smoothstep(0.45, 1.25, u_xi), byte-for-byte bpPlunge (the profile
+  // text is spliced after this model, so it cannot be called here). Gated by
+  // the live gain, not the define alone: the plume material defines TUBE on
+  // every boot for bpReach, and on a non-tube boot u_tube is 0 and this is
+  // the shipped receiver.
+  float tubeOn = clamp(u_tube, 0.0, 1.0);
+  zL -= CURT_REACH*hC*(1.0 - plungeAt(x))*tubeOn;   // plungeAt: the station's plunge (K: sections), = the spot blend without #sectioncurl
+  classic *= 1.0 - tubeOn;
+#endif
   if (classic > 0.0) zL += (1.6 - CURT_REACH)*hC*classic;
   float ageHere = mod(w*t - rayPhase(vec2(x, breakLine(x))), 2.0*PI)/w;
   float tauD = ageHere - CRASH_PEAK_S;
