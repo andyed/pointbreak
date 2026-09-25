@@ -36,8 +36,39 @@ plume forward not up, bore in 0.4–0.7 s). Merged, all default-byte-identical:
 - `#riderscale=vis` — the rider is human-scale under 3.2× water; A/B frames
   sent 2026-09-24 evening, Andy's call.
 
+**Second sitting of the jury** (`CURL_JURY_2_2026-09-24.md`, cliff camera
+per Track J, 52–56 s): the site test runs and **`#bore=1` passes it** (Field
+log-distance 0.15 at set-wave 54 s vs 4.99 default; Domain first) at a
+composition cost from the cliff (inner rows carry a second bright band —
+Squint ranks it 4th). At Sewers `#sectioncurl=1` turns the slab into a
+compact knuckle (Squint 1st, Domain 2nd; `all` Domain 1st). Tube ribbon:
+right shape now, reads as a sail at a spot that spills on the card day; keep
+opt-in. Every seat's first defect: **whitewater material** (flat white plane +
+streak sprites at Sewers; blurred glitter at the cliff; footage is matte lumpy
+foam ageing to lace). Field: the face is lit at the crest and dark at the
+trough, the **inverse of the footage**.
+
 Open, in order:
 
+- [ ] **Promotion calls (Andy):** `#gapfix=1` (no cost found), `#sectioncurl=1`
+      (Sewers knuckle, invisible at the cliff), `#bore=1` (site test, costs
+      composition until its extent is fixed). Frames:
+      `assets/curl-jury-2-2026-09-24/before-after.jpg`.
+- [ ] **Whitewater material** (jury 2 §4.1): matte opaque lumpy white over grey,
+      ageing to lace; kill streak sprites and glitter on broken water.
+- [ ] **Bore extent** (jury 2 §4.2, I2's next): thick for the head's life
+      (7.5 s, 0.5–0.65 H_f), restricted to the live head's line from the cliff;
+      knuckle as a narrower brighter bulge; cap 0.05–0.1 H_f below the crest.
+- [ ] **Face shading, dark at the top** (jury 2 §4.3): measure footage vs render
+      face-luma gradient; the wall top should be the darkest water in frame.
+- [ ] **Lip line on the knuckle** (jury 2 §4.4): scalloped bright edge, hooks
+      0.3–0.7 s, on the grid not only the ribbon.
+- [ ] **Capture K's section shut at its own clocks** (Second Peak card month,
+      x ≈ 15, 49.2–50.6 s) beside the event-B sheet; jury 2 did not sample it.
+- [ ] **Small follow-ups:** `tube.js` reads `u_xi` not `xiAt(x)` (K); plume
+      contact `bpReach` in physical metres, needs `*VIS` (L §item 6); profile
+      §6 landing contract `L = (sL, yL)` so the ribbon foot sits on the face
+      ~0.5 H_f down; CONTROLS `curl`/`lip`/`onset` rows say default OFF.
 - [ ] **Andy's eye on the tube arm** (`#tube=1`, and `#tube=1&classic=1&descent=1`
       per Track B) at the Sewers close camera and `#cam=lookout`; frames in
       `qa/tube-2026-09-24/`. Not a barrel yet: the flap is the profile's
