@@ -49,6 +49,11 @@ const ALL_RIGS = [
   // which "flap" against "tube" is decided (TUBE_MESH_2026-09-24.md, captures).
   // Not in the default set; select with RIGS=diag_downline.
   { name: 'diag_downline', hash: `preset=sewers&month=card&cam=cliff&${COMMON}`, view: [[-36, 6, -222], [-48, 6, -233]], settle: 2 },
+  // The field day from the cliff (Track J, SECONDPEAK_FIELDDAY_2026-09-24.md):
+  // the clip's own forcing (Surfline 3 ft, predicted tide, T 16) seen from the
+  // Second Peak side of the point. `cam=lookout` above is the 38th Ave pose
+  // and does not frame Second Peak. Not in the default set; RIGS=secondpeak_cliff.
+  { name: 'secondpeak_cliff', hash: `preset=secondpeak&cam=cliff&day=overhead&h0=0.914&tide=0.357&${COMMON}`, settle: 2 },
 ];
 const RIGS = process.env.RIGS ? ALL_RIGS.filter(r => process.env.RIGS.split(',').includes(r.name)) : ALL_RIGS;
 const ARMS = process.env.ARMS
