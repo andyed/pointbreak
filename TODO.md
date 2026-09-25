@@ -1,6 +1,6 @@
 # TODO
 
-## ▶ THE CURL FAN-OUT (2026-09-24 evening) — six tracks + verifier, nothing promoted
+## ▶ THE CURL FAN-OUT (2026-09-24 evening) — six tracks + verifier + jury, nothing promoted
 
 Question asked: what does real curl and crashing action at Pleasure Point take?
 Answer measured: the heightfield cannot hold a tube (Track D convicted the
@@ -30,6 +30,9 @@ plume forward not up, bore in 0.4–0.7 s). Merged, all default-byte-identical:
   lipFoam, pocket paints) ignore `breakMask`; `brk` = 1 on 100 % of gap
   columns at three spots × three clocks. Section gaps are drawn and folded as
   breaking heads while lip/curtain correctly hang nothing.
+- **C** `#crash=1` — plume plumbing, field ratios (plume top level with the
+  crest, forward not up), probe, rig; UNFINISHED, mesh draws nothing.
+  `CRASH_PLUME_2026-09-24.md`.
 - `#riderscale=vis` — the rider is human-scale under 3.2× water; A/B frames
   sent 2026-09-24 evening, Andy's call.
 
@@ -50,8 +53,24 @@ Open, in order:
 - [ ] **Rider scale**: `riderscale=vis`, or lower `vis` with the rider matched.
 - [ ] **CONTROLS.md stale rows**: `curl`/`lip`/`onset` say "default OFF";
       `main.js` defaults them to 1 (verifier side note).
-- [ ] Jury pass over default / classic+descent / tube / crash / hack against
-      CURL_TRUTH §4 (this session, pending Track C).
+- [x] **Jury pass done** (`CURL_JURY_2026-09-24.md`, three seats; Stranger
+      recused). No arm passes the site test: at Second Peak on the field day
+      the four sim arms are pixel-identical and nothing breaks (the peel
+      tide-band item, seen from the picture). At Sewers `tube+classic` has the
+      best shape (Squint 1st, Domain 1st among sims) and the wrong material
+      ("dry barrel"); default is a slab (last in two seats); classicdescent
+      alone is a "fin" (last or 4th everywhere). Order of work: make Second
+      Peak break on the field day → foam on the ribbon + bore behind the head
+      (fix Track C's landing-behind-lip first) → thinning roof in the profile
+      → barrel as a section event.
+- [ ] **Track C plume does not draw** (`#crash=1`, UNFINISHED): mesh issued,
+      probe alive, zero pixels. Side finding to verify: instanced spray may
+      draw nothing in headless ANGLE/Metal captures (default vs `splash=0`
+      differed by 0 px at four frames this session; `u_splash` only switches
+      timing, so that test is consistent, not conclusive).
+- [ ] **Track C landing-behind-lip**: at Sewers x=−52 the shared landing is
+      drawn 7.8–10 m behind the lip because the fold remaps source z; any bore
+      or plume anchored there stands on the crest's back.
 
 ## ▶ OPEN AFTER THE 2026-09-24 DEPLOY — product calls and loose ends
 
