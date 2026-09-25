@@ -4,8 +4,25 @@
     {
       "name": "pointbreak",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["scripts/serve.py", "8127"],
+      "runtimeArgs": [
+        "scripts/serve.py",
+        "8127"
+      ],
       "port": 8127
+    },
+    {
+      "name": "www",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8128",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "/Users/andyed/Documents/dev/mindbendingpixels-www-deploy"
+      ],
+      "port": 8128
     }
   ]
 }
