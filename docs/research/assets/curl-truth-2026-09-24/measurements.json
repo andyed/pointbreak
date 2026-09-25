@@ -1,0 +1,546 @@
+[
+ {
+  "label": "B_f344_face_ahead",
+  "f": 344,
+  "t": 11.47,
+  "x": [
+   940,
+   960
+  ],
+  "face_top": 742,
+  "face_bot": 800,
+  "face_h": 58,
+  "bright_top": 835,
+  "bright_bot": 847,
+  "bright_h": 12,
+  "luma_min": 57.3,
+  "luma_max": 199.7
+ },
+ {
+  "label": "B_f344_liphead",
+  "f": 344,
+  "t": 11.47,
+  "x": [
+   1005,
+   1025
+  ],
+  "face_top": 773,
+  "face_bot": 790,
+  "face_h": 17,
+  "bright_top": 820,
+  "bright_bot": 826,
+  "bright_h": 6,
+  "luma_min": 69.8,
+  "luma_max": 205.5
+ },
+ {
+  "label": "B_f348_liphead",
+  "f": 348,
+  "t": 11.6,
+  "x": [
+   1000,
+   1020
+  ],
+  "face_top": 778,
+  "face_bot": 786,
+  "face_h": 8,
+  "bright_top": 872,
+  "bright_bot": 879,
+  "bright_h": 7,
+  "luma_min": 77.2,
+  "luma_max": 203.2
+ },
+ {
+  "label": "B_f344_bore",
+  "f": 344,
+  "t": 11.47,
+  "x": [
+   1060,
+   1090
+  ],
+  "face_top": 607,
+  "face_bot": 609,
+  "face_h": 2,
+  "bright_top": 759,
+  "bright_bot": 780,
+  "bright_h": 21,
+  "luma_min": 83.1,
+  "luma_max": 199.7
+ },
+ {
+  "label": "B_f356_wall",
+  "f": 356,
+  "t": 11.87,
+  "x": [
+   880,
+   920
+  ],
+  "face_top": 743,
+  "face_bot": 802,
+  "face_h": 59,
+  "bright_top": 827,
+  "bright_bot": 842,
+  "bright_h": 15,
+  "luma_min": 45.4,
+  "luma_max": 196.8
+ },
+ {
+  "label": "B_f360_wall",
+  "f": 360,
+  "t": 12.0,
+  "x": [
+   880,
+   920
+  ],
+  "face_top": 745,
+  "face_bot": 802,
+  "face_h": 57,
+  "bright_top": 827,
+  "bright_bot": 841,
+  "bright_h": 14,
+  "luma_min": 51.3,
+  "luma_max": 199.7
+ },
+ {
+  "label": "B_f360_bore",
+  "f": 360,
+  "t": 12.0,
+  "x": [
+   1120,
+   1160
+  ],
+  "face_top": 705,
+  "face_bot": 709,
+  "face_h": 4,
+  "bright_top": 758,
+  "bright_bot": 785,
+  "bright_h": 27,
+  "luma_min": 82.0,
+  "luma_max": 207.3
+ },
+ {
+  "label": "B_f364_curtain",
+  "f": 364,
+  "t": 12.13,
+  "x": [
+   1000,
+   1040
+  ],
+  "face_top": 702,
+  "face_bot": 705,
+  "face_h": 3,
+  "bright_top": 767,
+  "bright_bot": 780,
+  "bright_h": 13,
+  "luma_min": 89.5,
+  "luma_max": 206.2
+ },
+ {
+  "label": "B_f368_wall",
+  "f": 368,
+  "t": 12.27,
+  "x": [
+   900,
+   940
+  ],
+  "face_top": 757,
+  "face_bot": 802,
+  "face_h": 45,
+  "bright_top": 826,
+  "bright_bot": 832,
+  "bright_h": 6,
+  "luma_min": 54.1,
+  "luma_max": 202.2
+ },
+ {
+  "label": "B_f368_curtain",
+  "f": 368,
+  "t": 12.27,
+  "x": [
+   1040,
+   1070
+  ],
+  "face_top": 607,
+  "face_bot": 610,
+  "face_h": 3,
+  "bright_top": 759,
+  "bright_bot": 787,
+  "bright_h": 28,
+  "luma_min": 77.7,
+  "luma_max": 203.5
+ },
+ {
+  "label": "B_f368_bore",
+  "f": 368,
+  "t": 12.27,
+  "x": [
+   1110,
+   1150
+  ],
+  "face_top": 705,
+  "face_bot": 709,
+  "face_h": 4,
+  "bright_top": 755,
+  "bright_bot": 786,
+  "bright_h": 31,
+  "luma_min": 79.1,
+  "luma_max": 205.4
+ },
+ {
+  "label": "B_f376_bore",
+  "f": 376,
+  "t": 12.53,
+  "x": [
+   1090,
+   1130
+  ],
+  "face_top": 703,
+  "face_bot": 710,
+  "face_h": 7,
+  "bright_top": 766,
+  "bright_bot": 787,
+  "bright_h": 21,
+  "luma_min": 80.3,
+  "luma_max": 201.5
+ },
+ {
+  "label": "B_f388_bore2",
+  "f": 388,
+  "t": 12.93,
+  "x": [
+   1000,
+   1040
+  ],
+  "face_top": 709,
+  "face_bot": 718,
+  "face_h": 9,
+  "bright_top": 760,
+  "bright_bot": 772,
+  "bright_h": 12,
+  "luma_min": 86.8,
+  "luma_max": 201.3
+ },
+ {
+  "label": "B_f392_bore",
+  "f": 392,
+  "t": 13.07,
+  "x": [
+   900,
+   950
+  ],
+  "face_top": 702,
+  "face_bot": 716,
+  "face_h": 14,
+  "bright_top": 756,
+  "bright_bot": 773,
+  "bright_h": 17,
+  "luma_min": 84.4,
+  "luma_max": 198.6
+ },
+ {
+  "label": "B_f396_bore",
+  "f": 396,
+  "t": 13.2,
+  "x": [
+   900,
+   940
+  ],
+  "face_top": 703,
+  "face_bot": 714,
+  "face_h": 11,
+  "bright_top": 750,
+  "bright_bot": 770,
+  "bright_h": 20,
+  "luma_min": 84.1,
+  "luma_max": 201.6
+ },
+ {
+  "label": "A_f1000_face",
+  "f": 1000,
+  "t": 33.33,
+  "x": [
+   1600,
+   1620
+  ],
+  "face_top": 699,
+  "face_bot": 749,
+  "face_h": 50,
+  "bright_top": 782,
+  "bright_bot": 791,
+  "bright_h": 9,
+  "luma_min": 48.0,
+  "luma_max": 206.9
+ },
+ {
+  "label": "A_f1000_bore",
+  "f": 1000,
+  "t": 33.33,
+  "x": [
+   1700,
+   1740
+  ],
+  "face_top": 904,
+  "face_bot": 909,
+  "face_h": 5,
+  "bright_top": 707,
+  "bright_bot": 726,
+  "bright_h": 19,
+  "luma_min": 63.0,
+  "luma_max": 206.4
+ },
+ {
+  "label": "A_f1035_face",
+  "f": 1035,
+  "t": 34.5,
+  "x": [
+   1520,
+   1540
+  ],
+  "face_top": 698,
+  "face_bot": 747,
+  "face_h": 49,
+  "bright_top": 789,
+  "bright_bot": 791,
+  "bright_h": 2,
+  "luma_min": 47.6,
+  "luma_max": 194.8
+ },
+ {
+  "label": "A_f1035_bore",
+  "f": 1035,
+  "t": 34.5,
+  "x": [
+   1600,
+   1640
+  ],
+  "face_top": 672,
+  "face_bot": 683,
+  "face_h": 11,
+  "bright_top": 700,
+  "bright_bot": 727,
+  "bright_h": 27,
+  "luma_min": 60.9,
+  "luma_max": 207.5
+ },
+ {
+  "label": "A_f1050_face",
+  "f": 1050,
+  "t": 35.0,
+  "x": [
+   1500,
+   1520
+  ],
+  "face_top": 697,
+  "face_bot": 753,
+  "face_h": 56,
+  "bright_top": 790,
+  "bright_bot": 796,
+  "bright_h": 6,
+  "luma_min": 46.2,
+  "luma_max": 208.3
+ },
+ {
+  "label": "A_f1050_head",
+  "f": 1050,
+  "t": 35.0,
+  "x": [
+   1545,
+   1560
+  ],
+  "face_top": 707,
+  "face_bot": 755,
+  "face_h": 48,
+  "bright_top": 789,
+  "bright_bot": 793,
+  "bright_h": 4,
+  "luma_min": 43.1,
+  "luma_max": 200.5
+ },
+ {
+  "label": "A_f1050_bore",
+  "f": 1050,
+  "t": 35.0,
+  "x": [
+   1600,
+   1640
+  ],
+  "face_top": 675,
+  "face_bot": 688,
+  "face_h": 13,
+  "bright_top": 701,
+  "bright_bot": 734,
+  "bright_h": 33,
+  "luma_min": 60.8,
+  "luma_max": 209.3
+ },
+ {
+  "label": "A_f1060_face",
+  "f": 1060,
+  "t": 35.33,
+  "x": [
+   1480,
+   1500
+  ],
+  "face_top": 699,
+  "face_bot": 753,
+  "face_h": 54,
+  "bright_top": 790,
+  "bright_bot": 794,
+  "bright_h": 4,
+  "luma_min": 52.4,
+  "luma_max": 209.3
+ },
+ {
+  "label": "A_f1060_hook",
+  "f": 1060,
+  "t": 35.33,
+  "x": [
+   1528,
+   1548
+  ],
+  "face_top": 709,
+  "face_bot": 752,
+  "face_h": 43,
+  "bright_top": 795,
+  "bright_bot": 801,
+  "bright_h": 6,
+  "luma_min": 51.8,
+  "luma_max": 207.3
+ },
+ {
+  "label": "A_f1060_bore",
+  "f": 1060,
+  "t": 35.33,
+  "x": [
+   1580,
+   1620
+  ],
+  "face_top": 675,
+  "face_bot": 688,
+  "face_h": 13,
+  "bright_top": 703,
+  "bright_bot": 735,
+  "bright_h": 32,
+  "luma_min": 60.3,
+  "luma_max": 215.7
+ },
+ {
+  "label": "A_f1070_face",
+  "f": 1070,
+  "t": 35.67,
+  "x": [
+   1470,
+   1490
+  ],
+  "face_top": 698,
+  "face_bot": 754,
+  "face_h": 56,
+  "bright_top": 800,
+  "bright_bot": 806,
+  "bright_h": 6,
+  "luma_min": 54.1,
+  "luma_max": 208.3
+ },
+ {
+  "label": "A_f1070_bore",
+  "f": 1070,
+  "t": 35.67,
+  "x": [
+   1570,
+   1610
+  ],
+  "face_top": 675,
+  "face_bot": 689,
+  "face_h": 14,
+  "bright_top": 707,
+  "bright_bot": 737,
+  "bright_h": 30,
+  "luma_min": 66.4,
+  "luma_max": 208.6
+ },
+ {
+  "label": "A_f1145_face",
+  "f": 1145,
+  "t": 38.17,
+  "x": [
+   1340,
+   1360
+  ],
+  "face_top": 718,
+  "face_bot": 746,
+  "face_h": 28,
+  "bright_top": 808,
+  "bright_bot": 817,
+  "bright_h": 9,
+  "luma_min": 66.0,
+  "luma_max": 202.8
+ },
+ {
+  "label": "A_f1145_bore",
+  "f": 1145,
+  "t": 38.17,
+  "x": [
+   1420,
+   1460
+  ],
+  "face_top": 681,
+  "face_bot": 697,
+  "face_h": 16,
+  "bright_top": 716,
+  "bright_bot": 737,
+  "bright_h": 21,
+  "luma_min": 63.0,
+  "luma_max": 207.8
+ },
+ {
+  "label": "C_f875_face",
+  "f": 875,
+  "t": 29.17,
+  "x": [
+   1700,
+   1720
+  ],
+  "face_top": 681,
+  "face_bot": 730,
+  "face_h": 49,
+  "bright_top": 859,
+  "bright_bot": 860,
+  "bright_h": 1,
+  "luma_min": 46.9,
+  "luma_max": 186.2
+ },
+ {
+  "label": "C_f875_head",
+  "f": 875,
+  "t": 29.17,
+  "x": [
+   1745,
+   1760
+  ],
+  "face_top": 678,
+  "face_bot": 733,
+  "face_h": 55,
+  "bright_top": 857,
+  "bright_bot": 860,
+  "bright_h": 3,
+  "luma_min": 43.3,
+  "luma_max": 198.3
+ },
+ {
+  "label": "C_f875_bore",
+  "f": 875,
+  "t": 29.17,
+  "x": [
+   1800,
+   1840
+  ],
+  "face_top": 629,
+  "face_bot": 632,
+  "face_h": 3,
+  "bright_top": 680,
+  "bright_bot": 699,
+  "bright_h": 19,
+  "luma_min": 85.7,
+  "luma_max": 206.7
+ }
+]
