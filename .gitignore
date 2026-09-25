@@ -161,3 +161,15 @@ qa/section-gap-foam-2026-09-24/*
 !qa/crash-2026-09-24/
 qa/crash-2026-09-24/*
 !qa/crash-2026-09-24/manifest.json
+
+# Section-curl rig (docs/research/SECTION_CURL_2026-09-24.md,
+# scripts/capture_section_curl.mjs / probe_section_curl.mjs): the frames the
+# note reads frame by frame (one section shutting at Second Peak, the og pose
+# before/after #gapfix, Sewers close, the field-hash lookout), the manifest,
+# the parity record and the sweep/probe JSON. 1.8 MB, under the 2 MB budget;
+# the rig regenerates all of it in ~5 min against a server on 8146.
+!qa/section-curl-2026-09-24/
+qa/section-curl-2026-09-24/*
+!qa/section-curl-2026-09-24/*.jpg
+!qa/section-curl-2026-09-24/*.png
+!qa/section-curl-2026-09-24/*.json
