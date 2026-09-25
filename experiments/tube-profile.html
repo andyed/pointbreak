@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tube profile explorer</title>
+<!--
+  Side view of shared/breaker-profile-glsl.js, drawn BY THE GLSL ITSELF: the
+  vertex shader calls breakerProfile(u, age, xi, hC, c) for a line strip over
+  u, and the weight bar calls breakerProfileWeight. Nothing here re-derives
+  the curve in JavaScript (the JS twin drifts; the GPU path owns the picture).
+
+  Serve from the repo root:  python3 scripts/serve.py 8131
+  Open: http://127.0.0.1:8131/experiments/tube-profile.html
+  Sheet mode (7 ages x 3 xi at one hC, c): ...tube-profile.html?sheet=1&hC=3&c=6
+  Headless readback (scripts/probe_breaker_profile.mjs) uses window.__tubeProfile.
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d1218;        /* text on this: #e6edf3 -> 15.7:1, #b8c4d0 -> 10.7:1 */
+    --panel: #141b23;
+    --fg: #e6edf3;
+    --fg2: #b8c4d0;
+    --accent: #7fd7ff;
+    --grid: #1e2833;
+  }
+  html, body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  body { padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+  p.sub { margin: 0 0 12px; color: var(--fg2); max-width: 70ch; }
+  .stage { position: relative; display: inline-block; background: #070a0e; border: 1px solid var(--grid); }
+  canvas { display: block; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 18px;
+    margin-top: 12px; max-width: 960px; }
+  label { display: block; color: var(--fg2); }
+  label span.val { color: var(--fg); font-variant-numeric: tabular-nums; float: right; }
+  input[type=range] { width: 100%; }
+  button { background: var(--panel); color: var(--fg); border: 1px solid #2a3542; border-radius: 4px;
+    padding: 6px 14px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  .readout { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 4px 18px; max-width: 960px; font-variant-numeric: tabular-nums; }
+  .readout div { color: var(--fg2); }
+  .readout b { color: var(--fg); font-weight: 600; }
+  .legend { margin-top: 10px; color: var(--fg2); }
+  .legend i { display: inline-block; width: 14px; height: 4px; vertical-align: middle; margin: 0 6px 0 12px; }
+  .lbl { position: absolute; color: var(--fg); font-size: 13px; white-space: nowrap; pointer-events: none; }
+  .lbl.small { color: var(--fg2); font-size: 12px; }
+  .sheet .controls, .sheet .readout, .sheet .legend, .sheet p.sub { display: none; }
+  .sheet body { padding: 12px; }
+</style>
+</head>
+<body>
+<h1 id="title">Breaking-crest cross-section family</h1>
+<p class="sub">
+  Physical metres, side view at one alongshore station: <b>s</b> shoreward of the crest source point, <b>y</b> above still water.
+  The curve runs back seam &rarr; crest &rarr; jet top &rarr; tip &rarr; jet underside &rarr; lip root &rarr; concave face &rarr; landing seam.
+  The dim curve is the same station at age 0.
+</p>
+<div class="stage" id="stage"><canvas id="c" width="960" height="540"></canvas></div>
+<div class="controls">
+  <label>age (s) <span class="val" id="v_age"></span><input id="age" type="range" min="-0.2" max="1.2" step="0.005" value="0.3"></label>
+  <label>&xi; Iribarren <span class="val" id="v_xi"></span><input id="xi" type="range" min="0" max="2" step="0.01" value="1.15"></label>
+  <label>hC crest height (m) <span class="val" id="v_hC"></span><input id="hC" type="range" min="0.3" max="6" step="0.05" value="3"></label>
+  <label>c phase speed (m/s) <span class="val" id="v_c"></span><input id="c" type="range" min="2" max="12" step="0.1" value="6"></label>
+  <div><button id="play">Play</button> <button id="reset">Age 0</button></div>
+</div>
+<div class="readout" id="readout"></div>
+<div class="legend">
+  Legs: <i style="background:#8fa3b8"></i>back face <i style="background:#ffffff"></i>jet top <i style="background:#7fd7ff"></i>jet underside <i style="background:#5be8b0"></i>concave face
+  &middot; seams are the two dots &middot; the bar is breakerProfileWeight
+</div>
+
+<script type="module">
+import { BREAKER_PROFILE_GLSL } from '../shared/breaker-profile-glsl.js';
+
+const params = new URLSearchParams(location.search);
+const SHEET = params.get('sheet') === '1';
+const canvas = document.getElementById('c');
+const stage = document.getElementById('stage');
+const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true, antialias: true });
+if (!gl) throw new Error('WebGL2 required');
+const floatExt = gl.getExtension('EXT_color_buffer_float');
+
+const HEAD = '#version 300 es\nprecision highp float;\n' + BREAKER_PROFILE_GLSL + '\n';
+
+function compile(type, src) {
+  const sh = gl.createShader(type);
+  gl.shaderSource(sh, src); gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+    throw new Error('shader: ' + gl.getShaderInfoLog(sh));
+  }
+  return sh;
+}
+function program(vs, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('link: ' + gl.getProgramInfoLog(p));
+  const uniforms = {};
+  const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); uniforms[info.name] = gl.getUniformLocation(p, info.name); }
+  return { p, u: uniforms };
+}
+
+// ---- the profile, drawn by the GLSL --------------------------------------
+const PROFILE_VS = HEAD + `
+uniform float u_age, u_xi, u_hC, u_c;
+uniform vec4 u_view;          // clip.x = (s - ox)*sx ; clip.y = (y - oy)*sy
+uniform float u_pointSize;
+in float a_u;
+out float v_u;
+void main(){
+  vec2 P = breakerProfile(a_u, u_age, u_xi, u_hC, u_c);
+  v_u = a_u;
+  gl_Position = vec4((P.x - u_view.z)*u_view.x, (P.y - u_view.w)*u_view.y, 0.0, 1.0);
+  gl_PointSize = u_pointSize;
+}`;
+const PROFILE_FS = `#version 300 es
+precision highp float;
+in float v_u;
+uniform float u_alpha;
+uniform float u_seamsOnly;    // 1: draw only u=0 and u=1 as seam dots
+out vec4 o;
+void main(){
+  vec3 col = v_u < 0.10 ? vec3(0.56, 0.64, 0.72)
+           : v_u < 0.45 ? vec3(1.0)
+           : v_u < 0.80 ? vec3(0.50, 0.84, 1.0)
+           : vec3(0.36, 0.91, 0.69);
+  if (u_seamsOnly > 0.5) {
+    if (v_u > 0.001 && v_u < 0.999) discard;
+    col = vec3(1.0, 0.85, 0.35);
+    if (length(gl_PointCoord - 0.5) > 0.5) discard;
+  }
+  o = vec4(col, u_alpha);
+}`;
+const prof = program(PROFILE_VS, PROFILE_FS);
+const N = 256;
+const us = new Float32Array(N);
+for (let i = 0; i < N; i++) us[i] = i / (N - 1);
+const uBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, uBuf); gl.bufferData(gl.ARRAY_BUFFER, us, gl.STATIC_DRAW);
+const profVao = gl.createVertexArray();
+gl.bindVertexArray(profVao);
+const aU = gl.getAttribLocation(prof.p, 'a_u');
+gl.enableVertexAttribArray(aU); gl.vertexAttribPointer(aU, 1, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+
+// ---- the weight bar, also from the GLSL -----------------------------------
+const BAR_VS = HEAD + `
+uniform float u_age, u_xi;
+uniform vec4 u_bar;           // x0, y0, w, h in clip units
+in vec2 a_q;
+void main(){
+  float w = breakerProfileWeight(u_age, u_xi);
+  gl_Position = vec4(u_bar.x + a_q.x*w*u_bar.z, u_bar.y + a_q.y*u_bar.w, 0.0, 1.0);
+}`;
+const FLAT_FS = `#version 300 es
+precision highp float;
+uniform vec4 u_col;
+out vec4 o;
+void main(){ o = u_col; }`;
+const bar = program(BAR_VS, FLAT_FS);
+const quad = new Float32Array([0,0, 1,0, 0,1, 1,1]);
+const quadBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf); gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+const barVao = gl.createVertexArray();
+gl.bindVertexArray(barVao);
+const aQ = gl.getAttribLocation(bar.p, 'a_q');
+gl.enableVertexAttribArray(aQ); gl.vertexAttribPointer(aQ, 2, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+
+// ---- plain metric lines (still water, crest origin tick) ------------------
+const LINE_VS = `#version 300 es
+precision highp float;
+uniform vec4 u_view;
+in vec2 a_p;
+void main(){ gl_Position = vec4((a_p.x - u_view.z)*u_view.x, (a_p.y - u_view.w)*u_view.y, 0.0, 1.0); }`;
+const line = program(LINE_VS, FLAT_FS);
+const lineBuf = gl.createBuffer();
+const lineVao = gl.createVertexArray();
+gl.bindVertexArray(lineVao);
+gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+const aP = gl.getAttribLocation(line.p, 'a_p');
+gl.enableVertexAttribArray(aP); gl.vertexAttribPointer(aP, 2, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+function drawLines(pts, view, col) {
+  gl.useProgram(line.p);
+  gl.uniform4fv(line.u.u_view, view);
+  gl.uniform4fv(line.u.u_col, col);
+  gl.bindVertexArray(lineVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pts), gl.DYNAMIC_DRAW);
+  gl.drawArrays(gl.LINES, 0, pts.length / 2);
+  gl.bindVertexArray(null);
+}
+
+// ---- readback pass: the GLSL evaluated into a float texture ---------------
+const PROBE_N = 129;
+const PROBE_VS = HEAD + `
+uniform float u_age, u_xi, u_hC, u_c;
+uniform int u_n;
+out vec4 v_out;
+void main(){
+  int i = gl_VertexID;
+  if (i < u_n) {
+    float u = float(i)/float(u_n - 1);
+    vec2 P = breakerProfile(u, u_age, u_xi, u_hC, u_c);
+    v_out = vec4(P, breakerProfileWeight(u_age, u_xi), u);
+  } else if (i == u_n) {
+    v_out = vec4(breakerProfileWeight(u_age, u_xi), bpReach(u_xi, u_hC, u_c),
+                 bpVortexRatio(u_xi), bpRoundness(u_xi));
+  } else {
+    v_out = vec4(bpFallTime(u_hC), bpPlunge(u_xi), bpThickness(0.0, u_xi, u_hC, u_c), 0.0);
+  }
+  float x = (float(i) + 0.5)/float(u_n + 2)*2.0 - 1.0;
+  gl_Position = vec4(x, 0.0, 0.0, 1.0);
+  gl_PointSize = 1.0;
+}`;
+const PROBE_FS = `#version 300 es
+precision highp float;
+in vec4 v_out;
+out vec4 o;
+void main(){ o = v_out; }`;
+let probe = null;
+if (floatExt) {
+  probe = program(PROBE_VS, PROBE_FS);
+  probe.tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, probe.tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, PROBE_N + 2, 1, 0, gl.RGBA, gl.FLOAT, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  probe.fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, probe.fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, probe.tex, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) probe = null;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  probe && (probe.vao = gl.createVertexArray());
+}
+function readProfile(age, xi, hC, c) {
+  if (!probe) return null;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, probe.fbo);
+  gl.viewport(0, 0, PROBE_N + 2, 1);
+  gl.disable(gl.SCISSOR_TEST);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(probe.p);
+  gl.uniform1f(probe.u.u_age, age); gl.uniform1f(probe.u.u_xi, xi);
+  gl.uniform1f(probe.u.u_hC, hC); gl.uniform1f(probe.u.u_c, c);
+  gl.uniform1i(probe.u.u_n, PROBE_N);
+  gl.bindVertexArray(probe.vao);
+  gl.drawArrays(gl.POINTS, 0, PROBE_N + 2);
+  gl.bindVertexArray(null);
+  const px = new Float32Array((PROBE_N + 2) * 4);
+  gl.readPixels(0, 0, PROBE_N + 2, 1, gl.RGBA, gl.FLOAT, px);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  const points = [];
+  for (let i = 0; i < PROBE_N; i++) points.push([px[i*4], px[i*4+1]]);
+  const m = PROBE_N * 4, k = (PROBE_N + 1) * 4;
+  return { points, weight: px[m], sL: px[m+1], vortexRatio: px[m+2], roundness: px[m+3],
+           fallTime: px[k], plunge: px[k+1], rootThickness: px[k+2], n: PROBE_N };
+}
+
+// ---- drawing one cell -----------------------------------------------------
+// view: metres -> clip for a viewport of (w, h) px covering s in [s0, s1], y in [y0, y1]
+function makeView(s0, s1, y0, y1) {
+  return [2 / (s1 - s0), 2 / (y1 - y0), (s0 + s1) / 2, (y0 + y1) / 2];
+}
+function drawProfile(age, xi, hC, c, view, alpha, pointSize) {
+  gl.useProgram(prof.p);
+  gl.uniform1f(prof.u.u_age, age); gl.uniform1f(prof.u.u_xi, xi);
+  gl.uniform1f(prof.u.u_hC, hC); gl.uniform1f(prof.u.u_c, c);
+  gl.uniform4fv(prof.u.u_view, view);
+  gl.uniform1f(prof.u.u_alpha, alpha);
+  gl.uniform1f(prof.u.u_pointSize, pointSize);
+  gl.uniform1f(prof.u.u_seamsOnly, 0);
+  gl.bindVertexArray(profVao);
+  gl.drawArrays(gl.LINE_STRIP, 0, N);
+  gl.drawArrays(gl.POINTS, 0, N);
+  gl.uniform1f(prof.u.u_seamsOnly, 1);
+  gl.uniform1f(prof.u.u_pointSize, pointSize * 3.2);
+  gl.drawArrays(gl.POINTS, 0, N);
+  gl.bindVertexArray(null);
+}
+function drawCell(x, y, w, h, age, xi, hC, c, view, withBar) {
+  gl.viewport(x, y, w, h);
+  gl.enable(gl.SCISSOR_TEST); gl.scissor(x, y, w, h);
+  gl.clearColor(0.028, 0.039, 0.055, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  const [sx, sy, ox, oy] = view;
+  const s0 = ox - 1 / sx, s1 = ox + 1 / sx, y0 = oy - 1 / sy, y1 = oy + 1 / sy;
+  // metre grid, still water, crest origin
+  const grid = [];
+  for (let s = Math.ceil(s0); s <= s1; s++) grid.push(s, y0, s, y1);
+  for (let yy = Math.ceil(y0); yy <= y1; yy++) grid.push(s0, yy, s1, yy);
+  drawLines(grid, view, [0.12, 0.16, 0.20, 1]);
+  drawLines([s0, 0, s1, 0], view, [0.35, 0.55, 0.75, 1]);              // still water
+  drawLines([0, y0, 0, y1], view, [0.45, 0.40, 0.25, 1]);              // crest source s = 0
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  drawProfile(0, xi, hC, c, view, 0.22, 1.5);                          // ghost at age 0
+  drawProfile(age, xi, hC, c, view, 1.0, 2.2);
+  gl.disable(gl.BLEND);
+  if (withBar) {
+    gl.useProgram(bar.p);
+    gl.uniform1f(bar.u.u_age, age); gl.uniform1f(bar.u.u_xi, xi);
+    gl.uniform4fv(bar.u.u_bar, [-0.96, -0.96, 0.6, 0.05]);
+    gl.uniform4fv(bar.u.u_col, [1.0, 0.85, 0.35, 1]);
+    gl.bindVertexArray(barVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
+  }
+  gl.disable(gl.SCISSOR_TEST);
+}
+
+// ---- modes -----------------------------------------------------------------
+const els = Object.fromEntries(['age', 'xi', 'hC', 'c'].map((k) => [k, document.getElementById(k)]));
+const vals = Object.fromEntries(['age', 'xi', 'hC', 'c'].map((k) => [k, document.getElementById('v_' + k)]));
+const state = { age: 0.3, xi: 1.15, hC: 3, c: 6, playing: false, t0: 0, age0: 0 };
+for (const k of ['xi', 'hC', 'c']) if (params.has(k)) state[k] = Number(params.get(k));
+if (params.has('age')) state.age = Number(params.get('age'));
+
+const SHEET_AGES = [0, 0.15, 0.30, 0.42, 0.55, 0.70, 1.0];
+const SHEET_XI = [0.3, 0.8, 1.5];
+const SHEET_XI_NAME = ['spilling', 'plunging', 'plunging, round'];
+
+function label(text, left, top, small) {
+  const d = document.createElement('div');
+  d.className = 'lbl' + (small ? ' small' : '');
+  d.textContent = text; d.style.left = left + 'px'; d.style.top = top + 'px';
+  stage.appendChild(d);
+  return d;
+}
+
+function renderSheet() {
+  document.documentElement.classList.add('sheet');
+  const hC = state.hC, c = state.c;
+  const cellW = 200, cellH = 125, rowBand = 158, headH = 54, leftPad = 0;
+  canvas.width = leftPad + cellW * SHEET_AGES.length;
+  canvas.height = headH + rowBand * SHEET_XI.length;
+  document.getElementById('title').textContent =
+    `breakerProfile(u, age, xi, hC = ${hC} m, c = ${c} m/s) - GLSL readback, physical metres, s in [-2, 6], y in [-1, 4]`;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.disable(gl.SCISSOR_TEST);
+  gl.clearColor(0.05, 0.07, 0.09, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  const view = makeView(-2, 6, -1, 4);
+  for (const el of [...stage.querySelectorAll('.lbl')]) el.remove();
+  SHEET_AGES.forEach((age, j) => {
+    const tag = age === 0.42 ? ' impact' : age === 0.7 ? ' release' : age === 0 ? ' pitch' : age === 1.0 ? ' bore' : '';
+    label(`age ${age.toFixed(2)} s${tag}`, leftPad + j * cellW + 8, 8);
+  });
+  SHEET_XI.forEach((xi, i) => {
+    const top = headH + i * rowBand;                    // CSS y from the top
+    const glY = canvas.height - top - rowBand;          // GL y from the bottom
+    const r = readProfile(0.42, xi, hC, c);
+    const vr = r ? ` VR ${r.vortexRatio.toFixed(2)} round ${r.roundness.toFixed(2)} sL ${r.sL.toFixed(2)} m = ${(r.sL / hC).toFixed(2)} hC` : '';
+    label(`xi ${xi.toFixed(1)} (${SHEET_XI_NAME[i]})${vr}`, leftPad + 8, top + 4);
+    SHEET_AGES.forEach((age, j) => {
+      drawCell(leftPad + j * cellW, glY, cellW, cellH, age, xi, hC, c, view, true);
+      const w = readProfile(age, xi, hC, c);
+      if (w) label(`w ${w.weight.toFixed(2)}`, leftPad + j * cellW + 8, top + rowBand - 20, true);
+    });
+  });
+  window.__tubeProfile.ready = true;
+}
+
+function renderExplorer() {
+  const { age, xi, hC, c } = state;
+  for (const k of ['age', 'xi', 'hC', 'c']) { els[k].value = state[k]; vals[k].textContent = Number(state[k]).toFixed(k === 'age' ? 3 : 2); }
+  // frame the family: from behind the back seam to a little past the longest landing
+  const sMax = Math.max(2.5 * hC, 1.0 * c * Math.sqrt(2 * hC / 9.81) + 0.5, 2);
+  const view = makeView(-0.8 * hC - 0.3, sMax, -0.35 * hC - 0.2, 1.25 * hC + 0.2);
+  drawCell(0, 0, canvas.width, canvas.height, age, xi, hC, c, view, true);
+  const r = readProfile(age, xi, hC, c);
+  const out = document.getElementById('readout');
+  if (r) {
+    const warp = r.fallTime / 0.42;
+    out.innerHTML = [
+      `weight <b>${r.weight.toFixed(3)}</b>`,
+      `landing sL <b>${r.sL.toFixed(2)} m</b> = ${(r.sL / hC).toFixed(2)} hC`,
+      `vortex ratio <b>${r.vortexRatio.toFixed(2)}</b> roundness ${r.roundness.toFixed(2)}`,
+      `plunge blend <b>${r.plunge.toFixed(2)}</b>`,
+      `free-fall time from hC <b>${r.fallTime.toFixed(2)} s</b> = ${warp.toFixed(2)} x the 0.42 s clock`,
+      `jet root thickness <b>${r.rootThickness.toFixed(2)} m</b>`,
+      `seam u=0 <b>(${r.points[0][0].toFixed(2)}, ${r.points[0][1].toFixed(2)})</b>`,
+      `seam u=1 <b>(${r.points[r.n - 1][0].toFixed(2)}, ${r.points[r.n - 1][1].toFixed(2)})</b>`,
+    ].map((s) => `<div>${s}</div>`).join('');
+  } else {
+    out.innerHTML = '<div>EXT_color_buffer_float unavailable: readouts off, drawing still live.</div>';
+  }
+}
+
+function tick(now) {
+  if (!state.playing) return;
+  // seconds clock: age advances in real seconds, wraps through the lifecycle
+  state.age = state.age0 + (now - state.t0) / 1000;
+  if (state.age > 1.2) { state.age0 = -0.2; state.t0 = now; state.age = -0.2; }
+  renderExplorer();
+  requestAnimationFrame(tick);
+}
+
+window.__tubeProfile = { ready: false, probe: readProfile, hasFloat: !!probe, N: PROBE_N };
+
+if (SHEET) {
+  renderSheet();
+} else {
+  for (const k of ['age', 'xi', 'hC', 'c']) {
+    els[k].addEventListener('input', () => { state[k] = Number(els[k].value); if (k === 'age') state.playing = false; renderExplorer(); });
+  }
+  document.getElementById('play').addEventListener('click', (e) => {
+    state.playing = !state.playing;
+    e.target.textContent = state.playing ? 'Pause' : 'Play';
+    if (state.playing) { state.t0 = performance.now(); state.age0 = state.age; requestAnimationFrame(tick); }
+  });
+  document.getElementById('reset').addEventListener('click', () => { state.playing = false; state.age = 0; renderExplorer(); });
+  renderExplorer();
+  window.__tubeProfile.ready = true;
+}
+</script>
+</body>
+</html>
