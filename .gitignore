@@ -127,3 +127,12 @@ qa/reef-fit/*
 qa/game-hack-2026-09-24/*
 !qa/game-hack-2026-09-24/*.jpg
 !qa/game-hack-2026-09-24/manifest.json
+
+# Lip-facet diagnosis (docs/research/LIP_FACETS_2026-09-24.md): the two contact
+# sheets (JPG q80) and the probe/manifest/diff JSON are the evidence; the
+# per-arm PNG frames (~15 MB) regenerate from scripts/capture_lip_facets_ab.mjs
+# and the sheet HTML only resolves against them.
+!qa/lip-facets-2026-09-24/
+qa/lip-facets-2026-09-24/*
+!qa/lip-facets-2026-09-24/*.json
+!qa/lip-facets-2026-09-24/sheet_*.jpg

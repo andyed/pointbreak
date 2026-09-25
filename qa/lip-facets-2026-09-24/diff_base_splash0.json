@@ -1,0 +1,44 @@
+{
+  "og_full": {
+    "w": 1280,
+    "h": 752,
+    "changed": 115,
+    "frac": 0.00011947307180851063,
+    "meanDelta": 19.956521739130434
+  },
+  "og_headA": {
+    "w": 300,
+    "h": 225,
+    "changed": 0,
+    "frac": 0,
+    "meanDelta": 0
+  },
+  "og_headB": {
+    "w": 300,
+    "h": 225,
+    "changed": 0,
+    "frac": 0,
+    "meanDelta": 0
+  },
+  "og_headC": {
+    "w": 300,
+    "h": 225,
+    "changed": 0,
+    "frac": 0,
+    "meanDelta": 0
+  },
+  "close_full": {
+    "w": 1000,
+    "h": 625,
+    "changed": 0,
+    "frac": 0,
+    "meanDelta": 0
+  },
+  "close_head": {
+    "w": 640,
+    "h": 320,
+    "changed": 0,
+    "frac": 0,
+    "meanDelta": 0
+  }
+}

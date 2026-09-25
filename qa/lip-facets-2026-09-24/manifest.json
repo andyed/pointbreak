@@ -1,0 +1,2361 @@
+{
+  "baseUrl": "http://127.0.0.1:8134",
+  "frames": {
+    "og_base": {
+      "pose": "og",
+      "arm": "base",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42",
+      "files": {
+        "full": "frames/og_base.png",
+        "headA": "frames/og_base_headA.png",
+        "headB": "frames/og_base_headB.png",
+        "headC": "frames/og_base_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_curl0": {
+      "pose": "og",
+      "arm": "curl0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&curl=0",
+      "files": {
+        "full": "frames/og_curl0.png",
+        "headA": "frames/og_curl0_headA.png",
+        "headB": "frames/og_curl0_headB.png",
+        "headC": "frames/og_curl0_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 0,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 0,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_curtain0": {
+      "pose": "og",
+      "arm": "curtain0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&curtain=0",
+      "files": {
+        "full": "frames/og_curtain0.png",
+        "headA": "frames/og_curtain0_headA.png",
+        "headB": "frames/og_curtain0_headB.png",
+        "headC": "frames/og_curtain0_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_lip0": {
+      "pose": "og",
+      "arm": "lip0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&lip=0",
+      "files": {
+        "full": "frames/og_lip0.png",
+        "headA": "frames/og_lip0_headA.png",
+        "headB": "frames/og_lip0_headB.png",
+        "headC": "frames/og_lip0_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 0,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 0,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_onset0": {
+      "pose": "og",
+      "arm": "onset0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&onset=0",
+      "files": {
+        "full": "frames/og_onset0.png",
+        "headA": "frames/og_onset0_headA.png",
+        "headB": "frames/og_onset0_headB.png",
+        "headC": "frames/og_onset0_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 0,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 0,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_fft0": {
+      "pose": "og",
+      "arm": "fft0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&fft=0",
+      "files": {
+        "full": "frames/og_fft0.png",
+        "headA": "frames/og_fft0_headA.png",
+        "headB": "frames/og_fft0_headB.png",
+        "headC": "frames/og_fft0_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 0,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 0,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_splash0": {
+      "pose": "og",
+      "arm": "splash0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&splash=0",
+      "files": {
+        "full": "frames/og_splash0.png",
+        "headA": "frames/og_splash0_headA.png",
+        "headB": "frames/og_splash0_headB.png",
+        "headC": "frames/og_splash0_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_classic1": {
+      "pose": "og",
+      "arm": "classic1",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&classic=1",
+      "files": {
+        "full": "frames/og_classic1.png",
+        "headA": "frames/og_classic1_headA.png",
+        "headB": "frames/og_classic1_headB.png",
+        "headC": "frames/og_classic1_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 1,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 1,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_lookfull": {
+      "pose": "og",
+      "arm": "lookfull",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&look=full",
+      "files": {
+        "full": "frames/og_lookfull.png",
+        "headA": "frames/og_lookfull_headA.png",
+        "headB": "frames/og_lookfull_headB.png",
+        "headC": "frames/og_lookfull_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 2,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 2,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_qmedium": {
+      "pose": "og",
+      "arm": "qmedium",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&cam=drone&sim=42&q=medium",
+      "files": {
+        "full": "frames/og_qmedium.png",
+        "headA": "frames/og_qmedium_headA.png",
+        "headB": "frames/og_qmedium_headB.png",
+        "headC": "frames/og_qmedium_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          2.071823204419889,
+          2.2977941176470584
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          2.071823204419889,
+          2.2977941176470584
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_qlow": {
+      "pose": "og",
+      "arm": "qlow",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&cam=drone&sim=42&q=low",
+      "files": {
+        "full": "frames/og_qlow.png",
+        "headA": "frames/og_qlow_headA.png",
+        "headB": "frames/og_qlow_headB.png",
+        "headC": "frames/og_qlow_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          2.9296875,
+          3.255208333333333
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          2.9296875,
+          3.255208333333333
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_qpotato": {
+      "pose": "og",
+      "arm": "qpotato",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&cam=drone&sim=42&q=potato",
+      "files": {
+        "full": "frames/og_qpotato.png",
+        "headA": "frames/og_qpotato_headA.png",
+        "headB": "frames/og_qpotato_headB.png",
+        "headC": "frames/og_qpotato_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          4.143646408839778,
+          4.595588235294117
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          4.143646408839778,
+          4.595588235294117
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_base": {
+      "pose": "close",
+      "arm": "base",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52",
+      "files": {
+        "full": "frames/close_base.png",
+        "head": "frames/close_base_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_curl0": {
+      "pose": "close",
+      "arm": "curl0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&curl=0",
+      "files": {
+        "full": "frames/close_curl0.png",
+        "head": "frames/close_curl0_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 0,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 0,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_curtain0": {
+      "pose": "close",
+      "arm": "curtain0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&curtain=0",
+      "files": {
+        "full": "frames/close_curtain0.png",
+        "head": "frames/close_curtain0_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_lip0": {
+      "pose": "close",
+      "arm": "lip0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&lip=0",
+      "files": {
+        "full": "frames/close_lip0.png",
+        "head": "frames/close_lip0_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 0,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 0,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_onset0": {
+      "pose": "close",
+      "arm": "onset0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&onset=0",
+      "files": {
+        "full": "frames/close_onset0.png",
+        "head": "frames/close_onset0_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 0,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 0,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_fft0": {
+      "pose": "close",
+      "arm": "fft0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&fft=0",
+      "files": {
+        "full": "frames/close_fft0.png",
+        "head": "frames/close_fft0_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 0,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 0,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_splash0": {
+      "pose": "close",
+      "arm": "splash0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&splash=0",
+      "files": {
+        "full": "frames/close_splash0.png",
+        "head": "frames/close_splash0_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_classic1": {
+      "pose": "close",
+      "arm": "classic1",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&classic=1",
+      "files": {
+        "full": "frames/close_classic1.png",
+        "head": "frames/close_classic1_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 1,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 1,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_lookfull": {
+      "pose": "close",
+      "arm": "lookfull",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&look=full",
+      "files": {
+        "full": "frames/close_lookfull.png",
+        "head": "frames/close_lookfull_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 2,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 2,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_qmedium": {
+      "pose": "close",
+      "arm": "qmedium",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&cam=free&sim=52&q=medium",
+      "files": {
+        "full": "frames/close_qmedium.png",
+        "head": "frames/close_qmedium_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          2.071823204419889,
+          2.2977941176470584
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          2.071823204419889,
+          2.2977941176470584
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_qlow": {
+      "pose": "close",
+      "arm": "qlow",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&cam=free&sim=52&q=low",
+      "files": {
+        "full": "frames/close_qlow.png",
+        "head": "frames/close_qlow_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          2.9296875,
+          3.255208333333333
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          2.9296875,
+          3.255208333333333
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_qpotato": {
+      "pose": "close",
+      "arm": "qpotato",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&cam=free&sim=52&q=potato",
+      "files": {
+        "full": "frames/close_qpotato.png",
+        "head": "frames/close_qpotato_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          4.143646408839778,
+          4.595588235294117
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          4.143646408839778,
+          4.595588235294117
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_dbgfacing": {
+      "pose": "og",
+      "arm": "dbgfacing",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&facetdebug=1",
+      "files": {
+        "full": "frames/og_dbgfacing.png",
+        "headA": "frames/og_dbgfacing_headA.png",
+        "headB": "frames/og_dbgfacing_headB.png",
+        "headC": "frames/og_dbgfacing_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_dbgnormal": {
+      "pose": "og",
+      "arm": "dbgnormal",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&facetdebug=2",
+      "files": {
+        "full": "frames/og_dbgnormal.png",
+        "headA": "frames/og_dbgnormal_headA.png",
+        "headB": "frames/og_dbgnormal_headB.png",
+        "headC": "frames/og_dbgnormal_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_dbgpaint": {
+      "pose": "og",
+      "arm": "dbgpaint",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&facetdebug=3",
+      "files": {
+        "full": "frames/og_dbgpaint.png",
+        "headA": "frames/og_dbgpaint_headA.png",
+        "headB": "frames/og_dbgpaint_headB.png",
+        "headC": "frames/og_dbgpaint_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_dbgfacing": {
+      "pose": "close",
+      "arm": "dbgfacing",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&facetdebug=1",
+      "files": {
+        "full": "frames/close_dbgfacing.png",
+        "head": "frames/close_dbgfacing_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_dbgnormal": {
+      "pose": "close",
+      "arm": "dbgnormal",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&facetdebug=2",
+      "files": {
+        "full": "frames/close_dbgnormal.png",
+        "head": "frames/close_dbgnormal_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_dbgpaint": {
+      "pose": "close",
+      "arm": "dbgpaint",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&facetdebug=3",
+      "files": {
+        "full": "frames/close_dbgpaint.png",
+        "head": "frames/close_dbgpaint_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_underside0": {
+      "pose": "og",
+      "arm": "underside0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&underside=0",
+      "files": {
+        "full": "frames/og_underside0.png",
+        "headA": "frames/og_underside0_headA.png",
+        "headB": "frames/og_underside0_headB.png",
+        "headC": "frames/og_underside0_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_underside0dbg": {
+      "pose": "og",
+      "arm": "underside0dbg",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&underside=0&facetdebug=1",
+      "files": {
+        "full": "frames/og_underside0dbg.png",
+        "headA": "frames/og_underside0dbg_headA.png",
+        "headB": "frames/og_underside0dbg_headB.png",
+        "headC": "frames/og_underside0dbg_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_lookfulldbg": {
+      "pose": "og",
+      "arm": "lookfulldbg",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&look=full&facetdebug=1",
+      "files": {
+        "full": "frames/og_lookfulldbg.png",
+        "headA": "frames/og_lookfulldbg_headA.png",
+        "headB": "frames/og_lookfulldbg_headB.png",
+        "headC": "frames/og_lookfulldbg_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 2,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 2,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "og_curl0dbg": {
+      "pose": "og",
+      "arm": "curl0dbg",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42&curl=0&facetdebug=1",
+      "files": {
+        "full": "frames/og_curl0dbg.png",
+        "headA": "frames/og_curl0dbg_headA.png",
+        "headB": "frames/og_curl0dbg_headB.png",
+        "headC": "frames/og_curl0dbg_headC.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 0,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 2
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 42,
+        "camStage": [
+          -48.699999999999896,
+          365,
+          -62.427528798259374
+        ],
+        "target": [
+          -48.69999999999991,
+          0,
+          -160.22898403561913
+        ],
+        "curl": 0,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_underside0": {
+      "pose": "close",
+      "arm": "underside0",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&underside=0",
+      "files": {
+        "full": "frames/close_underside0.png",
+        "head": "frames/close_underside0_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_underside0dbg": {
+      "pose": "close",
+      "arm": "underside0dbg",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&underside=0&facetdebug=1",
+      "files": {
+        "full": "frames/close_underside0dbg.png",
+        "head": "frames/close_underside0dbg_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_lookfulldbg": {
+      "pose": "close",
+      "arm": "lookfulldbg",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&look=full&facetdebug=1",
+      "files": {
+        "full": "frames/close_lookfulldbg.png",
+        "head": "frames/close_lookfulldbg_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 2,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 1,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 2,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    },
+    "close_curl0dbg": {
+      "pose": "close",
+      "arm": "curl0dbg",
+      "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=free&sim=52&curl=0&facetdebug=1",
+      "files": {
+        "full": "frames/close_curl0dbg.png",
+        "head": "frames/close_curl0dbg_head.png"
+      },
+      "probe1x": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 0,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errors": [],
+      "probeZoom": {
+        "preset": "sewers",
+        "sim": 52,
+        "camStage": [
+          11.999999999999993,
+          11.000000000000007,
+          -189.99999999999997
+        ],
+        "target": [
+          -51.99999999999999,
+          4,
+          -229
+        ],
+        "curl": 0,
+        "lipAer": 1,
+        "onset": 1,
+        "fft": 1,
+        "classic": 0,
+        "look": 0,
+        "cell": [
+          1.46484375,
+          1.6276041666666665
+        ],
+        "pixelRatio": 1
+      },
+      "errorsZoom": []
+    }
+  }
+}
