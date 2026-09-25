@@ -2622,6 +2622,238 @@ void main(){
 }
 `;
 
+// ---------- the impact plume (#crash=, 2026-09-24, default OFF) ----------
+// THE CRASH AS A BODY. After the curtain clears (0.72 s) the shipped frame has
+// nothing at the landing but the spray filaments and the grid's bore paint;
+// the thrown-mass sheet (SPLASHUP_VERT) exists only in a #roller build. A
+// crashing wave reads as: the jet hits the trough, a white plume erupts
+// forward and up (briefly above lip height), then collapses into the tumbling
+// bore that outruns the face. This is that plume as a VOLUME: an instanced
+// cluster of large, lit, noise-eroded puffs (metres, sized off h_crest — not
+// pixel sprites) whose centres are distributed along an ARCH from the drawn
+// LIP forward and down to the jet's CONTACT point on the face ahead, humped
+// outward along the face normal, spread sideways along the line, rising on
+// the eruption and settling onto the face as it collapses. Two ribbon cuts
+// (a dome on the landing, then a lip->contact sheet) were rejected on opened
+// frames: both read as a translucent sail — a sheet has no thickness from any
+// camera. Puffs do. The cotton-ball critique of the old spray was about small
+// solid-core circular sprites; these are h_crest-scale bodies with eroded
+// edges, a sphere-normal Lambert (lit top, shadowed underside), and a shared
+// silhouette, which is what a splash-up looks like in the field crop.
+//
+// WHERE (measured, not assumed — docs/research/CRASH_PLUME_2026-09-24.md).
+// The first cut stood on surfacePos at the shared landing zL. On the GPU
+// transect at Sewers x=-52 that source point is drawn at y 7.8-10 m, BEHIND
+// the lip's forward-most drawn point (the fold puts source z -242..-230 at
+// drawn z -230..-237), so it rose off the crest's back — LIP_DESCENT's "the
+// receiving face can be above or behind the lip" seen again. The arch runs:
+//   lip     = surfacePos at the crest source nearest the break line —
+//             CURTAIN_VERT's own Ptip construction, so the plume erupts from
+//             the lip the curtain hangs off;
+//   contact = surfacePos at zc + PLUME_REACH_HC*h_crest, zc the crest source
+//             at impact (breakerLandingFrameAt.w). 1.9 crest heights from the
+//             crest source is where the transect puts the face 3 m ahead of
+//             and ~4.6 m below the lip; the descent experiment's full-plunge
+//             receiver is 1.6. AUTHORED, in the wave's own length.
+// The plume decides nothing about where or when the wave breaks: locus,
+// ceiling, clock and strength are impactLandingAt / breakerLandingFrameAt.
+//
+// CLOCK. tauD = seconds since THIS station's landing (impact at CRASH_PEAK_S on
+// the lifecycle clock): erupt over PLUME_RISE_S, hold, collapse onto the
+// lip->contact chord and hand off to the grid's bore by PLUME_END_S. Authored
+// SECONDS (rate independence); no accumulated state, so speed=0, seeks and
+// filmsheets are exact. The shared clock is untouched — the field bracket
+// (FIELD_WAVE_MOTION 2026-09-15: curtain -> broad plume in 0.23-0.70 s, merged
+// whitewater ~0.7-0.9 s after the curtain) is reconciled against
+// CRASH_PEAK_S / 0.72 s in the note, not by moving a model constant.
+//
+// ALONG THE LINE. One station's clock lights ~Vp x 0.9 s of line, ~4.5 m at
+// Sewers (measured): a fin. The field plume is ~3 face heights wide (8 frames,
+// 2026-09-24 field crop). Thrown mass spreads sideways, so each puff flies
+// up to PLUME_SPREAD_HC crest heights along the line from the station whose
+// clock it is on — the spread is a fraction of the ceiling, not a metre
+// constant, and the clock and landing remain the station's own.
+//
+// SIZE. Peak hump is PLUME_OVER x splashUpPeakM(hC) (0.70 of the ceiling, the
+// number the bend/curtain/splash-up size off) outward from the chord midpoint,
+// which at Sewers puts the top about a quarter ceiling over the lip — the
+// field plume tops out at the crest line (+/-5%) from a lower camera. Puff
+// radii are fractions of hC.
+//
+// BUILD. Compiled ONLY under ROLLER, because impactLandingAt/splashUpPeakM
+// live under #ifdef ROLLER in the model and this project does not edit the
+// shared model for a flag. main.js builds this mesh with its OWN material
+// (defines ROLLER, u_roller aliased to u_crash), so the grid shader text and
+// the default frame are untouched by construction — the same
+// separate-material route the splash-up took. In a plain build the mesh is
+// never created (see main.js plume block).
+export const PLUME_VERT = `
+attribute vec4 aPuff;    // (station x0 [m], arch parameter s in [0,1], r1, r2)
+attribute vec4 aPuff2;   // (r3, r4, r5, r6) uniform randoms
+${SURFACE_PRELUDE}
+${SURFACE_GLSL}
+varying float vPlA;      // puff alpha (landing strength x life window x spread)
+varying vec2  vPlUV;     // quad corner in [-1,1], rotated
+varying vec3  vPlSeed;   // (noise offset x, noise offset y, life 0..1)
+varying vec3  vPlSunV;   // sun direction in view space, for the sphere Lambert
+
+const float PLUME_RISE_S    = 0.28;   // impact -> full height (eruption)
+const float PLUME_HOLD_S    = 0.45;   // collapse begins
+const float PLUME_END_S     = 0.90;   // gone; the bore owns the whitewater from here
+const float PLUME_OVER      = 1.00;   // hump / splashUpPeakM(hC) outward from the lip->contact chord
+const float PLUME_REACH_HC  = 1.90;   // contact: crest heights ahead of the crest source at impact
+const float PLUME_SPREAD_HC = 1.40;   // alongshore reach of thrown mass, crest heights
+// Same sun the water is lit by (SKY_GLSL sunDir; not spliced here — change both together).
+const vec3  PLUME_SUN = normalize(vec3(-0.45, 0.42, -0.28));
+
+// Life envelope of one station's landing: (height factor, life 0..1, alpha gate).
+vec3 plumeEnvelope(float tauD, float strength){
+  float rise = smoothstep(0.0, PLUME_RISE_S, tauD);
+  rise = rise*(2.0 - rise);                       // ease-out eruption
+  float fall = 1.0 - smoothstep(PLUME_HOLD_S, PLUME_END_S, tauD);
+  float life = clamp(tauD/PLUME_END_S, 0.0, 1.0);
+  float inWin = (tauD > 0.0 && tauD < PLUME_END_S) ? 1.0 : 0.0;
+  float gate = clamp(strength*1.6, 0.0, 1.0) * inWin
+             * smoothstep(0.0, 0.04, tauD) * (1.0 - smoothstep(0.60*PLUME_END_S, PLUME_END_S, tauD));
+  return vec3(rise*fall*inWin, life, gate);
+}
+
+void main(){
+#ifdef ROLLER
+  float x0 = aPuff.x;
+  float s  = clamp(aPuff.y, 0.0, 1.0);
+  vec4  land  = impactLandingAt(x0, u_time);            // zL, hC, tauD, strength
+  vec3  env   = plumeEnvelope(land.z, land.w);
+  vPlSunV = normalize(mat3(modelViewMatrix)*PLUME_SUN);
+  // Quad corner from the vertex id (index 0,1,2,0,2,3 -> corners of a unit
+  // square), NOT the position attribute: under headless ANGLE/Metal the
+  // instanced draw read the position attribute as zero (measured 2026-09-24 — the spray's
+  // identical recipe drew zero-area quads in the same rig), which is where
+  // capture evidence comes from. gl_VertexID is WebGL2, which three.js
+  // compiles every ShaderMaterial for here.
+  vec2 corner0 = vec2((gl_VertexID == 1 || gl_VertexID == 2) ? 1.0 : -1.0, (gl_VertexID >= 2) ? 1.0 : -1.0);
+  vPlUV   = corner0;
+  vPlSeed = vec3(aPuff2.x*37.0, aPuff2.y*53.0, env.y);
+  if (env.z <= 0.0) {                                   // dead station: no surface work, off-screen
+    vPlA = 0.0;
+    gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+    return;
+  }
+  vec4  frame = breakerLandingFrameAt(x0, u_time);      // zL, hC, tauD, zc at impact
+  float hC = land.y;
+  float life = env.y;
+
+  // The live lip — CURTAIN_VERT's tip construction (crest source nearest the
+  // break line) — and the contact point ahead of it.
+  float zb     = breakLine(x0);
+  float w      = 2.0*PI/u_T;
+  float kk     = kLocalAt(vec2(x0, zb));
+  float thetaB = w*u_time - rayPhase(vec2(x0, zb));
+  float thetaW = mod(thetaB + PI, 2.0*PI) - PI;
+  float kz     = max(kk*cos(swellPhi()), 0.25*kk);
+  float zcNow  = zb + thetaW/kz;
+  float f1, p1, b1, c1, l1, a1, k1;
+  vec3  Plip = surfacePos(vec2(x0, zcNow), u_time, f1, p1, b1, c1, l1, a1, k1);
+  float f2, p2, b2, c2, l2, a2, k2;
+  vec3  Pcon = surfacePos(vec2(x0, frame.w + PLUME_REACH_HC*hC), u_time, f2, p2, b2, c2, l2, a2, k2);
+
+  // Hump direction: the outward normal of the lip->contact chord in the
+  // (y, z) plane — up AND SHOREWARD, the jet's momentum. A steep face throws
+  // the plume forward more than up; a flat chord throws it straight up.
+  vec3 chord = Pcon - Plip;
+  vec2 nYZ = vec2(chord.z, -chord.y);
+  nYZ = length(nYZ) > 1e-3 ? normalize(nYZ) : vec2(1.0, 0.0);
+  if (nYZ.x < 0.0) nYZ = -nYZ;
+  vec3 hump = vec3(0.0, nYZ.x, nYZ.y);
+
+  // The mass moves: puffs slide toward the contact and beyond as the plume
+  // collapses into the bore (s advances with life), and the whole cluster
+  // erupts outward with the envelope and settles back onto the chord.
+  float sE   = clamp(s + 0.30*life*life, 0.0, 1.15);
+  float dome = pow(max(1.0 - (2.0*sE - 1.0)*(2.0*sE - 1.0), 0.0), 0.65);
+  float rag  = 0.72 + 0.28*(0.6*vnoise2(vec2(x0*0.35, u_time*1.3))
+                          + 0.4*vnoise2(vec2(x0*1.10 + 7.0, u_time*2.1)));
+  float H    = PLUME_OVER*splashUpPeakM(hC)*env.x*rag;
+  // Radial position inside the body: r3 spreads puffs between the chord and
+  // the hump (denser toward the surface), r4 along the line.
+  float radial = 0.25 + 0.95*aPuff2.z;
+  float bulge  = H*dome*radial;
+  float spread = (aPuff2.w - 0.5)*2.0*PLUME_SPREAD_HC*hC*(0.35 + 0.65*env.x)*(0.6 + 0.4*dome);
+  vec3 C = Plip + chord*sE + hump*bulge + vec3(spread, 0.0, 0.0);
+  // a little tumble: each puff wobbles on its own phase, in seconds
+  C += hump*0.12*hC*sin(u_time*2.3 + aPuff.z*6.2831) * env.x
+     + vec3(0.0, 0.0, 0.10*hC*sin(u_time*1.7 + aPuff.w*6.2831)) * env.x;
+
+  // Puff radius in metres: a fraction of the ceiling, bigger at the body's
+  // heart, growing with the eruption, thinning as it collapses.
+  float heart  = 1.0 - 0.5*abs(2.0*sE - 1.0);
+  float radius = hC*(0.16 + 0.20*aPuff.z)*(0.45 + 0.55*heart)*(0.55 + 0.45*env.x)*(1.0 - 0.35*life*life);
+
+  // Visibility: the landing's strength x life window, thinner far along the
+  // line and beyond the contact, and never over dry land.
+  float along = 1.0 - smoothstep(0.55, 1.0, abs(aPuff2.w - 0.5)*2.0);
+  float gate  = env.z * (1.0 - l1) * (1.0 - l2) * farFadeAt(vec2(x0, land.x))
+              * (0.55 + 0.45*along) * (1.0 - smoothstep(1.0, 1.15, sE));
+  if (!(C.x == C.x && C.y == C.y && C.z == C.z)) { C = Pcon; gate = 0.0; }   // NaN guard (house rule)
+  if (!(gate == gate) || !(radius == radius)) { gate = 0.0; radius = 0.0; }
+
+  // Billboard in view space, rotated per puff so the erosion is not aligned.
+  float ang = aPuff.w*6.2831;
+  vec2  rot = vec2(cos(ang), sin(ang));
+  vec2  corner = vec2(corner0.x*rot.x - corner0.y*rot.y, corner0.x*rot.y + corner0.y*rot.x);
+  vec4  mv = modelViewMatrix*vec4(C, 1.0);
+  mv.xy += corner*radius;
+  vPlA = gate;
+  gl_Position = projectionMatrix*mv;
+#else
+  vPlA = 0.0; vPlUV = vec2(0.0); vPlSeed = vec3(0.0); vPlSunV = vec3(0.0, 1.0, 0.0);
+  gl_Position = vec4(0.0, 0.0, 2.0, 1.0);   // off-screen: a non-ROLLER compile draws nothing
+#endif
+}
+`;
+
+// Freshly aerated mass: each puff is a lit body — sphere-normal Lambert with
+// the water's own floor (GRID_FRAG lamL = 0.42 + 0.58*N.sun), so tops read
+// white and undersides grey-blue — with a boiling two-octave erosion of its
+// edge that advances as the plume collapses, so the cluster frays into spray
+// instead of staying a set of discs. Simulation clock throughout.
+export const PLUME_FRAG = `
+varying float vPlA;
+varying vec2  vPlUV;
+varying vec3  vPlSeed;
+varying vec3  vPlSunV;
+uniform float u_time;
+
+float phash21(vec2 p){ vec3 q = fract(vec3(p.xyx)*0.1031); q += dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+float pnoise2(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f*f*(3.0 - 2.0*f);
+  return mix(mix(phash21(i), phash21(i + vec2(1.0, 0.0)), u.x),
+             mix(phash21(i + vec2(0.0, 1.0)), phash21(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+void main(){
+  vec2  q  = vPlUV;
+  float rr = length(q);
+  if (rr > 1.0) discard;
+  float life = vPlSeed.z;
+  vec2  o = vPlSeed.xy;
+  float boil = pnoise2(q*2.4 + o + vec2(0.0, -u_time*0.9))*0.6
+             + pnoise2(q*5.5 + o*1.7 + vec2(u_time*0.6, 0.0))*0.4;
+  // Eroded edge: the rim thins where the boil is thin, deeper as it collapses.
+  float edgeAt = mix(0.62, 0.30, life);
+  float edge = 1.0 - smoothstep(edgeAt, 1.0, rr*(0.80 + 0.45*boil));
+  float alpha = vPlA * edge * (0.82 + 0.18*boil);
+  if (alpha < 0.02) discard;
+  vec3  N = vec3(q.x, q.y, sqrt(max(1.0 - rr*rr, 0.0)));
+  float lam = 0.42 + 0.58*clamp(dot(N, normalize(vPlSunV)), 0.0, 1.0);
+  vec3 lit    = vec3(0.985, 0.99, 1.0);
+  vec3 shadow = vec3(0.60, 0.68, 0.74);
+  vec3 col = mix(shadow, lit, clamp(lam*(0.80 + 0.30*boil), 0.0, 1.0));
+  gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.96));
+}
+`;
+
 export const SPRAY_FRAG = `
 varying float vSprayAlpha;
 varying float vSprayShade;

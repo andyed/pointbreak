@@ -1,0 +1,208 @@
+{
+  "source_sha256": "11428e3fa283bea0834c724c7a6c79d6bb6b506ae9e0885525d43ee08e962695",
+  "fps": 30,
+  "frames": [
+    344,
+    351,
+    358,
+    365,
+    372,
+    379,
+    386,
+    393
+  ],
+  "crop_xyxy": [
+    560,
+    690,
+    1060,
+    840
+  ],
+  "band_x": [
+    660,
+    800
+  ],
+  "rows": [
+    700,
+    830
+  ],
+  "plume_luma": 175,
+  "face_dark": 112,
+  "manual": {
+    "crest_row": 749,
+    "foam_boundary_row": 797,
+    "events": {
+      "344": {
+        "state": "unbroken face, lip feathering",
+        "plume_top_row": null,
+        "extent_x": null
+      },
+      "351": {
+        "state": "lip feathering / first curtain",
+        "plume_top_row": null,
+        "extent_x": null
+      },
+      "358": {
+        "state": "distinct curtain to row ~770 at x 700-790",
+        "plume_top_row": null,
+        "extent_x": [
+          700,
+          790
+        ]
+      },
+      "365": {
+        "state": "plume onset: white mass x 660-780, rows 752-782",
+        "plume_top_row": 752,
+        "extent_x": [
+          660,
+          780
+        ]
+      },
+      "372": {
+        "state": "broad plume, top at the crest line",
+        "plume_top_row": 749,
+        "extent_x": [
+          650,
+          800
+        ]
+      },
+      "379": {
+        "state": "tumbling whitewater, merging",
+        "plume_top_row": 751,
+        "extent_x": [
+          640,
+          850
+        ]
+      },
+      "386": {
+        "state": "merged whitewater line, top ~752",
+        "plume_top_row": 752,
+        "extent_x": [
+          640,
+          1000
+        ]
+      },
+      "393": {
+        "state": "whitewater line",
+        "plume_top_row": 753,
+        "extent_x": [
+          640,
+          1000
+        ]
+      }
+    }
+  },
+  "face_px_manual": 48,
+  "automatic": [
+    {
+      "frame": 344,
+      "clean_s": 11.467,
+      "file": "frame_344_11.467s.jpg",
+      "bright_top_row_p90": 809,
+      "bright_rows_p90": 21,
+      "crest_row_auto": 700,
+      "band_p90_max": 202.1999969482422,
+      "band_med_min": 46.0
+    },
+    {
+      "frame": 351,
+      "clean_s": 11.7,
+      "file": "frame_351_11.700s.jpg",
+      "bright_top_row_p90": 809,
+      "bright_rows_p90": 21,
+      "crest_row_auto": 701,
+      "band_p90_max": 208.10000610351562,
+      "band_med_min": 57.0
+    },
+    {
+      "frame": 358,
+      "clean_s": 11.933,
+      "file": "frame_358_11.933s.jpg",
+      "bright_top_row_p90": 810,
+      "bright_rows_p90": 20,
+      "crest_row_auto": 702,
+      "band_p90_max": 214.0,
+      "band_med_min": 53.0
+    },
+    {
+      "frame": 365,
+      "clean_s": 12.167,
+      "file": "frame_365_12.167s.jpg",
+      "bright_top_row_p90": 762,
+      "bright_rows_p90": 27,
+      "crest_row_auto": 703,
+      "band_p90_max": 204.10000610351562,
+      "band_med_min": 58.0
+    },
+    {
+      "frame": 372,
+      "clean_s": 12.4,
+      "file": "frame_372_12.400s.jpg",
+      "bright_top_row_p90": 755,
+      "bright_rows_p90": 40,
+      "crest_row_auto": 703,
+      "band_p90_max": 210.10000610351562,
+      "band_med_min": 79.0
+    },
+    {
+      "frame": 379,
+      "clean_s": 12.633,
+      "file": "frame_379_12.633s.jpg",
+      "bright_top_row_p90": 753,
+      "bright_rows_p90": 55,
+      "crest_row_auto": 704,
+      "band_p90_max": 207.39999389648438,
+      "band_med_min": 92.0
+    },
+    {
+      "frame": 386,
+      "clean_s": 12.867,
+      "file": "frame_386_12.867s.jpg",
+      "bright_top_row_p90": 758,
+      "bright_rows_p90": 52,
+      "crest_row_auto": 706,
+      "band_p90_max": 211.0,
+      "band_med_min": 93.0
+    },
+    {
+      "frame": 393,
+      "clean_s": 13.1,
+      "file": "frame_393_13.100s.jpg",
+      "bright_top_row_p90": 759,
+      "bright_rows_p90": 52,
+      "crest_row_auto": 706,
+      "band_p90_max": 212.0,
+      "band_med_min": 95.0
+    }
+  ],
+  "ratios": {
+    "face_px": 48,
+    "plume_top_over_face_372": 1.0,
+    "plume_top_over_face_365": 0.938,
+    "whitewater_top_over_face_386": 0.938,
+    "plume_top_vs_crest_372_faces": 0.0,
+    "plume_width_over_face_372": 3.125,
+    "plume_width_over_face_365": 2.5,
+    "curtain_depth_over_face_358": 0.438,
+    "curtain_to_plume_frames": [
+      7,
+      14
+    ],
+    "curtain_to_plume_s": [
+      0.233,
+      0.467
+    ],
+    "plume_to_merged_frames": [
+      7,
+      14
+    ],
+    "plume_to_merged_s": [
+      0.233,
+      0.467
+    ],
+    "distinct_plume_frames": [
+      7,
+      14
+    ]
+  },
+  "total_jpeg_bytes": 82585
+}
