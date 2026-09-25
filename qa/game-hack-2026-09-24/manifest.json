@@ -1,0 +1,90 @@
+[
+  {
+    "cam": [
+      -47.58,
+      2.48,
+      4.72
+    ],
+    "t": 21.4,
+    "tag": "feather",
+    "name": "pocket_21p4_feather.jpg",
+    "sim": 21.4
+  },
+  {
+    "cam": [
+      -37.94,
+      2.48,
+      3
+    ],
+    "t": 22.6,
+    "tag": "pitch",
+    "name": "pocket_22p6_pitch.jpg",
+    "sim": 22.6
+  },
+  {
+    "cam": [
+      -27.96,
+      2.48,
+      1.21
+    ],
+    "t": 23.8,
+    "tag": "tube",
+    "name": "pocket_23p8_tube.jpg",
+    "sim": 23.8
+  },
+  {
+    "cam": [
+      -17.93,
+      2.48,
+      -0.6
+    ],
+    "t": 25,
+    "tag": "impact",
+    "name": "pocket_25_impact.jpg",
+    "sim": 25
+  },
+  {
+    "cam": [
+      -4.52,
+      2.48,
+      -2.93
+    ],
+    "t": 26.6,
+    "tag": "plume",
+    "name": "pocket_26p6_plume.jpg",
+    "sim": 26.6
+  },
+  {
+    "cam": [
+      22.8,
+      2.48,
+      -8.55
+    ],
+    "t": 29.9,
+    "tag": "whitewater",
+    "name": "pocket_29p9_whitewater.jpg",
+    "sim": 29.9
+  },
+  {
+    "cam": [
+      -40,
+      9.5,
+      -63
+    ],
+    "t": 25,
+    "tag": "lineup",
+    "name": "cliff_25_lineup.jpg",
+    "sim": 25
+  },
+  {
+    "cam": [
+      -40,
+      9.5,
+      -63
+    ],
+    "t": 29.9,
+    "tag": "lineup-late",
+    "name": "cliff_29p9_lineup-late.jpg",
+    "sim": 29.9
+  }
+]

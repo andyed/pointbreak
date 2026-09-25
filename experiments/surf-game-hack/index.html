@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>surf-game-hack — the one-shot counterfactual</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #8a949c; overflow: hidden; }
+  canvas { display: block; }
+  /* HUD: white on a 70%-black plate. Over the brightest sky pixel (#d0d6da)
+     the plate composites to ~#3e4041, and #fff on that is 10.7:1 — clears the
+     8:1 floor even in the worst case. */
+  #hud {
+    position: fixed; left: 12px; top: 12px; padding: 8px 10px;
+    font: 12px/1.45 ui-monospace, Menlo, monospace; color: #fff;
+    background: rgba(0,0,0,0.7); border-radius: 4px; white-space: pre;
+    pointer-events: none; user-select: none;
+  }
+  #hud.hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="hud"></div>
+<script type="module" src="./hack.js"></script>
+</body>
+</html>

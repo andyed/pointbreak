@@ -118,3 +118,12 @@ qa/size-headroom/*
 qa/reef-fit/*
 !qa/reef-fit/score.*.json
 !qa/reef-fit/fit.*.json
+# Surf-game counterfactual (experiments/surf-game-hack/capture.mjs). The eight
+# frames ARE the evidence GAME_HACK_COUNTERFACTUAL_2026-09-24.md judges — a
+# jury compares them against the modelled curl at the eye — and regenerating
+# them needs Playwright plus a GPU browser, so the 200 KB of JPEGs and the
+# clock/camera manifest are committed; anything else the rig drops there is not.
+!qa/game-hack-2026-09-24/
+qa/game-hack-2026-09-24/*
+!qa/game-hack-2026-09-24/*.jpg
+!qa/game-hack-2026-09-24/manifest.json
