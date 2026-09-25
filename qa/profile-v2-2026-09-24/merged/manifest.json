@@ -1,0 +1,112 @@
+{
+  "baseUrl": "http://127.0.0.1:8142",
+  "viewport": [
+    1000,
+    625
+  ],
+  "sims": [
+    48,
+    52
+  ],
+  "jpegQuality": 80,
+  "frames": [
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 48,
+      "file": "sewers_close_tubeclassic_48.jpg",
+      "bytes": 27910,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 52,
+      "file": "sewers_close_tubeclassic_52.jpg",
+      "bytes": 28001,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "tubeclassic",
+      "sim": 48,
+      "file": "diag_downline_tubeclassic_48.jpg",
+      "bytes": 18286,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "tubeclassic",
+      "sim": 52,
+      "file": "diag_downline_tubeclassic_52.jpg",
+      "bytes": 20616,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    }
+  ],
+  "cameraDriftM": {},
+  "totalBytes": 94813
+}

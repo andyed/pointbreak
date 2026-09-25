@@ -235,6 +235,20 @@ defect.
 
 ![v2, 52 s, full frame](assets/breaker-profile-v2-2026-09-24/sewers-close-v2-tubeclassic-52.jpg)
 
+The frames above are the glass ribbon: they were captured before Track H's
+aerated material landed on main (on the merged tree they are the
+`&tubelook=0` arm). After merging main the same rig was run once more, so
+"what the 52 s frame shows now" is the v2 section under Track H's material:
+
+![merged: v2 section, aerated ribbon, 52 s head crop](assets/breaker-profile-v2-2026-09-24/head-crop-merged-tubeclassic-52.jpg)
+
+Having opened it: the arc is the same v2 roof — two edges from the crest to
+the landing — now grey-white and aerated instead of teal glass, over a pale
+interior; the glass arm's hard-edged panel is gone under the whitening, and
+the shipped spray's strokes stand above the crest (Track I1's cull fix). The
+interior is uniformly pale rather than dark-ahead-of-the-front and
+white-behind-it, which is §5.3.
+
 At **50 s** the head is young and the ribbon is a short glassy sliver at the
 crest, as in v1. At **54 and 56 s** the head has run past this fixed camera:
 the frames show the broken bore in the foreground and the head at or beyond
@@ -255,17 +269,27 @@ horizon — because every station from impact to release keeps its roof at the
 crest instead of handing its upper edge down to the foot. It is a roof along
 the line, which is what was asked for; it is a shallow one, because the
 cavity under it (0.63 hC by the vertical measure at Sewers) is drawn at the
-default arm's compressed reach in this pose.
+default arm's compressed reach in this pose. On the merged tree
+(`downline-merged-tubeclassic-48.jpg`, opened) the same ledge is whiter under
+Track H's material, with a thin teal underside line and spray above the
+crest.
 
 **`#tube=1` alone** (default landing) is unchanged in kind: the small teal
 wedge at the head, 0.35–0.5 hC of drawn reach, as Track B measured. The
 profile's reach fell but the mesh stretches it to the same D.
 
-**Second Peak, Lookout, field day** (`day=big&h0=1.4&tide=0.732`): on/off
-frames at 42–52 s are three parallel glassy walls with a distant break at the
-far right, the jury's finding unchanged. Nothing breaks near the camera, so
-no arm can be judged at the site. The ten frames were captured (0.35 MB) and
-are not committed; the ribbon's weight there is ≤ 0.16 by the shared ramp.
+**Second Peak, Lookout, "field day"** (`day=big&h0=1.4&tide=0.732`): on/off
+frames at 42–52 s are three parallel glassy walls with a small break at the
+far right — the jury's frame. Track J
+([SECONDPEAK_FIELDDAY_2026-09-24.md](SECONDPEAK_FIELDDAY_2026-09-24.md), landed
+while this track ran) shows why that frame says nothing about the site:
+`cam=lookout` is the absolute 38th Ave pose, 478 m from the Second Peak node,
+so the walls are Jack's water off the reef window and the Second Peak line
+is the 4 px break at the right edge; the forcing is the morning loop's, not
+the clip's. This rig inherited the jury's hash and the same fault. The ten
+frames were captured (0.35 MB) and are not committed; the arm to judge the
+ribbon at Second Peak is the one Track J names (`cam=cliff` at the clip's
+forcing), where the profile's weight is ≤ 0.16 by the shared ramp.
 
 ## 5. Receiver contract for the mesh (Track B; not edited here)
 
@@ -289,11 +313,18 @@ are not committed; the ribbon's weight there is ≤ 0.16 by the shared ramp.
    trailing edge left the crest. v2's root never leaves the crest, so the
    release should go; with it, the u = 0 row can drift off `surfacePos` after
    0.42 s.
-3. **Fade the face leg where the lens has closed.** `bpFaceClosure(u, age)`
-   (new, in the spliced text) is 1 where the face leg coincides with the
-   underside. Multiply the face leg's alpha by `1 − bpFaceClosure(u, age)`,
-   or use it to hold the interior shading, so the collapsed lens is not drawn
-   as a pale panel (the 52 s crop).
+3. **Key the face leg's material on the closure, not the clock.** Track H
+   ([TUBE_LOOK_2026-09-24.md](TUBE_LOOK_2026-09-24.md), landed while this
+   track ran) whitens the whole face leg as the collapsing bore over
+   `smoothstep(0.40, 0.60, age)` and keeps the cavity green-black while the
+   lip is in the air. With v2 the face leg *is* the bore exactly where it has
+   risen onto the underside and still the cavity's wall where it has not, and
+   `bpFaceClosure(u, age)` (new, in the spliced text) is that fraction per
+   vertex: 1 where the face leg coincides with the underside, 0 where the
+   lens is open. Using it in place of the age window puts the bore's white
+   behind the front and the cavity's dark ahead of it, at every station, and
+   removes the pale panel the glass arm draws over the collapsed lens (the
+   52 s crop).
 4. **`scripts/probe_tube.mjs`** asserts the profile's landing inside
    [0.9, 1.6] hC (line 189) and will fail on v2 at every station; it should
    assert `landRatio` equals `bpReach/hC` instead. Its cavity floor
@@ -302,7 +333,15 @@ are not committed; the ribbon's weight there is ≤ 0.16 by the shared ramp.
 5. **The grid's carve** under TUBE (`1.03 − 1.4·√(dzC/hC)` ahead of the crest
    phase) opens the cavity over ~4 m; with the landing at 0.75 hC·VIS its
    extent should follow `bpReach` too, or the carve outruns the ribbon.
-6. **Unchanged:** `breakerProfileWeight` (so the ribbon's gate, the grid's
+6. **The plume moved with the reach.** Track I1
+   ([CRASH_DRAW_2026-09-24.md](CRASH_DRAW_2026-09-24.md)) anchors the
+   `#crash=1` plume's contact at the drawn lip plus `bpReach(xi, hC/VIS, c)`
+   along the sweep axis, floored at `PLUME_REACH_MIN_HC`. That anchor now
+   reads 0.75 hC at Sewers and 0.12 hC at Second Peak instead of 1.50 and
+   0.24, so the plume stands where the v2 lip lands — forward and close, which
+   is where the field puts it (CURL_TRUTH §1.3). `scripts/probe_crash.mjs`
+   should be re-run to confirm the contact against the drawn lip.
+7. **Unchanged:** `breakerProfileWeight` (so the ribbon's gate, the grid's
    handover `tubeChar` and the lip-aeration key all read as before), both
    seams' positions, the leg boundaries `BP_U_*`, and the `BP_` constants
    mirroring the model.
@@ -329,8 +368,11 @@ are not committed; the ribbon's weight there is ≤ 0.16 by the shared ramp.
   the underside at its backward fold and asserts on area, not gap.
 - The sheet's cells are isotropic (30 px/m) so the lens reads at its true
   aspect; v1's sheet was also isotropic but at a wider window.
-- Nothing here changes what happens at Second Peak on the field day: nothing
-  breaks there (CURL_JURY §1), and the site test still cannot be run.
+- The site test has not been run on this family: the Lookout frames here
+  stand at 38th Ave (Track J, above), and the Sewers frames are a plunging
+  card, not the footage's spot. Judging the v2 section against the clip means
+  `#preset=secondpeak&cam=cliff` at the clip's forcing, 52–56 s, with a
+  camera that keeps the head in frame.
 
 ## 7. Verification and reproduction
 
@@ -345,8 +387,14 @@ BASE_URL=http://127.0.0.1:8142 RIGS=sewers_close SIMS=50,52,54,56 \
 BASE_URL=http://127.0.0.1:8142 RIGS=diag_downline SIMS=48,52 \
   'ARMS=off:,on:&tube=1,tubeclassic:&tube=1&classic=1&descent=1' \
   node scripts/capture_tube_ab.mjs qa/profile-v2-2026-09-24/downline
-npm test                                                                     # 244 pass
+npm test                                                                     # 244 pass (248 after merging main)
 ```
+
+The `qa/profile-v2-2026-09-24/` frames were captured on `a3de204` + this
+track, before Track H's aerated material landed; on the merged tree the same
+commands render the aerated ribbon, and `&tubelook=0` on each `tube=1` arm
+reproduces the glass frames. `merged/` holds the tube+classic arm re-captured
+after the merge (Sewers close and down-line, 48 and 52 s).
 
 Probe: 2,052 GPU readback cases (19 ages × 9 ξ × 4 hC × 3 c, 129 samples of u
 each) plus the sheet case and four depth-limited pairs. All outputs finite;
