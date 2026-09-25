@@ -161,3 +161,15 @@ qa/section-gap-foam-2026-09-24/*
 !qa/crash-2026-09-24/
 qa/crash-2026-09-24/*
 !qa/crash-2026-09-24/manifest.json
+
+# The ribbon material A/B (scripts/capture_tube_look_matrix.mjs,
+# scripts/build_tube_look_sheets.py --prune): the 12 kept frames, the two
+# diagnostic poses, both sheets, the squint json and the manifest that
+# TUBE_LOOK_2026-09-24.md cites (~0.9 MB); the other 48 matrix frames
+# regenerate in ~6 min and stay ignored.
+!qa/tube-look-2026-09-24/
+qa/tube-look-2026-09-24/*
+!qa/tube-look-2026-09-24/manifest.json
+!qa/tube-look-2026-09-24/squint-52.json
+!qa/tube-look-2026-09-24/*.jpg
+!qa/tube-look-2026-09-24/*.png
