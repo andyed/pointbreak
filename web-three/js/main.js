@@ -739,10 +739,25 @@ function ensurePlumeMesh() {
     // Every uniform object is the page's live one; only u_roller is rebound,
     // to the crash gain, so impactLandingAt's strength is gated by #crash.
     uniforms: Object.assign({}, uniforms, { u_roller: uniforms.u_crash }),
-    defines: { ROLLER: 1 },
+    // TUBE is defined privately too (2026-09-24): the contact anchor is the
+    // profile's ballistic reach (bpReach), which SURFACE_PRELUDE splices only
+    // under #ifdef TUBE. The grid handover inside that guard is gated by the
+    // u_tube gain, which is 0 on a non-tube boot, so the plume's surfacePos is
+    // the drawn surface in either arm (the spray takes the define only in a
+    // TUBE build; the plume needs the profile symbols in both).
+    defines: { ROLLER: 1, TUBE: 1 },
     transparent: true,
     depthWrite: false,           // overlapping puffs blend; the water still occludes them
     blending: THREE.NormalBlending,
+    // DoubleSide is load-bearing, not a nicety (convicted 2026-09-24,
+    // CRASH_DRAW note): `world` carries scale z = -1 (the mirror), so three.js
+    // sets gl.frontFace(CW) for every FrontSide mesh under it. Grid geometry
+    // is mirrored with the group and stays consistent; a billboard whose
+    // corners are added in VIEW space after modelViewMatrix keeps its authored
+    // CCW winding and is back-face culled to the last pixel. This is why the
+    // plume drew nothing (and why the shipped spray draws nothing under the
+    // mirror — reported, not changed here: default frame stays byte-identical).
+    side: THREE.DoubleSide,
   });
   plumeMesh = new THREE.Mesh(makePlumeGeometry(PLUME_COUNT), plumeMat);
   plumeMesh.frustumCulled = false;  // positions are shader-authored from seeds

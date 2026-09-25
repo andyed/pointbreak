@@ -9,7 +9,7 @@
 //
 // Usage: node scripts/capture_crash_ab.mjs [--out=qa/crash-2026-09-24]
 //        [--base-url=http://127.0.0.1:8133] [--ages=0.3,0.45,0.6,0.8,1.2,2.0]
-//        [--arms=default,crash,roller,both] [--lookout-ages=0.6,1.2]
+//        [--arms=default,crash,roller,both,tube] [--lookout-ages=0.6,1.2]
 // Requires scripts/serve.py on the base port. PLAYWRIGHT_DIR optional.
 import { readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
@@ -28,6 +28,7 @@ const ARMS = {
   crash: '&crash=1',
   roller: '&roller=1',
   both: '&crash=1&roller=1',
+  tube: '&crash=1&tube=1&classic=1&descent=1',   // the jury's best-shape arm with the plume on it
 };
 const ARM_NAMES = (flags.arms || 'default,crash,roller,both').split(',').filter((a) => a in ARMS);
 const STATION_X = -52;

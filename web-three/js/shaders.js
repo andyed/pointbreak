@@ -2776,11 +2776,17 @@ void main(){
 //   lip     = surfacePos at the crest source nearest the break line —
 //             CURTAIN_VERT's own Ptip construction, so the plume erupts from
 //             the lip the curtain hangs off;
-//   contact = surfacePos at zc + PLUME_REACH_HC*h_crest, zc the crest source
-//             at impact (breakerLandingFrameAt.w). 1.9 crest heights from the
-//             crest source is where the transect puts the face 3 m ahead of
-//             and ~4.6 m below the lip; the descent experiment's full-plunge
-//             receiver is 1.6. AUTHORED, in the wave's own length.
+//   contact = the DRAWN lip plus the profile's own landing offset: the
+//             ballistic reach bpReach(xi, hC, c) (shared/breaker-profile-glsl,
+//             the number the tube's jet lands at) along the tube's sweep axis,
+//             at the profile's landing level (lip - hC, still water under the
+//             crest). Track C's first anchor, surfacePos at a SOURCE point
+//             zc + 1.9 hC, was measured drawn at y 7.8-10 m behind the lip at
+//             Sewers x=-52 (the fold remaps source -242..-230 to drawn
+//             -230..-237), so anything anchored through the source->drawn
+//             map stands on the crest's back. Anchoring in DRAWN space off the
+//             lip's own sample sidesteps the fold (CRASH_DRAW note, 2026-09-24).
+//             The 0.35 hC floor is tube.js's ("landing stays ahead of the crest").
 // The plume decides nothing about where or when the wave breaks: locus,
 // ceiling, clock and strength are impactLandingAt / breakerLandingFrameAt.
 //
@@ -2818,6 +2824,9 @@ attribute vec4 aPuff;    // (station x0 [m], arch parameter s in [0,1], r1, r2)
 attribute vec4 aPuff2;   // (r3, r4, r5, r6) uniform randoms
 ${SURFACE_PRELUDE}
 ${SURFACE_GLSL}
+// bpReach (the contact anchor) reaches this shader through SURFACE_PRELUDE's
+// guarded splice: the plume material defines TUBE privately (main.js), the
+// way it defines ROLLER. A default boot never compiles this text at all.
 varying float vPlA;      // puff alpha (landing strength x life window x spread)
 varying vec2  vPlUV;     // quad corner in [-1,1], rotated
 varying vec3  vPlSeed;   // (noise offset x, noise offset y, life 0..1)
@@ -2827,7 +2836,8 @@ const float PLUME_RISE_S    = 0.28;   // impact -> full height (eruption)
 const float PLUME_HOLD_S    = 0.45;   // collapse begins
 const float PLUME_END_S     = 0.90;   // gone; the bore owns the whitewater from here
 const float PLUME_OVER      = 1.00;   // hump / splashUpPeakM(hC) outward from the lip->contact chord
-const float PLUME_REACH_HC  = 1.90;   // contact: crest heights ahead of the crest source at impact
+const float PLUME_REACH_MIN_HC = 0.35; // contact floor ahead of the drawn lip (tube.js's landing floor)
+const float PLUME_TOP_HC    = 0.15;   // puff centres never above lip + this x hC (CURL_TRUTH 1.3: forward, not up)
 const float PLUME_SPREAD_HC = 1.40;   // alongshore reach of thrown mass, crest heights
 // Same sun the water is lit by (SKY_GLSL sunDir; not spliced here — change both together).
 const vec3  PLUME_SUN = normalize(vec3(-0.45, 0.42, -0.28));
@@ -2880,8 +2890,19 @@ void main(){
   float zcNow  = zb + thetaW/kz;
   float f1, p1, b1, c1, l1, a1, k1;
   vec3  Plip = surfacePos(vec2(x0, zcNow), u_time, f1, p1, b1, c1, l1, a1, k1);
-  float f2, p2, b2, c2, l2, a2, k2;
-  vec3  Pcon = surfacePos(vec2(x0, frame.w + PLUME_REACH_HC*hC), u_time, f2, p2, b2, c2, l2, a2, k2);
+  // Contact in DRAWN space: the lip's own sample plus the profile's landing
+  // offset. Sweep axis and phase speed are tube.js tubeFrame's (the local
+  // propagation direction from the carrier phase, guarded shoreward; c = w/k),
+  // reach is bpReach in physical metres (horizontal metres are not VIS-scaled),
+  // level is the profile's landing y = 0, i.e. one ceiling under the lip.
+  float e  = 2.0;
+  vec2  pg = vec2(rayPhase(vec2(x0 + e, zcNow)) - rayPhase(vec2(x0 - e, zcNow)),
+                  rayPhase(vec2(x0, zcNow + e)) - rayPhase(vec2(x0, zcNow - e)))/(2.0*e);
+  vec2  dir = pg/max(length(pg), 1e-4);
+  if (!(dir.y > 0.3)) dir = vec2(0.0, 1.0);
+  float cPh = w/max(kk, 1e-4);
+  float sL  = max(bpReach(u_xi, hC/VIS, cPh), PLUME_REACH_MIN_HC*hC);
+  vec3  Pcon = Plip + vec3(dir.x*sL, -hC, dir.y*sL);
 
   // Hump direction: the outward normal of the lip->contact chord in the
   // (y, z) plane — up AND SHOREWARD, the jet's momentum. A steep face throws
@@ -2918,8 +2939,12 @@ void main(){
   // Visibility: the landing's strength x life window, thinner far along the
   // line and beyond the contact, and never over dry land.
   float along = 1.0 - smoothstep(0.55, 1.0, abs(aPuff2.w - 0.5)*2.0);
-  float gate  = env.z * (1.0 - l1) * (1.0 - l2) * farFadeAt(vec2(x0, land.x))
+  float gate  = env.z * (1.0 - l1) * farFadeAt(vec2(x0, land.x))
               * (0.55 + 0.45*along) * (1.0 - smoothstep(1.0, 1.15, sE));
+  // The crest line is conserved through the collapse (CURL_TRUTH 1.3: nothing
+  // rises more than ~0.15 H_f over the crest that preceded it); the hump's
+  // surplus goes forward along the chord instead of up.
+  C.y = min(C.y, Plip.y + PLUME_TOP_HC*hC);
   if (!(C.x == C.x && C.y == C.y && C.z == C.z)) { C = Pcon; gate = 0.0; }   // NaN guard (house rule)
   if (!(gate == gate) || !(radius == radius)) { gate = 0.0; radius = 0.0; }
 
