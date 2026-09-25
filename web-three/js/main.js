@@ -144,6 +144,22 @@ const FOLDCULL_BUILD = readHashParams().get('underside') === '0';
 // and draws no ribbon. u_tube is the live gain inside a TUBE build
 // (__pointbreak.setTube), so the A/B can be taken in one page session.
 const TUBE_BUILD = readHashParams().get('tube') === '1';
+// #sectioncurl=1 and #gapfix=1 (SECTION_CURL_2026-09-24) are BUILD flags for
+// the same reason: the effective-xi routing (model-glsl xiAt/plungeAt) and the
+// pocket/crest gap gate sit under `#ifdef SECTION_CURL` / `#ifdef GAP_FIX`,
+// and a default boot compiles the shipped text character for character. A
+// uniform-only version was measured at 4-6 default pixels by 1/255 and one
+// float ulp of displaced z against pristine main. u_sectionCurl / u_gapFix are
+// the live gates inside the respective builds.
+const SECTION_CURL_BUILD = readHashParams().get('sectioncurl') === '1';
+const GAP_FIX_BUILD = readHashParams().get('gapfix') === '1';
+// Every material that compiles the model text takes the same pair, so the
+// grid, the spray, the curtain, the ribbon, the thrown sheet, the plume and
+// the instrument all read one surface. (The rider's surface query keeps its
+// pinned defines literal, as under #tube: with the flags on, the rider reads
+// the unflagged surface.)
+const SECTION_DEFINES = Object.assign({}, SECTION_CURL_BUILD ? { SECTION_CURL: 1 } : {},
+                                          GAP_FIX_BUILD ? { GAP_FIX: 1 } : {});
 // #crash= (2026-09-24): the impact PLUME, a separate mesh + material
 // (shaders.js PLUME_VERT/FRAG). Same early read as #roller for the same
 // reason — the mesh is built before the full hash parse — but it is NOT a
@@ -307,6 +323,9 @@ const uniforms = {
   u_rideOffset: { value: 0 },
   u_breakTex:   { value: EMPTY_BED },
   u_gapMask:    { value: 1 },   // section-gap masking ON; #gap=0 is the A/B revert
+  u_gapFix:     { value: 0 },   // #gapfix=1: the pocket/crest honour the gap mask too (SECTION_CURL_2026-09-24); default byte-identical
+  u_sectionCurl:{ value: 0 },   // #sectioncurl=1: xi is local — spilling head, plunging where a section shuts
+  u_sectionXi:  { value: 0.95 },// #sectionxi=: the xi a shutting section rises to (plunge 0.68; see model-glsl xiAt)
   u_headRead:   { value: 1 },   // comet-head aging ON — the first "#head=0 way better" verdict was
                                 // judged on a drifted OrbitControls camera; the clean-load rematch
                                 // (2026-08-14 night) went to #head=1. #head=0 stays the A/B revert.
@@ -538,6 +557,7 @@ const mat = new THREE.ShaderMaterial({
 });
 if (TUBE_BUILD) mat.defines.TUBE = 1;   // see TUBE_BUILD
 if (BORE_BUILD) mat.defines.BORE = 1;   // see BORE_BUILD
+Object.assign(mat.defines, SECTION_DEFINES);   // see SECTION_CURL_BUILD
 const waterMesh = new THREE.Mesh(geo, mat);
 world.add(waterMesh);
 
@@ -635,6 +655,7 @@ const sprayMat = new THREE.ShaderMaterial({
 });
 if (TUBE_BUILD) sprayMat.defines.TUBE = 1;   // anchors to the same (tube-arm) surface
 if (BORE_BUILD) sprayMat.defines.BORE = 1;   // same surface: the wedge is water height
+Object.assign(sprayMat.defines, SECTION_DEFINES);
 const sprayPoints = new THREE.Mesh(makeSprayGeometry(), sprayMat);
 sprayPoints.frustumCulled = false; // positions are shader-authored from seeds
 world.add(sprayPoints);
@@ -657,6 +678,8 @@ const curtainMat = new THREE.ShaderMaterial({
 });
 if (TUBE_BUILD) curtainMat.defines.TUBE = 1;   // compiled (hidden under the tube), same surface
 if (BORE_BUILD) curtainMat.defines.BORE = 1;   // its foot lands on the wedge, not under it
+if (!curtainMat.defines) curtainMat.defines = {};
+Object.assign(curtainMat.defines, SECTION_DEFINES);
 const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 12), curtainMat);
 curtainMesh.frustumCulled = false;  // positions are shader-authored
 curtainMesh.visible = true;
@@ -675,7 +698,7 @@ if (TUBE_BUILD) {
     vertexShader: TUBE_VERT,
     fragmentShader: TUBE_FRAG,
     uniforms,
-    defines: ROLLER_BUILD ? { TUBE: 1, ROLLER: 1 } : { TUBE: 1 },
+    defines: Object.assign(ROLLER_BUILD ? { TUBE: 1, ROLLER: 1 } : { TUBE: 1 }, SECTION_DEFINES),
     transparent: true,
     depthWrite: true,            // it occludes the face behind it
     side: THREE.DoubleSide,      // the inside of the tube is the point
@@ -707,6 +730,7 @@ if (ROLLER_BUILD) {
     depthWrite: true,            // thrown water occludes the face behind it
     side: THREE.DoubleSide,
   });
+  Object.assign(splashUpMat.defines, SECTION_DEFINES);   // same surface as the grid
   splashUpMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 10), splashUpMat);
   splashUpMesh.frustumCulled = false;  // positions are shader-authored
   world.add(splashUpMesh);
@@ -768,7 +792,7 @@ function ensurePlumeMesh() {
     // u_tube gain, which is 0 on a non-tube boot, so the plume's surfacePos is
     // the drawn surface in either arm (the spray takes the define only in a
     // TUBE build; the plume needs the profile symbols in both).
-    defines: { ROLLER: 1, TUBE: 1 },
+    defines: Object.assign({ ROLLER: 1, TUBE: 1 }, SECTION_DEFINES),
     transparent: true,
     depthWrite: false,           // overlapping puffs blend; the water still occludes them
     blending: THREE.NormalBlending,
@@ -2883,6 +2907,13 @@ function applyHashParams() {
   if (h.get('noclip') === '1') noclipEnabled = true;
   // section-gap masking defaults ON; #gap=0 is the pre-fix A/B (the V returns)
   if (h.get('gap') === '0') uniforms.u_gapMask.value = 0;
+  // sections own the crash (SECTION_CURL_2026-09-24, both default OFF):
+  // #gapfix=1 gates the pocket and the crest on the same mask; #sectioncurl=1
+  // makes xi a station quantity — the steady head spills, a shutting section
+  // plunges to #sectionxi (0.45..3, default 0.95)
+  if (h.get('gapfix') === '1') uniforms.u_gapFix.value = 1;
+  if (h.get('sectioncurl') === '1') uniforms.u_sectionCurl.value = 1;
+  if (h.has('sectionxi')) { const g = Number.parseFloat(h.get('sectionxi')); if (Number.isFinite(g) && g >= 0.45 && g <= 3) uniforms.u_sectionXi.value = g; }
   // comet-head whitewater aging defaults ON (clean-load verdict 2026-08-14);
   // #head=0 is the A/B revert
   if (h.get('head') === '0') uniforms.u_headRead.value = 0;
@@ -3365,7 +3396,12 @@ window.__pointbreak = {
       // can tell "no event" apart from "no station": the lifecycle's impact gain
       // at its peak, the section mask, the reef window, and the far fade — the
       // last three being the factors CURTAIN_VERT multiplies into its own gate.
-      curlProbeRT = new THREE.WebGLRenderTarget(n, 5, {
+      // Row 5 (2026-09-24) is the SECTION-CURL instrument: the effective xi at
+      // the station (xiAt), its plunge weight, the section-shut weight and the
+      // raw section noise breakLine reads. Under the default they read u_xi,
+      // smoothstep(0.45, 1.25, u_xi), 0 (never evaluated by the picture) and
+      // the noise — so the row certifies the byte-identical claim as numbers.
+      curlProbeRT = new THREE.WebGLRenderTarget(n, 6, {
         type: THREE.FloatType, minFilter: THREE.NearestFilter,
         magFilter: THREE.NearestFilter, depthBuffer: false,
       });
@@ -3391,14 +3427,16 @@ window.__pointbreak = {
           '  else if (gl_FragCoord.y < 3.0) gl_FragColor = vec4(u_depthMix > 0.5 ? crestCeilM(xz) : -1.0,\n' +
           '                           modelDepthM(xz), c, breakLine(xz.x));\n' +
           '  else if (gl_FragCoord.y < 4.0) gl_FragColor = impactSourceAt(xz, u_time);\n' +
-          '  else gl_FragColor = vec4(breakerImpactPeakAtX(xz.x, u_time), breakMask(xz.x),\n' +
+          '  else if (gl_FragCoord.y < 5.0) gl_FragColor = vec4(breakerImpactPeakAtX(xz.x, u_time), breakMask(xz.x),\n' +
           '                           reefWindow(xz.x), farFadeAt(xz));\n' +
+          '  else gl_FragColor = vec4(xiAt(xz.x), plungeAt(xz.x), sectionShut(xz.x), sectionNoise(xz.x));\n' +
           '}',
       });
       // A TUBE build's instrument reads the tube-arm grid (the handover in
       // choppyPos), or the probe would certify a surface the page is not drawing.
       if (TUBE_BUILD) curlProbeMat.defines.TUBE = 1;
       if (BORE_BUILD) curlProbeMat.defines.BORE = 1;   // reads the wedge-arm surface
+      Object.assign(curlProbeMat.defines, SECTION_DEFINES);   // the instrument reads the booted surface
       curlProbeQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), curlProbeMat);
       curlProbeScene = new THREE.Scene().add(curlProbeQuad);
       curlProbeCam = new THREE.Camera();
@@ -3407,19 +3445,20 @@ window.__pointbreak = {
     const prev = renderer.getRenderTarget();
     renderer.setRenderTarget(curlProbeRT);
     renderer.render(curlProbeScene, curlProbeCam);
-    const buf = new Float32Array(n * 5 * 4);
-    renderer.readRenderTargetPixels(curlProbeRT, 0, 0, n, 5, buf);
+    const buf = new Float32Array(n * 6 * 4);
+    renderer.readRenderTargetPixels(curlProbeRT, 0, 0, n, 6, buf);
     renderer.setRenderTarget(prev);
     const out = [];
     for (let i = 0; i < n; i++) {
-      const g = i * 4, m = (n + i) * 4, c = (2 * n + i) * 4, r = (3 * n + i) * 4, q = (4 * n + i) * 4;
+      const g = i * 4, m = (n + i) * 4, c = (2 * n + i) * 4, r = (3 * n + i) * 4, q = (4 * n + i) * 4, sx = (5 * n + i) * 4;
       out.push({ z0: z0 + (z1 - z0) * i / (n - 1), y: buf[g],
                  z: buf[g + 1], land: buf[g + 2], curl: buf[g + 3],
                  pocket: buf[m], brk: buf[m + 1], foam: buf[m + 2], aer: buf[m + 3],
                  ceil: buf[c] < 0 ? null : buf[c], bedBacked: buf[c] >= 0,
                  depth: buf[c + 1], crest: buf[c + 2], bLine: buf[c + 3],
                  deposit: buf[r], roller: buf[r + 1], rollerZ: buf[r + 2], rollerTau: buf[r + 3],
-                 impactPeak: buf[q], breakMask: buf[q + 1], reefWin: buf[q + 2], farFade: buf[q + 3] });
+                 impactPeak: buf[q], breakMask: buf[q + 1], reefWin: buf[q + 2], farFade: buf[q + 3],
+                 xiEff: buf[sx], plunge: buf[sx + 1], sectionShut: buf[sx + 2], sectionNoise: buf[sx + 3] });
     }
     return out;
   },

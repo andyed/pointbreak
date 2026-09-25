@@ -47,7 +47,10 @@ const BASE_URL = flags.base || 'http://127.0.0.1:8137';
 const OUT = resolve(flags.out || join(ROOT, 'qa/section-gap-foam-2026-09-24/probe.json'));
 const CELLS = (flags.cells || 'sewers:42,46,50;secondpeak:42,46,50;sharks:42,46,50')
   .split(';').map((s) => { const [preset, sims] = s.split(':'); return { preset, sims: sims.split(',').map(Number) }; });
-const ARMS = { base: '', gap0: '&gap=0' };
+// gapfix (2026-09-24): the pocket and the crest honour the mask (#gapfix=1);
+// the measurement the fix is judged by is "gap columns lose pocket/fold and
+// keep the crest", so `crest` joined the per-column maxima.
+const ARMS = { base: '', gap0: '&gap=0', gapfix: '&gapfix=1' };
 const armNames = (flags.arms || 'base').split(',');
 
 // Grid vertex lattice in the core (main.js makeWaterGeometry + stretchAxis).
@@ -76,11 +79,12 @@ for (const cell of CELLS) for (const sim of cell.sims) for (const arm of armName
   const cols = await page.evaluate(({ xs, z0, z1, n }) => xs.map((x) => {
     const rows = window.__pointbreak.curlProbe(x, z0, z1, n);
     const c = { x, breakMask: rows[0].breakMask, reefWin: rows[0].reefWin,
-                pocket: 0, foam: 0, brk: 0, aer: 0, curl: 0, foldM: 0, zPocket: null, zLine: rows[0].bLine };
+                pocket: 0, foam: 0, brk: 0, aer: 0, curl: 0, crest: 0, foldM: 0, zPocket: null, zLine: rows[0].bLine };
     for (let k = 0; k < rows.length; k++) {
       const r = rows[k];
       if (r.land > 0.5) continue;
       if (r.pocket > c.pocket) { c.pocket = r.pocket; c.zPocket = r.z0; }
+      if (r.crest > c.crest) c.crest = r.crest;
       if (r.foam > c.foam) c.foam = r.foam;
       if (r.brk > c.brk) c.brk = r.brk;
       if (r.aer > c.aer) c.aer = r.aer;
@@ -96,7 +100,7 @@ for (const cell of CELLS) for (const sim of cell.sims) for (const arm of armName
 
   const r3 = (v) => (v == null ? null : +Number(v).toFixed(3));
   const columns = cols.map((c) => ({ x: r3(c.x), breakMask: r3(c.breakMask), reefWin: r3(c.reefWin),
-    pocket: r3(c.pocket), foam: r3(c.foam), brk: r3(c.brk), aer: r3(c.aer), curl: r3(c.curl),
+    pocket: r3(c.pocket), foam: r3(c.foam), brk: r3(c.brk), aer: r3(c.aer), curl: r3(c.curl), crest: r3(c.crest),
     foldM: r3(c.foldM), zPocket: r3(c.zPocket), zLine: r3(c.zLine) }));
   // heads, Track D's definition: contiguous columns with curl > 0.25
   const active = columns.filter((c) => c.curl > 0.25);
@@ -118,6 +122,8 @@ for (const cell of CELLS) for (const sim of cell.sims) for (const arm of armName
     pocketGt07: count(arr, (c) => c.pocket > 0.7), foamGt05: count(arr, (c) => c.foam > 0.5),
     brkGt05: count(arr, (c) => c.brk > 0.5), aerGt01: count(arr, (c) => c.aer > 0.1),
     curlGt025: count(arr, (c) => c.curl > 0.25), foldGt15: count(arr, (c) => c.foldM > 1.5),
+    crestGt05: count(arr, (c) => c.crest > 0.5),
+    crestMax: arr.length ? +Math.max(...arr.map((c) => c.crest)).toFixed(3) : null,
     pocketMax: arr.length ? +Math.max(...arr.map((c) => c.pocket)).toFixed(3) : null,
     aerMax: arr.length ? +Math.max(...arr.map((c) => c.aer)).toFixed(3) : null,
     brkMax: arr.length ? +Math.max(...arr.map((c) => c.brk)).toFixed(3) : null,

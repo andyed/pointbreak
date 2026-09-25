@@ -483,7 +483,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // sharpen a little and the bore stays a mound.
   float d      = breakLine(xz0.x) - xz0.y;        // >0 seaward of the line
   float steep  = exp(-max(d, 0.0)/70.0) * reefWindow(xz0.x);
-  float plunge = smoothstep(0.45, 1.25, u_xi);    // Battjes: plunging from ~0.5
+  float plunge = plungeAt(xz0.x);                 // Battjes: plunging from ~0.5; local xi under #sectioncurl
   // M6 part 1, CORRECTED 2026-08-11 (size audit, docs/research/SIZE_AUDIT.md).
   // The 2026-08-10 version asserted "Q = lam*k, and Q = 1 is the cusp". That
   // derivation was amplitude-blind and WRONG: for off = lam*grad on
@@ -649,7 +649,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // cusp parameter is capped just short of the vertical tangent below. The
   // ribbon (tube.js) owns everything past the cusp; ahead of the head and
   // after the bore handoff the shipped release had the bend at zero anyway.
-  float tubeChar = clamp(u_tube, 0.0, 1.0) * breakerProfileWeight(CRASH_PEAK_S, u_xi);
+  float tubeChar = clamp(u_tube, 0.0, 1.0) * breakerProfileWeight(CRASH_PEAK_S, xiAt(xz0.x));
   bendOnset *= 1.0 - tubeChar;
   // The handover window on the ribbon's own clock: in over the first 0.2 s of
   // this station's lifecycle (~1-3 m along the line at Sewers' peel speeds),
@@ -1108,7 +1108,7 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   if (tubeChar > 0.0) {
     float sigT = max(0.35*crestCeilM(depQ, KsQ), 1.0);
     float bandT = exp(-(dzCT*dzCT)/(2.0*sigT*sigT));
-    lipKey = max(lipKey, 0.6 * breakerProfileWeight(ageT, u_xi) * clamp(u_tube, 0.0, 1.0)
+    lipKey = max(lipKey, 0.6 * breakerProfileWeight(ageT, xiAt(xz0.x)) * clamp(u_tube, 0.0, 1.0)
                          * smoothstep(0.20, 0.70, pocket) * bandT);
   }
 #endif
@@ -2183,7 +2183,7 @@ void main() {
 
   // pocket tint (reduced vs M0 — fresnel+sss now carry the pocket) and
   // thrown-lip spray for plunging waves, both kept from web/
-  vec3 pocketCol = mix(vec3(0.15, 0.38, 0.36), vec3(0.10, 0.30, 0.33), clamp(u_xi*0.4, 0.0, 1.0));
+  vec3 pocketCol = mix(vec3(0.15, 0.38, 0.36), vec3(0.10, 0.30, 0.33), clamp(xiAt(sourceXZ.x)*0.4, 0.0, 1.0));
   col = mix(col, pocketCol, clamp(vPocket*1.4, 0.0, 0.55));
   // Pocket tint happens after the base face lighting, so re-establish the
   // field-reference value structure here: one dark sloping front, followed
@@ -2194,7 +2194,7 @@ void main() {
   float connectedLip = max(vPocket,
                            0.34*smoothstep(0.48, 0.82, vCrest)
                            * smoothstep(0.35, 1.35, vWorldPos.y));
-  float lip = smoothstep(0.5, 1.5, u_xi)
+  float lip = smoothstep(0.5, 1.5, xiAt(sourceXZ.x))
             * mix(vPocket, connectedLip, fullLook);
   float lipOld = mix(vnoise2(sourceXZ*0.6 + t), churn, 0.6*churnZone);
   float lipTexture = 1.2*lipOld;
@@ -2403,7 +2403,7 @@ void main(){
   float seedY = aSpraySeed.y;
   float seedZ = aSpraySeed.z;
   vec4 life = breakerLifecycleAtX(x0, u_time);
-  float plunge = smoothstep(0.45, 1.25, u_xi);
+  float plunge = plungeAt(x0);
 
   // PER-PARTICLE BALLISTICS (spray critique, 2026-08-11). The old pass flew
   // every droplet on the ONE shared lifecycle phase plus a constant hover
@@ -2636,7 +2636,7 @@ void main(){
   // the top edge clears toward the landing after impact instead of retrieving
   // the bottom edge when curl fades. Every value is a function of local age;
   // no accumulated state, new event clock, or retiming of splash/foam.
-  if (classicDescentWeight() > 0.0) {
+  if (classicDescentWeightAt(x0) > 0.0) {
     vec4 landing = breakerLandingFrameAt(x0, u_time);
     float age = landing.z + CRASH_PEAK_S;
     float endAge = CRASH_PEAK_S + 1.5*CRASH_SIGMA_S;

@@ -107,6 +107,6 @@ test('no shipped preset keys a geometry term to that degenerate ceiling', () => 
       + 'read crestCeilM on a stage that has no depth (MEASUREMENT_LESSONS 13)');
   }
   // ...and the gate that makes it so is still the one described above.
-  assert.match(SHADERS, /float plunge = smoothstep\(0\.45, 1\.25, u_xi\);/);
+  assert.match(SHADERS, /float plunge = plungeAt\(xz0\.x\);/);   // = smoothstep(0.45, 1.25, xiAt(x)); xiAt is u_xi by default
   assert.match(SHADERS, /float yBendD = 0\.35\*crestCeilM\(depQ, KsQ\)/);
 });

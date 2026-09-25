@@ -984,7 +984,15 @@ const MARCH_DZ = 2;
 const FIT_DENSE_DX = 10;
 let breakTex = null, breakKey = '', breakArr = new Float32Array(BREAK_N);
 let activeBreakSpotName = null;
-// Per-texel section-gap flags (1 = limiter-pinned, rendered as NOT BREAKING).
+// Per-texel section-gap flags (1 = limiter-pinned: NO BREAKING EVENT at the
+// line). What that means in the render, reconciled 2026-09-24 with the
+// model's brk comment (model-glsl.js ocean(), "breakMask withdraws the
+// ZIPPER's claim"): the lifecycle (impact, bore, spray, roller), the aerated
+// lip and the curtain do not fire on a gap texel; under #gapfix the pocket
+// head, its fold and the pocket-lip paint do not either, and the crest passes
+// through unbroken. Depth's own permission (brk) still stands there, so the
+// whitewater residue floor is NOT withdrawn — a gap is line transport, not
+// deep water. SECTION_GAP_FOAM_2026-09-24.md has the per-consumer table.
 // Lives alongside breakArr under the same cache discipline: any key change
 // rebakes both, so the exported readbacks always match the live texture.
 let gapArr = new Uint8Array(BREAK_N);

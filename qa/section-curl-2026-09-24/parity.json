@@ -1,0 +1,42 @@
+{
+ "baseUrl": "http://127.0.0.1:8156",
+ "mainUrl": "http://127.0.0.1:8147",
+ "cases": [
+  {
+   "name": "og_sewers_drone_42",
+   "rig": "og",
+   "sim": 42,
+   "hash": "preset=sewers&surfer=0&hud=0&controls=0&speed=0&q=high&cam=drone&sim=42",
+   "identical": true,
+   "bytes": 1958918,
+   "pixels": null
+  },
+  {
+   "name": "sewers_close_45p15",
+   "rig": "sewers_close",
+   "sim": 45.15,
+   "hash": "preset=sewers&month=card&cam=cliff&surfer=0&hud=0&controls=0&speed=0&q=high&sim=48",
+   "identical": true,
+   "bytes": 240819,
+   "pixels": null
+  },
+  {
+   "name": "secondpeak_drone_49p7",
+   "rig": "secondpeak_drone",
+   "sim": 49.7,
+   "hash": "preset=secondpeak&month=card&cam=drone&surfer=0&hud=0&controls=0&speed=0&q=high&sim=48",
+   "identical": true,
+   "bytes": 585192,
+   "pixels": null
+  },
+  {
+   "name": "secondpeak_lookout_49p7",
+   "rig": "secondpeak_lookout",
+   "sim": 49.7,
+   "hash": "preset=secondpeak&cam=lookout&day=big&h0=1.4&tide=0.732&surfer=0&hud=0&controls=0&speed=0&q=high&sim=48",
+   "identical": true,
+   "bytes": 294540,
+   "pixels": null
+  }
+ ]
+}
