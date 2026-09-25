@@ -2814,6 +2814,12 @@ function applyHashParams() {
     uniforms.u_vis.value = visV;
     setVis(visV);
   }
+  // #riderscale=vis (2026-09-24, A/B for "surfer seems way out of scale"): the
+  // rider is built in physical metres (surfer.js, ~1.55 m standing) while the
+  // water is drawn at u_vis x vertical exaggeration, so at the shipped 3.2 a
+  // 2.2 m face stands ~7 m over a human-sized figure. This arm scales the rider
+  // by the same gain so the two share units. Boot-only; default untouched.
+  if (h.get('riderscale') === 'vis') surferGroup.scale.setScalar(uniforms.u_vis.value);
   const browV = parseFloat(h.get('brow'));
   if (h.has('brow') && Number.isFinite(browV) && browV > 0) {
     uniforms.u_brow.value = Math.min(browV, 1);
