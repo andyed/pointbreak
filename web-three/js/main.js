@@ -13,6 +13,7 @@ import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS,
          reefWindowKnots, PEEL_FLOOR, peelFloorH0 } from '../../shared/params.js';
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG, CURTAIN_VERT, CURTAIN_FRAG, SPLASHUP_VERT, SPLASHUP_FRAG,
+         PLUME_VERT, PLUME_FRAG,
          SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
 import { TUBE_VERT, TUBE_FRAG, TUBE_SEG_X, TUBE_SEG_U, TUBE_SPAN_M } from './tube.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
@@ -143,6 +144,15 @@ const FOLDCULL_BUILD = readHashParams().get('underside') === '0';
 // and draws no ribbon. u_tube is the live gain inside a TUBE build
 // (__pointbreak.setTube), so the A/B can be taken in one page session.
 const TUBE_BUILD = readHashParams().get('tube') === '1';
+// #crash= (2026-09-24): the impact PLUME, a separate mesh + material
+// (shaders.js PLUME_VERT/FRAG). Same early read as #roller for the same
+// reason — the mesh is built before the full hash parse — but it is NOT a
+// grid define: the plume material compiles the roller symbols privately, so
+// the grid shader text is untouched and a default boot builds no mesh.
+const CRASH_BUILD = (() => {
+  const v = parseFloat(readHashParams().get('crash'));
+  return Number.isFinite(v) && v > 0;
+})();
 
 // ---------- the stage -> world embedding (#mirror=0 reverts; 2026-09-24) ----------
 // The stage frame (x = along-shore, z = shore-normal, y = up) is a proper
@@ -406,6 +416,12 @@ const uniforms = {
   u_roller:     { value: 0 },
   u_facetDebug: { value: 0 },   // lip-facet diagnostic view id; only a FACETDEBUG build reads it
   u_underside:  { value: 1 },   // 0 = cull the overturned sheet's underside seen from above; only a FOLDCULL build reads it
+  // The impact PLUME (#crash=, 2026-09-24): the crash as a body — a dome of
+  // thrown mass erupting at impactLandingAt's landing and collapsing into the
+  // bore on the shared clock (shaders.js PLUME_VERT). Gain; 0 (default) builds
+  // no mesh, so the shipped frame is unchanged by construction. Read ONLY by
+  // the plume material (as its u_roller alias); the grid never sees it.
+  u_crash:      { value: 0 },
   // #sapp= unbundles the approach-term strength from #look=full. 0.22 is now
   // the calibrated default: it halves the measured runaway-offset population
   // and removes the oversized head plate; #sapp=0.42 is the legacy A/B.
@@ -672,6 +688,68 @@ if (ROLLER_BUILD) {
   splashUpMesh.frustumCulled = false;  // positions are shader-authored
   world.add(splashUpMesh);
 }
+
+// ---------- the impact plume (#crash=, 2026-09-24, default OFF) ----------
+// The crash as a body: an instanced cluster of h_crest-scale lit puffs whose
+// centres follow an arch from the drawn lip forward and down to the jet's
+// contact point, erupting over ~0.3 s and collapsing into the grid's bore by
+// 0.9 s after impact (shaders.js PLUME_VERT). Its OWN material:
+// impactLandingAt/splashUpPeakM live under #ifdef ROLLER in the shared model,
+// so the plume compiles ROLLER privately and binds u_roller to the u_crash
+// gain — the strength it reads is therefore gain x contact ramp x lifecycle
+// impact peak, the same function the roller, splash-up and relocated spray
+// read, with no second landing or clock. The grid material is untouched (no
+// define, no uniform branch), and a default boot never creates the mesh: the
+// shipped frame is unchanged by construction. Created lazily so
+// __pointbreak.setCrash(g) works on a plain boot too.
+//
+// Seeds: station x uniform over the line, arch parameter s, six randoms. The
+// active stretch of line at any instant is a few crest heights, so most puffs
+// are dead at any clock; the vertex shader returns before any surface work
+// for those (one impactLandingAt each), and the live ones are ~5% of the set.
+const PLUME_COUNT = 5000;
+function makePlumeGeometry(count) {
+  let seed = 0x7a1e55;
+  const random = () => {
+    seed = (1664525 * seed + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const a1 = new Float32Array(count * 4), a2 = new Float32Array(count * 4);
+  for (let i = 0; i < count; i++) {
+    a1[i * 4] = -285 + 570 * random();   // station x, metres
+    a1[i * 4 + 1] = random();            // arch parameter s
+    a1[i * 4 + 2] = random();            // size / tumble phase
+    a1[i * 4 + 3] = random();            // rotation / tumble phase
+    for (let k = 0; k < 4; k++) a2[i * 4 + k] = random();
+  }
+  const g = new THREE.InstancedBufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0], 3));
+  g.setIndex([0, 1, 2, 0, 2, 3]);
+  g.setAttribute('aPuff', new THREE.InstancedBufferAttribute(a1, 4));
+  g.setAttribute('aPuff2', new THREE.InstancedBufferAttribute(a2, 4));
+  g.instanceCount = count;
+  return g;
+}
+let plumeMesh = null;
+function ensurePlumeMesh() {
+  if (plumeMesh) return plumeMesh;
+  const plumeMat = new THREE.ShaderMaterial({
+    vertexShader: PLUME_VERT,
+    fragmentShader: PLUME_FRAG,
+    // Every uniform object is the page's live one; only u_roller is rebound,
+    // to the crash gain, so impactLandingAt's strength is gated by #crash.
+    uniforms: Object.assign({}, uniforms, { u_roller: uniforms.u_crash }),
+    defines: { ROLLER: 1 },
+    transparent: true,
+    depthWrite: false,           // overlapping puffs blend; the water still occludes them
+    blending: THREE.NormalBlending,
+  });
+  plumeMesh = new THREE.Mesh(makePlumeGeometry(PLUME_COUNT), plumeMat);
+  plumeMesh.frustumCulled = false;  // positions are shader-authored from seeds
+  world.add(plumeMesh);
+  return plumeMesh;
+}
+if (CRASH_BUILD) ensurePlumeMesh();
 
 // ---------- the seabed ----------
 // Its own surface so the free camera can dive and watch the floor descend.
@@ -2877,6 +2955,13 @@ function applyHashParams() {
     const v = parseFloat(h.get('roller'));
     if (Number.isFinite(v) && v >= 0 && v <= 3) uniforms.u_roller.value = v;
   }
+  // #crash= arms the impact plume as a gain in [0, 3]; 1 is the authored
+  // prototype. Absence keeps 0 — no mesh, the shipped frame. Unparseable
+  // values keep 0 rather than sending NaN in.
+  if (h.has('crash')) {
+    const v = parseFloat(h.get('crash'));
+    if (Number.isFinite(v) && v >= 0 && v <= 3) uniforms.u_crash.value = v;
+  }
   // #drop=legacy is a REVERT arm, not a feature flag: the re-scoped dropMag
   // ships on, and this restores the term that flattened the pocket so the two
   // silhouettes can be captured from one build.
@@ -3162,6 +3247,14 @@ window.__pointbreak = {
   // Transported-crash gain (mirrors #roller=); 0 = the shipped frame.
   setRoller: (g) => { if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_roller.value = g; },
   roller: () => uniforms.u_roller.value,
+  // Impact-plume gain (mirrors #crash=); 0 = the shipped frame. Builds the
+  // plume mesh on first use so a plain boot can A/B it live.
+  setCrash: (g) => {
+    if (!(Number.isFinite(g) && g >= 0 && g <= 3)) return;
+    if (g > 0) ensurePlumeMesh();
+    uniforms.u_crash.value = g;
+  },
+  crash: () => uniforms.u_crash.value,
   setSGrow: (on) => { uniforms.u_sGrow.value = on ? 1 : 0; },
   // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
   setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },

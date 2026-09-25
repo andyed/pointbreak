@@ -1,0 +1,385 @@
+{
+  "baseUrl": "http://127.0.0.1:8133",
+  "viewport": [
+    1000,
+    625
+  ],
+  "station": -52,
+  "camera": {
+    "eye": [
+      12,
+      11,
+      -190
+    ],
+    "target": [
+      -52,
+      4,
+      -229
+    ]
+  },
+  "ages": [
+    0.3,
+    0.45,
+    0.6,
+    0.8,
+    1.2,
+    2
+  ],
+  "frames": [
+    {
+      "cam": "close",
+      "arm": "default",
+      "age": 0.3,
+      "t": 47.26156199455261,
+      "file": "close_default_0.30.jpg",
+      "tauD": -0.12000104784965515,
+      "strength": 0,
+      "plumeTopM": 0,
+      "hC": 7.59448766708374,
+      "bytes": 29094
+    },
+    {
+      "cam": "close",
+      "arm": "default",
+      "age": 0.45,
+      "t": 47.41156199455261,
+      "file": "close_default_0.45.jpg",
+      "tauD": 0.0299990177154541,
+      "strength": 0,
+      "plumeTopM": 0.30247974395751953,
+      "hC": 7.59448766708374,
+      "bytes": 28995
+    },
+    {
+      "cam": "close",
+      "arm": "default",
+      "age": 0.6,
+      "t": 47.56156199455261,
+      "file": "close_default_0.60.jpg",
+      "tauD": 0.17999902367591858,
+      "strength": 0,
+      "plumeTopM": 4.6442975997924805,
+      "hC": 7.59448766708374,
+      "bytes": 28995
+    },
+    {
+      "cam": "close",
+      "arm": "default",
+      "age": 0.8,
+      "t": 47.76156199455261,
+      "file": "close_default_0.80.jpg",
+      "tauD": 0.38000062108039856,
+      "strength": 0,
+      "plumeTopM": 5.485611915588379,
+      "hC": 7.59448766708374,
+      "bytes": 29106
+    },
+    {
+      "cam": "close",
+      "arm": "default",
+      "age": 1.2,
+      "t": 48.16156199455261,
+      "file": "close_default_1.20.jpg",
+      "tauD": 0.7799992561340332,
+      "strength": 0,
+      "plumeTopM": 0.8967475891113281,
+      "hC": 7.59448766708374,
+      "bytes": 28994
+    },
+    {
+      "cam": "close",
+      "arm": "default",
+      "age": 2,
+      "t": 48.96156199455261,
+      "file": "close_default_2.00.jpg",
+      "tauD": 1.5800009965896606,
+      "strength": 0,
+      "plumeTopM": 0,
+      "hC": 7.59448766708374,
+      "bytes": 29258
+    },
+    {
+      "cam": "lookout",
+      "arm": "default",
+      "age": 0.6,
+      "t": 47.56156199455261,
+      "file": "lookout_default_0.60.jpg",
+      "bytes": 22562
+    },
+    {
+      "cam": "lookout",
+      "arm": "default",
+      "age": 1.2,
+      "t": 48.16156199455261,
+      "file": "lookout_default_1.20.jpg",
+      "bytes": 22673
+    },
+    {
+      "cam": "close",
+      "arm": "crash",
+      "age": 0.3,
+      "t": 47.26156199455261,
+      "file": "close_crash_0.30.jpg",
+      "tauD": -0.12000104784965515,
+      "strength": 0,
+      "plumeTopM": 0,
+      "hC": 7.59448766708374,
+      "bytes": 29291
+    },
+    {
+      "cam": "close",
+      "arm": "crash",
+      "age": 0.45,
+      "t": 47.41156199455261,
+      "file": "close_crash_0.45.jpg",
+      "tauD": 0.0299990177154541,
+      "strength": 1.3640215396881104,
+      "plumeTopM": 0.30247974395751953,
+      "hC": 7.59448766708374,
+      "bytes": 29360
+    },
+    {
+      "cam": "close",
+      "arm": "crash",
+      "age": 0.6,
+      "t": 47.56156199455261,
+      "file": "close_crash_0.60.jpg",
+      "tauD": 0.17999902367591858,
+      "strength": 1.3640215396881104,
+      "plumeTopM": 4.6442975997924805,
+      "hC": 7.59448766708374,
+      "bytes": 29214
+    },
+    {
+      "cam": "close",
+      "arm": "crash",
+      "age": 0.8,
+      "t": 47.76156199455261,
+      "file": "close_crash_0.80.jpg",
+      "tauD": 0.38000062108039856,
+      "strength": 1.3640217781066895,
+      "plumeTopM": 5.485611915588379,
+      "hC": 7.59448766708374,
+      "bytes": 29285
+    },
+    {
+      "cam": "close",
+      "arm": "crash",
+      "age": 1.2,
+      "t": 48.16156199455261,
+      "file": "close_crash_1.20.jpg",
+      "tauD": 0.7799992561340332,
+      "strength": 1.3640215396881104,
+      "plumeTopM": 0.8967475891113281,
+      "hC": 7.59448766708374,
+      "bytes": 29184
+    },
+    {
+      "cam": "close",
+      "arm": "crash",
+      "age": 2,
+      "t": 48.96156199455261,
+      "file": "close_crash_2.00.jpg",
+      "tauD": 1.5800009965896606,
+      "strength": 1.3640215396881104,
+      "plumeTopM": 0,
+      "hC": 7.59448766708374,
+      "bytes": 29684
+    },
+    {
+      "cam": "lookout",
+      "arm": "crash",
+      "age": 0.6,
+      "t": 47.56156199455261,
+      "file": "lookout_crash_0.60.jpg",
+      "bytes": 22562
+    },
+    {
+      "cam": "lookout",
+      "arm": "crash",
+      "age": 1.2,
+      "t": 48.16156199455261,
+      "file": "lookout_crash_1.20.jpg",
+      "bytes": 22682
+    },
+    {
+      "cam": "close",
+      "arm": "roller",
+      "age": 0.3,
+      "t": 47.26156199455261,
+      "file": "close_roller_0.30.jpg",
+      "tauD": -0.12000104784965515,
+      "strength": 0,
+      "plumeTopM": 0,
+      "hC": 7.59448766708374,
+      "bytes": 29316
+    },
+    {
+      "cam": "close",
+      "arm": "roller",
+      "age": 0.45,
+      "t": 47.41156199455261,
+      "file": "close_roller_0.45.jpg",
+      "tauD": 0.0299990177154541,
+      "strength": 0,
+      "plumeTopM": 0.30247974395751953,
+      "hC": 7.59448766708374,
+      "bytes": 28939
+    },
+    {
+      "cam": "close",
+      "arm": "roller",
+      "age": 0.6,
+      "t": 47.56156199455261,
+      "file": "close_roller_0.60.jpg",
+      "tauD": 0.17999902367591858,
+      "strength": 0,
+      "plumeTopM": 4.6442975997924805,
+      "hC": 7.59448766708374,
+      "bytes": 29344
+    },
+    {
+      "cam": "close",
+      "arm": "roller",
+      "age": 0.8,
+      "t": 47.76156199455261,
+      "file": "close_roller_0.80.jpg",
+      "tauD": 0.38000062108039856,
+      "strength": 0,
+      "plumeTopM": 5.485611915588379,
+      "hC": 7.59448766708374,
+      "bytes": 29222
+    },
+    {
+      "cam": "close",
+      "arm": "roller",
+      "age": 1.2,
+      "t": 48.16156199455261,
+      "file": "close_roller_1.20.jpg",
+      "tauD": 0.7799992561340332,
+      "strength": 0,
+      "plumeTopM": 0.8967475891113281,
+      "hC": 7.59448766708374,
+      "bytes": 29476
+    },
+    {
+      "cam": "close",
+      "arm": "roller",
+      "age": 2,
+      "t": 48.96156199455261,
+      "file": "close_roller_2.00.jpg",
+      "tauD": 1.5800009965896606,
+      "strength": 0,
+      "plumeTopM": 0,
+      "hC": 7.59448766708374,
+      "bytes": 29715
+    },
+    {
+      "cam": "lookout",
+      "arm": "roller",
+      "age": 0.6,
+      "t": 47.56156199455261,
+      "file": "lookout_roller_0.60.jpg",
+      "bytes": 22551
+    },
+    {
+      "cam": "lookout",
+      "arm": "roller",
+      "age": 1.2,
+      "t": 48.16156199455261,
+      "file": "lookout_roller_1.20.jpg",
+      "bytes": 22691
+    },
+    {
+      "cam": "close",
+      "arm": "both",
+      "age": 0.3,
+      "t": 47.26156199455261,
+      "file": "close_both_0.30.jpg",
+      "tauD": -0.12000104784965515,
+      "strength": 0,
+      "plumeTopM": 0,
+      "hC": 7.59448766708374,
+      "bytes": 29477
+    },
+    {
+      "cam": "close",
+      "arm": "both",
+      "age": 0.45,
+      "t": 47.41156199455261,
+      "file": "close_both_0.45.jpg",
+      "tauD": 0.0299990177154541,
+      "strength": 1.3640215396881104,
+      "plumeTopM": 0.30247974395751953,
+      "hC": 7.59448766708374,
+      "bytes": 29277
+    },
+    {
+      "cam": "close",
+      "arm": "both",
+      "age": 0.6,
+      "t": 47.56156199455261,
+      "file": "close_both_0.60.jpg",
+      "tauD": 0.17999902367591858,
+      "strength": 1.3640215396881104,
+      "plumeTopM": 4.6442975997924805,
+      "hC": 7.59448766708374,
+      "bytes": 29515
+    },
+    {
+      "cam": "close",
+      "arm": "both",
+      "age": 0.8,
+      "t": 47.76156199455261,
+      "file": "close_both_0.80.jpg",
+      "tauD": 0.38000062108039856,
+      "strength": 1.3640217781066895,
+      "plumeTopM": 5.485611915588379,
+      "hC": 7.59448766708374,
+      "bytes": 29399
+    },
+    {
+      "cam": "close",
+      "arm": "both",
+      "age": 1.2,
+      "t": 48.16156199455261,
+      "file": "close_both_1.20.jpg",
+      "tauD": 0.7799992561340332,
+      "strength": 1.3640215396881104,
+      "plumeTopM": 0.8967475891113281,
+      "hC": 7.59448766708374,
+      "bytes": 29629
+    },
+    {
+      "cam": "close",
+      "arm": "both",
+      "age": 2,
+      "t": 48.96156199455261,
+      "file": "close_both_2.00.jpg",
+      "tauD": 1.5800009965896606,
+      "strength": 1.3640215396881104,
+      "plumeTopM": 0,
+      "hC": 7.59448766708374,
+      "bytes": 30090
+    },
+    {
+      "cam": "lookout",
+      "arm": "both",
+      "age": 0.6,
+      "t": 47.56156199455261,
+      "file": "lookout_both_0.60.jpg",
+      "bytes": 22551
+    },
+    {
+      "cam": "lookout",
+      "arm": "both",
+      "age": 1.2,
+      "t": 48.16156199455261,
+      "file": "lookout_both_1.20.jpg",
+      "bytes": 22683
+    }
+  ],
+  "birth": 46.96156199455261,
+  "totalBytes": 884814,
+  "errors": []
+}

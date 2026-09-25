@@ -154,3 +154,10 @@ qa/tube-2026-09-24/*
 !qa/section-gap-foam-2026-09-24/
 qa/section-gap-foam-2026-09-24/*
 !qa/section-gap-foam-2026-09-24/*.json
+
+# Crash A/B rig (scripts/capture_crash_ab.mjs): the 32 matched-age JPGs
+# (~1 MB) regenerate in ~3 min and stay ignored; the manifest (clocks,
+# landing readbacks per frame) is the record CRASH_PLUME_2026-09-24.md cites.
+!qa/crash-2026-09-24/
+qa/crash-2026-09-24/*
+!qa/crash-2026-09-24/manifest.json
