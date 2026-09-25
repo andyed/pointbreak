@@ -1,5 +1,58 @@
 # TODO
 
+## ▶ THE CURL FAN-OUT (2026-09-24 evening) — six tracks + verifier, nothing promoted
+
+Question asked: what does real curl and crashing action at Pleasure Point take?
+Answer measured: the heightfield cannot hold a tube (Track D convicted the
+white plate as the Z-folded head itself, three layers over 3–6 chords, no
+shading fix exists); the site mostly does not make one (Track F: bed ξ₀ crosses
+Battjes 0.5 only at First Peak ×1.3; the 08-15 Second Peak footage never opens
+a tube, its "crash" is a section shutting — wall ~0.3 s, half-height curtain,
+plume forward not up, bore in 0.4–0.7 s). Merged, all default-byte-identical:
+
+- **A** `shared/breaker-profile-glsl.js` — the 2-D overturning family
+  (ballistic jet at `plunge(ξ)·c`, Mead & Black roundness, foot-fixed clearing
+  after 0.42 s); explorer `experiments/tube-profile.html` (also in the essay
+  §06 via `?embed=1`), probe, tests. `BREAKER_PROFILE_2026-09-24.md`.
+- **B** `#tube=1` — swept ribbon (`web-three/js/tube.js`), TUBE build define,
+  grid handover (S cap 0.3, carved ceiling), seams 0.000 m, cavity 0.64 h_C.
+  Rendered with A's profile: plate gone, crest flat-topped, ribbon a small
+  flap. `TUBE_MESH_2026-09-24.md`.
+- **D** `#facetdebug=1|2|3`, `#underside=0` — diagnosis rig; the plate is the
+  fold. `LIP_FACETS_2026-09-24.md`.
+- **E** `experiments/surf-game-hack/` — the one-shot counterfactual, 20 min
+  build, 17 shortcuts ledgered. Pocket view competitive; nothing responds to
+  tide/period/spot. `GAME_HACK_COUNTERFACTUAL_2026-09-24.md`.
+- **F** `CURL_TRUTH_2026-09-24.md` — field ratios from the clean clip, 20
+  verified refs into `refs.bib`, per-spot barrel table, jury criteria §4.
+- **Verifier** `SECTION_GAP_FOAM_2026-09-24.md` — CONFIRMED authority split:
+  `pocket` (`model-glsl.js:1586`) and every consumer keyed to it (fold, bend,
+  lipFoam, pocket paints) ignore `breakMask`; `brk` = 1 on 100 % of gap
+  columns at three spots × three clocks. Section gaps are drawn and folded as
+  breaking heads while lip/curtain correctly hang nothing.
+- `#riderscale=vis` — the rider is human-scale under 3.2× water; A/B frames
+  sent 2026-09-24 evening, Andy's call.
+
+Open, in order:
+
+- [ ] **Andy's eye on the tube arm** (`#tube=1`, and `#tube=1&classic=1&descent=1`
+      per Track B) at the Sewers close camera and `#cam=lookout`; frames in
+      `qa/tube-2026-09-24/`. Not a barrel yet: the flap is the profile's
+      post-impact clearing to the foot; a thinning roof over the cavity is the
+      next profile change (Track A's file, not the mesh).
+- [ ] **Section-gap fix**: one multiply `pocket *= mask` at `model-glsl.js:1586`,
+      plus the `crest = crestNear·(1−brk·mask)·env2` companion so a gap shows
+      the crest passing through. Changes pixels only where `breakMask < 1`.
+      Reconcile the two documented claims (`bed.js:987` vs `model-glsl.js:1429`).
+- [ ] **Re-author breaker type as a section event, not a spot ξ** (Track F §3):
+      authored plunging at five spots draws a head the site never shows;
+      First Peak big/long-period is the one physics barrel.
+- [ ] **Rider scale**: `riderscale=vis`, or lower `vis` with the rider matched.
+- [ ] **CONTROLS.md stale rows**: `curl`/`lip`/`onset` say "default OFF";
+      `main.js` defaults them to 1 (verifier side note).
+- [ ] Jury pass over default / classic+descent / tube / crash / hack against
+      CURL_TRUTH §4 (this session, pending Track C).
+
 ## ▶ OPEN AFTER THE 2026-09-24 DEPLOY — product calls and loose ends
 
 Shipped that day: the unmirror (604ea6a), the reef refit with the intertidal
