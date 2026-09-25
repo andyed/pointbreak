@@ -1393,11 +1393,11 @@ float stripeAgeAt(vec2 xz, float t){
 // 0 at the crest, 1 at the trough, signed + on the front face, - on the back.
 // Callers shape the footprint with boreShape() and the volume with boreBulge().
 #ifdef BORE
-const float BORE_DEPTH_FRAC = 0.55;  // the white reaches this far down the front face (field 0.4-0.65 H_f)
-const float BORE_H_FRAC     = 0.18;  // bulge height as a fraction of the carrier's crest-to-trough range
-const float BORE_BIRTH_S    = 0.55;  // the bulge is fully formed this long after the crest crosses the line
-const float BORE_TAU_S      = 12.0;  // slow fade on the crest's clock; the carrier's own decay does the thinning
-const float BORE_KNUCKLE_S  = 1.2;   // the knuckle is the bore's freshest second: densest, brightest, lumpiest
+const float BORE_DEPTH_FRAC = 0.62;  // the white reaches this far down the front face (field 0.4-0.65 H_f; 0.55 measured 0.39-0.44 on frames, the foot thins under the luma threshold)
+const float BORE_H_FRAC = 0.18;  // bulge height as a fraction of the carrier's crest-to-trough range
+const float BORE_BIRTH_S = 0.55;  // the bulge is fully formed this long after the crest crosses the line
+const float BORE_TAU_S = 30.0;  // slow fade on the crest's clock: the footage ratio HOLDS (0.5-0.75 to 7.5 s) while the face shrinks; the carrier's own decay does the thinning, this only subordinates inner crests (age + T)
+const float BORE_KNUCKLE_S = 1.2;   // the knuckle is the bore's freshest second: densest, brightest, lumpiest
 
 // ocean()'s brkW, recomputed for a consumer that has no ocean() call (the
 // fragment): reef window x section mask, unioned with depth's own permission.

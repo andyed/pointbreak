@@ -42,11 +42,22 @@ WINDOWS = {
     'secondpeak_lookout': {'rows': (270, 520), 'cols': (60, 940)},
     # Second Peak cliff (card day): the only pose that shows a head from the
     # side; crest band y ~250-330, face to ~420.
-    'secondpeak_cliff':   {'rows': (230, 450), 'cols': (40, 980)},
+    # The two far breaking waves sit at rows ~300-360 with faces of ~20-30 px
+    # (the footage's own scale, 28-59 px); rows below 365 are the foreground
+    # whitewater field, which a wider window measured instead (v1).
+    # 'head': the head-relative read (head_relative) on the FAR wave alone —
+    # rows 284-336 hold its crest band and face; 337+ is the next wave's lip.
+    'secondpeak_cliff':   {'rows': (284, 336), 'cols': (40, 980), 'min_b': 3, 'min_f': 6, 'head': True},
+    # Same camera as secondpeak_cliff (Track J's re-stood field day).
+    'secondpeak_fieldday': {'rows': (284, 336), 'cols': (40, 980), 'min_b': 3, 'min_f': 6, 'head': True},
 }
 GAP_PX = 8   # a run may bridge gaps this long (specular glitter breaks the teal face run)
-BRIGHT_L, NEUTRAL = 200, 34     # bright: luma > 200 and |R-B| < 34 (white, not sky-blue glint)
-FACE_L, TEAL = 175, 8           # face: luma < 175 and G - R > 8 (teal-tinted water)
+# bright: luma > 185 (the footage's own threshold; the rendered band reads
+# 185-225 and the shipped lip line 195-215 at the cliff distance) and
+# |R-B| < 34 (white, not a sky-blue glint). BRIGHT_L=205 is the Field seat's
+# exposure-corrected setting; pass --strict to use it.
+BRIGHT_L, NEUTRAL = 185, 34
+FACE_L, TEAL = 160, 8           # face: luma < 160 and G - R > 8 (the rendered face reads 90-150)
 
 
 def luma(a):
@@ -99,9 +110,10 @@ def measure(path, win):
     # cannot. Columns need a band (> 6 px) and a face under it (> 10 px); a
     # specular glint is a band with no face under it or a band under 6 px, so
     # the default's glitter drops out here where the cross-column ratio counted it.
-    paired = (bh > 6) & (fh > 10)
+    min_b, min_f = win.get('min_b', 6), win.get('min_f', 10)
+    paired = (bh > min_b) & (fh > min_f)
     col_frac = bh[paired] / (bh[paired] + fh[paired]) if paired.sum() else np.array([])
-    thin = bh <= 4
+    thin = bh <= max(4, min_b)
     hf = float(np.percentile(fh[thin], 90)) if thin.sum() >= 10 and fh[thin].max() > 0 else float(np.percentile(fh, 90))
     covered = bh > 0.25*hf if hf > 0 else bh > 8
     bore_h = float(np.median(bh[covered])) if covered.sum() else 0.0
@@ -127,6 +139,51 @@ def measure(path, win):
     }, img
 
 
+def head_relative(cols, hf_side='left', min_b=3):
+    """The Field seat's geometry, automated: the HEAD is where the band begins
+    along the crest (the first column, coming from the dark-face side, whose
+    bright run exceeds a quarter of the face read just ahead of it and stays
+    there for 12 columns); H_f is the median dark run over the 15-60 columns
+    ahead of the head (the unbroken face, band <= min_b px); the band is read
+    at fixed along-crest distances behind the head. A right-hander seen from
+    shore peels to the viewer's left, so the face is to the LEFT of the head
+    and the bore to the RIGHT (the field sheets' layout: knuckle at the left
+    end of the bore). Returns None when no head is found in the window."""
+    bh = np.array([c['bright_h'] for c in cols]); fh = np.array([c['face_h'] for c in cols])
+    n = len(cols)
+    sgn = 1 if hf_side == 'left' else -1
+    order = range(n) if hf_side == 'left' else range(n - 1, -1, -1)
+    for i in order:
+        lo, hi = (i - 60, i - 15) if hf_side == 'left' else (i + 15, i + 60)
+        if lo < 0 or hi > n:
+            continue
+        ahead = [fh[j] for j in range(lo, hi) if bh[j] <= min_b and fh[j] > 0]
+        if len(ahead) < 20:
+            continue
+        hf = float(np.median(ahead))
+        seg = bh[i:i + 12] if hf_side == 'left' else bh[i - 11:i + 1]
+        if len(seg) == 12 and (seg > 0.25 * hf).all():
+            head = i
+            def band(a, b):
+                lo2, hi2 = (head + a, head + b) if hf_side == 'left' else (head - b, head - a)
+                lo2, hi2 = max(0, lo2), min(n, hi2)
+                return float(np.median(bh[lo2:hi2])) if hi2 > lo2 else None
+            out = {'head_x': cols[head]['x'], 'Hf_face_px': round(hf, 1), 'face_cols': len(ahead)}
+            for a, b, key in ((0, 15, 'knuckle_0_15'), (15, 45, 'bore_15_45'), (45, 120, 'bore_45_120'), (120, 300, 'bore_120_300')):
+                v = band(a, b)
+                out[key + '_px'] = v
+                out[key + '_over_Hf'] = None if (v is None or hf <= 0) else round(v / hf, 3)
+            # knuckle width: columns from the head over which the band exceeds 0.8x its 15-45 plateau
+            plateau = out['bore_15_45_px'] or 0
+            w = 0
+            j = head
+            while 0 <= j < n and bh[j] >= 0.8 * plateau and plateau > 0:
+                w += 1; j += sgn
+            out['band_start_cols'] = w
+            return out
+    return None
+
+
 def annotate(img, m, out):
     im = Image.fromarray(img.astype(np.uint8)); d = ImageDraw.Draw(im)
     y0, y1 = m['window']['rows']; x0, x1 = m['window']['cols']
@@ -145,7 +202,11 @@ def main():
     ap.add_argument('framedir')
     ap.add_argument('--out', default=None)
     ap.add_argument('--annotate', action='store_true')
+    ap.add_argument('--strict', action='store_true', help='bright threshold 205 (the Field seat setting) instead of 185')
     a = ap.parse_args()
+    global BRIGHT_L
+    if a.strict:
+        BRIGHT_L = 205
     out = a.out or os.path.join(a.framedir, 'measurements_rendered.json')
     rows = []
     for f in sorted(os.listdir(a.framedir)):
@@ -158,6 +219,13 @@ def main():
         rest = f[len(rig) + 1:-4]
         arm, sim = rest.rsplit('_', 1)
         m.update({'rig': rig, 'arm': arm, 'sim': int(sim)})
+        if WINDOWS[rig].get('head'):
+            m['head'] = head_relative(m['cols'], min_b=WINDOWS[rig].get('min_b', 6))
+            h = m['head']
+            if h:
+                print(f"    head x {h['head_x']}  Hf(face ahead) {h['Hf_face_px']} px  band/Hf: 0-15 cols {h['knuckle_0_15_over_Hf']}  15-45 {h['bore_15_45_over_Hf']}  45-120 {h['bore_45_120_over_Hf']}  120-300 {h['bore_120_300_over_Hf']}  band px {h['bore_15_45_px']}")
+            else:
+                print('    head: none found in window')
         if a.annotate:
             os.makedirs(os.path.join(a.framedir, 'ann'), exist_ok=True)
             annotate(img, m, os.path.join(a.framedir, 'ann', 'ann_' + f))

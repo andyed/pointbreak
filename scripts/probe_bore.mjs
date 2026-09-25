@@ -39,6 +39,8 @@ const COMMON = 'controls=0&q=high&speed=0&sim=48';
 const RIGS = {
   sewers:     { hash: `preset=sewers&month=card&cam=cliff&${COMMON}`, xs: range(-120, 60, 6) },
   secondpeak: { hash: `preset=secondpeak&cam=lookout&day=big&h0=1.4&tide=0.732&${COMMON}`, xs: range(-150, 150, 6) },
+  // Track J's re-stood field day (SECONDPEAK_FIELDDAY_2026-09-24 §4): the clip's forcing at the cliff.
+  fieldday:   { hash: `preset=secondpeak&cam=cliff&day=overhead&h0=1.40&tide=0.500&${COMMON}`, xs: range(-150, 150, 6) },
 };
 const ARMS = (process.env.ARMS || 'default,bore').split(',');
 const SIMS = (process.env.SIMS || '52,54').split(',').map(Number);

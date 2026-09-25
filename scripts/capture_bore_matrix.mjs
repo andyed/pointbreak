@@ -5,9 +5,12 @@
 // blind (CURL_JURY §3.4) and asked for 52-56 s, so the matrix runs 48-56 s.
 //
 //   (a) sewers_close        fixed eye [12, 11, -190] -> [-52, 4, -229] (stage), Sewers card day
-//   (b) secondpeak_lookout  #cam=lookout, day=big&h0=1.4&tide=0.732 (the field day;
-//                           another track is finding out why nothing breaks there —
-//                           captured anyway so the coordinator can compare)
+//   (b) secondpeak_lookout  #cam=lookout, day=big&h0=1.4&tide=0.732 (the jury's
+//                           "field day" rig; Track J showed it stands at 38th Ave
+//                           with the morning-loop forcing — kept for comparability)
+//   (c) secondpeak_cliff    card day from the cliff: a head seen from the side
+//   (d) secondpeak_fieldday cam=cliff with the clip's forcing (Track J's fix)
+// The cliff rigs carry default/bore only, to stay inside the 2 MB budget.
 //
 // Each arm is its own boot (about:blank between — a warm-page hash goto races
 // the app's boot-only reload); every frame is a pure function of the sim clock
@@ -30,7 +33,7 @@ const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8145';
 const MAIN_URL = process.env.MAIN_URL || '';
 mkdirSync(OUT, { recursive: true });
 
-const SIMS = (process.env.SIMS || '48,50,52,54,56').split(',').map(Number);
+const SIMS = (process.env.SIMS || '50,52,54,56').split(',').map(Number);
 const COMMON = 'controls=0&q=high&speed=0&sim=48';
 const RIGS = [
   { name: 'sewers_close', hash: `preset=sewers&month=card&cam=cliff&${COMMON}`, view: [[12, 11, -190], [-52, 4, -229]], settle: 2 },
@@ -38,7 +41,14 @@ const RIGS = [
   // (c) the Second Peak CLIFF on the card day: the one pose in the matrix that
   // shows a head from the side, so the knuckle and the bore behind it can be
   // read against the dark face ahead (the field sheets' geometry).
-  { name: 'secondpeak_cliff', hash: `preset=secondpeak&month=card&cam=cliff&${COMMON}`, settle: 2 },
+  { name: 'secondpeak_cliff', hash: `preset=secondpeak&month=card&cam=cliff&${COMMON}`, settle: 2, arms: ['default', 'bore'] },
+  // (d) the FIELD DAY as Track J re-stood it (SECONDPEAK_FIELDDAY_2026-09-24
+  // §4: the jury's lookout hash stood at 38th Ave with the morning-loop
+  // forcing): cam=cliff at Second Peak with the clip's forcing — E[Hmax] 1.40 m,
+  // the verified +0.50 m tide, the 'overhead' day's period. The rig the site
+  // test should be run on; the lookout rig is kept above for comparability
+  // with the jury's frames.
+  { name: 'secondpeak_fieldday', hash: `preset=secondpeak&cam=cliff&day=overhead&h0=1.40&tide=0.500&${COMMON}`, settle: 2, arms: ['default', 'bore'] },
 ];
 const ARMS = [
   { name: 'default', flag: '' },
@@ -77,6 +87,7 @@ for (const rig of process.env.ONLY_PARITY ? [] : RIGS) {
   if (ONLY_RIGS && !ONLY_RIGS.includes(rig.name)) continue;
   for (const arm of ARMS) {
     if (ONLY_ARMS && !ONLY_ARMS.includes(arm.name)) continue;
+    if (rig.arms && !rig.arms.includes(arm.name)) continue;   // per-rig arm set (see RIGS)
     await boot(`${BASE_URL}/web-three/#${rig.hash}${arm.flag}`);
     if (rig.view) await page.evaluate(v => { const p = window.__pointbreak; p.controls.dispatchEvent({ type: 'start' }); p.setView(...v); }, rig.view);
     for (const sim of SIMS) {
