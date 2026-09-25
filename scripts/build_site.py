@@ -61,6 +61,8 @@ ITEMS = [
     ('shared/params.js',               'sim/shared/params.js'),
     ('shared/model-glsl.js',           'sim/shared/model-glsl.js'),
     ('shared/cdip.js',                 'sim/shared/cdip.js'),
+    ('shared/breaker-profile-glsl.js', 'sim/shared/breaker-profile-glsl.js'),  # imported by the profile explorer
+    ('experiments/tube-profile.html',  'sim/experiments/tube-profile.html'),   # essay §06 embed; resolves ../shared/ under sim/
     ('data/model/pp_geo_profiles.js',  'sim/data/model/pp_geo_profiles.js'),
     ('data/model/pp_depth_patches.js', 'sim/data/model/pp_depth_patches.js'),
     ('data/model/pp_reef_fit.json',    'sim/data/model/pp_reef_fit.json'),   # bed.js JSON import (2026-09-24 refit)

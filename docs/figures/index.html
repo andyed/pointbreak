@@ -1568,6 +1568,48 @@ QA_LINK_END -->
       The optional <span class="mono">look=foam</span> material remains
       unpromoted.
     </p>
+    <p class="prose">
+      The next piece is not another tune of the height field. It is the
+      cross-section the height field cannot hold, built as its own curve.
+      Take one alongshore station and look at it from the side. Four numbers
+      describe the crest as the lip pitches: its height
+      <span class="mono">h<sub>C</sub></span>, set by the depth limit; the
+      phase speed <span class="mono">c</span>, set by the depth through
+      dispersion; the Iribarren number &xi;; and the <em>age</em> of the break
+      at that station, in seconds since the crest crossed the break line. The
+      lip is water launched from the crest at about the phase speed and falling
+      under gravity, so its path is a parabola and its horizontal reach is
+      <span class="mono">c&middot;&radic;(2h<sub>C</sub>/g)</span>: a faster
+      or taller crest lands further ahead, with no constant fitted to make it
+      so. &xi; decides how much of the crest goes over and how round the cavity
+      behind the jet is; below the Battjes spilling threshold nothing goes over
+      and the curve draws no cavity at all. Impact sits on the same
+      0.42&nbsp;s clock the foam and spray already use, and after it the foot
+      stays put while the upper edge clears into a bore.
+    </p>
+    <figure class="sim-figure">
+      <div class="sim-frame sim-frame-tall">
+        <iframe class="sim-embed" loading="lazy"
+          data-src="sim/experiments/tube-profile.html?embed=1&amp;xi=1.15&amp;hC=3&amp;c=6&amp;age=0.3"
+          title="Breaking-crest cross-section explorer: age, Iribarren number, crest height and phase speed"></iframe>
+      </div>
+      <figcaption>
+        One station, side view, drawn by running the shader function itself.
+        Move <em>age</em> to watch the crest pitch, throw, land and collapse;
+        move <span class="mono">c</span> or <span class="mono">h<sub>C</sub></span>
+        to see the landing move. The bar is how much of this curve would be
+        drawn in place of the height field. Physical metres, no viewing
+        exaggeration.
+        <a href="sim/experiments/tube-profile.html" target="_blank" rel="noopener">Open the explorer &#8599;</a>
+      </figcaption>
+    </figure>
+    <p class="prose">
+      This is a family of shapes, not yet the renderer. Sweeping it along the
+      break line and seaming it into the grid at both ends is in progress. The
+      Second Peak footage also says the site rarely needs the round end of the
+      family: the lip there crumbles more often than it throws, and the crash
+      the camera records is a section shutting, not a barrel closing.
+    </p>
     <figure class="fig-wrap">
       <div class="fig-frame">
 <svg viewBox="0 0 1200 1360" xmlns="http://www.w3.org/2000/svg" style="width:1200px;height:auto;max-width:none;display:block;">

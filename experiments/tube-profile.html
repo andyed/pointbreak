@@ -49,6 +49,16 @@
   .lbl { position: absolute; color: var(--fg); font-size: 13px; white-space: nowrap; pointer-events: none; }
   .lbl.small { color: var(--fg2); font-size: 12px; }
   .sheet .controls, .sheet .readout, .sheet .legend, .sheet p.sub { display: none; }
+  /* ?embed=1: the essay iframe (docs/figures/index.html §06). Chrome off, canvas
+     fluid, controls in one compact grid so the whole thing fits a 4:3 frame. */
+  .embed h1, .embed p.sub, .embed .legend { display: none; }
+  .embed body { padding: 8px 10px; }
+  .embed .stage { display: block; width: 100%; }
+  .embed canvas { width: 100%; height: auto; }
+  .embed .controls { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: none; margin-top: 8px; gap: 4px 12px; font-size: 13px; }
+  .embed .controls > div { grid-column: 1 / -1; }
+  .embed .readout { max-width: none; font-size: 12px; margin-top: 4px; }
+  @media (max-width: 560px) { .embed .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .sheet body { padding: 12px; }
 </style>
 </head>
@@ -59,7 +69,7 @@
   The curve runs back seam &rarr; crest &rarr; jet top &rarr; tip &rarr; jet underside &rarr; lip root &rarr; concave face &rarr; landing seam.
   The dim curve is the same station at age 0.
 </p>
-<div class="stage" id="stage"><canvas id="c" width="960" height="540"></canvas></div>
+<div class="stage" id="stage"><canvas id="stage-canvas" width="960" height="540"></canvas></div>
 <div class="controls">
   <label>age (s) <span class="val" id="v_age"></span><input id="age" type="range" min="-0.2" max="1.2" step="0.005" value="0.3"></label>
   <label>&xi; Iribarren <span class="val" id="v_xi"></span><input id="xi" type="range" min="0" max="2" step="0.01" value="1.15"></label>
@@ -78,7 +88,8 @@ import { BREAKER_PROFILE_GLSL } from '../shared/breaker-profile-glsl.js';
 
 const params = new URLSearchParams(location.search);
 const SHEET = params.get('sheet') === '1';
-const canvas = document.getElementById('c');
+if (params.get('embed') === '1') document.documentElement.classList.add('embed');
+const canvas = document.getElementById('stage-canvas');
 const stage = document.getElementById('stage');
 const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true, antialias: true });
 if (!gl) throw new Error('WebGL2 required');
