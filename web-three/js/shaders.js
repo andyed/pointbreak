@@ -20,6 +20,7 @@
 // pass gives only the impact its airy volume.
 
 import { MODEL_GLSL } from '../../shared/model-glsl.js';
+import { BREAKER_PROFILE_GLSL } from '../../shared/breaker-profile-glsl.js';
 
 // Varyings the spec names: world pos, displaced normal, foam, pocket, crest,
 // brk — plus the boil slick (recomputed in the vertex stage; ocean() keeps it
@@ -377,6 +378,16 @@ uniform float u_throwLen;   // #throwlen: express the lip throw as a fraction of
 uniform float u_sGrow;      // #sgrow: let the breaking-excess size signal past
                             // the sizeGate and S clamps that were eating it.
 ${MODEL_GLSL}
+#ifdef TUBE
+// #tube=1 (TUBE builds only, the #roller precedent): the swept breaker ribbon
+// (tube.js) and the grid handover in choppyPos read the shared profile. Under
+// the define so a default build compiles the pristine text.
+uniform float u_tube;   // 0 off, 1 on; live-toggled by __pointbreak.setTube
+uniform float u_tubeS;  // cusp-parameter cap under the ribbon (see choppyPos);
+                        // JS-settable instrument (__pointbreak.setTubeS) for
+                        // the fold sweep in scripts/probe_tube.mjs
+${BREAKER_PROFILE_GLSL}
+#endif
 ${DETAIL_GLSL}
 ${KELP_GLSL}
 `;
@@ -630,6 +641,26 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     if (!(bendOnset == bendOnset)) { bendOnset = 1.0; aheadCut = 1.0; }
     Sover *= devRamp * aheadCut;
   }
+#ifdef TUBE
+  // ---- #tube=1: the grid hands the overturn to the swept ribbon ----------
+  // The height field cannot be multivalued, so under the tube it must not
+  // try: at plunging stations (the profile weight at impact IS the plunging
+  // character, zero for a spiller) the bend is zeroed for every age and the
+  // cusp parameter is capped just short of the vertical tangent below. The
+  // ribbon (tube.js) owns everything past the cusp; ahead of the head and
+  // after the bore handoff the shipped release had the bend at zero anyway.
+  float tubeChar = clamp(u_tube, 0.0, 1.0) * breakerProfileWeight(CRASH_PEAK_S, u_xi);
+  bendOnset *= 1.0 - tubeChar;
+  // The handover window on the ribbon's own clock: in over the first 0.2 s of
+  // this station's lifecycle (~1-3 m along the line at Sewers' peel speeds),
+  // held through the ribbon's life, released into the bore by 1.4 s. Ahead of
+  // the head ageT reads ~T, so the gate is zero there and the shipped
+  // sharpening is untouched. ageT is the same clock as choppyPos's ageB and
+  // breakerLandingFrameAt (one rayPhase read, reused by the aeration key).
+  float wT   = 2.0*PI/u_T;
+  float ageT = mod(wT*t - rayPhase(vec2(xz0.x, breakLine(xz0.x))), 2.0*PI)/wT;
+  float tubeGate = tubeChar * smoothstep(0.0, 0.20, ageT) * (1.0 - smoothstep(0.90, 1.40, ageT));
+#endif
   // u_sScale: INSTRUMENT for the 2026-08-22 S re-derivation. With the honest
   // carrier amplitude (#amp=1) every constant feeding S is mis-scaled, because
   // all of them were fitted against an estimate that ran ~1.6x the carrier at
@@ -669,6 +700,18 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // the same band and their overhangs compose into a self-intersection the
   // grid cannot carry (S alone already reaches 1.8 at Sewers).
   if (u_curl > 0.5) S = min(S, 1.0);
+#ifdef TUBE
+  // Single-valued under the ribbon. MEASURED 2026-09-24 (scripts/probe_tube.mjs,
+  // Sewers x=-52, impact): capping at the connectedLook 0.98 left the
+  // transect's reverse travel at 10.8 m against 10.5 m with the bend on — the
+  // fold is the choppy convergence itself (the sharpened crest's curvature
+  // outruns the a*k^2 the S = 1 cusp criterion assumes), not the bend, and
+  // the pocket's effective S is already ~0.5-0.65 (caps 0.98/0.8/0.65 read
+  // identical). Reverse travel: 9.9 m at 0.5, 7.1 m at 0.4, 4.4 m at 0.3. So
+  // the cap is a real reduction, u_tubeS, inside the handover window, and a
+  // residual fold of a few metres remains (TUBE_MESH_2026-09-24.md).
+  S = min(S, mix(1.0, clamp(u_tubeS, 0.05, 1.0), tubeGate));
+#endif
   float lam    = S / (aEst * kk * kk);
 
   vec2 off = lam * grad;
@@ -988,6 +1031,34 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
     curl   = th/PI;   // hook for the lip-aeration path: turns of overturn
   }
   }
+#ifdef TUBE
+  // ---- the over-fill's outlet under the ribbon --------------------------
+  // MEASURED 2026-09-24 (head station x=-49, sim 48): with the bend zeroed the
+  // head block stood at fill 1.48 (11.3 m over a 7.6 m ceiling) where the
+  // shipped bend had folded it to 1.07 — the earn floor was the only outlet
+  // over-fill had, and "the crest is TALLER when nothing folds it" is the
+  // documented regression. Under the ribbon that block is a white slab the
+  // tube hides inside. So breaking water (pocket-gated, the earn floor's own
+  // gate) takes a SOFT ceiling instead — tanh knee, C1, never a hard plane —
+  // and the ceiling is CARVED ahead of the crest phase: a flat cap at 1.03
+  // was measured to leave a 4 m mesa the jet lay inside (cavity 0.03 h_C).
+  // The water above the carve is the jet, which the ribbon draws; the face
+  // left behind falls as sqrt(dzC) — near-vertical at the lip, easing toward
+  // the bend line 0.35 h_C — the concave face under a real lip. Behind the
+  // crest phase the cap is flat. Gated by the same window as the cusp cap.
+  float kzC  = max(kk*cos(swellPhi()), 0.25*kk);
+  float dzCT = -(mod(thetaRaw + PI, 2.0*PI) - PI)/max(kzC, 1e-3);   // + shoreward of the crest phase
+  if (tubeGate > 0.0) {
+    float hCT   = max(crestCeilM(depQ, KsQ), 0.5);
+    float ceilF = max(1.03 - 1.4*sqrt(max(dzCT, 0.0)/hCT), 0.35);
+    float kneeF = ceilF - 0.08;
+    float overT = max(h/hCT - kneeF, 0.0);
+    float e2T   = exp(-2.0*overT/0.08);                    // tanh, written out (GLSL ES has none)
+    float softT = kneeF + 0.08*(1.0 - e2T)/(1.0 + e2T);
+    float gCeil = tubeGate * smoothstep(0.10, 0.40, pocket);
+    h = mix(h, min(h, softT*hCT), gCeil);
+  }
+#endif
 
   // ---- aerated lip (#lip=1, read by GRID_FRAG through u_lipAer) ----------
   // The curl was CLEAN GLASS: the fold above is pure geometry, every foam
@@ -1026,6 +1097,21 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   // from painting a standing white smear.
   float lipKey = u_curl > 0.5 ? smoothstep(0.10, 0.50, curl)
                               : clamp(throwMag / max(1.2*hM, 0.5), 0.0, 1.0);
+#ifdef TUBE
+  // With the bend zeroed, curl is 0 and the key above goes dark under the
+  // ribbon. Key the grid's aeration off the profile weight at THIS station's
+  // age instead (same clock as the ribbon), inside the pocket, so the water
+  // the tube stands on is whitened where the tube is and nowhere else.
+  // Crest band only (the bend's dzC construction): the face INSIDE the barrel
+  // must stay dark water, so this whitens the lip seam, not the pocket. The
+  // first cut keyed on pocket alone and painted a 25 m white plate.
+  if (tubeChar > 0.0) {
+    float sigT = max(0.35*crestCeilM(depQ, KsQ), 1.0);
+    float bandT = exp(-(dzCT*dzCT)/(2.0*sigT*sigT));
+    lipKey = max(lipKey, 0.6 * breakerProfileWeight(ageT, u_xi) * clamp(u_tube, 0.0, 1.0)
+                         * smoothstep(0.20, 0.70, pocket) * bandT);
+  }
+#endif
   // With #curl ON the S-cusp factor is a SECOND authority on the same
   // question lipKey already answers ("has this water gone over"), left from
   // the throw era — and the two gates disagree exactly at the advancing
