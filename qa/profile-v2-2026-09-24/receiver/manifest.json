@@ -1,0 +1,215 @@
+{
+  "baseUrl": "http://127.0.0.1:8142",
+  "viewport": [
+    1000,
+    625
+  ],
+  "sims": [
+    50,
+    52,
+    54,
+    56
+  ],
+  "jpegQuality": 80,
+  "frames": [
+    {
+      "rig": "sewers_close",
+      "arm": "classicdescent",
+      "sim": 50,
+      "file": "sewers_close_classicdescent_50.jpg",
+      "bytes": 25934,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "classicdescent",
+      "sim": 52,
+      "file": "sewers_close_classicdescent_52.jpg",
+      "bytes": 26681,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "classicdescent",
+      "sim": 54,
+      "file": "sewers_close_classicdescent_54.jpg",
+      "bytes": 27726,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "classicdescent",
+      "sim": 56,
+      "file": "sewers_close_classicdescent_56.jpg",
+      "bytes": 24215,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 50,
+      "file": "sewers_close_tubeclassic_50.jpg",
+      "bytes": 25840,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 52,
+      "file": "sewers_close_tubeclassic_52.jpg",
+      "bytes": 27696,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 54,
+      "file": "sewers_close_tubeclassic_54.jpg",
+      "bytes": 28282,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 56,
+      "file": "sewers_close_tubeclassic_56.jpg",
+      "bytes": 24215,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    }
+  ],
+  "cameraDriftM": {
+    "sewers_close_tubeclassic_50": 0,
+    "sewers_close_tubeclassic_52": 0,
+    "sewers_close_tubeclassic_54": 0,
+    "sewers_close_tubeclassic_56": 0
+  },
+  "totalBytes": 210589
+}
