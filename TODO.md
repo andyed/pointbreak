@@ -78,6 +78,17 @@ Open, in order:
       fixed on main 2b768d3, moves 73–139 px at the Sewers head, 0 elsewhere.
       Plume still sparse round puffs (8–15 bodies), radii ~0.2–0.3 hC over the
       crest; contact now anchored at the drawn lip + `bpReach`.
+- [x] **Profile v2** (G, `BREAKER_PROFILE_V2_2026-09-24.md`): roof thins onto its
+      underside after impact, cavity closes from the landing side (monotone at
+      108 combos); ground-frame launch lands 0.9 hC (Second Peak 0.12, Sewers
+      0.75); no bulge at spilling ξ (stated where it belongs). Mesh contract §5
+      items 1–6 → Track L.
+- [x] **Bore** (I2, `BORE_2026-09-24.md`, `#bore=1`): `boreWedgeAt()` rides the
+      crest on the crest's lifecycle clock (the shipped mound fell behind at
+      1.7 m/s and died at 3.8 s); band 0.44–0.50 H_f behind the head at the
+      field-day cliff rig vs field 0.36–0.69 (default: a 2–6 px line). Next:
+      the knuckle as a narrower, brighter bulge over the first 0.5–1 H_f, bore
+      cap 0.05–0.1 H_f below the crest behind it.
 - [x] **Ribbon material** (H, `TUBE_LOOK_2026-09-24.md`, `#tubelook`, default
       aerated, `0` = glass): white scalloped lip edge, translucent green root,
       streaked grey-white curtain. From the jury camera a sub-pixel shading
