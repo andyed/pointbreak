@@ -161,3 +161,11 @@ qa/section-gap-foam-2026-09-24/*
 !qa/crash-2026-09-24/
 qa/crash-2026-09-24/*
 !qa/crash-2026-09-24/manifest.json
+
+# Crash draw fix (docs/research/CRASH_DRAW_2026-09-24.md): 21 matched JPEG
+# frames + the spray FrontSide/DoubleSide pair the note opens; 0.8 MB. The
+# run manifest is ignored by the directory's own list.
+!qa/crash-draw-2026-09-24/
+qa/crash-draw-2026-09-24/*
+!qa/crash-draw-2026-09-24/*.jpg
+!qa/crash-draw-2026-09-24/*.png
