@@ -43,13 +43,11 @@ Open, in order:
       `qa/tube-2026-09-24/`. Not a barrel yet: the flap is the profile's
       post-impact clearing to the foot; a thinning roof over the cavity is the
       next profile change (Track A's file, not the mesh).
-- [ ] **Section-gap fix**: one multiply `pocket *= mask` at `model-glsl.js:1586`,
-      plus the `crest = crestNear·(1−brk·mask)·env2` companion so a gap shows
-      the crest passing through. Changes pixels only where `breakMask < 1`.
-      Reconcile the two documented claims (`bed.js:987` vs `model-glsl.js:1429`).
-- [ ] **Re-author breaker type as a section event, not a spot ξ** (Track F §3):
-      authored plunging at five spots draws a head the site never shows;
-      First Peak big/long-period is the one physics barrel.
+- [x] **Section-gap fix** landed behind `#gapfix=1` (Track K); promotion is a
+      look call (it removes the gap heads' white polygons).
+- [x] **Breaker type as a section event** landed behind `#sectioncurl=1` (Track K);
+      the spot ξ becomes the shut value and the head takes ≤ 0.42. Promotion
+      and the per-spot authored ξ table (Track F §3) are Andy's call.
 - [x] **Rider scale**: `riderscale=vis` promoted to default 2026-09-24 evening
       ("not seeing surfer size fix"); `#riderscale=1` is the physical revert.
 - [ ] **Which forcing and camera define "the field day"** (Track J): adopt the
@@ -89,6 +87,15 @@ Open, in order:
       field-day cliff rig vs field 0.36–0.69 (default: a 2–6 px line). Next:
       the knuckle as a narrower, brighter bulge over the first 0.5–1 H_f, bore
       cap 0.05–0.1 H_f below the crest behind it.
+- [x] **Sections own the crash** (K, `SECTION_CURL_2026-09-24.md`): `#gapfix=1`
+      gates `pocket` and `crest` on the section mask (gap heads 12/21/11 → 0
+      at Sewers 42/46/50, open-line head unchanged to 1e-3); `#sectioncurl=1`
+      makes ξ a station quantity — `xiAt(x) = mix(min(ξ,0.42), max(ξ,0.95),
+      sectionShut)` on the leading flank of a pull — and every former `u_xi`
+      read takes `plungeAt(x)`, so a shutting section walls → curtains →
+      plumes → bores in 1.7 s on the shared clock while the head spills.
+      Limits: flank 12–16 m vs the footage's 1–2 H_f (50 m lattice);
+      `tube.js` still reads `u_xi` (one-line follow-up).
 - [x] **Ribbon material** (H, `TUBE_LOOK_2026-09-24.md`, `#tubelook`, default
       aerated, `0` = glass): white scalloped lip edge, translucent green root,
       streaked grey-white curtain. From the jury camera a sub-pixel shading
