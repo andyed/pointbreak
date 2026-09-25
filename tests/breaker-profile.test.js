@@ -38,8 +38,19 @@ test('the profile clock mirrors the model lifecycle constants', () => {
 
 test('the plunging blend is the renderer\'s shared ramp, byte for byte', () => {
   assert.match(BREAKER_PROFILE_GLSL, /float bpPlunge\(float xi\)\{ return smoothstep\(0\.45, 1\.25, xi\); \}/);
-  assert.match(shaders, /smoothstep\(0\.45, 1\.25, u_xi\)/);
-  assert.match(model, /smoothstep\(0\.45, 1\.25, u_xi\)/);
+  // Since 2026-09-24 (SECTION_CURL) the model owns the ramp once, at a
+  // station: plungeAt(x) = smoothstep(0.45, 1.25, xiAt(x)), and xiAt returns
+  // u_xi verbatim unless #sectioncurl is armed. Every renderer consumer reads
+  // plungeAt/xiAt — no raw u_xi ramp may survive in the shaders, or a station
+  // would keep the spot constant while its neighbours went local.
+  assert.match(model, /float plungeAt\(float x\)\{ return smoothstep\(0\.45, 1\.25, xiAt\(x\)\); \}/);
+  assert.match(model, /if \(u_sectionCurl <= 0\.5\) return u_xi;/);
+  // ...and a default boot (no SECTION_CURL define) preprocesses both names
+  // back to the shipped text, so main's pixels are unchanged by construction.
+  assert.match(model, /#ifdef SECTION_CURL[\s\S]*#else\n#define xiAt\(x\) u_xi\n#define plungeAt\(x\) smoothstep\(0\.45, 1\.25, u_xi\)\n#endif/);
+  assert.match(shaders, /float plunge = plungeAt\(xz0\.x\);/);
+  assert.doesNotMatch(shaders, /smoothstep\(0\.45, 1\.25, u_xi\)/);
+  assert.doesNotMatch(shaders.replace(/\/\/[^\n]*/g, ''), /breakerProfileWeight\([^)]*u_xi\)/);
 });
 
 test('rate independence: seconds only, no frame constants', () => {

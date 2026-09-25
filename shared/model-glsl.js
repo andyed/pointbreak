@@ -80,6 +80,10 @@ uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock
 uniform float u_hump;       // head hump gain, #hump= (EXPERIMENT 2026-09-10, default 0 = off)
 uniform float u_moundH;     // structural impact/bore mound height multiplier, #moundh= (shipped 0.5 since 2026-09-10; 1 = pre-fix)
 uniform float u_frontW;     // structural front band width multiplier, #frontw= (EXPERIMENT 2026-09-10, default 1)
+// ---- sections own the crash (2026-09-24, SECTION_CURL_2026-09-24.md) ----
+uniform float u_gapFix;      // 1 = the pocket and the crest honour breakMask (#gapfix=1); 0 = shipped
+uniform float u_sectionCurl; // 1 = xi is local: spilling head, plunging where a section shuts (#sectioncurl=1)
+uniform float u_sectionXi;   // the xi a shutting section rises to under #sectioncurl (#sectionxi=, default 0.95)
 uniform float u_lipSize;    // 1 = the pocket->whitewater path carries foamSizeAt() like the
                             // rest of the foam field, 0 = #lipn=0 A/B revert (size-free lip)
 uniform float u_stripeLife; // 1 = per-stripe along-crest lifecycle clock (#slife=1), default 0
@@ -483,10 +487,107 @@ float breakMask(float x){
   return mix(1.0, mix(ma, mb, tf), u_gapMask*u_breakMix);
 }
 
+// THE SECTION FIELD, once. breakLine() pulls the line seaward by
+// u_sections*55*2*sectionNoise metres where this is negative (a shallow patch
+// meets the break criterion early); #sectioncurl reads the same field to
+// decide where the crest shuts. One noise, two readers, no second authority
+// on where sections are. Returns vnoise1 - 0.5, in [-0.5, 0.5].
+#define SECTION_NOISE(xx) (vnoise1((xx)*0.02+7.3) - 0.5)
+float sectionNoise(float x){
+  float xx = mix(x, abs(x), u_aframe);
+  return SECTION_NOISE(xx);
+}
+// d(sectionNoise)/d(xx), per metre of the peel coordinate, analytic:
+// vnoise1(p) = mix(h(i), h(i+1), f*f*(3-2f)) with p = xx*0.02 + 7.3, so the
+// slope is (h(i+1)-h(i)) * 6f(1-f) * 0.02. Exact for the field breakLine
+// reads; no finite difference, no second sample of the noise.
+float sectionNoiseSlope(float x){
+  float xx = mix(x, abs(x), u_aframe);
+  float p = xx*0.02 + 7.3;
+  float i = floor(p), f = fract(p);
+  return (hash11(i+1.0) - hash11(i)) * 6.0*f*(1.0-f) * 0.02;
+}
+// Where a section is SHUTTING, 0..1 (#sectioncurl=1 only; the default path
+// never calls it). CURL_TRUTH_2026-09-24 1.2 B / 3: the field's one crash is
+// a section closing -- a 1-2 face-height stretch walls up, a half-face curtain
+// drops, a forward plume becomes bore in ~1.5 s -- and the steady head spills.
+// The crest is "about to close ahead of the head" where the break line STEPS
+// SEAWARD going down-point: breakLine pulls the line seaward by
+// u_sections*110*min(sectionNoise, 0) m, and on the LEADING flank of such a
+// pull (pull increasing with xx, the peel coordinate) the crest -- which
+// arrives shoreward, in the order of z_b -- reaches the stations ahead of
+// the head before or with the head itself, so that stretch breaks nearly at
+// once: a closeout inside the peel, the section "walling up ahead". The core
+// of the pull and its trailing flank resume the peel's arrival order, already
+// broken, and read as bore; they are not the event. Plunging is the honest
+// character for the flank: the break sits on the patch's own steep edge, and
+// xi is proportional to tan(beta). Authored numbers:
+//   slope ramp 0.25->0.65 of the field's steepest possible flank: slope is
+//     d(pull)/d(xx) times the half-lattice 25 m (vnoise1 lattice 1/0.02), so a
+//     full 0->1 swing over half a lattice reads 1.5; 0.65 is what a lobe of
+//     0.6 amplitude -- Second Peak's one on-reef lobe (x 20-48) -- reaches at
+//     its steepest, and 0.25 is below any flank that pulls the line a
+//     metre. The shutting stretch is one quarter-lattice, ~12 m.
+//   pull gate smoothstep(0, 0.1): the flank counts only once the line is in
+//     fact pulled (breakLine's min(sec, 0) clips positive noise).
+//   sigma_h ramp 0.05->0.15 -- which spots ARE section spots. Anchored on the
+//     one spot with footage: the field clip is Second Peak (sigma_h 0.15) and
+//     its one crash is a section shutting, so 0.15 is full weight; Privates'
+//     0.05 is the DEM's peel with no reef patch (MODEL 2.1) and shuts nothing,
+//     the same step(0.05) that arms breakLine's shift; the bank's 0.10 spots
+//     (Jack's, Sharks) sit at half weight. Sewers/First Peak/Hook are full.
+float sectionShut(float x){
+  float n = sectionNoise(x);
+  float pull  = clamp(-2.0*n, 0.0, 1.0);                     // fraction of 55*u_sections m
+  float slope = max(-2.0*sectionNoiseSlope(x), 0.0) * 25.0;  // pull steepening with xx
+  return smoothstep(0.25, 0.65, slope) * smoothstep(0.0, 0.1, pull)
+       * smoothstep(0.05, 0.15, u_sections) * step(0.05, u_sections);
+}
+// EFFECTIVE IRIBARREN at station x. Default (u_sectionCurl = 0): u_xi, the
+// per-spot constant, unchanged everywhere -- every consumer below reads this
+// and stays byte-identical. Under #sectioncurl=1 the steady head falls to a
+// spilling value (min(u_xi, 0.42): below the Battjes 0.45 foot of the shared
+// plunge ramp, inside the bed's own xi_0 bracket 0.23-0.44 at every card
+// state, CURL_TRUTH 3) and rises where a section shuts to max(u_xi,
+// u_sectionXi). 0.95 gives plunge 0.68: a curtain that draws (the curtain's
+// 0.30-turn gate opens at plunge ~0.5, rollerContactGain's calibration) but
+// not Sewers' full 0.96 -- the field's curtain is 0.5-0.6 H_f with the lip
+// <= 0.3 H_f ahead of the face (1.3), a modest plunge, not a tube. Sewers
+// (1.15) keeps its authored value at its sections. The station's OWN
+// lifecycle clock (breakerLifecycleAtX age) then times the event: wall while
+// the bend accelerates to CRASH_PEAK_S, curtain/impact there, release over
+// 1.5 sigma, bore after -- no new clock, no new break authority.
+// BUILD flag, the #roller / #tube precedent: a default boot compiles the
+// pristine text. Routing u_xi through a function-and-branch was measured to
+// move 4-6 default pixels by 1/255 and the probe's displaced z by one float
+// ulp against pristine main (ANGLE-Metal contracts the inlined arithmetic
+// differently), so under no define the two names ARE the shipped expressions,
+// character for character, and every consumer below preprocesses back to
+// smoothstep(0.45, 1.25, u_xi) / u_xi. u_sectionCurl is the live gate inside
+// a SECTION_CURL build (__pointbreak A/B in one session).
+#ifdef SECTION_CURL
+float xiAt(float x){
+  if (u_sectionCurl <= 0.5) return u_xi;
+  float xiSpill = min(u_xi, 0.42);
+  float xiShut  = max(u_xi, u_sectionXi);
+  float xi = mix(xiSpill, xiShut, sectionShut(x));
+  if (!(xi == xi)) xi = u_xi;                                  // NaN guard (house rule)
+  return xi;
+}
+// The one plunging blend (Battjes: plunging from ~0.5), at a station. Every
+// consumer that used to read smoothstep(0.45, 1.25, u_xi) reads this, so the
+// profile, the bend, the curtain gate, the impact bell, the spray and the foam
+// inherit a local xi through one function.
+float plungeAt(float x){ return smoothstep(0.45, 1.25, xiAt(x)); }
+#else
+#define xiAt(x) u_xi
+#define plungeAt(x) smoothstep(0.45, 1.25, u_xi)
+#endif
+
 float breakLine(float x){
   float xx = mix(x, abs(x), u_aframe);
   // sections: shallow patches meet the break criterion early (z_b pulled seaward)
-  float sec = u_sections * 55.0 * (vnoise1(xx*0.02+7.3) - 0.5) * 2.0;
+  float sec = u_sections * 55.0 * SECTION_NOISE(xx) * 2.0;
   // The break line IS the contour through the surf node (contourZ = 0). It no
   // longer carries alpha: the swell does. This is what keeps it seaward of the
   // measured waterline for the whole reef window instead of diving onto the
@@ -925,7 +1026,7 @@ vec4 breakerLifecycleAtX(float x, float t){
   // A compact plunging impact gives way to a lower, longer-lived bore. The
   // front moves shoreward; the site taxonomy only changes their relative
   // energy, so Privates still crumbles while Sewers throws.
-  float plunge = smoothstep(0.45, 1.25, u_xi);
+  float plunge = plungeAt(x);
   float frontSpeed = mix(2.4, 4.1, plunge);
   float frontZ = zb + frontSpeed*age;
   float env = setEnv(rayS(atBreak), t);
@@ -969,10 +1070,10 @@ float breakerCeilM(vec2 xz0){
 // The contact experiment follows the same plunging character as the classic
 // crown and ellipse. All consumers must agree when it is enabled, including
 // MODEL_GLSL-only fragment passes that place the transported foam.
-float classicDescentWeight(){
+float classicDescentWeightAt(float x){
   if (u_lipDescent <= 0.5 || u_classicWave <= 0.5 ||
       u_onset <= 0.5 || u_curl <= 0.5) return 0.0;
-  return clamp(u_classicWave, 0.0, 1.0)*smoothstep(0.45, 1.25, u_xi);
+  return clamp(u_classicWave, 0.0, 1.0)*plungeAt(x);
 }
 
 // Geometry and clock of the existing impact event, available to the falling
@@ -992,7 +1093,7 @@ vec4 breakerLandingFrameAt(float x, float t){
   // receiver is 1.6 crest heights ahead at full plunge, blended by character.
   // Authored in the wave's length and tested on the displaced surface; this
   // is not a physical ratio inferred from the uncalibrated field video.
-  float classic = classicDescentWeight();
+  float classic = classicDescentWeightAt(x);
   if (classic > 0.0) zL += (1.6 - CURT_REACH)*hC*classic;
   float ageHere = mod(w*t - rayPhase(vec2(x, breakLine(x))), 2.0*PI)/w;
   float tauD = ageHere - CRASH_PEAK_S;
@@ -1011,7 +1112,7 @@ float breakerImpactPeakAtX(float x, float tEmit){
   vec2 atBreak = vec2(x, zb);
   float env = setEnv(rayS(atBreak), tEmit);
   float activity = env*env*reefWindow(x)*breakMask(x);
-  float plunge = smoothstep(0.45, 1.25, u_xi);
+  float plunge = plungeAt(x);
   return activity*(0.18 + 0.82*plunge)*foamSizeAt(x);
 }
 
@@ -1079,8 +1180,8 @@ float breakerImpactPeakAtX(float x, float tEmit){
 // (zL landing z, hC ceiling, tauD seconds since THIS station's landing,
 // strength = gain*contact*impact peak at emission, or 0 outside the life
 // window). Nothing downstream re-derives where or when the crest lands.
-float rollerContactGain(){
-  float plunge  = smoothstep(0.45, 1.25, u_xi);
+float rollerContactGainAt(float x){
+  float plunge  = plungeAt(x);
   // CALIBRATED TO THE CURTAIN'S OWN GATE, measured (measure_crash_transport,
   // max overturn along the transect over 40 s, curtain gate = smoothstep(0.30,
   // 0.55, curl)*breakMask*farFade): Sewers xi 1.15 (plunge 0.96) curl 0.60-0.73
@@ -1095,7 +1196,7 @@ float rollerContactGain(){
 vec4 impactLandingAt(float x, float t){
   vec4 frame = breakerLandingFrameAt(x, t);
   float zL = frame.x, hC = frame.y, tauD = frame.z;
-  float gain = rollerContactGain();
+  float gain = rollerContactGainAt(x);
   float strength = 0.0;
   if (gain > 0.0 && tauD > 0.0 && tauD < ROLLER_END_S) strength = gain * breakerImpactPeakAtX(x, t - tauD);
   vec4 o = vec4(zL, hC, tauD, strength);
@@ -1124,8 +1225,8 @@ float splashUpHeight(float tauD, float hC){                             // displ
 vec4 impactSourceAt(vec2 sourceXZ, float t, out vec4 geo){
   geo = vec4(0.0);
   float x = sourceXZ.x;
-  float plunge  = smoothstep(0.45, 1.25, u_xi);
-  float gain    = rollerContactGain();
+  float plunge  = plungeAt(x);
+  float gain    = rollerContactGainAt(x);
   if (gain <= 0.0) return vec4(0.0);
 
   // The water's propagation ray and the bore's speed along it — both owned
@@ -1428,6 +1529,16 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float inside  = smoothstep(-6.0, 14.0, z - zb);
   // breakMask withdraws the ZIPPER's claim inside a section gap (the line is
   // a limiter artifact there); depth's own permission (gate below) stands.
+  // RECONCILED (SECTION_GAP_FOAM_2026-09-24): bed.js's gapArr comment says a
+  // gap texel is "rendered as NOT BREAKING". Both sentences are true of
+  // different things. NOT BREAKING means no breaking EVENT at the line -- no
+  // lifecycle impact/bore/spray (activity carries the mask), no aerated lip
+  // or curtain (gated on it), and, under #gapfix, no pocket head or fold and
+  // an unbroken crest drawn through the gap. It does not mean the water past
+  // the depth limit is un-broken: brk stays depth's permission, so the residue
+  // floor and the hump gate keep their whitewater in the gap. What must NOT
+  // happen -- and did, until #gapfix -- is a pocket-keyed head painted and
+  // folded on the gap segment of a line that is transport, not a crest.
   float mask    = breakMask(x);
   float brkZip  = inside * reef * mask;
   // Break where the shoaled wave exceeds what the depth can carry. Comparing
@@ -1529,7 +1640,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float env2   = env*env;                  // lulls really disappear
   float qBase  = mix(2.2, 1.6, u_pitchOdd);
   float qGain  = mix(1.5, 3.2, u_pitchOdd);
-  float q      = qBase + qGain*exp(-abs(d)/55.0)*(0.6 + 0.5*u_xi);
+  float q      = qBase + qGain*exp(-abs(d)/55.0)*(0.6 + 0.5*xiAt(x));
   float amp    = 0.5*Heff * grow * decay * env * shoreFade;
   float h      = amp * crestShape(-theta, q) * 2.0;
   // The carrier's amplitude, displayed metres. crestShape carries a mean
@@ -1583,10 +1694,32 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float pockS = mix(1.0, clamp(u_H0*shelterAt(x)/1.5, 0.70, 1.50), u_depthMix*u_pockSize);
   float pocketLegacy = exp(-(d*d)/(2.0*(22.0*pockS)*(22.0*pockS)));
   float pocketCompact = exp(-(d*d)/(2.0*(7.5*pockS)*(7.5*pockS)));
+  // #gapfix=1 (SECTION_GAP_FOAM_2026-09-24 5): the pocket is the one term
+  // every head consumer keys to -- the fold reach Sover, the bend's kEff and
+  // earn floor, lipFoam, the fragment's pocket floor, fresh core, tint and
+  // pocket-lip white -- and none of them read breakMask, so a crest crossing
+  // the gap segment of the line was painted and folded as a breaking head
+  // (the og hero's heads B and C). One multiply at the source, one authority;
+  // everything downstream inherits it. mix(1, mask, 0) is exactly 1, so the
+  // shipped path is untouched.
+  // GAP_FIX is a BUILD define (see SECTION_CURL above for why): the default
+  // boot compiles the two shipped lines verbatim; u_gapFix is the live gate
+  // inside a #gapfix boot.
+#ifdef GAP_FIX
+  float gapKeep = mix(1.0, mask, u_gapFix);
+  pocket = crestNear * mix(pocketLegacy, pocketCompact, clamp(u_breakShape, 0.0, 1.0))
+         * env2 * reef * gapKeep;
+  // unbroken crest lines (approaching swell stays legible from above). With
+  // brk = 1 inside every gap (depth's permission) the gap drew neither a broken
+  // nor an unbroken crest; under #gapfix the crest passes through the gap
+  // unbroken, which is what MODEL.md 4.5 says happens there.
+  crest = crestNear * (1.0 - brk*gapKeep) * env2;
+#else
   pocket = crestNear * mix(pocketLegacy, pocketCompact, clamp(u_breakShape, 0.0, 1.0))
          * env2 * reef;
   // unbroken crest lines (approaching swell stays legible from above)
   crest = crestNear * (1.0 - brk) * env2;
+#endif
 
   // Legacy keeps a static symmetric mound on the break line. Structural mode
   // transfers that mass into the shared lifecycle: a compact impact at the
@@ -1645,7 +1778,7 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float splashBand = exp(-0.5*pow((z - life.y)/splashSig, 2.0));
   float splashRag  = 0.45 + 0.55*(0.5*vnoise2(vec2(x*0.85, t*2.2))
                                 + 0.5*vnoise2(vec2(x*2.1 + 7.0, t*3.1)));
-  float plgSplash  = smoothstep(0.45, 1.25, u_xi);
+  float plgSplash  = plungeAt(x);
   // The upward burst begins as the lip releases, not while it is still
   // accelerating. Without this handoff the burst merely made the held curl
   // taller and more overturned (the opposite of a landing).
@@ -1964,12 +2097,12 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float humpPhys = 0.45 * (breakerCeilM(xz)/VIS) * u_hump;
   if (!(humpPhys == humpPhys)) humpPhys = 0.0;
   h += humpPhys * humpMask;
-  float lipFoam = foamPocket * (0.45 + 0.75*smoothstep(0.3, 1.4, u_xi));
+  float lipFoam = foamPocket * (0.45 + 0.75*smoothstep(0.3, 1.4, xiAt(x)));
   foam += lipFoam*mix(1.0, 0.52, shape)*mix(1.0, sizeFoam, u_lipSize);
 
   // spilling crumb: low-xi waves dribble foam down the face before fully breaking
   float crumb = crestNear * (1.0 - brk) * env2
-              * exp(-max(d, 0.0)/28.0) * smoothstep(0.55, 0.2, u_xi);
+              * exp(-max(d, 0.0)/28.0) * smoothstep(0.55, 0.2, xiAt(x));
   foam += crumb * 0.6 * (0.6 + 0.4*vnoise2(xz*0.4 + vec2(t*0.3, 0.0)));
 
   // the hump is whitewater: never let it stand as bare water
