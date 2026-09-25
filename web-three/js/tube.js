@@ -37,8 +37,8 @@
 // stays attached to the water that is actually drawn.
 //
 // Not a fluid: an authored strip on the shared clock, seek-safe by
-// construction (no history). Track D owns facet quality; shading here is
-// deliberately modest.
+// construction (no history). Track D owns facet quality. The material is
+// TUBE_FRAG below (Track H, #tubelook; docs/research/TUBE_LOOK_2026-09-24.md).
 
 import { SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
 
@@ -59,6 +59,20 @@ varying vec2  vTubeUV;    // (alongshore metres, u) for the streak texture
 varying vec3  vTubeN;     // normal oriented AWAY from the cavity
 varying vec3  vTubeW;     // world position
 varying vec3  vTubeK;     // (age s, jet fraction 0..1, displayed ceiling m)
+varying vec3  vTubeM;     // material inputs (TUBE_FRAG, #tubelook): (sheet thinness 0 root .. ~0.45 tip,
+                          //  grid white at the back seam, grid white at the crest anchor)
+
+// The grid's own whiteness at a surfacePos evaluation, on the grid's own
+// mapping: GRID_FRAG soft-knees the foam mask (1 - exp(-1.55 foam)) and ramps
+// it 0.15 -> 0.75 for fresh foam; the aerated-lip key (aer, TUBE block in
+// choppyPos) mixes in at its own value. The ribbon's back seam takes this so
+// its white is continuous in value with the crest foam it grows out of.
+float tubeGridWhite(float foam, float aer){
+  float fm = smoothstep(0.15, 0.75, 1.0 - exp(-1.55*clamp(foam, 0.0, 1.0)));
+  float w = max(fm, clamp(aer, 0.0, 1.0));
+  if (!(w == w)) w = 0.0;
+  return w;
+}
 
 // One station's frame, all from the shared model. zc is the LIVE crest source
 // (theta = 0 sits thetaW/kz shoreward of the line — CURTAIN_VERT's construction).
@@ -99,6 +113,9 @@ void main(){
   // water. That is what pays for TUBE_SEG_X columns.
   bool live = weight > 0.001;
   float l1 = 0.0, l2 = 0.0;
+  // The grid's foam and aerated-lip outputs at the crest anchor (1) and the
+  // back seam (3) — read for the material (vTubeM), not for placement.
+  float f1 = 0.0, a1 = 0.0, f3 = 0.0, a3 = 0.0;
   vec3 Pc = vec3(x0, -2.0, zc), PL = Pc, PB = Pc;
   vec2  pEnd  = breakerProfile(1.0, CRASH_PEAK_S, u_xi, hC, c);
   float sL    = max(pEnd.x, 0.05);
@@ -106,7 +123,7 @@ void main(){
   if (live) {
     // Anchor: the shipped surface at the live crest source. Under TUBE the grid
     // does not bend at plunging stations, so this is the capped crest.
-    float f1, p1, b1, c1, a1, k1;
+    float p1, b1, c1, k1;
     Pc = surfacePos(vec2(x0, zc), u_time, f1, p1, b1, c1, l1, a1, k1);
     // Landing seam: the shared frame's landing z, reached along the sweep axis
     // (dir.y >= 0.3 is guaranteed above). Its x drifts from x0 by the swell
@@ -127,7 +144,7 @@ void main(){
     // Back seam: the profile's u = 0 end (age 0: no clearing yet) at s = -0.5 hC.
     vec2 pBack = breakerProfile(0.0, 0.0, u_xi, hC, c);
     vec2 srcB  = vec2(x0, zc) + dir*(pBack.x*sigma);
-    float f3, p3, b3, c3, l3, a3, k3;
+    float p3, b3, c3, l3, k3;
     PB = surfacePos(srcB, u_time, f3, p3, b3, c3, l3, a3, k3);
   }
 
@@ -174,32 +191,81 @@ void main(){
   if (!(P.x == P.x && P.y == P.y && P.z == P.z)) { P = Pc; gate = 0.0; }   // NaN guard (house rule)
   if (!(N.x == N.x && N.y == N.y && N.z == N.z)) N = vec3(0.0, 1.0, 0.0);
 
+  // Sheet thinness for the material: bpThickness is the mass-conserving
+  // kinematic stretch of the free-falling sheet, root thickness at sigma 0
+  // thinning toward the tip (Sewers: ~0.58 of root at the tip, so thin ~0.42).
+  // The tip is the oldest, most-stretched water and is what aerates first.
+  // sigma is read as the horizontal fraction of reach, which on the two jet
+  // legs IS the profile's sigma; the back and face legs get 0 and ~1, and the
+  // fragment gates their white by leg, not by thinness.
+  float sigM   = clamp(pr.x/sL, 0.0, 1.0);
+  float thick0 = BP_ROOT_THICK*hC*bpPlunge(u_xi);
+  float thin   = 1.0 - bpThickness(sigM, u_xi, hC, c)/max(thick0, 1e-4);
+  if (!(thin == thin)) thin = 0.0;   // NaN guard (house rule)
+
   vTubeA  = clamp(gate, 0.0, 1.0);
   vTubeUV = vec2(x0, u);
   vTubeN  = N;
   vTubeW  = P;
-  vTubeK  = vec3(age, clamp(pr.x/sL, 0.0, 1.0), hCd);
+  vTubeK  = vec3(age, sigM, hCd);
+  vTubeM  = vec3(clamp(thin, 0.0, 1.0), tubeGridWhite(f3, a3), tubeGridWhite(f1, a1));
   gl_Position = projectionMatrix * modelViewMatrix * vec4(P, 1.0);
 }
 `;
 
-// Modest shading: glassy exterior, dark green-black interior with a fresnel-lit
-// lip, thin-lip translucency toward the sun (a backlit lip reads bright green),
-// and aerated streaks running down the jet on the SECONDS clock, as
-// CURTAIN_FRAG does. No fog: the ribbon lives within a few hundred metres of
-// every camera that can see it. Facet quality is Track D's.
+// The ribbon's material (Track H, 2026-09-24). Two looks behind u_tubeLook:
+//
+//   #tubelook=0  the 2026-09-24 glass ribbon (text kept verbatim below): sky
+//                fresnel over a lit green-blue body, sun spec, green-black
+//                interior, backlit thin lip, aerated streaks building to impact.
+//                The jury's "dry barrel / glass box" — right shape, wrong material.
+//   default      aerated. The footage (CURL_TRUTH §1.2) never shows a glassy
+//                sheet: what it shows is a thin, scalloped, luminous white line
+//                along the crest at the head (hooks 0.3–0.7 s that merge), a
+//                streaked bright fall, a dark face under it, and foam where the
+//                fall meets the face. The Field seat measured this build's
+//                WHITE lip at 0.05–0.10 face heights and ranked it the closest
+//                thing in the matrix to that line; the glassy 1.0–1.5 H_f
+//                ribbon is what it never shows. So the white is the material
+//                and the green is where it has not aerated yet.
+//
+// Where the white comes from, in order:
+//   1. lip line — a Gaussian band about the tip (u = BP_U_TIP) whose width and
+//      presence are modulated by value noise along the ribbon's alongshore
+//      coordinate on the SECONDS clock (features ~1.4 m, ~0.55 s: the hooks);
+//   2. thinness — bpThickness' kinematic stretch (vTubeM.x): the tip is the
+//      oldest, thinnest water and aerates first; rises with age toward impact;
+//   3. streaks — CURTAIN_FRAG's recipe, run along the fall (sigma), entrained
+//      darker toward the landing; the landing jet is white after impact;
+//   4. landing seam — foam where the jet meets the face (u -> 1, post-impact);
+//   5. back seam — continuous in value with the grid's own crest foam, read
+//      through surfacePos at the seam (vTubeM.y) and the crest anchor (.z), so
+//      the ribbon and the head are one bright mass, not two objects.
+// Palette and lighting follow GRID_FRAG's foam: near-white, ambient-heavy
+// (0.86 + 0.14 Lambert), capped at a 0.95 mix so the ribbon is never whiter
+// than the crest foam it grows from. The body where thick is translucent
+// green (alpha 0.80, backlit toward the sun); the cavity face and anything
+// seen from inside is dark green-black. No opaque glass panel. No fog: the
+// ribbon lives within a few hundred metres of every camera that can see it.
 export const TUBE_FRAG = `
 varying float vTubeA;
 varying vec2  vTubeUV;
 varying vec3  vTubeN;
 varying vec3  vTubeW;
 varying vec3  vTubeK;
+varying vec3  vTubeM;
 uniform float u_time;
 uniform vec3  u_camStage;   // the eye in STAGE coordinates (main.js frame loop)
+uniform float u_tubeLook;   // 1 aerated (default in a TUBE build), 0 the glass ribbon (#tubelook=0)
 
 // SKY_GLSL's sunDir, copied rather than spliced: this pass needs one vector,
 // not the dome. Keep in step with shaders.js if the sun ever moves.
 const vec3 TUBE_SUN = normalize(vec3(-0.45, 0.42, -0.28));
+// Leg boundaries in u, mirroring BP_U_APEX / BP_U_TIP / BP_U_ROOT: the profile
+// GLSL is spliced into the vertex prelude, not into this fragment.
+const float TL_U_APEX = 0.10;
+const float TL_U_TIP  = 0.45;
+const float TL_U_ROOT = 0.80;
 
 float thash21(vec2 p){ vec3 q = fract(vec3(p.xyx)*0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y)*q.z); }
 float tnoise2(vec2 p){
@@ -217,39 +283,148 @@ void main(){
   vec3  Nf = facing < 0.0 ? -N : N;
   float inside = smoothstep(0.05, -0.15, facing);
   float fres = pow(1.0 - clamp(dot(Nf, V), 0.0, 1.0), 4.0);
+  vec3  col;
+  float alpha;
 
-  // Exterior: glassy water — sky fresnel over a lit green-blue body, sun spec.
-  vec3  water = vec3(0.05, 0.30, 0.30);
-  vec3  sky   = vec3(0.60, 0.72, 0.82);
-  float lam   = 0.45 + 0.55*clamp(dot(Nf, TUBE_SUN), 0.0, 1.0);
-  vec3  ext   = mix(water*lam, sky, 0.08 + 0.45*fres);
-  float spec  = pow(max(dot(reflect(-TUBE_SUN, Nf), V), 0.0), 120.0);
-  ext += vec3(1.0, 0.97, 0.90)*spec*0.6;
+  // #tubelook=2: instrument. Paints (u, age/0.72, inside) so a frame says which
+  // leg and which lifecycle phase a pixel belongs to, instead of the shading
+  // having to be read backwards for it.
+  if (u_tubeLook > 1.5) {
+    gl_FragColor = vec4(vTubeUV.y, clamp(vTubeK.x/0.72, 0.0, 1.0), inside, 1.0);
+    return;
+  }
 
-  // Interior: green-black, opening toward a fresnel-lit rim at the mouth.
-  vec3 inn = vec3(0.015, 0.075, 0.070);
-  inn = mix(inn, vec3(0.10, 0.40, 0.36), 0.5*fres);
-  vec3 col = mix(ext, inn, inside);
+  if (u_tubeLook < 0.5) {
+    // ---- the 2026-09-24 glass ribbon, verbatim (#tubelook=0) ----
+    // Exterior: glassy water — sky fresnel over a lit green-blue body, sun spec.
+    vec3  water = vec3(0.05, 0.30, 0.30);
+    vec3  sky   = vec3(0.60, 0.72, 0.82);
+    float lam   = 0.45 + 0.55*clamp(dot(Nf, TUBE_SUN), 0.0, 1.0);
+    vec3  ext   = mix(water*lam, sky, 0.08 + 0.45*fres);
+    float spec  = pow(max(dot(reflect(-TUBE_SUN, Nf), V), 0.0), 120.0);
+    ext += vec3(1.0, 0.97, 0.90)*spec*0.6;
 
-  // Thin lip toward the sun: the jet thins toward its foot, and looking at the
-  // sun through it the sheet transmits green.
-  float jet  = vTubeK.y;
-  float thin = smoothstep(0.30, 0.80, jet);
-  float backlit = pow(max(dot(V, -TUBE_SUN), 0.0), 3.0) * thin;
-  col += vec3(0.20, 0.70, 0.45)*backlit*0.8;
-  col += vec3(0.50, 0.80, 0.70)*fres*0.25*(1.0 - inside);   // lip edge
+    // Interior: green-black, opening toward a fresnel-lit rim at the mouth.
+    vec3 inn = vec3(0.015, 0.075, 0.070);
+    inn = mix(inn, vec3(0.10, 0.40, 0.36), 0.5*fres);
+    col = mix(ext, inn, inside);
 
-  // Aerated streaks down the jet on the simulation clock (rate independence);
-  // aeration builds toward impact and the landing jet is white after it.
-  float streak = tnoise2(vec2(vTubeUV.x*0.9, vTubeUV.y*3.0 - u_time*1.4));
-  float ageK   = smoothstep(0.15, 0.45, vTubeK.x);
-  float aerW   = smoothstep(0.55, 0.85, streak) * jet * (0.25 + 0.75*ageK);
-  // 0.42 is CRASH_PEAK_S; MODEL_GLSL is not spliced into this fragment.
-  aerW = max(aerW, 0.55*smoothstep(0.42, 0.62, vTubeK.x)*smoothstep(0.4, 1.0, jet));
-  vec3 foamCol = mix(vec3(0.78, 0.82, 0.81), vec3(0.97), 0.4 + 0.6*streak);
-  col = mix(col, foamCol, clamp(aerW, 0.0, 0.95));
+    // Thin lip toward the sun: the jet thins toward its foot, and looking at the
+    // sun through it the sheet transmits green.
+    float jet  = vTubeK.y;
+    float thin = smoothstep(0.30, 0.80, jet);
+    float backlit = pow(max(dot(V, -TUBE_SUN), 0.0), 3.0) * thin;
+    col += vec3(0.20, 0.70, 0.45)*backlit*0.8;
+    col += vec3(0.50, 0.80, 0.70)*fres*0.25*(1.0 - inside);   // lip edge
 
-  float alpha = vTubeA * (0.88 + 0.12*streak);
-  gl_FragColor = vec4(col, alpha);
+    // Aerated streaks down the jet on the simulation clock (rate independence);
+    // aeration builds toward impact and the landing jet is white after it.
+    float streak = tnoise2(vec2(vTubeUV.x*0.9, vTubeUV.y*3.0 - u_time*1.4));
+    float ageK   = smoothstep(0.15, 0.45, vTubeK.x);
+    float aerW   = smoothstep(0.55, 0.85, streak) * jet * (0.25 + 0.75*ageK);
+    // 0.42 is CRASH_PEAK_S; MODEL_GLSL is not spliced into this fragment.
+    aerW = max(aerW, 0.55*smoothstep(0.42, 0.62, vTubeK.x)*smoothstep(0.4, 1.0, jet));
+    vec3 foamCol = mix(vec3(0.78, 0.82, 0.81), vec3(0.97), 0.4 + 0.6*streak);
+    col = mix(col, foamCol, clamp(aerW, 0.0, 0.95));
+
+    alpha = vTubeA * (0.88 + 0.12*streak);
+  } else {
+    // ---- aerated (default) ----
+    float u    = vTubeUV.y;
+    float x    = vTubeUV.x;          // alongshore metres: the crest coordinate
+    float age  = vTubeK.x;           // s since this station's crest crossed the line
+    float sig  = vTubeK.y;           // fraction of the ballistic reach: 0 root, 1 tip/landing
+    float thin = vTubeM.x;           // kinematic sheet thinness, 0 root .. ~0.45 tip
+    float lam  = 0.45 + 0.55*clamp(dot(Nf, TUBE_SUN), 0.0, 1.0);
+
+    // Legs. Soft 0.03 shoulders so the boundaries do not draw lines.
+    float onBack = 1.0 - smoothstep(TL_U_APEX - 0.03, TL_U_APEX + 0.03, u);   // back face to the apex
+    float onFace = smoothstep(TL_U_ROOT - 0.03, TL_U_ROOT + 0.03, u);         // root down to the landing
+    float onJet  = (1.0 - onBack)*(1.0 - onFace);                               // the sheet, both sides
+
+    // Body: translucent green water where thick. Lit like the grid's face
+    // (Lambert over a dark base), a faint sky fresnel — a third of the glass
+    // ribbon's — and transmission toward the sun that grows with thinness:
+    // the thin lip is what backlights, not the root.
+    vec3  body = vec3(0.10, 0.40, 0.38)*(0.55 + 0.45*lam);
+    float backlit = pow(max(dot(V, -TUBE_SUN), 0.0), 3.0);
+    body += vec3(0.16, 0.60, 0.40)*backlit*(0.25 + 0.75*clamp(thin*2.2, 0.0, 1.0))*onJet;
+    body  = mix(body, vec3(0.60, 0.72, 0.82), 0.06 + 0.22*fres);
+
+    // Cavity: green-black on the concave face leg from any side — the face
+    // under the lip is dark water (CURL_TRUTH §4 criteria 1 and 10) — and on
+    // the sheet's underside seen from inside (0.6: the hollow the Squint seat
+    // ranked tube+classic first for). The white below is laid over it at half
+    // weight on the inside, so the hollow stays dark between streaks.
+    vec3  cav  = vec3(0.012, 0.062, 0.058);
+    cav = mix(cav, vec3(0.06, 0.26, 0.24), 0.35*fres);
+    float cavW = max(0.60*inside, onFace);
+    col = mix(body, cav, cavW);
+
+    // ---- the white ----
+    float ageK = smoothstep(0.10, 0.45, age);                  // toward impact (0.42 s)
+    // Hooks: value noise along the crest on the seconds clock. Cells ~1.4 m
+    // along x and ~0.55 s in time, so a hook lives 0.3–0.7 s and merges into
+    // its neighbours (CURL_TRUTH §1.3: 15–20 frames patch-to-merge), never on
+    // a metronome. A finer second octave scallops the edge.
+    float hookN = tnoise2(vec2(x*0.7, u_time*1.8));
+    float hook  = smoothstep(0.40, 0.80, hookN);
+    float scal  = tnoise2(vec2(x*2.3 + 7.0, u_time*1.1));
+    // 1. Lip line about the tip. Core sigma 0.03 in u (~0.1 h_C of sheet, the
+    //    Field seat's 0.05–0.10 H_f), opening to 0.10 inside a hook. Present
+    //    from the first instants: a pitching PP lip is white, not glass.
+    float dTip    = abs(u - TL_U_TIP);
+    float sigL    = 0.045 + 0.085*hook;
+    float lipLine = exp(-dTip*dTip/(2.0*sigL*sigL)) * (0.65 + 0.35*scal) * smoothstep(0.02, 0.12, age);
+    // 2. Thinness: the stretched sheet aerates. Zero at the root, ~1 at the tip.
+    float aerThin = smoothstep(0.04, 0.30, thin) * (0.50 + 0.50*ageK) * onJet;
+    // 3. Streaks down the fall (CURTAIN_FRAG's recipe on sigma so both sides of
+    //    the sheet streak the same way), denser toward the tip and with age;
+    //    below crest level the sheet is a curtain and mostly white (the
+    //    footage's descending sheet); the landing jet is white after impact.
+    float streak    = tnoise2(vec2(x*0.9, sig*4.0 - u_time*1.4));
+    float aerStreak = smoothstep(0.30, 0.70, streak) * (0.35 + 0.65*sig) * (0.55 + 0.45*ageK) * onJet;
+    // The fallen fraction: the jet is y = h_C (1 - sigma^2), so sigma^2 of the
+    // crest height has been dropped. The footage's curtain is white by ~0.4-0.6
+    // H_f of fall (CURL_TRUTH §1.3, event B); the sheet near the root, having
+    // fallen nothing, is still green water.
+    float fell      = sig*sig;
+    float aerFall   = smoothstep(0.12, 0.55, fell) * (0.70 + 0.30*streak) * (0.70 + 0.30*ageK) * onJet;
+    // 0.42 is CRASH_PEAK_S; MODEL_GLSL is not spliced into this fragment.
+    float aerLand   = 0.80*smoothstep(0.42, 0.62, age)*smoothstep(0.35, 1.0, sig)*onJet;
+    // 4. Landing seam: foam where the jet meets the face, from impact on. And
+    //    the face leg itself after impact: once the sheet has landed, the water
+    //    between the root and the landing is the collapsing bore (CURL_TRUTH §4
+    //    criterion 4, 0.4–0.65 H_f of saturated white, lumpy), not dark face —
+    //    dark only while the lip is still in the air over it.
+    float seamL = smoothstep(0.86, 1.0, u) * smoothstep(0.36, 0.50, age) * (0.60 + 0.40*streak);
+    float lump  = tnoise2(vec2(x*1.6 + 3.0, u*6.0 - u_time*0.9));
+    float boreW = onFace * smoothstep(0.40, 0.60, age) * (0.70 + 0.30*lump);
+    // 5. Back seam: the grid's own white at the seam (vTubeM.y) grading to the
+    //    apex over the back leg; the apex is at least the grid's crest white
+    //    and, with age, a hooked knuckle of its own.
+    float apexW = max(vTubeM.z, 0.55*ageK*(0.60 + 0.40*hook));
+    float backW = mix(vTubeM.y, apexW, smoothstep(0.0, TL_U_APEX, u)) * onBack;
+
+    float W = max(max(aerThin, max(max(aerStreak, aerFall), aerLand)), max(max(seamL, boreW), backW));
+    W *= mix(1.0, 0.5, inside);       // the hollow stays dark between streaks
+    W  = max(W, lipLine);             // the lip line is white from both sides
+    W  = clamp(W, 0.0, 0.95);         // never whiter than the grid's crest foam
+
+    // Foam: CURTAIN_FRAG's two-tone by streak, GRID_FRAG's ambient-heavy
+    // lighting, entrained darker toward the landing along the fall.
+    vec3 foamCol = mix(vec3(0.80, 0.84, 0.83), vec3(0.985), 0.35 + 0.65*streak) * (0.86 + 0.14*lam);
+    foamCol *= 1.0 - 0.14*sig*onJet;
+    col = mix(col, foamCol, W);
+    // Sun spec only on the un-aerated body: bubbles scatter, they do not reflect.
+    float spec = pow(max(dot(reflect(-TUBE_SUN, Nf), V), 0.0), 120.0);
+    col += vec3(1.0, 0.97, 0.90)*spec*0.25*(1.0 - W)*(1.0 - cavW);
+
+    // Translucent where it is still green water (the face shows through the
+    // root of the sheet), solid where it is foam or cavity.
+    alpha = vTubeA * mix(0.70, 0.97, max(W, cavW));
+  }
+  if (!(col.x == col.x && col.y == col.y && col.z == col.z)) col = vec3(0.5);   // NaN guard (house rule)
+  gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
 }
 `;

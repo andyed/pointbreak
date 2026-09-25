@@ -398,6 +398,7 @@ const uniforms = {
   u_lipDescent: { value: 0 }, // #classic=1&descent=1: local-age curtain/impact experiment
   u_tube:       { value: 0 }, // #tube=1: swept breaker ribbon owns the overturn (TUBE builds only)
   u_tubeS:      { value: 0.3 }, // cusp cap under the ribbon: the probe's sweep read 10.8 -> 4.4 m of fold at 0.3 (JS-only)
+  u_tubeLook:   { value: 1 },   // ribbon material: 1 aerated (tube.js), 0 the 2026-09-24 glass ribbon (#tubelook=0). TUBE_FRAG only.
   // #earn=0 reverts: inside the #curl bend, over-ceiling breaking water earns
   // the arc angle that returns its apex to the ceiling (the head-block fix and
   // the "reference height, not a clamp" decision — see choppyPos). Ships ON as
@@ -3010,6 +3011,10 @@ function applyHashParams() {
   // #tube=1 arms the swept breaker ribbon (a TUBE build, see TUBE_BUILD) and
   // hides the curtain it replaces. Feature flag, default OFF.
   if (h.get('tube') === '1') { uniforms.u_tube.value = 1; curtainMesh.visible = false; }
+  // #tubelook=0 reverts the ribbon to the glass material so the jury can compare
+  // material alone (TUBE_FRAG reads it; nothing else does). Default aerated.
+  if (h.get('tubelook') === '0') uniforms.u_tubeLook.value = 0;
+  if (h.get('tubelook') === '2') uniforms.u_tubeLook.value = 2;   // instrument: (u, age, inside) false colour
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -3260,6 +3265,9 @@ window.__pointbreak = {
     curtainMesh.visible = !on;
   },
   tube: () => uniforms.u_tube.value,
+  // Ribbon material A/B (mirrors #tubelook=): 1 aerated, 0 glass.
+  setTubeLook: (v) => { uniforms.u_tubeLook.value = v === 2 ? 2 : (v ? 1 : 0); },
+  tubeLook: () => uniforms.u_tubeLook.value,
   tubeBuild: TUBE_BUILD,
   // Instrument: the cusp cap the grid takes under the ribbon (probe sweep).
   setTubeS: (v) => { if (Number.isFinite(v) && v > 0 && v <= 1) uniforms.u_tubeS.value = v; },
