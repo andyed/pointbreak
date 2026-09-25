@@ -613,6 +613,14 @@ const sprayMat = new THREE.ShaderMaterial({
   transparent: true,
   depthWrite: false,
   blending: THREE.NormalBlending,
+  // DoubleSide is load-bearing (2026-09-24 evening, CRASH_DRAW_2026-09-24.md):
+  // the stage hangs under a world group with scale.z = -1 (the mirror), so
+  // three.js flips gl.frontFace to CW for every mesh below it. Grid geometry
+  // is mirrored with the group and stays consistent; these billboards add
+  // their corners in VIEW space after modelViewMatrix, keep their authored
+  // CCW winding, and were culled to the last pixel from the mirror commit
+  // (604ea6a) until this line — every capture that day was spray-less.
+  side: THREE.DoubleSide,
 });
 if (TUBE_BUILD) sprayMat.defines.TUBE = 1;   // anchors to the same (tube-arm) surface
 const sprayPoints = new THREE.Mesh(makeSprayGeometry(), sprayMat);
