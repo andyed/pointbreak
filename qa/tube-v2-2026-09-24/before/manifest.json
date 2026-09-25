@@ -1,0 +1,171 @@
+{
+  "baseUrl": "http://127.0.0.1:8148",
+  "viewport": [
+    1000,
+    625
+  ],
+  "sims": [
+    52,
+    54,
+    56
+  ],
+  "jpegQuality": 80,
+  "frames": [
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "off",
+      "sim": 52,
+      "file": "secondpeak_cliff_off_52.jpg",
+      "bytes": 34856,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        61.4,
+        2,
+        13.914
+      ],
+      "state": {
+        "H0": 0.914,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.357
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "off",
+      "sim": 54,
+      "file": "secondpeak_cliff_off_54.jpg",
+      "bytes": 38215,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        61.4,
+        2,
+        13.914
+      ],
+      "state": {
+        "H0": 0.914,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.357
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "off",
+      "sim": 56,
+      "file": "secondpeak_cliff_off_56.jpg",
+      "bytes": 39015,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        61.4,
+        2,
+        13.914
+      ],
+      "state": {
+        "H0": 0.914,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.357
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "tubeclassic",
+      "sim": 52,
+      "file": "secondpeak_cliff_tubeclassic_52.jpg",
+      "bytes": 35113,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        61.4,
+        2,
+        13.914
+      ],
+      "state": {
+        "H0": 0.914,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.357
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "tubeclassic",
+      "sim": 54,
+      "file": "secondpeak_cliff_tubeclassic_54.jpg",
+      "bytes": 38420,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        61.4,
+        2,
+        13.914
+      ],
+      "state": {
+        "H0": 0.914,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.357
+      }
+    },
+    {
+      "rig": "secondpeak_cliff",
+      "arm": "tubeclassic",
+      "sim": 56,
+      "file": "secondpeak_cliff_tubeclassic_56.jpg",
+      "bytes": 39263,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        156.6,
+        14.862,
+        -141.333
+      ],
+      "target": [
+        61.4,
+        2,
+        13.914
+      ],
+      "state": {
+        "H0": 0.914,
+        "T": 16,
+        "xi": 0.65,
+        "tide": 0.357
+      }
+    }
+  ],
+  "cameraDriftM": {
+    "secondpeak_cliff_tubeclassic_52": 0,
+    "secondpeak_cliff_tubeclassic_54": 0,
+    "secondpeak_cliff_tubeclassic_56": 0
+  },
+  "totalBytes": 224882
+}

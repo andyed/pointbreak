@@ -1,0 +1,611 @@
+{
+  "baseUrl": "http://127.0.0.1:8147",
+  "viewport": [
+    1000,
+    625
+  ],
+  "sims": [
+    48,
+    50,
+    52,
+    54
+  ],
+  "jpegQuality": 80,
+  "frames": [
+    {
+      "rig": "sewers_close",
+      "arm": "off",
+      "sim": 48,
+      "file": "sewers_close_off_48.jpg",
+      "bytes": 28763,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "off",
+      "sim": 50,
+      "file": "sewers_close_off_50.jpg",
+      "bytes": 26986,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "off",
+      "sim": 52,
+      "file": "sewers_close_off_52.jpg",
+      "bytes": 26595,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "off",
+      "sim": 54,
+      "file": "sewers_close_off_54.jpg",
+      "bytes": 30012,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "on",
+      "sim": 48,
+      "file": "sewers_close_on_48.jpg",
+      "bytes": 28763,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "on",
+      "sim": 50,
+      "file": "sewers_close_on_50.jpg",
+      "bytes": 26644,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "on",
+      "sim": 52,
+      "file": "sewers_close_on_52.jpg",
+      "bytes": 26784,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "on",
+      "sim": 54,
+      "file": "sewers_close_on_54.jpg",
+      "bytes": 31271,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 48,
+      "file": "sewers_close_tubeclassic_48.jpg",
+      "bytes": 27877,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 50,
+      "file": "sewers_close_tubeclassic_50.jpg",
+      "bytes": 25544,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 52,
+      "file": "sewers_close_tubeclassic_52.jpg",
+      "bytes": 27292,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "sewers_close",
+      "arm": "tubeclassic",
+      "sim": 54,
+      "file": "sewers_close_tubeclassic_54.jpg",
+      "bytes": 28637,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        12,
+        11,
+        190
+      ],
+      "target": [
+        -52,
+        4,
+        229
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "off",
+      "sim": 48,
+      "file": "diag_downline_off_48.jpg",
+      "bytes": 18702,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "off",
+      "sim": 50,
+      "file": "diag_downline_off_50.jpg",
+      "bytes": 22396,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "off",
+      "sim": 52,
+      "file": "diag_downline_off_52.jpg",
+      "bytes": 21298,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "off",
+      "sim": 54,
+      "file": "diag_downline_off_54.jpg",
+      "bytes": 18265,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "on",
+      "sim": 48,
+      "file": "diag_downline_on_48.jpg",
+      "bytes": 19690,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "on",
+      "sim": 50,
+      "file": "diag_downline_on_50.jpg",
+      "bytes": 22681,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "on",
+      "sim": 52,
+      "file": "diag_downline_on_52.jpg",
+      "bytes": 21298,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "on",
+      "sim": 54,
+      "file": "diag_downline_on_54.jpg",
+      "bytes": 18265,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "tubeclassic",
+      "sim": 48,
+      "file": "diag_downline_tubeclassic_48.jpg",
+      "bytes": 18134,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "tubeclassic",
+      "sim": 50,
+      "file": "diag_downline_tubeclassic_50.jpg",
+      "bytes": 21715,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "tubeclassic",
+      "sim": 52,
+      "file": "diag_downline_tubeclassic_52.jpg",
+      "bytes": 20616,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "tubeclassic",
+      "sim": 54,
+      "file": "diag_downline_tubeclassic_54.jpg",
+      "bytes": 18582,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    }
+  ],
+  "cameraDriftM": {
+    "sewers_close_on_48": 0,
+    "sewers_close_tubeclassic_48": 0,
+    "sewers_close_on_50": 0,
+    "sewers_close_tubeclassic_50": 0,
+    "sewers_close_on_52": 0,
+    "sewers_close_tubeclassic_52": 0,
+    "sewers_close_on_54": 0,
+    "sewers_close_tubeclassic_54": 0,
+    "diag_downline_on_48": 0,
+    "diag_downline_tubeclassic_48": 0,
+    "diag_downline_on_50": 0,
+    "diag_downline_tubeclassic_50": 0,
+    "diag_downline_on_52": 0,
+    "diag_downline_tubeclassic_52": 0,
+    "diag_downline_on_54": 0,
+    "diag_downline_tubeclassic_54": 0
+  },
+  "totalBytes": 576810
+}

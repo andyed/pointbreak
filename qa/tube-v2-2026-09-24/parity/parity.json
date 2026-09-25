@@ -1,0 +1,39 @@
+{
+  "baseUrl": "http://127.0.0.1:8147",
+  "mainUrl": "http://127.0.0.1:8148",
+  "cases": [
+    {
+      "name": "sewers_close_48",
+      "hash": "preset=sewers&month=card&cam=cliff&controls=0&q=high&speed=0&sim=48",
+      "view": [
+        [
+          12,
+          11,
+          -190
+        ],
+        [
+          -52,
+          4,
+          -229
+        ]
+      ],
+      "sim": 48,
+      "identical": true,
+      "pixels": null
+    },
+    {
+      "name": "sewers_cliff_42",
+      "hash": "preset=sewers&month=card&cam=cliff&controls=0&q=high&speed=0&sim=48",
+      "sim": 42,
+      "identical": true,
+      "pixels": null
+    },
+    {
+      "name": "secondpeak_lookout_48",
+      "hash": "preset=secondpeak&cam=lookout&day=big&h0=1.4&tide=0.732&controls=0&q=high&speed=0&sim=48",
+      "sim": 48,
+      "identical": true,
+      "pixels": null
+    }
+  ]
+}
