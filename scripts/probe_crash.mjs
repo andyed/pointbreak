@@ -3,9 +3,10 @@
 //
 // Asserts, per station and age:
 //   * every plume vertex and every landing value is finite;
-//   * the arch's two feet are ON the drawn water: u=-1 equals surfacePos at the
-//     live lip (CURTAIN_VERT's tip construction), u=+1 equals surfacePos at the
-//     contact point zc + PLUME_REACH_HC*h_crest, both from the same pass;
+//   * the arch's lip foot is ON the drawn water (surfacePos at the live lip,
+//     CURTAIN_VERT's tip construction); the contact foot is the drawn lip plus
+//     the profile's landing offset (bpReach along the sweep axis, one ceiling
+//     below), both from the same pass;
 //   * while visible, the contact foot is shoreward of and below the lip foot
 //     (the plume runs forward and down, never up the back of the crest);
 //   * the plume is invisible (alpha <= 0.02) before impact (tauD <= 0) and
@@ -52,7 +53,7 @@ const constant = (name) => {
   return Number(m[1]);
 };
 const PLUME_END_S = constant('PLUME_END_S');
-const PLUME_REACH_HC = constant('PLUME_REACH_HC');
+const PLUME_TOP_HC = constant('PLUME_TOP_HC');
 
 const browser = await chromium.launch({ args: ['--use-angle=metal'] });
 const page = await browser.newPage({ viewport: { width: 1000, height: 625 }, deviceScaleFactor: 1 });
@@ -200,8 +201,8 @@ try {
   assert.equal(errors.length, 0, 'browser/shader errors: ' + errors.join('\n'));
   writeFileSync(join(OUT, 'probe.json'), JSON.stringify({
     protocol: { kind: 'exact PLUME_VERT float GPU pass', samplesPerArch: PLUME_SAMPLES, stations: [-84, -52, -20],
-      ages: AGES, impactAge: CRASH_PEAK_S, plumeEndTauD: PLUME_END_S, plumeReachHc: PLUME_REACH_HC, camera: CLOSE, baseline: PARITY ? BASELINE : null,
-      note: 'Puff centres along the arch spine (all randoms 0.5); not a fluid-parcel trajectory. tauD is seconds since this station\'s landing. Lip = surfacePos at the live crest source; contact = surfacePos at zc(impact) + PLUME_REACH_HC*hC.' },
+      ages: AGES, impactAge: CRASH_PEAK_S, plumeEndTauD: PLUME_END_S, plumeTopHc: PLUME_TOP_HC, camera: CLOSE, baseline: PARITY ? BASELINE : null,
+      note: 'Puff centres along the arch spine (all randoms 0.5); not a fluid-parcel trajectory. tauD is seconds since this station\'s landing. Lip = surfacePos at the live crest source; contact = the drawn lip + bpReach(xi, hC/VIS, c) along the sweep axis, one ceiling below (2026-09-24 anchor; the old surfacePos(zc + 1.9 hC) contact was drawn behind the lip).' },
     sourceHashes: Object.fromEntries(Object.entries(sources).map(([p, s]) => [p, createHash('sha256').update(s).digest('hex')])),
     stations, seeks, parity, rows,
   }, null, 2));

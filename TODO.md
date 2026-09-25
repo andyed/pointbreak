@@ -50,17 +50,25 @@ Open, in order:
 - [ ] **Re-author breaker type as a section event, not a spot ξ** (Track F §3):
       authored plunging at five spots draws a head the site never shows;
       First Peak big/long-period is the one physics barrel.
-- [ ] **Rider scale**: `riderscale=vis`, or lower `vis` with the rider matched.
+- [x] **Rider scale**: `riderscale=vis` promoted to default 2026-09-24 evening
+      ("not seeing surfer size fix"); `#riderscale=1` is the physical revert.
+- [ ] **Which forcing and camera define "the field day"** (Track J): adopt the
+      clip's forcing at `cam=cliff` (optionally `#day=fieldday`, `good: false`)
+      and retire `tide=0.732` from every rig; decide whether `cam=lookout`
+      should keep standing at 38th Ave under presets other than Jack's.
 - [ ] **CONTROLS.md stale rows**: `curl`/`lip`/`onset` say "default OFF";
       `main.js` defaults them to 1 (verifier side note).
 - [x] **Jury pass done** (`CURL_JURY_2026-09-24.md`, three seats; Stranger
-      recused). No arm passes the site test: at Second Peak on the field day
-      the four sim arms are pixel-identical and nothing breaks (the peel
-      tide-band item, seen from the picture). At Sewers `tube+classic` has the
+      recused). ~~No arm passes the site test: at Second Peak on the field day
+      the four sim arms are pixel-identical and nothing breaks~~ **RIG ERROR,
+      corrected by Track J the same evening** (`SECONDPEAK_FIELDDAY_2026-09-24.md`):
+      `cam=lookout` is the 38th Ave pose, 478 m from the Second Peak node, and
+      the hash was the morning loop's forcing; the model peels at α 40° there.
+      Re-run the jury from `cam=cliff` at the clip's forcing (52–56 s). At Sewers `tube+classic` has the
       best shape (Squint 1st, Domain 1st among sims) and the wrong material
       ("dry barrel"); default is a slab (last in two seats); classicdescent
-      alone is a "fin" (last or 4th everywhere). Order of work: make Second
-      Peak break on the field day → foam on the ribbon + bore behind the head
+      alone is a "fin" (last or 4th everywhere). Order of work: ~~make Second
+      Peak break on the field day~~ (withdrawn) → foam on the ribbon + bore behind the head
       (fix Track C's landing-behind-lip first) → thinning roof in the profile
       → barrel as a section event.
 - [ ] **Track C plume does not draw** (`#crash=1`, UNFINISHED): mesh issued,
