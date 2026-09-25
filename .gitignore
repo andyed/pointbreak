@@ -189,3 +189,9 @@ qa/tube-look-2026-09-24/*
 !qa/tube-look-2026-09-24/squint-52.json
 !qa/tube-look-2026-09-24/*.jpg
 !qa/tube-look-2026-09-24/*.png
+# The bore behind the head (#bore=1, BORE_2026-09-24.md): 40 JPEG frames over four
+# rigs, two comparison sheets, the GPU probe record, the luma measurements and the
+# parity report — 1.9 MB, the evidence the note cites; the annotated crops
+# (--annotate) are regenerable and stay out.
+!qa/bore-2026-09-24/
+qa/bore-2026-09-24/ann/

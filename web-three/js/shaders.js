@@ -1949,6 +1949,35 @@ void main() {
     foamM = max(foamM, rollerM*(0.80 + 0.20*er));
   }
 #endif
+  // ---- the aerated wedge's material (#bore=, default OFF) ----
+  // The model floors vFoam on the wedge; here the wedge gets the material the
+  // footage shows — saturated white in lumps over a grey base, densest and
+  // brightest at the knuckle (its freshest second), ageing into lace over
+  // seconds. The clock is the CREST's (ageB): a fragment on the front face
+  // reads near-T on the carrier clock tSince and would be aftermath from
+  // birth. Same shared function as the model, read at sourceXZ like every
+  // Lagrangian term. Under the build define: the default text is untouched.
+#ifdef BORE
+  float boreM = 0.0, boreK = 0.0, boreLumpT = 0.5, ageB = -1.0;
+  if (u_bore > 0.0) {
+    float fracB;
+    float gB = boreWedgeAt(sourceXZ, t, breakPermissionAt(sourceXZ, t), ageB, fracB);
+    float shapeB = boreShape(fracB);
+    // crest lumps in the crest's own frame (fracB), rolling over on the
+    // seconds clock: two octaves, the finer one counter-rolling
+    boreLumpT = 0.6*vnoise2(vec2(sourceXZ.x*0.6, fracB*6.0 + t*1.1))
+              + 0.4*vnoise2(vec2(sourceXZ.x*1.8 + 5.0, fracB*15.0 - t*1.7));
+    // lace: the erosion lattice er perforates the wedge more as it ages —
+    // saturated -> lumpy grey-white -> perforated foam field over ~2-9 s
+    float laceB = smoothstep(2.0, 9.0, ageB);
+    float cut   = mix(0.08, 0.50, laceB);
+    float cover = smoothstep(cut - 0.12, cut + 0.12, 0.6*er + 0.4*boreLumpT);
+    float dens  = mix(1.0, cover, 0.9*laceB);
+    boreK = gB * shapeB * exp(-max(ageB, 0.0)/BORE_KNUCKLE_S);
+    boreM = clamp(gB * shapeB * dens * min(u_bore, 1.0), 0.0, 1.0);
+    foamM = max(foamM, boreM);
+  }
+#endif
   // Probe 1 changes only the material response. Probe 2 additionally spends
   // the contrast budget on one live head: the line-attached zipper and its
   // current bore stay bright while re-breaking stripes resolve as dim film.
@@ -2239,7 +2268,29 @@ void main() {
     foamCol = mix(foamCol, rollCol, rollerW);
   }
 #endif
+  // ---- wedge shading (#bore=, default OFF) ----
+  // After the film mix like the roller: the wedge is fresh aerated mass on the
+  // crest's clock and must not film on tSince. Lumps are white, the hollows
+  // between them grey (the footage's "saturated white over a grey base"); the
+  // knuckle is pushed to solid white. The final mix below is re-applied at
+  // the wedge's own weight so the carrier-clock ageK dimming cannot thin it.
+#ifdef BORE
+  if (u_bore > 0.0) {
+    // The footage bore is MOSTLY white: lumps of saturated white with grey
+    // hollows between them, not a half-and-half checker. ~3/4 of the lattice
+    // reads white; the hollows are a light grey, darkest where the lace has
+    // opened (laceB), so ageing reads as the base showing through.
+    vec3 greyB   = mix(vec3(0.76, 0.79, 0.81), vec3(0.60, 0.65, 0.68), smoothstep(2.0, 9.0, ageB));
+    vec3 boreCol = mix(greyB, vec3(0.985, 0.99, 1.0), smoothstep(0.12, 0.50, boreLumpT + 0.35*boreK));
+    boreCol *= 0.80 + 0.20*lamF;
+    boreCol  = mix(boreCol, vec3(1.0), 0.5*clamp(boreK*1.6, 0.0, 1.0));
+    foamCol  = mix(foamCol, boreCol, boreM);
+  }
+#endif
   col = mix(col, foamCol, clamp(foamM*mix(1.15, 0.90, ageK), 0.0, 0.97));
+#ifdef BORE
+  if (u_bore > 0.0) col = mix(col, foamCol, 0.97*boreM);
+#endif
 
   // ---- 4.7 aerated lip (#lip=1, default OFF) ----
   // The curl itself, whitened where the FOLD is: vAerLip is computed in the

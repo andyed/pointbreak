@@ -153,6 +153,15 @@ const CRASH_BUILD = (() => {
   const v = parseFloat(readHashParams().get('crash'));
   return Number.isFinite(v) && v > 0;
 })();
+// #bore= (2026-09-24): the AERATED WEDGE — the bore behind the head as a body
+// on the front face, riding with the crest (model-glsl boreWedgeAt, GRID_FRAG
+// wedge material). A BUILD flag for the #roller reason: every bore symbol sits
+// under #ifdef BORE so a default boot compiles the pristine shader text. u_bore
+// is the live gain inside a BORE build (__pointbreak.setBore).
+const BORE_BUILD = (() => {
+  const v = parseFloat(readHashParams().get('bore'));
+  return Number.isFinite(v) && v > 0;
+})();
 
 // ---------- the stage -> world embedding (#mirror=0 reverts; 2026-09-24) ----------
 // The stage frame (x = along-shore, z = shore-normal, y = up) is a proper
@@ -423,6 +432,7 @@ const uniforms = {
   // no mesh, so the shipped frame is unchanged by construction. Read ONLY by
   // the plume material (as its u_roller alias); the grid never sees it.
   u_crash:      { value: 0 },
+  u_bore:       { value: 0 },   // #bore= gain: the aerated wedge behind the head (BORE builds only)
   // #sapp= unbundles the approach-term strength from #look=full. 0.22 is now
   // the calibrated default: it halves the measured runaway-offset population
   // and removes the oversized head plate; #sapp=0.42 is the legacy A/B.
@@ -527,6 +537,7 @@ const mat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
 if (TUBE_BUILD) mat.defines.TUBE = 1;   // see TUBE_BUILD
+if (BORE_BUILD) mat.defines.BORE = 1;   // see BORE_BUILD
 const waterMesh = new THREE.Mesh(geo, mat);
 world.add(waterMesh);
 
@@ -623,6 +634,7 @@ const sprayMat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,
 });
 if (TUBE_BUILD) sprayMat.defines.TUBE = 1;   // anchors to the same (tube-arm) surface
+if (BORE_BUILD) sprayMat.defines.BORE = 1;   // same surface: the wedge is water height
 const sprayPoints = new THREE.Mesh(makeSprayGeometry(), sprayMat);
 sprayPoints.frustumCulled = false; // positions are shader-authored from seeds
 world.add(sprayPoints);
@@ -644,6 +656,7 @@ const curtainMat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,      // seen from the beach and from inside the barrel
 });
 if (TUBE_BUILD) curtainMat.defines.TUBE = 1;   // compiled (hidden under the tube), same surface
+if (BORE_BUILD) curtainMat.defines.BORE = 1;   // its foot lands on the wedge, not under it
 const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 12), curtainMat);
 curtainMesh.frustumCulled = false;  // positions are shader-authored
 curtainMesh.visible = true;
@@ -667,6 +680,7 @@ if (TUBE_BUILD) {
     depthWrite: true,            // it occludes the face behind it
     side: THREE.DoubleSide,      // the inside of the tube is the point
   });
+  if (BORE_BUILD) tubeMat.defines.BORE = 1;   // seams on the same (wedge-arm) surface
   // Denser along the line than the curtain (see TUBE_SEG_X): the ribbon is
   // only a few metres long, and its zero-weight vertices are nearly free.
   tubeMesh = new THREE.Mesh(new THREE.PlaneGeometry(TUBE_SPAN_M, 1, TUBE_SEG_X, TUBE_SEG_U), tubeMat);
@@ -2990,6 +3004,13 @@ function applyHashParams() {
     const v = parseFloat(h.get('crash'));
     if (Number.isFinite(v) && v >= 0 && v <= 3) uniforms.u_crash.value = v;
   }
+  // #bore= arms the aerated wedge behind the head as a gain in [0, 3]; 1 is
+  // the field-calibrated arm (BORE_2026-09-24.md). Absence keeps 0 — the
+  // shipped frame. Unparseable values keep 0 rather than sending NaN in.
+  if (h.has('bore')) {
+    const v = parseFloat(h.get('bore'));
+    if (Number.isFinite(v) && v >= 0 && v <= 3) uniforms.u_bore.value = v;
+  }
   // #drop=legacy is a REVERT arm, not a feature flag: the re-scoped dropMag
   // ships on, and this restores the term that flattened the pocket so the two
   // silhouettes can be captured from one build.
@@ -3290,6 +3311,10 @@ window.__pointbreak = {
     uniforms.u_crash.value = g;
   },
   crash: () => uniforms.u_crash.value,
+  // Aerated-wedge gain (mirrors #bore=); 0 = the shipped frame. Only a BORE build reads it.
+  setBore: (g) => { if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_bore.value = g; },
+  bore: () => uniforms.u_bore.value,
+  boreBuild: BORE_BUILD,
   setSGrow: (on) => { uniforms.u_sGrow.value = on ? 1 : 0; },
   // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
   setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },
@@ -3373,6 +3398,7 @@ window.__pointbreak = {
       // A TUBE build's instrument reads the tube-arm grid (the handover in
       // choppyPos), or the probe would certify a surface the page is not drawing.
       if (TUBE_BUILD) curlProbeMat.defines.TUBE = 1;
+      if (BORE_BUILD) curlProbeMat.defines.BORE = 1;   // reads the wedge-arm surface
       curlProbeQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), curlProbeMat);
       curlProbeScene = new THREE.Scene().add(curlProbeQuad);
       curlProbeCam = new THREE.Camera();
