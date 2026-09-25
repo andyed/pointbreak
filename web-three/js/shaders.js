@@ -1353,6 +1353,12 @@ void main() {
 
 export const GRID_FRAG = `
 uniform float u_time;
+#ifdef FACETDEBUG
+uniform float u_facetDebug;   // lip-facet diagnostic views, see the end of main()
+#endif
+#ifdef FOLDCULL
+uniform float u_underside;    // 0 = cull the overturned sheet's underside seen from above (#underside=0)
+#endif
 ${VARYINGS}
 ${MODEL_GLSL}
 ${SKY_GLSL}
@@ -1622,6 +1628,21 @@ void main() {
   // treats the pitching edge as a visual hinge: show the continuous front
   // face and let the thin white crest below describe the lip.
   if (fullLook > 0.5 && !gl_FrontFacing) discard;
+  // ---- fold underside cull (#underside=0, a BUILD flag; default draws it) --
+  // LIP_FACETS_2026-09-24: the bright polygons at the heads are, to this
+  // fragment, BACK faces seen from above — #facetdebug=1 paints them solid
+  // red at both diagnostic poses, and the raw vertex normal there has
+  // y ~ -1. With the eye above the water a visible back face cannot belong to
+  // a single-valued heightfield (the view ray would have to enter the water
+  // from below), so it is always the reverse side of an overturned sheet: the
+  // Ng flip below lights it as a face and foam/aer, which paint both sides,
+  // paint it white. Cull exactly that class — back face, eye above water, eye
+  // above the fragment (V.y > 0). The barrel roof seen from inside the tube
+  // has V.y < 0 and is kept; the dive view is already u_camUnder's. Define-
+  // gated like ROLLER so the shipped program text is unchanged without the flag.
+#ifdef FOLDCULL
+  if (u_underside < 0.5 && !gl_FrontFacing && u_camUnder < 0.5 && V.y > 0.0) discard;
+#endif
   // advect the erosion lattice shoreward with age: the aftermath pattern
   // smears with the swash instead of sitting on a static noise grid. The
   // mod() jump in tSince lands on the crest line, where foam is fresh and the
@@ -2206,6 +2227,25 @@ void main() {
   // gentle grade for parity with web/'s output transform
   col = pow(clamp(col, 0.0, 1.0), vec3(0.92));
   if (!(col.r == col.r)) col = vec3(0.0);   // NaN guard (house rule)
+  // ---- lip-facet diagnostic views (#facetdebug=1|2|3, a BUILD flag) --------
+  // Instrument for docs/research/LIP_FACETS_2026-09-24.md, define-gated like
+  // ROLLER so the shipped program text is byte-identical when the page did
+  // not boot with the flag (a uniform branch alone was measured to move
+  // default pixels — see ROLLER_BUILD in main.js).
+  //   1  facing: front faces green, back faces red. Per-triangle winding
+  //      across the fold — where Ng above is being sign-flipped.
+  //   2  the raw interpolated vertex normal's y, unflipped (0.5 = horizontal):
+  //      the forward-difference chord normal the fragment inherits.
+  //   3  which paint owns a white pixel: R = foam mask, G = pocket-lip mask,
+  //      B = the aerated-lip mask (#lip).
+#ifdef FACETDEBUG
+  if (u_facetDebug > 0.5) {
+    if (u_facetDebug < 1.5)      col = gl_FrontFacing ? vec3(0.10, 0.80, 0.20) : vec3(0.90, 0.15, 0.10);
+    else if (u_facetDebug < 2.5) col = vec3(0.5 + 0.5*normalize(vNormal).y);
+    else                         col = vec3(foamM, clamp(lipMask, 0.0, 1.0),
+                                            u_lipAer > 0.5 ? clamp(vAerLip, 0.0, 1.0) : 0.0);
+  }
+#endif
   gl_FragColor = vec4(col, 1.0);
 }
 `;

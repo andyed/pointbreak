@@ -125,6 +125,17 @@ const ROLLER_BUILD = (() => {
   const v = parseFloat(readHashParams().get('roller'));
   return Number.isFinite(v) && v > 0;
 })();
+// #facetdebug= is a BUILD flag for the same reason: the lip-facet diagnostic
+// views in GRID_FRAG sit under #ifdef FACETDEBUG so a page booted without the
+// flag compiles the shipped program text unchanged
+// (docs/research/LIP_FACETS_2026-09-24.md).
+const FACETDEBUG_BUILD = (() => {
+  const v = parseInt(readHashParams().get('facetdebug'), 10);
+  return Number.isFinite(v) && v > 0;
+})();
+// #underside=0 is the same kind of BUILD flag: the fold-underside cull in
+// GRID_FRAG sits under #ifdef FOLDCULL (LIP_FACETS_2026-09-24 fix arm).
+const FOLDCULL_BUILD = readHashParams().get('underside') === '0';
 
 // ---------- the stage -> world embedding (#mirror=0 reverts; 2026-09-24) ----------
 // The stage frame (x = along-shore, z = shore-normal, y = up) is a proper
@@ -384,6 +395,8 @@ const uniforms = {
   // frame, bit-identical. Feature flag, OFF pending a live verdict — the
   // measurement rig is scripts/measure_crash_transport.mjs.
   u_roller:     { value: 0 },
+  u_facetDebug: { value: 0 },   // lip-facet diagnostic view id; only a FACETDEBUG build reads it
+  u_underside:  { value: 1 },   // 0 = cull the overturned sheet's underside seen from above; only a FOLDCULL build reads it
   // #sapp= unbundles the approach-term strength from #look=full. 0.22 is now
   // the calibrated default: it halves the measured runaway-offset population
   // and removes the oversized head plate; #sapp=0.42 is the legacy A/B.
@@ -482,7 +495,9 @@ const mat = new THREE.ShaderMaterial({
   vertexShader: GRID_VERT,
   fragmentShader: GRID_FRAG,
   uniforms,
-  defines: ROLLER_BUILD ? { ROLLER: 1 } : {},   // see ROLLER_BUILD
+  defines: Object.assign({}, ROLLER_BUILD ? { ROLLER: 1 } : {},           // see ROLLER_BUILD
+                             FACETDEBUG_BUILD ? { FACETDEBUG: 1 } : {},    // see FACETDEBUG_BUILD
+                             FOLDCULL_BUILD ? { FOLDCULL: 1 } : {}),       // see FOLDCULL_BUILD
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
 const waterMesh = new THREE.Mesh(geo, mat);
@@ -2730,6 +2745,12 @@ function applyHashParams() {
   // Aerated lip/curl ships with the anatomy bundle; #lip=0 restores the clean
   // glass fold. Existing #lip=1 links remain compatible with the default.
   if (h.get('lip') === '0') uniforms.u_lipAer.value = 0;
+  {   // lip-facet diagnostic view (#facetdebug=1|2|3); only a FACETDEBUG build reads it
+    const v = parseInt(h.get('facetdebug'), 10);
+    uniforms.u_facetDebug.value = Number.isFinite(v) && v > 0 ? v : 0;
+  }
+  // fold-underside cull (LIP_FACETS_2026-09-24); only a FOLDCULL build reads it
+  if (h.get('underside') === '0') uniforms.u_underside.value = 0;
   // The #arm pair defaults ON (the peel arm lights at the house capture
   // clocks): set-envelope anchor + metric comet tail. `arm=0` reverts both;
   // `arm=anchor` / `arm=tail` keep only the named half, for bisection.
