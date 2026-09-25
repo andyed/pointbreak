@@ -1,0 +1,165 @@
+{
+  "baseUrl": "http://127.0.0.1:8142",
+  "viewport": [
+    1000,
+    625
+  ],
+  "sims": [
+    48,
+    52
+  ],
+  "jpegQuality": 80,
+  "frames": [
+    {
+      "rig": "diag_downline",
+      "arm": "off",
+      "sim": 48,
+      "file": "diag_downline_off_48.jpg",
+      "bytes": 18694,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "off",
+      "sim": 52,
+      "file": "diag_downline_off_52.jpg",
+      "bytes": 21298,
+      "tube": 0,
+      "tubeBuild": false,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "on",
+      "sim": 48,
+      "file": "diag_downline_on_48.jpg",
+      "bytes": 19107,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "on",
+      "sim": 52,
+      "file": "diag_downline_on_52.jpg",
+      "bytes": 21298,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "tubeclassic",
+      "sim": 48,
+      "file": "diag_downline_tubeclassic_48.jpg",
+      "bytes": 18261,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    },
+    {
+      "rig": "diag_downline",
+      "arm": "tubeclassic",
+      "sim": 52,
+      "file": "diag_downline_tubeclassic_52.jpg",
+      "bytes": 20616,
+      "tube": 1,
+      "tubeBuild": true,
+      "camera": [
+        -36,
+        6,
+        222
+      ],
+      "target": [
+        -48,
+        6,
+        233
+      ],
+      "state": {
+        "H0": 2.2,
+        "T": 15,
+        "xi": 1.15
+      }
+    }
+  ],
+  "cameraDriftM": {
+    "diag_downline_on_48": 0,
+    "diag_downline_tubeclassic_48": 0,
+    "diag_downline_on_52": 0,
+    "diag_downline_tubeclassic_52": 0
+  },
+  "totalBytes": 119274
+}

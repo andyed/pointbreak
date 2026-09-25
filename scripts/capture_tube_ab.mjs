@@ -19,6 +19,11 @@
 //
 // Usage: node scripts/capture_tube_ab.mjs [outdir]
 // BASE_URL (default http://127.0.0.1:8132), MAIN_URL (optional), PLAYWRIGHT_DIR.
+// Overrides (Track G, 2026-09-24, for the post-impact clocks and the receiver
+// arms): SIMS=50,52,54,56  RIGS=sewers_close  ARMS=name:flag,name:flag where
+// flag is the hash suffix (e.g. tubeclassic:&tube=1&classic=1&descent=1,
+// classicdescent:&classic=1&descent=1). Camera drift is reported against the
+// first arm listed. MAIN_URL parity is unchanged by the overrides.
 import { mkdirSync, writeFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import assert from 'node:assert/strict';
@@ -34,14 +39,22 @@ const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8132';
 const MAIN_URL = process.env.MAIN_URL || '';
 mkdirSync(OUT, { recursive: true });
 
-const SIMS = [42, 46, 48, 50, 52];
+const SIMS = process.env.SIMS ? process.env.SIMS.split(',').map(Number) : [42, 46, 48, 50, 52];
 const COMMON = 'controls=0&q=high&speed=0&sim=48';
-const RIGS = [
+const ALL_RIGS = [
   { name: 'sewers_close', hash: `preset=sewers&month=card&cam=cliff&${COMMON}`, view: [[12, 11, -190], [-52, 4, -229]], settle: 2 },
   { name: 'secondpeak_lookout', hash: `preset=secondpeak&cam=lookout&day=big&h0=1.4&tide=0.732&${COMMON}`, settle: 2 },
   { name: 'sewers_pov', hash: `preset=sewers&month=card&cam=pov&${COMMON}`, settle: 40 },
+  // Track B's diagnostic pose, looking down the line into the head: the view in
+  // which "flap" against "tube" is decided (TUBE_MESH_2026-09-24.md, captures).
+  // Not in the default set; select with RIGS=diag_downline.
+  { name: 'diag_downline', hash: `preset=sewers&month=card&cam=cliff&${COMMON}`, view: [[-36, 6, -222], [-48, 6, -233]], settle: 2 },
 ];
-const ARMS = [{ name: 'off', flag: '' }, { name: 'on', flag: '&tube=1' }];
+const RIGS = process.env.RIGS ? ALL_RIGS.filter(r => process.env.RIGS.split(',').includes(r.name)) : ALL_RIGS;
+const ARMS = process.env.ARMS
+  ? process.env.ARMS.split(',').map(a => { const i = a.indexOf(':'); return { name: a.slice(0, i), flag: a.slice(i + 1) }; })
+  : [{ name: 'off', flag: '' }, { name: 'on', flag: '&tube=1' }];
+assert.ok(RIGS.length && ARMS.length && SIMS.every(Number.isFinite), 'bad SIMS/RIGS/ARMS override');
 
 const browser = await chromium.launch({ args: ['--use-angle=metal'] });
 const page = await browser.newPage({ viewport: { width: 1000, height: 625 }, deviceScaleFactor: 1 });
@@ -75,7 +88,7 @@ for (const rig of process.env.ONLY_PARITY ? [] : RIGS) {
     if (rig.view) await page.evaluate(v => { const p = window.__pointbreak; p.controls.dispatchEvent({ type: 'start' }); p.setView(...v); }, rig.view);
     for (const sim of SIMS) {
       const probe = await frameAt(sim, rig.settle);
-      assert.equal(probe.tubeBuild, arm.name === 'on', 'build flag matches arm');
+      assert.equal(probe.tubeBuild, arm.flag.includes('tube=1'), 'build flag matches arm');
       const file = `${rig.name}_${arm.name}_${sim}.jpg`;
       await page.screenshot({ path: join(OUT, file), type: 'jpeg', quality: 80 });
       manifest.frames.push({ rig: rig.name, arm: arm.name, sim, file, bytes: statSync(join(OUT, file)).size, ...probe });
@@ -84,12 +97,14 @@ for (const rig of process.env.ONLY_PARITY ? [] : RIGS) {
   }
 }
 if (!process.env.ONLY_PARITY) {
-  // Camera drift between arms, per rig/sim.
+  // Camera drift between arms, per rig/sim, each arm against the first listed.
   manifest.cameraDriftM = {};
   for (const rig of RIGS) for (const sim of SIMS) {
-    const a = manifest.frames.find(f => f.rig === rig.name && f.arm === 'off' && f.sim === sim);
-    const b = manifest.frames.find(f => f.rig === rig.name && f.arm === 'on' && f.sim === sim);
-    manifest.cameraDriftM[`${rig.name}_${sim}`] = +Math.hypot(...a.camera.map((v, i) => v - b.camera[i])).toFixed(3);
+    const a = manifest.frames.find(f => f.rig === rig.name && f.arm === ARMS[0].name && f.sim === sim);
+    for (const arm of ARMS.slice(1)) {
+      const b = manifest.frames.find(f => f.rig === rig.name && f.arm === arm.name && f.sim === sim);
+      manifest.cameraDriftM[`${rig.name}_${arm.name}_${sim}`] = +Math.hypot(...a.camera.map((v, i) => v - b.camera[i])).toFixed(3);
+    }
   }
   manifest.totalBytes = manifest.frames.reduce((s, f) => s + f.bytes, 0);
   writeFileSync(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2));
