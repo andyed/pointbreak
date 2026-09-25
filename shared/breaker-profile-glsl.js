@@ -1,4 +1,5 @@
-// The breaking-crest cross-section family (Track A, 2026-09-24).
+// The breaking-crest cross-section family (Track A, 2026-09-24; v2 the same
+// evening, Track G: a thinning roof after impact and the ground-frame launch).
 //
 // A single-valued height field cannot carry a thrown lip: past the cusp the
 // crest passes OVER the trough and the surface is multivalued in z
@@ -18,18 +19,22 @@
 // The curve is the whole free surface of the crest band, walked once:
 //
 //   u = 0.00        back seam B, on the unbroken back face 0.5 hC seaward
-//   0.00 .. 0.10    back face up to the crest apex A (post-impact: to the
-//                   trailing edge of the clearing sheet)
+//   0.00 .. 0.10    back face up to the crest apex A
 //   0.10 .. 0.45    the jet's upper surface, apex to tip, along the ballistic
+//                   (post-impact: the roof, sagging onto its own underside)
 //   0.45 .. 0.80    the jet's underside, tip back to the lip root R
 //   0.80 .. 1.00    the concave face, root down to the landing seam L
+//                   (post-impact: rising to the roof's underside behind a
+//                   front that runs from the landing back to the root)
 //   u = 1.00        landing seam L = (sL, 0) on the trough ahead
 //
 // The region enclosed between the underside leg and the face leg is the tube.
 // Before impact the tip is in the air and the underside/face legs meet only at
 // the root, so the curve does not self-intersect; at impact the tip reaches L
-// and the tube closes. Fixed u fractions keep the ribbon's topology stable
-// across age, so Track B can bind vertex rows to legs once.
+// and the tube closes into a lens. After impact the lens COLLAPSES rather than
+// clearing: the roof stays rooted at the crest and thins to nothing, and the
+// cavity shortens from the landing side. Fixed u fractions keep the ribbon's
+// topology stable across age, so Track B can bind vertex rows to legs once.
 //
 // Seam contract (what Track B blends to the real surfacePos):
 //   B = (-0.5 hC, hC (1 - 0.5 tan 30 deg)) = (-0.5 hC, 0.711 hC). The back
@@ -37,7 +42,8 @@
 //       crest has each flank 30 degrees below horizontal. This is the assumed
 //       height-field value at the seam, not a measurement of the grid.
 //   L = (sL, 0): the landing, at still-water level on the face/trough ahead.
-//       sL = plunge(xi) * c * sqrt(2 hC / g)  (ballistic reach, below).
+//       sL = BP_LAUNCH_REL * plunge(xi) * c * sqrt(2 hC / g)  (ballistic reach
+//       with a ground-frame launch speed, below).
 // Both seams are fixed for all ages, so the ribbon's edges never move against
 // the grid; only the interior does.
 //
@@ -73,6 +79,33 @@ const float BP_BACK_TAN = 0.5773503;
 // experiment). Kept so the ribbon's lip is the same thickness the grid's hook
 // already draws; no field measurement of lip thickness exists in this repo.
 const float BP_ROOT_THICK = 0.12;
+// The jet's horizontal launch speed RELATIVE TO THE CREST SOURCE POINT, as a
+// fraction of the phase speed c, at full plunge. s is measured from a point
+// that itself moves at c, so a launch at BP_LAUNCH_REL*c here is
+// (1 + BP_LAUNCH_REL)*c = 1.5 c in the ground frame. Basis, in order:
+// (1) Longuet-Higgins (1981) gives the jet's ground-frame horizontal velocity
+//     as of order the crest speed, the excess over c being what carries the
+//     lip clear of the crest; a crest-relative launch at c (the v1 reading)
+//     is 2 c in the ground frame, faster than any measured tip. Bonmarin
+//     (1989) reports jet geometry as ratios of wave height (in refs.bib; not
+//     re-read, no number is taken from it).
+// (2) The field (CURL_TRUTH 2026-09-24 sec 1.3): the steady head's lip
+//     projects <= 0.1-0.3 face heights ahead of the face and the one section
+//     collapse throws a curtain of 0.5-0.6 face heights that lands on the
+//     face within a fraction of a second. No lip lands clear of the face.
+// (3) The model's own receiver: at depth-limited pairs (c = sqrt(g h),
+//     hC = 0.8*GAMMA*h) this launch lands the lip at 0.895 hC, on top of
+//     CURT_REACH = 0.9 in model-glsl.js, which was authored from the same
+//     classical picture ("about a face height ahead"). The v1 crest-frame
+//     reading landed at 1.79 hC and needed the 1.6 classic extension to be
+//     received at all.
+// The value inside the (1)-(2) bracket is fixed by (3), so the profile and
+// the shared landing agree without a second constant.
+const float BP_LAUNCH_REL = 0.5;
+// Width, in the face leg's parameter, of the front along which the cavity
+// closes after impact (a soft front: Peregrine's splash-up is a broad region
+// at the landing, not a point). Authored; only the softness is at stake.
+const float BP_CLOSE_W = 0.5;
 // sqrt(H0/L0) for the model-card day, Sewers H0 2.2 m, T 15 s (L0 = gT^2/2pi =
 // 351 m): the wave steepness that converts the authored Iribarren number back
 // to a bed slope, tan(beta) = xi*sqrt(H0/L0), for the Mead & Black regression.
@@ -91,7 +124,11 @@ const float BP_U_ROOT = 0.80;
 // model-glsl.js use (smoothstep(0.45, 1.25, u_xi)), so the profile agrees
 // with the grid, the curtain and the splash about how plunging a site is.
 // Battjes puts the spilling/plunging boundary at 0.4-0.5; the 1.25 top is the
-// renderer's shared choice, inherited, not re-derived here.
+// renderer's shared choice, inherited, not re-derived here. At the spilling
+// end this family produces NOTHING on purpose: the field's spilling head is
+// Duncan's (1999) bulge and Longuet-Higgins & Turner's aerated wedge, a
+// material event on the grid's crest band, not a thrown sheet over a cavity
+// (BREAKER_PROFILE_V2_2026-09-24.md, decision 3).
 float bpPlunge(float xi){ return smoothstep(0.45, 1.25, xi); }
 
 // Mead & Black (2001c, JCR SI 29 pp. 51-65): vortex length/width ratio
@@ -112,15 +149,33 @@ float bpRoundness(float xi){
 }
 // Free fall from the apex to still water: t = sqrt(2 hC / g).
 float bpFallTime(float hC){ return sqrt(2.0*hC/BP_G); }
-// Ballistic reach. The lip leaves the crest horizontally at the phase speed
-// (Longuet-Higgins / Peregrine plunging-jet picture; the brief's model) scaled
-// by the plunging blend, and lands where it meets still water:
+// The jet's horizontal launch speed relative to the crest source point.
+float bpLaunchSpeed(float xi, float c){ return BP_LAUNCH_REL*bpPlunge(xi)*c; }
+// Ballistic reach in the crest-source frame. The lip leaves the crest
+// horizontally (Longuet-Higgins / Peregrine plunging-jet picture) at
+// bpLaunchSpeed relative to the crest, and lands where it meets still water:
 // sL = v * sqrt(2 hC / g). At full plunge and depth-limited c = sqrt(g h),
-// hC = 0.8*0.78 h, this is a constant 1.79 hC; at the sheet's (hC 3, c 6) it
-// is 1.56 hC. The repo's authored receiver is 0.9..1.6 hC (CURT_REACH, the
-// descent note) -- the ballistic answer sits at, and a little past, its top.
+// hC = 0.8*0.78 h, this is a constant 0.895 hC (CURT_REACH is 0.9); at the
+// sheet's (hC 3, c 6) it is 0.78 hC. Second Peak (xi 0.65) lands at 0.12 hC,
+// The Hook (0.8) at 0.32, Sewers (1.15) at 0.75: the field's <= 0.3 face
+// height lip projection at the steady head and its half-face curtain at a
+// section collapse bracket this range.
 float bpReach(float xi, float hC, float c){
-  return bpPlunge(xi)*c*bpFallTime(hC);
+  return bpLaunchSpeed(xi, c)*bpFallTime(hC);
+}
+// How far the post-impact collapse has run: 0 until impact, 1 by release.
+float bpCollapse(float age){ return smoothstep(BP_IMPACT_S, BP_RELEASE_S, age); }
+// How closed the cavity is under the face leg at u (0 outside the face leg):
+// 1 where the face has risen onto the roof's underside, 0 where the lens is
+// still open. The front runs from the landing (u = 1) back to the root
+// (u = BP_U_ROOT) over the release window. Exposed for the ribbon: where this
+// is 1 the face leg and the underside coincide, so the face leg should not be
+// drawn as a second lit surface there.
+float bpFaceClosure(float u, float age){
+  if (u < BP_U_ROOT) return 0.0;
+  float f = (clamp(u, 0.0, 1.0) - BP_U_ROOT)/(1.0 - BP_U_ROOT);
+  float front = (1.0 + BP_CLOSE_W)*(1.0 - bpCollapse(clamp(age, -1.0, 20.0)));
+  return smoothstep(front - BP_CLOSE_W, front, f);
 }
 // The jet's upper surface as a function of sigma in [0,1], the fraction of
 // the horizontal reach covered. Horizontal launch: s = v t, y = hC - g t^2/2,
@@ -137,17 +192,22 @@ vec2 bpJetNormal(float sigma, float hC, float sL){
   tng /= len;
   return vec2(-tng.y, tng.x);
 }
-// Sheet thickness at sigma. Every particle keeps the launch speed v and gains
-// g t downward, so the sheet's arc speed is sqrt(v^2 + (g t)^2) and a
+// Sheet thickness at sigma. Every particle keeps the launch speed v (relative
+// to the crest, the frame in which the sheet is fed steadily) and gains g t
+// downward, so the sheet's arc speed is sqrt(v^2 + (g t)^2) and a
 // mass-conserving sheet thins by v / sqrt(v^2 + (g t)^2) (kinematic stretching
 // of a free-falling sheet). Root thickness BP_ROOT_THICK*hC, times the
 // plunging blend so a spilling crest has no sheet at all.
 float bpThickness(float sigma, float xi, float hC, float c){
   float plunge = bpPlunge(xi);
-  float v = max(plunge*c, 1e-3);
+  float v = max(bpLaunchSpeed(xi, c), 1e-3);
   float gt = BP_G*sigma*bpFallTime(hC);
   float stretch = inversesqrt(1.0 + (gt*gt)/(v*v));
   return BP_ROOT_THICK*hC*plunge*stretch;
+}
+// The sheet's underside at sigma with taper t (1 at the root, 0 at the tip).
+vec2 bpUnderside(float sigma, float taper, float xi, float hC, float c, float sL){
+  return bpJet(sigma, hC, sL) - bpThickness(sigma, xi, hC, c)*taper*bpJetNormal(sigma, hC, sL);
 }
 
 // Cross-section of the breaking crest band in the local (s, y) plane at one
@@ -163,7 +223,7 @@ float bpThickness(float sigma, float xi, float hC, float c){
 // as breakerCurlCycle / breakerLandingFrameAt: 0 = lip starts to pitch,
 // CRASH_PEAK_S = 0.42 s = jet impact, release by 0.72 s, bore after).
 // xi: Iribarren number (u_xi). hC: depth-limited crest height in metres
-// (breakerCeilM / VIS). c: local phase speed m/s (the jet's horizontal launch speed).
+// (breakerCeilM / VIS). c: local phase speed m/s (sets the jet's launch speed).
 vec2 breakerProfile(float u, float age, float xi, float hC, float c){
   u   = clamp(u, 0.0, 1.0);
   age = clamp(age, -1.0, 20.0);
@@ -173,43 +233,52 @@ vec2 breakerProfile(float u, float age, float xi, float hC, float c){
   float sL  = bpReach(xi, hC, c);
   float rho = bpRoundness(xi)*bpPlunge(xi);   // spilling: no cavity at all
   // Leading edge of the sheet along the parabola: linear in age up to impact,
-  // because horizontal reach is linear in time for a horizontal launch.
+  // because horizontal reach is linear in time for a horizontal launch. The
+  // trailing edge stays at the crest for the whole life (v1 cleared it to the
+  // landing after impact, which read as a flap sliding down the face).
   float sig1 = clamp(age/BP_IMPACT_S, 0.0, 1.0);
-  // Trailing edge: pinned at the apex until impact, then clears toward the
-  // landing over the release window (the descent experiment's handoff: foot
-  // fixed at the landing, upper edge advances to it).
-  float sig0 = smoothstep(BP_IMPACT_S, BP_RELEASE_S, age);
-  float span = sig1 - sig0;
-  // The cavity straightens into a bore as the sheet clears.
-  rho *= 1.0 - sig0;
+  // Post-impact collapse. What a landed lip does (Peregrine 1983's
+  // overturn -> impact -> splash-up -> bore; Kimmoun & Branger 2007's time
+  // series): the sheet stays rooted at the crest, thins and aerates, and the
+  // trapped cavity closes from the landing side as the splash-up fills it.
+  // The field agrees on the one thing this fixes: the crest line is conserved
+  // through the collapse to within ~0.1 face heights (CURL_TRUTH sec 1.3), so
+  // the roof's root does not leave the crest.
+  float col = bpCollapse(age);
 
-  vec2 B = vec2(-BP_BACK_S*hC, hC*(1.0 - BP_BACK_S*BP_BACK_TAN));
-  vec2 A = bpJet(sig0, hC, sL);
-  vec2 L = vec2(sL, 0.0);
-  // Lip root: the underside of the sheet at its trailing edge. The taper is 1
-  // there whenever a sheet exists (pre-impact, including age 0 where the
-  // sheet is a point), and 0 once it has fully cleared.
-  float taperRoot = span > 1e-5 ? 1.0 : (sig0 < 0.5 ? 1.0 : 0.0);
-  vec2 R = A - bpThickness(sig0, xi, hC, c)*taperRoot*bpJetNormal(sig0, hC, sL);
+  vec2 B  = vec2(-BP_BACK_S*hC, hC*(1.0 - BP_BACK_S*BP_BACK_TAN));
+  vec2 A0 = bpJet(0.0, hC, sL);                            // crest apex (0, hC)
+  vec2 L  = vec2(sL, 0.0);
+  // Lip root: the underside of the sheet at the crest, fixed for all ages.
+  vec2 R  = bpUnderside(0.0, 1.0, xi, hC, c, sL);
+  // The roof thins from the top down onto its fixed underside: the apex sags
+  // by the root thickness (<= 0.12 hC * plunge) over the release window and
+  // the underside, the cavity's roof, never rises, so the cavity is
+  // non-increasing in age everywhere.
+  vec2 A  = mix(A0, R, col);
 
   vec2 P;
   if (u < BP_U_APEX) {
     P = mix(B, A, u/BP_U_APEX);
   } else if (u < BP_U_TIP) {
     float f = (u - BP_U_APEX)/(BP_U_TIP - BP_U_APEX);
-    P = bpJet(mix(sig0, sig1, f), hC, sL);
+    float sig = sig1*f;
+    // Jet top: the parabola from the apex to the tip. After impact it sags by
+    // col of the local thickness toward the underside (taper 1 - f, as the
+    // underside's), so at full collapse the two coincide and the sheet is
+    // gone. With no sheet yet (age <= 0) the leg is the apex point.
+    P = bpJet(sig, hC, sL) - bpThickness(sig, xi, hC, c)*(1.0 - f)*col*bpJetNormal(sig, hC, sL);
   } else if (u < BP_U_ROOT) {
     float f = (u - BP_U_TIP)/(BP_U_ROOT - BP_U_TIP);
-    float sig = mix(sig1, sig0, f);
-    // The sheet thins to a point at its leading edge (the tip is the oldest,
-    // most-stretched water); this closes the section at the tip and keeps
-    // the underside off the face as the tip arrives at the landing.
-    // With no sheet yet (age <= 0) the leg walks apex -> root linearly, the
+    float sig = sig1*(1.0 - f);
+    // Underside, tip back to root. The sheet thins to a point at its leading
+    // edge (the tip is the oldest, most-stretched water): taper f is 0 at the
+    // tip and 1 at the root, which closes the section at the tip and keeps
+    // the underside off the face as the tip arrives at the landing. With no
+    // sheet yet (age <= 0, sig = 0) the leg walks apex -> root linearly, the
     // limit of the small-age case, so the family is continuous through the
-    // lifecycle wrap; once cleared it sits at the landing.
-    float taper = span > 1e-5 ? clamp((sig1 - sig)/span, 0.0, 1.0)
-                              : (sig0 < 0.5 ? f : 0.0);
-    P = bpJet(sig, hC, sL) - bpThickness(sig, xi, hC, c)*taper*bpJetNormal(sig, hC, sL);
+    // lifecycle wrap. Fixed for all ages after impact: this is the roof.
+    P = bpUnderside(sig, f, xi, hC, c, sL);
   } else {
     float f = (u - BP_U_ROOT)/(1.0 - BP_U_ROOT);
     // Concave face, root to landing, as a quadratic Bezier whose control
@@ -220,7 +289,17 @@ vec2 breakerProfile(float u, float age, float xi, float hC, float c){
     // lip, then sweeping forward), the Mead & Black shape dial.
     vec2 C = vec2(mix(R.x, L.x, 0.5*(1.0 - rho)), 0.0);
     float g = 1.0 - f;
-    P = g*g*R + 2.0*g*f*C + f*f*L;
+    vec2 F = g*g*R + 2.0*g*f*C + f*f*L;
+    // After impact the cavity closes from the landing side: behind a front
+    // that runs from f = 1 (the landing) back to f = 0 (the root) over the
+    // release window (bpFaceClosure), the face rises to the roof's underside
+    // at the same sigma = f (R at f = 0, L at f = 1, the same endpoints), so
+    // the lens shortens toward the root and is gone by release. Ahead of the
+    // front the cavity keeps its section shape; it shortens, it does not
+    // flatten.
+    float k = bpFaceClosure(u, age);
+    vec2 U = bpUnderside(f, 1.0 - f, xi, hC, c, sL);
+    P = mix(F, U, k);
   }
   // House rule: no NaN leaves a shader. Inputs are clamped so none should
   // arise; the guard makes the contract hold regardless.

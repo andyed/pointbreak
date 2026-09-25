@@ -12,7 +12,8 @@
 
   Serve from the repo root:  python3 scripts/serve.py 8131
   Open: http://127.0.0.1:8131/experiments/tube-profile.html
-  Sheet mode (7 ages x 3 xi at one hC, c): ...tube-profile.html?sheet=1&hC=3&c=6
+  Sheet mode (ages x xi at one hC, c): ...tube-profile.html?sheet=1&hC=3&c=6
+    &ages=0,0.15,0.3,0.42,0.5,0.55,0.6,0.65,0.7,1  &xis=0.3,0.65,0.85,1.15,1.5  (the defaults)
   Headless readback (scripts/probe_breaker_profile.mjs) uses window.__tubeProfile.
 -->
 <style>
@@ -270,8 +271,70 @@ function readProfile(age, xi, hC, c) {
   const points = [];
   for (let i = 0; i < PROBE_N; i++) points.push([px[i*4], px[i*4+1]]);
   const m = PROBE_N * 4, k = (PROBE_N + 1) * 4;
+  const cavity = cavityFromPoints(points, PROBE_N, hC);
   return { points, weight: px[m], sL: px[m+1], vortexRatio: px[m+2], roundness: px[m+3],
-           fallTime: px[k], plunge: px[k+1], rootThickness: px[k+2], n: PROBE_N };
+           fallTime: px[k], plunge: px[k+1], rootThickness: px[k+2], n: PROBE_N, cavity };
+}
+// The cavity, measured on the readback (not a JS twin of the curve): the
+// underside leg (u in [BP_U_TIP, BP_U_ROOT]) is a polyline in s; for every
+// face-leg sample (u >= BP_U_ROOT) the underside's y at the same s is
+// interpolated and the gap is roof underside minus face. gap > 0 is air.
+// Face samples ahead of the tip (the open mouth before impact) have no roof
+// over them and are skipped. chord = the s-extent over which the gap exceeds
+// 2% of hC; aspect = chord / max gap (New 1983's ellipse would read ~sqrt 3
+// along its axes; this is the axis-aligned stand-in). The vertical gap
+// over-reads under a near-vertical face (it measures the face's steepness,
+// not air), so area is also returned: the shoelace area of the polygon the
+// underside leg (tip -> root) and the face leg (root -> landing) enclose,
+// closed by the mouth chord before impact. Area is the quantity the
+// collapse invariant is asserted on. A spilling section (no reach) has no
+// cavity by definition and returns zeros.
+function cavityFromPoints(points, n, hC) {
+  const under = [], face = [];
+  for (let i = 0; i < n; i++) {
+    const u = i / (n - 1);
+    if (u >= 0.45 && u <= 0.80) under.push(points[i]);
+    if (u >= 0.80) face.push(points[i]);
+  }
+  const none = { maxGap: 0, minGap: 0, chord: 0, aspect: 0, area: 0, samples: 0 };
+  if (under.length < 2 || face.length < 2) return none;
+  const xs = under.map((p) => p[0]);
+  if (Math.max(...xs) - Math.min(...xs) < 1e-3 * hC) return none;
+  // area first, on the legs in walk order (tip -> root -> landing, closed)
+  const poly = under.concat(face);
+  let area2 = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const [x0, y0] = poly[i], [x1, y1] = poly[(i + 1) % poly.length];
+    area2 += x0 * y1 - x1 * y0;
+  }
+  const area = Math.abs(area2) / 2;
+  // The underside is walked tip -> root, so its s decreases; at a short reach
+  // the thick root curls back behind s = 0 and s turns around. Only the part
+  // in front of that fold is a function of s: truncate there before sorting,
+  // or the interpolation reads the fold as a negative gap.
+  let cut = under.length;
+  for (let i = 1; i < under.length; i++) if (under[i][0] > under[i - 1][0] + 1e-9) { cut = i; break; }
+  const roof = under.slice(0, cut).sort((a, b) => a[0] - b[0]);
+  const gaps = [];
+  let maxGap = 0, minGap = 0;
+  for (const [x, y] of face) {
+    if (roof.length < 2 || x < roof[0][0] - 1e-9 || x > roof[roof.length - 1][0] + 1e-9) continue;
+    let j = 0;
+    while (j + 2 < roof.length && roof[j + 1][0] < x) j++;
+    const [xa, ya] = roof[j], [xb, yb] = roof[j + 1];
+    const t = xb - xa > 1e-12 ? Math.min(Math.max((x - xa) / (xb - xa), 0), 1) : 0;
+    const gap = ya + t * (yb - ya) - y;
+    if (!Number.isFinite(gap)) continue;
+    gaps.push([x, gap]);
+    if (gap > maxGap) maxGap = gap;
+    if (gap < minGap) minGap = gap;
+  }
+  // extent in s of the samples with a real gap (min/max, not first/last: the
+  // face's s is not monotone at the curled root)
+  let s0 = Infinity, s1 = -Infinity;
+  for (const [x, g] of gaps) if (g > 0.02 * hC) { s0 = Math.min(s0, x); s1 = Math.max(s1, x); }
+  const chord = s1 >= s0 ? s1 - s0 : 0;
+  return { maxGap, minGap, chord, aspect: maxGap > 1e-9 ? chord / maxGap : 0, area, samples: gaps.length };
 }
 
 // ---- drawing one cell -----------------------------------------------------
@@ -331,9 +394,23 @@ const state = { age: 0.3, xi: 1.15, hC: 3, c: 6, playing: false, t0: 0, age0: 0 
 for (const k of ['xi', 'hC', 'c']) if (params.has(k)) state[k] = Number(params.get(k));
 if (params.has('age')) state.age = Number(params.get('age'));
 
-const SHEET_AGES = [0, 0.15, 0.30, 0.42, 0.55, 0.70, 1.0];
-const SHEET_XI = [0.3, 0.8, 1.5];
-const SHEET_XI_NAME = ['spilling', 'plunging', 'plunging, round'];
+// Sheet layout. Ages 0.50-0.65 are the post-impact collapse (v2: the roof
+// thins and the cavity closes from the landing side). The xi rows are the
+// Pleasure Point presets' authored values plus the spilling and round ends.
+function numberList(v) { if (!v) return null; const a = v.split(',').map(Number); return a.every(Number.isFinite) && a.length ? a : null; }
+const SHEET_AGES = numberList(params.get('ages')) || [0, 0.15, 0.30, 0.42, 0.50, 0.55, 0.60, 0.65, 0.70, 1.0];
+const SHEET_XI = numberList(params.get('xis')) || [0.3, 0.65, 0.85, 1.15, 1.5];
+const XI_NAMES = [[0.3, 'spilling'], [0.35, 'Privates'], [0.45, 'Sharks'], [0.5, "Jack's"], [0.65, 'Second Peak'],
+  [0.8, 'The Hook'], [0.85, 'First Peak'], [1.15, 'Sewers'], [1.5, 'plunging, round'], [2.0, 'collapsing edge']];
+function xiName(xi) { const hit = XI_NAMES.find(([v]) => Math.abs(v - xi) < 1e-6); return hit ? hit[1] : (xi < 0.45 ? 'spilling' : 'plunging'); }
+function ageTag(age) {
+  if (age === 0) return ' pitch';
+  if (Math.abs(age - 0.42) < 1e-6) return ' impact';
+  if (age > 0.42 && age < 0.70) return ' collapse';
+  if (Math.abs(age - 0.7) < 1e-6) return ' release';
+  if (age >= 1.0) return ' bore';
+  return '';
+}
 
 function label(text, left, top, small) {
   const d = document.createElement('div');
@@ -346,26 +423,30 @@ function label(text, left, top, small) {
 function renderSheet() {
   document.documentElement.classList.add('sheet');
   const hC = state.hC, c = state.c;
-  const cellW = 200, cellH = 125, rowBand = 158, headH = 54, leftPad = 0;
+  // Isotropic cells: 6 m of s and 5 m of y at 30 px/m, so a lens reads at its
+  // true aspect. The s window covers the back seam to past the longest landing
+  // (0.895 hC at full plunge for depth-limited pairs; 0.78 hC at hC 3, c 6).
+  const cellW = 180, cellH = 150, rowBand = 183, headH = 54, leftPad = 0;
+  const S0 = -1.6, S1 = 4.4, Y0 = -1, Y1 = 4;
   canvas.width = leftPad + cellW * SHEET_AGES.length;
   canvas.height = headH + rowBand * SHEET_XI.length;
   document.getElementById('title').textContent =
-    `breakerProfile(u, age, xi, hC = ${hC} m, c = ${c} m/s) - GLSL readback, physical metres, s in [-2, 6], y in [-1, 4]`;
+    `breakerProfile(u, age, xi, hC = ${hC} m, c = ${c} m/s) - GLSL readback, physical metres, s in [${S0}, ${S1}], y in [${Y0}, ${Y1}]`;
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.disable(gl.SCISSOR_TEST);
   gl.clearColor(0.05, 0.07, 0.09, 1); gl.clear(gl.COLOR_BUFFER_BIT);
-  const view = makeView(-2, 6, -1, 4);
+  const view = makeView(S0, S1, Y0, Y1);
   for (const el of [...stage.querySelectorAll('.lbl')]) el.remove();
   SHEET_AGES.forEach((age, j) => {
-    const tag = age === 0.42 ? ' impact' : age === 0.7 ? ' release' : age === 0 ? ' pitch' : age === 1.0 ? ' bore' : '';
-    label(`age ${age.toFixed(2)} s${tag}`, leftPad + j * cellW + 8, 8);
+    label(`age ${age.toFixed(2)} s${ageTag(age)}`, leftPad + j * cellW + 8, 8);
   });
   SHEET_XI.forEach((xi, i) => {
     const top = headH + i * rowBand;                    // CSS y from the top
     const glY = canvas.height - top - rowBand;          // GL y from the bottom
     const r = readProfile(0.42, xi, hC, c);
-    const vr = r ? ` VR ${r.vortexRatio.toFixed(2)} round ${r.roundness.toFixed(2)} sL ${r.sL.toFixed(2)} m = ${(r.sL / hC).toFixed(2)} hC` : '';
-    label(`xi ${xi.toFixed(1)} (${SHEET_XI_NAME[i]})${vr}`, leftPad + 8, top + 4);
+    const vr = r ? ` plunge ${r.plunge.toFixed(2)} VR ${r.vortexRatio.toFixed(2)} round ${r.roundness.toFixed(2)} sL ${r.sL.toFixed(2)} m = ${(r.sL / hC).toFixed(2)} hC`
+      + ` | cavity at impact: area ${(r.cavity.area / (hC * hC)).toFixed(3)} hC^2, gap ${(r.cavity.maxGap / hC).toFixed(2)} hC, chord ${(r.cavity.chord / hC).toFixed(2)} hC` : '';
+    label(`xi ${xi.toFixed(2)} (${xiName(xi)})${vr}`, leftPad + 8, top + 4);
     SHEET_AGES.forEach((age, j) => {
       drawCell(leftPad + j * cellW, glY, cellW, cellH, age, xi, hC, c, view, true);
       const w = readProfile(age, xi, hC, c);
@@ -379,6 +460,9 @@ function renderExplorer() {
   const { age, xi, hC, c } = state;
   for (const k of ['age', 'xi', 'hC', 'c']) { els[k].value = state[k]; vals[k].textContent = Number(state[k]).toFixed(k === 'age' ? 3 : 2); }
   // frame the family: from behind the back seam to a little past the longest landing
+  // (the longest landing is 0.5 c sqrt(2 hC / g), the ground-frame launch; keep
+  // the frame wide enough that the v1 crest-frame reach would also have fit,
+  // so before/after explorer frames are comparable)
   const sMax = Math.max(2.5 * hC, 1.0 * c * Math.sqrt(2 * hC / 9.81) + 0.5, 2);
   const view = makeView(-0.8 * hC - 0.3, sMax, -0.35 * hC - 0.2, 1.25 * hC + 0.2);
   drawCell(0, 0, canvas.width, canvas.height, age, xi, hC, c, view, true);
@@ -389,10 +473,12 @@ function renderExplorer() {
     out.innerHTML = [
       `weight <b>${r.weight.toFixed(3)}</b>`,
       `landing sL <b>${r.sL.toFixed(2)} m</b> = ${(r.sL / hC).toFixed(2)} hC`,
+      `launch, crest frame <b>${(0.5 * r.plunge * c).toFixed(2)} m/s</b> = ${(0.5 * r.plunge).toFixed(2)} c (ground ${(1 + 0.5 * r.plunge).toFixed(2)} c)`,
       `vortex ratio <b>${r.vortexRatio.toFixed(2)}</b> roundness ${r.roundness.toFixed(2)}`,
       `plunge blend <b>${r.plunge.toFixed(2)}</b>`,
       `free-fall time from hC <b>${r.fallTime.toFixed(2)} s</b> = ${warp.toFixed(2)} x the 0.42 s clock`,
       `jet root thickness <b>${r.rootThickness.toFixed(2)} m</b>`,
+      `cavity area <b>${(r.cavity.area / (hC * hC)).toFixed(3)} hC&sup2;</b>, gap ${(r.cavity.maxGap / hC).toFixed(2)} hC, chord ${(r.cavity.chord / hC).toFixed(2)} hC`,
       `seam u=0 <b>(${r.points[0][0].toFixed(2)}, ${r.points[0][1].toFixed(2)})</b>`,
       `seam u=1 <b>(${r.points[r.n - 1][0].toFixed(2)}, ${r.points[r.n - 1][1].toFixed(2)})</b>`,
     ].map((s) => `<div>${s}</div>`).join('');
@@ -410,7 +496,7 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
-window.__tubeProfile = { ready: false, probe: readProfile, hasFloat: !!probe, N: PROBE_N };
+window.__tubeProfile = { ready: false, probe: readProfile, hasFloat: !!probe, N: PROBE_N, sheetAges: SHEET_AGES, sheetXi: SHEET_XI };
 
 if (SHEET) {
   renderSheet();

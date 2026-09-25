@@ -83,9 +83,46 @@ test('physics terms carry their stated basis in the source', () => {
   assert.match(source, /kinematic stretching/);
   // the ballistic parabola is the jet: y = hC (1 - sigma^2)
   assert.match(BREAKER_PROFILE_GLSL, /return vec2\(sigma\*sL, hC\*\(1\.0 - sigma\*sigma\)\);/);
-  // reach = plunge * c * sqrt(2 hC / g)
-  assert.match(BREAKER_PROFILE_GLSL, /return bpPlunge\(xi\)\*c\*bpFallTime\(hC\);/);
+  // reach = launch speed (relative to the crest) * sqrt(2 hC / g)
+  assert.match(BREAKER_PROFILE_GLSL, /return BP_LAUNCH_REL\*bpPlunge\(xi\)\*c; \}/);
+  assert.match(BREAKER_PROFILE_GLSL, /return bpLaunchSpeed\(xi, c\)\*bpFallTime\(hC\);/);
   assert.match(BREAKER_PROFILE_GLSL, /return sqrt\(2\.0\*hC\/BP_G\);/);
+  // v2: the post-impact collapse names its sources
+  assert.match(source, /Peregrine 1983's/);
+  assert.match(source, /Kimmoun & Branger 2007/);
+  assert.match(source, /Duncan's \(1999\) bulge/);
+});
+
+test('v2 launch frame: the ground-frame launch lands on the model\'s receiver at depth-limited pairs', () => {
+  // s is measured from the crest source point, which moves at c, so the
+  // relative launch fraction must be strictly between 0 (no throw) and 1
+  // (2 c in the ground frame, faster than any measured tip).
+  const rel = constant(BREAKER_PROFILE_GLSL, 'BP_LAUNCH_REL');
+  assert.ok(rel > 0 && rel < 1, `BP_LAUNCH_REL ${rel} outside (0, 1)`);
+  // At c = sqrt(g h) and hC = 0.8*GAMMA*h (breakerCeilM's depth limit) the
+  // landing sL/hC = rel * sqrt(2 / (0.8*GAMMA)) is depth-free; it must sit on
+  // CURT_REACH within 3% so the ribbon's foot and the shared landing agree
+  // without a second constant. A formula check on the constants, not a twin.
+  const gamma = constant(model, 'GAMMA');
+  const curtReach = constant(model, 'CURT_REACH');
+  assert.match(model, /0\.8\*VIS\*min\(u_H0\*Ks, GAMMA\*dep\)/, 'breakerCeilM depth limit moved; re-derive the landing');
+  const landing = rel * Math.sqrt(2 / (0.8 * gamma));
+  assert.ok(Math.abs(landing - curtReach) <= 0.03 * curtReach, `depth-limited landing ${landing.toFixed(3)} hC is not on CURT_REACH ${curtReach}`);
+});
+
+test('v2 collapse: the roof is rooted at the crest and the cavity closes from the landing side', () => {
+  // the collapse runs on the shared release window, so both weight ends stay zero
+  assert.match(BREAKER_PROFILE_GLSL, /float bpCollapse\(float age\)\{ return smoothstep\(BP_IMPACT_S, BP_RELEASE_S, age\); \}/);
+  // the apex sags onto the FIXED underside root (never rises, never leaves s = 0)
+  assert.match(BREAKER_PROFILE_GLSL, /vec2 A {2}= mix\(A0, R, col\);/);
+  // the face rises to the underside behind a front that runs landing -> root,
+  // and the same closure is exposed for the ribbon to fade the face leg by
+  assert.match(BREAKER_PROFILE_GLSL, /\nfloat bpFaceClosure\(float u, float age\)\{/);
+  assert.match(BREAKER_PROFILE_GLSL, /float front = \(1\.0 \+ BP_CLOSE_W\)\*\(1\.0 - bpCollapse\(/);
+  assert.match(BREAKER_PROFILE_GLSL, /float k = bpFaceClosure\(u, age\);/);
+  assert.match(BREAKER_PROFILE_GLSL, /P = mix\(F, U, k\);/);
+  // no trailing edge clears any more: the v1 sig0 handoff is gone
+  assert.doesNotMatch(BREAKER_PROFILE_GLSL, /sig0/);
 });
 
 test('the explorer draws from the GLSL; the renderer splices it only under #ifdef TUBE', () => {
