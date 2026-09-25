@@ -1,0 +1,305 @@
+{
+ "source": "pointbreak-pleasure-point-2026-08-15-1528-unique-clean.mp4",
+ "source_sha256": "11428e3fa283bea0834c724c7a6c79d6bb6b506ae9e0885525d43ee08e962695",
+ "source_fps": 30,
+ "source_size": [
+  2288,
+  1286
+ ],
+ "clean_to_original_offset_s": 40.9,
+ "crop_wh_source_px": [
+  400,
+  160
+ ],
+ "display_scale": 1.75,
+ "sheets": {
+  "event-B-section-collapse_11.2-13.3s.jpg": {
+   "frames": [
+    {
+     "f": 340,
+     "t": 11.33,
+     "crop_xywh": [
+      820,
+      700,
+      400,
+      160
+     ],
+     "caption": "surfer in pocket, lip pitching"
+    },
+    {
+     "f": 348,
+     "t": 11.6,
+     "crop_xywh": [
+      820,
+      700,
+      400,
+      160
+     ],
+     "caption": "lip crumbles at head"
+    },
+    {
+     "f": 356,
+     "t": 11.87,
+     "crop_xywh": [
+      820,
+      700,
+      400,
+      160
+     ],
+     "caption": "section walls up (face 59 px)"
+    },
+    {
+     "f": 364,
+     "t": 12.13,
+     "crop_xywh": [
+      820,
+      700,
+      400,
+      160
+     ],
+     "caption": "curtain descends (28 px)"
+    },
+    {
+     "f": 372,
+     "t": 12.4,
+     "crop_xywh": [
+      820,
+      700,
+      400,
+      160
+     ],
+     "caption": "impact: section shuts"
+    },
+    {
+     "f": 380,
+     "t": 12.67,
+     "crop_xywh": [
+      820,
+      700,
+      400,
+      160
+     ],
+     "caption": "plume broad, lumpy"
+    },
+    {
+     "f": 388,
+     "t": 12.93,
+     "crop_xywh": [
+      820,
+      700,
+      400,
+      160
+     ],
+     "caption": "bore, crest lumps"
+    },
+    {
+     "f": 400,
+     "t": 13.33,
+     "crop_xywh": [
+      820,
+      700,
+      400,
+      160
+     ],
+     "caption": "bore smoothing"
+    }
+   ],
+   "shape": [
+    560,
+    2800
+   ]
+  },
+  "event-A-outer-peel_32-39s.jpg": {
+   "frames": [
+    {
+     "f": 980,
+     "t": 32.67,
+     "crop_xywh": [
+      1478,
+      629,
+      400,
+      160
+     ],
+     "caption": "knuckle head, dark face ahead"
+    },
+    {
+     "f": 1000,
+     "t": 33.33,
+     "crop_xywh": [
+      1444,
+      631,
+      400,
+      160
+     ],
+     "caption": "steady crumble"
+    },
+    {
+     "f": 1035,
+     "t": 34.5,
+     "crop_xywh": [
+      1385,
+      635,
+      400,
+      160
+     ],
+     "caption": "face 49 px, bore 27 px"
+    },
+    {
+     "f": 1050,
+     "t": 35.0,
+     "crop_xywh": [
+      1360,
+      637,
+      400,
+      160
+     ],
+     "caption": "feather patch at crest"
+    },
+    {
+     "f": 1060,
+     "t": 35.33,
+     "crop_xywh": [
+      1343,
+      638,
+      400,
+      160
+     ],
+     "caption": "small hook forms"
+    },
+    {
+     "f": 1070,
+     "t": 35.67,
+     "crop_xywh": [
+      1327,
+      640,
+      400,
+      160
+     ],
+     "caption": "hook merges into bore"
+    },
+    {
+     "f": 1105,
+     "t": 36.83,
+     "crop_xywh": [
+      1268,
+      644,
+      400,
+      160
+     ],
+     "caption": "same knuckle, 3 s later"
+    },
+    {
+     "f": 1145,
+     "t": 38.17,
+     "crop_xywh": [
+      1201,
+      649,
+      400,
+      160
+     ],
+     "caption": "peel continues, face 28 px"
+    }
+   ],
+   "shape": [
+    560,
+    2800
+   ]
+  },
+  "event-C-thin-head_28.3-30s.jpg": {
+   "frames": [
+    {
+     "f": 850,
+     "t": 28.33,
+     "crop_xywh": [
+      1620,
+      610,
+      400,
+      160
+     ],
+     "caption": "thin sharp head"
+    },
+    {
+     "f": 860,
+     "t": 28.67,
+     "crop_xywh": [
+      1620,
+      610,
+      400,
+      160
+     ],
+     "caption": "no plume"
+    },
+    {
+     "f": 870,
+     "t": 29.0,
+     "crop_xywh": [
+      1620,
+      610,
+      400,
+      160
+     ],
+     "caption": "small hook"
+    },
+    {
+     "f": 875,
+     "t": 29.17,
+     "crop_xywh": [
+      1620,
+      610,
+      400,
+      160
+     ],
+     "caption": "face 49-55 px, bore 19 px"
+    },
+    {
+     "f": 880,
+     "t": 29.33,
+     "crop_xywh": [
+      1620,
+      610,
+      400,
+      160
+     ],
+     "caption": "hook gone"
+    },
+    {
+     "f": 890,
+     "t": 29.67,
+     "crop_xywh": [
+      1620,
+      610,
+      400,
+      160
+     ],
+     "caption": "clean thin band"
+    },
+    {
+     "f": 895,
+     "t": 29.83,
+     "crop_xywh": [
+      1620,
+      610,
+      400,
+      160
+     ],
+     "caption": ""
+    },
+    {
+     "f": 900,
+     "t": 30.0,
+     "crop_xywh": [
+      1620,
+      610,
+      400,
+      160
+     ],
+     "caption": "head still sharp"
+    }
+   ],
+   "shape": [
+    560,
+    2800
+   ]
+  }
+ }
+}
