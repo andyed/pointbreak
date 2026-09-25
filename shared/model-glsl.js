@@ -85,6 +85,7 @@ uniform float u_roller;
 // See boreWedgeAt() and docs/research/BORE_2026-09-24.md.
 #ifdef BORE
 uniform float u_bore;
+#endif
 // #tube=1 (TUBE builds only, 2026-09-24): the ribbon's live gain, declared
 // here rather than in the renderer's prelude because breakerLandingFrameAt
 // below reads it (the receiver is plunge-scaled under the ribbon). Same
