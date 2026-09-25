@@ -71,11 +71,17 @@ Open, in order:
       Peak break on the field day~~ (withdrawn) → foam on the ribbon + bore behind the head
       (fix Track C's landing-behind-lip first) → thinning roof in the profile
       → barrel as a section event.
-- [ ] **Track C plume does not draw** (`#crash=1`, UNFINISHED): mesh issued,
-      probe alive, zero pixels. Side finding to verify: instanced spray may
-      draw nothing in headless ANGLE/Metal captures (default vs `splash=0`
-      differed by 0 px at four frames this session; `u_splash` only switches
-      timing, so that test is consistent, not conclusive).
+- [x] **Track C plume draws** (I1, `CRASH_DRAW_2026-09-24.md`): the mirrored
+      `world` group flips `gl.frontFace`, so view-space billboards were culled;
+      `side: DoubleSide`. **The shipped spray had the same cull since 604ea6a**
+      (headed and headless alike; every capture that day was spray-less) —
+      fixed on main 2b768d3, moves 73–139 px at the Sewers head, 0 elsewhere.
+      Plume still sparse round puffs (8–15 bodies), radii ~0.2–0.3 hC over the
+      crest; contact now anchored at the drawn lip + `bpReach`.
+- [x] **Ribbon material** (H, `TUBE_LOOK_2026-09-24.md`, `#tubelook`, default
+      aerated, `0` = glass): white scalloped lip edge, translucent green root,
+      streaked grey-white curtain. From the jury camera a sub-pixel shading
+      change; the remaining defect is the sheet's 1.0–1.5 H_f hang (profile).
 - [ ] **Track C landing-behind-lip**: at Sewers x=−52 the shared landing is
       drawn 7.8–10 m behind the lip because the fold remaps source z; any bore
       or plume anchored there stands on the crest's back.
