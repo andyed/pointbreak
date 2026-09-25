@@ -13,7 +13,8 @@ const RESERVED = new Set(['flat', 'smooth', 'noperspective', 'sample', 'patch',
 // Live shader surfaces only. web/js/shaders.js is the deprecated raymarch
 // build (CLAUDE.md 2026-08-11) — unmaintained, so its lint state must not
 // gate npm test.
-const files = ['shared/model-glsl.js', 'web-three/js/shaders.js'];
+const files = ['shared/model-glsl.js', 'shared/breaker-profile-glsl.js',
+               'web-three/js/shaders.js', 'web-three/js/tube.js'];
 let bad = 0;
 for (const f of files) {
   const lines = readFileSync(f, 'utf8').split('\n');

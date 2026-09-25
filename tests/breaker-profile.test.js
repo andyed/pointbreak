@@ -4,7 +4,8 @@
 // what node can: the Track B contract signatures, that the clock constants
 // mirror shared/model-glsl.js, no frame constants, no backticks or GLSL ES
 // reserved identifiers inside the literal, balanced braces, and that the
-// shipped renderer does not import it.
+// shipped renderer only splices it under the TUBE build define (Track B,
+// 2026-09-24: a default boot compiles the pristine text; byte-identical frames).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -87,13 +88,25 @@ test('physics terms carry their stated basis in the source', () => {
   assert.match(BREAKER_PROFILE_GLSL, /return sqrt\(2\.0\*hC\/BP_G\);/);
 });
 
-test('the explorer draws from the GLSL and the shipped renderer does not import it', () => {
+test('the explorer draws from the GLSL; the renderer splices it only under #ifdef TUBE', () => {
   assert.match(explorer, /import \{ BREAKER_PROFILE_GLSL \} from '\.\.\/shared\/breaker-profile-glsl\.js'/);
   assert.match(explorer, /breakerProfile\(a_u, u_age, u_xi, u_hC, u_c\)/);
   assert.match(explorer, /breakerProfileWeight\(u_age, u_xi\)/);
+  // shaders.js may import the module, but every splice of the literal must sit
+  // inside a TUBE guard so a default boot never sees the profile text.
+  const splices = [...shaders.matchAll(/\$\{BREAKER_PROFILE_GLSL\}/g)].map((m) => m.index);
+  assert.ok(splices.length >= 1, 'the tube build splices the profile into the surface prelude');
+  for (const i of splices) {
+    const before = shaders.slice(0, i);
+    const open = before.lastIndexOf('#ifdef TUBE');
+    const close = before.lastIndexOf('#endif');
+    assert.ok(open > close, `BREAKER_PROFILE_GLSL splice at ${i} is not inside an #ifdef TUBE block`);
+  }
+  // No other renderer file imports the module directly; tube.js composes it
+  // through shaders.js's guarded prelude.
   const dir = new URL('../web-three/js/', import.meta.url);
   for (const f of readdirSync(dir)) {
-    if (!f.endsWith('.js')) continue;
-    assert.doesNotMatch(readFileSync(new URL(f, dir), 'utf8'), /breaker-profile/, `${f} imports the profile`);
+    if (!f.endsWith('.js') || f === 'shaders.js') continue;
+    assert.doesNotMatch(readFileSync(new URL(f, dir), 'utf8'), /from\s+['"][^'"]*breaker-profile/, `${f} imports the profile`);
   }
 });

@@ -14,6 +14,7 @@ import { makeState, applyPreset, PRESETS, describeGeoState, PARAM_DEFS,
 import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
          SPRAY_VERT, SPRAY_FRAG, CURTAIN_VERT, CURTAIN_FRAG, SPLASHUP_VERT, SPLASHUP_FRAG,
          SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
+import { TUBE_VERT, TUBE_FRAG, TUBE_SEG_X, TUBE_SEG_U, TUBE_SPAN_M } from './tube.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { makeSurfaceQuery } from './surface-query.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
@@ -136,6 +137,12 @@ const FACETDEBUG_BUILD = (() => {
 // #underside=0 is the same kind of BUILD flag: the fold-underside cull in
 // GRID_FRAG sits under #ifdef FOLDCULL (LIP_FACETS_2026-09-24 fix arm).
 const FOLDCULL_BUILD = readHashParams().get('underside') === '0';
+// #tube=1 is a BUILD decision for the same reason (2026-09-24): the swept
+// breaker ribbon (tube.js) and the grid's handover to it live under
+// `#ifdef TUBE` in shaders.js, so a default boot compiles the pristine text
+// and draws no ribbon. u_tube is the live gain inside a TUBE build
+// (__pointbreak.setTube), so the A/B can be taken in one page session.
+const TUBE_BUILD = readHashParams().get('tube') === '1';
 
 // ---------- the stage -> world embedding (#mirror=0 reverts; 2026-09-24) ----------
 // The stage frame (x = along-shore, z = shore-normal, y = up) is a proper
@@ -379,6 +386,8 @@ const uniforms = {
   u_curl:       { value: 1 },
   u_classicWave: { value: 0 }, // #classic=1: hooked-lip experiment; pending visual acceptance
   u_lipDescent: { value: 0 }, // #classic=1&descent=1: local-age curtain/impact experiment
+  u_tube:       { value: 0 }, // #tube=1: swept breaker ribbon owns the overturn (TUBE builds only)
+  u_tubeS:      { value: 0.3 }, // cusp cap under the ribbon: the probe's sweep read 10.8 -> 4.4 m of fold at 0.3 (JS-only)
   // #earn=0 reverts: inside the #curl bend, over-ceiling breaking water earns
   // the arc angle that returns its apex to the ceiling (the head-block fix and
   // the "reference height, not a clamp" decision — see choppyPos). Ships ON as
@@ -500,6 +509,7 @@ const mat = new THREE.ShaderMaterial({
                              FOLDCULL_BUILD ? { FOLDCULL: 1 } : {}),       // see FOLDCULL_BUILD
   side: THREE.DoubleSide,   // free camera can dive below the surface
 });
+if (TUBE_BUILD) mat.defines.TUBE = 1;   // see TUBE_BUILD
 const waterMesh = new THREE.Mesh(geo, mat);
 world.add(waterMesh);
 
@@ -587,6 +597,7 @@ const sprayMat = new THREE.ShaderMaterial({
   depthWrite: false,
   blending: THREE.NormalBlending,
 });
+if (TUBE_BUILD) sprayMat.defines.TUBE = 1;   // anchors to the same (tube-arm) surface
 const sprayPoints = new THREE.Mesh(makeSprayGeometry(), sprayMat);
 sprayPoints.frustumCulled = false; // positions are shader-authored from seeds
 world.add(sprayPoints);
@@ -607,10 +618,36 @@ const curtainMat = new THREE.ShaderMaterial({
   depthWrite: true,            // it must OCCLUDE the bare water behind it
   side: THREE.DoubleSide,      // seen from the beach and from inside the barrel
 });
+if (TUBE_BUILD) curtainMat.defines.TUBE = 1;   // compiled (hidden under the tube), same surface
 const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 12), curtainMat);
 curtainMesh.frustumCulled = false;  // positions are shader-authored
 curtainMesh.visible = true;
 world.add(curtainMesh);
+
+// ---------- the swept breaker ribbon (#tube=1 builds only) ----------
+// The overturn as explicit geometry: a strip swept along the break line whose
+// cross-section is the shared breaker profile, C0 on the shipped surface at a
+// back seam and at the shared landing (tube.js). Built ONLY for a #tube boot —
+// a default boot has no mesh and no draw call. It replaces the curtain (hidden
+// in applyHashParams) and the grid stops overturning under it (shaders.js
+// `#ifdef TUBE`). Under #mirror it hangs under `world` like everything else.
+let tubeMesh = null;
+if (TUBE_BUILD) {
+  const tubeMat = new THREE.ShaderMaterial({
+    vertexShader: TUBE_VERT,
+    fragmentShader: TUBE_FRAG,
+    uniforms,
+    defines: ROLLER_BUILD ? { TUBE: 1, ROLLER: 1 } : { TUBE: 1 },
+    transparent: true,
+    depthWrite: true,            // it occludes the face behind it
+    side: THREE.DoubleSide,      // the inside of the tube is the point
+  });
+  // Denser along the line than the curtain (see TUBE_SEG_X): the ribbon is
+  // only a few metres long, and its zero-weight vertices are nearly free.
+  tubeMesh = new THREE.Mesh(new THREE.PlaneGeometry(TUBE_SPAN_M, 1, TUBE_SEG_X, TUBE_SEG_U), tubeMat);
+  tubeMesh.frustumCulled = false;  // positions are shader-authored
+  world.add(tubeMesh);
+}
 
 // ---------- the splash-up sheet (#roller= builds only) ----------
 // The transported crash's thrown mass: a strip like the curtain, its foot on
@@ -2860,6 +2897,9 @@ function applyHashParams() {
   // The falling sheet ships with the bend and draws nothing when curl is off;
   // #curtain=0 is the geometry A/B. Existing #curtain=1 links remain compatible.
   if (h.get('curtain') === '0') curtainMesh.visible = false;
+  // #tube=1 arms the swept breaker ribbon (a TUBE build, see TUBE_BUILD) and
+  // hides the curtain it replaces. Feature flag, default OFF.
+  if (h.get('tube') === '1') { uniforms.u_tube.value = 1; curtainMesh.visible = false; }
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -3102,6 +3142,17 @@ window.__pointbreak = {
   setSScale: (v) => { if (Number.isFinite(v) && v > 0) uniforms.u_sScale.value = v; },
   setThrowLen: (on) => { uniforms.u_throwLen.value = on ? 1 : 0; },
   setCurtain: (on) => { curtainMesh.visible = !!on; },
+  // Swept breaker ribbon (mirrors #tube=). Only a TUBE build has the mesh and
+  // reads u_tube; elsewhere this only flips the curtain back.
+  setTube: (on) => {
+    uniforms.u_tube.value = on ? 1 : 0;
+    if (tubeMesh) tubeMesh.visible = !!on;
+    curtainMesh.visible = !on;
+  },
+  tube: () => uniforms.u_tube.value,
+  tubeBuild: TUBE_BUILD,
+  // Instrument: the cusp cap the grid takes under the ribbon (probe sweep).
+  setTubeS: (v) => { if (Number.isFinite(v) && v > 0 && v <= 1) uniforms.u_tubeS.value = v; },
   // Transported-crash gain (mirrors #roller=); 0 = the shipped frame.
   setRoller: (g) => { if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_roller.value = g; },
   roller: () => uniforms.u_roller.value,
@@ -3185,6 +3236,9 @@ window.__pointbreak = {
           '                           reefWindow(xz.x), farFadeAt(xz));\n' +
           '}',
       });
+      // A TUBE build's instrument reads the tube-arm grid (the handover in
+      // choppyPos), or the probe would certify a surface the page is not drawing.
+      if (TUBE_BUILD) curlProbeMat.defines.TUBE = 1;
       curlProbeQuad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), curlProbeMat);
       curlProbeScene = new THREE.Scene().add(curlProbeQuad);
       curlProbeCam = new THREE.Camera();

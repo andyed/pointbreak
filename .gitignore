@@ -136,3 +136,14 @@ qa/game-hack-2026-09-24/*
 qa/lip-facets-2026-09-24/*
 !qa/lip-facets-2026-09-24/*.json
 !qa/lip-facets-2026-09-24/sheet_*.jpg
+
+# The swept breaker ribbon (scripts/probe_tube.mjs, scripts/capture_tube_ab.mjs):
+# the probe summary, the capture manifest and the matched A/B frames the
+# research note cites are committed (kept under 2 MB); raw readbacks are not.
+!qa/tube-2026-09-24/
+qa/tube-2026-09-24/*
+!qa/tube-2026-09-24/probe.json
+!qa/tube-2026-09-24/probe.receiver.json
+!qa/tube-2026-09-24/manifest.json
+!qa/tube-2026-09-24/parity.json
+!qa/tube-2026-09-24/*.jpg
