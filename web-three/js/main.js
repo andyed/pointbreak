@@ -398,6 +398,7 @@ const uniforms = {
   u_lipDescent: { value: 0 }, // #classic=1&descent=1: local-age curtain/impact experiment
   u_tube:       { value: 0 }, // #tube=1: swept breaker ribbon owns the overturn (TUBE builds only)
   u_tubeS:      { value: 0.3 }, // cusp cap under the ribbon: the probe's sweep read 10.8 -> 4.4 m of fold at 0.3 (JS-only)
+  u_tubeLook:   { value: 1 },   // ribbon material: 1 aerated (tube.js), 0 the 2026-09-24 glass ribbon (#tubelook=0). TUBE_FRAG only.
   // #earn=0 reverts: inside the #curl bend, over-ceiling breaking water earns
   // the arc angle that returns its apex to the ceiling (the head-block fix and
   // the "reference height, not a clamp" decision — see choppyPos). Ships ON as
@@ -612,6 +613,14 @@ const sprayMat = new THREE.ShaderMaterial({
   transparent: true,
   depthWrite: false,
   blending: THREE.NormalBlending,
+  // DoubleSide is load-bearing (2026-09-24 evening, CRASH_DRAW_2026-09-24.md):
+  // the stage hangs under a world group with scale.z = -1 (the mirror), so
+  // three.js flips gl.frontFace to CW for every mesh below it. Grid geometry
+  // is mirrored with the group and stays consistent; these billboards add
+  // their corners in VIEW space after modelViewMatrix, keep their authored
+  // CCW winding, and were culled to the last pixel from the mirror commit
+  // (604ea6a) until this line — every capture that day was spray-less.
+  side: THREE.DoubleSide,
 });
 if (TUBE_BUILD) sprayMat.defines.TUBE = 1;   // anchors to the same (tube-arm) surface
 const sprayPoints = new THREE.Mesh(makeSprayGeometry(), sprayMat);
@@ -739,10 +748,25 @@ function ensurePlumeMesh() {
     // Every uniform object is the page's live one; only u_roller is rebound,
     // to the crash gain, so impactLandingAt's strength is gated by #crash.
     uniforms: Object.assign({}, uniforms, { u_roller: uniforms.u_crash }),
-    defines: { ROLLER: 1 },
+    // TUBE is defined privately too (2026-09-24): the contact anchor is the
+    // profile's ballistic reach (bpReach), which SURFACE_PRELUDE splices only
+    // under #ifdef TUBE. The grid handover inside that guard is gated by the
+    // u_tube gain, which is 0 on a non-tube boot, so the plume's surfacePos is
+    // the drawn surface in either arm (the spray takes the define only in a
+    // TUBE build; the plume needs the profile symbols in both).
+    defines: { ROLLER: 1, TUBE: 1 },
     transparent: true,
     depthWrite: false,           // overlapping puffs blend; the water still occludes them
     blending: THREE.NormalBlending,
+    // DoubleSide is load-bearing, not a nicety (convicted 2026-09-24,
+    // CRASH_DRAW note): `world` carries scale z = -1 (the mirror), so three.js
+    // sets gl.frontFace(CW) for every FrontSide mesh under it. Grid geometry
+    // is mirrored with the group and stays consistent; a billboard whose
+    // corners are added in VIEW space after modelViewMatrix keeps its authored
+    // CCW winding and is back-face culled to the last pixel. This is why the
+    // plume drew nothing (and why the shipped spray draws nothing under the
+    // mirror — reported, not changed here: default frame stays byte-identical).
+    side: THREE.DoubleSide,
   });
   plumeMesh = new THREE.Mesh(makePlumeGeometry(PLUME_COUNT), plumeMat);
   plumeMesh.frustumCulled = false;  // positions are shader-authored from seeds
@@ -2995,6 +3019,10 @@ function applyHashParams() {
   // #tube=1 arms the swept breaker ribbon (a TUBE build, see TUBE_BUILD) and
   // hides the curtain it replaces. Feature flag, default OFF.
   if (h.get('tube') === '1') { uniforms.u_tube.value = 1; curtainMesh.visible = false; }
+  // #tubelook=0 reverts the ribbon to the glass material so the jury can compare
+  // material alone (TUBE_FRAG reads it; nothing else does). Default aerated.
+  if (h.get('tubelook') === '0') uniforms.u_tubeLook.value = 0;
+  if (h.get('tubelook') === '2') uniforms.u_tubeLook.value = 2;   // instrument: (u, age, inside) false colour
   return h.has('sim') ? parseFloat(h.get('sim')) || 0 : 0;
 }
 
@@ -3245,6 +3273,9 @@ window.__pointbreak = {
     curtainMesh.visible = !on;
   },
   tube: () => uniforms.u_tube.value,
+  // Ribbon material A/B (mirrors #tubelook=): 1 aerated, 0 glass.
+  setTubeLook: (v) => { uniforms.u_tubeLook.value = v === 2 ? 2 : (v ? 1 : 0); },
+  tubeLook: () => uniforms.u_tubeLook.value,
   tubeBuild: TUBE_BUILD,
   // Instrument: the cusp cap the grid takes under the ribbon (probe sweep).
   setTubeS: (v) => { if (Number.isFinite(v) && v > 0 && v <= 1) uniforms.u_tubeS.value = v; },

@@ -92,8 +92,10 @@ export async function installPlumeProbe(samples) {
   // The #else arm writes gl_Position too; in a ROLLER compile it is dead text.
   frag = frag.replace('gl_Position = vec4(0.0, 0.0, 2.0, 1.0);   // off-screen', 'gl_FragColor = vec4(0.0);   // off-screen');
   const uniforms = Object.assign({}, p.uniforms, { u_roller: p.uniforms.u_crash, u_probeX: { value: 0 } });
+  // Same private defines as main.js ensurePlumeMesh: ROLLER for the landing
+  // helpers, TUBE for the profile's bpReach (the contact anchor, 2026-09-24).
   const material = new THREE.ShaderMaterial({
-    uniforms, defines: { ROLLER: 1 }, fragmentShader: frag,
+    uniforms, defines: { ROLLER: 1, TUBE: 1 }, fragmentShader: frag,
     vertexShader: 'void main(){ gl_Position = vec4(position.xy*2.0, 0.0, 1.0); }',
   });
   const scene = new THREE.Scene().add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material));
