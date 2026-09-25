@@ -499,3 +499,59 @@ test('the transported crash is read at the source coordinate, never the displace
   assert.match(main, /gl_FragColor = impactSourceAt\(xz, u_time\);/);
   assert.match(main, /deposit: buf\[r\], roller: buf\[r \+ 1\], rollerZ: buf\[r \+ 2\], rollerTau: buf\[r \+ 3\]/);
 });
+
+// The aerated wedge (#bore — the bore behind the head as a body, 2026-09-24)
+// ---------------------------------------------------------------------------
+// Flag-gated prototype, NOT promoted. Structure pins, not tuning pins: OFF by
+// default behind one gain and one build define; rides the CREST (carrier
+// phase) on the lifecycle's clock with the break's own permission — no second
+// clock, no second break line; its top stays level with the crest; and it
+// withdraws the structural bore mound it replaces so one mechanism owns the
+// bore's volume.
+test('the aerated wedge is OFF by default, build-gated, and reads the shared authorities', () => {
+  assert.match(main, /u_bore:\s+\{ value: 0 \}/);
+  assert.match(main, /h\.has\('bore'\)/);
+  assert.match(main, /uniforms\.u_bore\.value = v/);
+  assert.match(main, /const BORE_BUILD = [\s\S]{0,200}?readHashParams\(\)\.get\('bore'\)/);
+  assert.match(main, /if \(BORE_BUILD\) mat\.defines\.BORE = 1;/);
+  assert.match(main, /if \(BORE_BUILD\) curlProbeMat\.defines\.BORE = 1;/);
+  assert.match(model, /#ifdef BORE\s*uniform float u_bore;\s*#endif/);
+  assert.match(controls, /^\| `bore` \|/m);
+  // Locus is the carrier phase and the break line; clock is the lifecycle's
+  // (the crest index read off the phase), permission is passed in (ocean()
+  // hands its own brkW; the fragment recomputes the same expression).
+  assert.match(model, /float boreWedgeAt\(vec2 xz, float t, float permission, out float ageB, out float fracB\)/);
+  assert.match(model, /float thetaHere\s*=\s*w\*t - rayPhase\(xz\);\s*float thetaBreak = w\*t - rayPhase\(vec2\(xz\.x, zb\)\);/);
+  assert.match(model, /ageB\s*=\s*\(thetaBreak - 2\.0\*PI\*m\)\/w;/);
+  assert.match(model, /float gB = boreWedgeAt\(xz, t, brkW, ageB, fracB\);/);
+  assert.match(shaders, /float gB = boreWedgeAt\(sourceXZ, t, breakPermissionAt\(sourceXZ, t\), ageB, fracB\);/);
+  assert.doesNotMatch(model, /boreWedgeAt[\s\S]{0,2500}?mod\(thetaBreak, 2\.0\*PI\)/,
+    'the wedge must not mint a second lifecycle clock');
+  // Volume: a fraction of the LOCAL carrier range (thins with the wave), a
+  // bulge that is exactly zero at the crest, and the old bore mound withdrawn.
+  assert.match(model, /h \+= BORE_H_FRAC \* \(2\.0\*amp\) \* boreBulge\(fracB\)/);
+  assert.match(model, /return fracB > 0\.0 \? sin\(PI\*u\) : 0\.0;/);
+  assert.match(model, /h -= min\(u_bore, 1\.0\) \* shape \* u_H0\*0\.27\*boreBand\*moundNoise\*u_moundH;/);
+  assert.doesNotMatch(model, /h \+= [\d.]+\*u_H0[^;\n]*boreBulge/);
+  // Every consumer sits behind the uniform gate inside the define, and every
+  // accumulator is initialised outside it, so the default frame is the
+  // shipped frame byte-for-byte (qa/bore-2026-09-24/parity.json).
+  assert.match(model, /#ifdef BORE\s*float boreFoamB = 0\.0;\s*if \(u_bore > 0\.0\) \{/);
+  assert.match(shaders, /#ifdef BORE\s*float boreM = 0\.0, boreK = 0\.0, boreLumpT = 0\.5, ageB = -1\.0;\s*if \(u_bore > 0\.0\) \{/);
+  assert.ok(shaders.indexOf('foamCol = mix(foamCol, filmCol,') < shaders.indexOf('foamCol  = mix(foamCol, boreCol, boreM);'),
+    'wedge shading must come after the film mix');
+});
+
+test('the wedge outlives the shipped bore clock and stays inside the period', () => {
+  const end = glslConstant('BORE_END_S');
+  const tau = glslConstant('BORE_TAU_S');
+  const birth = glslConstant('BORE_BIRTH_S');
+  const depth = glslConstant('BORE_DEPTH_FRAC');
+  const hFrac = glslConstant('BORE_H_FRAC');
+  assert.ok(tau > 2*end, 'the field bore runs 8 s+ behind the head; the wedge must not die with the 3.8 s band');
+  assert.ok(birth >= glslConstant('CRASH_PEAK_S'), 'the bulge forms as the impact releases, not before it');
+  assert.ok(depth >= 0.4 && depth <= 0.65, 'white depth inside the field bracket 0.4-0.65 H_f');
+  // The bulge peaks at half the wedge depth, where the face has dropped
+  // depth/2 of the range: a bulge shorter than that keeps the top below the crest.
+  assert.ok(hFrac < depth/2, 'the wedge top must stay level with or below the crest');
+});

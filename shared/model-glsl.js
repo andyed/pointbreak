@@ -76,6 +76,16 @@ uniform float u_splash;     // #splash=1: concentrated impact spray + surface
 #ifdef ROLLER
 uniform float u_roller;
 #endif
+// #bore=: the AERATED WEDGE — the spilling breaker's whitewater as a body on
+// the front face behind the head (Longuet-Higgins & Turner 1974's turbulent
+// wedge, Duncan 1999's bulge), riding WITH the crest, thinning down-point with
+// the carrier. Gain. Same build discipline as ROLLER: every bore symbol is
+// compiled only under #define BORE (main.js sets it when the page boots with
+// #bore), so the default build compiles the pristine text and is byte-identical.
+// See boreWedgeAt() and docs/research/BORE_2026-09-24.md.
+#ifdef BORE
+uniform float u_bore;
+#endif
 uniform float u_pockSize;   // 1 = pocket footprint scales with H_eff, 0 = #pock=0 A/B revert
 uniform float u_hump;       // head hump gain, #hump= (EXPERIMENT 2026-09-10, default 0 = off)
 uniform float u_moundH;     // structural impact/bore mound height multiplier, #moundh= (shipped 0.5 since 2026-09-10; 1 = pre-fix)
@@ -1347,6 +1357,110 @@ float stripeAgeAt(vec2 xz, float t){
   return clamp(tSince + phaseLag/max(w, 1e-4), 0.0, 240.0);
 }
 
+// ---------- the aerated wedge (#bore=, 2026-09-24, default OFF) ----------
+// WHAT THE FOOTAGE SHOWS (CURL_TRUTH_2026-09-24 SS1.2-1.3): behind the compact
+// knuckle at the head, the front face of the broken wave is a thick,
+// round-topped bore of saturated white over grey, 0.4-0.65 face heights deep,
+// its top LEVEL with the unbroken crest, running with the crest and thinning
+// as the wave runs down-point. The shipped frame draws a white line 0.06-0.12
+// face heights thick there (the jury's Field seat) over glossy dark water.
+//
+// WHY THE SHIPPED BORE CANNOT DRAW IT. The lifecycle's bore band (boreBand in
+// ocean()) is a Gaussian a few metres wide centred on life.y = zb +
+// frontSpeed*age, frontSpeed = 2.4 m/s on a spilling card, while the crest it
+// belongs to leaves the line at its own celerity (~4-5 m/s in the break
+// depth). Within two seconds the band is metres BEHIND the crest, on the back
+// face and in the trough — the wake, not the wedge — and life.w hard-zeros at
+// BORE_END_S = 3.8 s where the footage bore runs eight seconds and more behind
+// the head. Measured in scripts/probe_bore.mjs (BORE_2026-09-24.md SS2).
+//
+// THE WEDGE rides the CREST: its locus is the carrier phase (the same theta
+// the crest, tSince and the pocket already run on), its clock is the
+// lifecycle's own age for the crest this water belongs to (the wave that
+// crossed the break line at this station; the crest index is read off the
+// phase, so no second clock and no second break line), its permission is the
+// break's own brkW (reef, section mask, depth gate), and its size is a
+// fraction of the LOCAL carrier amplitude, which already carries
+// postBreakHeightRetention, so the bore thins down-point with the wave that
+// carries it. One authority preserved: the wedge decides nothing about where
+// or when the wave breaks — it reads breakLine, rayPhase and brkW.
+//
+// Returns the gain in [0, 1]: birth ramp (Duncan: the bulge FORMS over ~half a
+// second after the crest crosses) x line attachment x permission x set
+// envelope^2 x a slow fade. Outs: ageB = seconds since THIS water's crest
+// crossed the line (negative: not yet — causal by construction, no wrap gate
+// needed); fracB = how far down the face from that crest this water sits,
+// 0 at the crest, 1 at the trough, signed + on the front face, - on the back.
+// Callers shape the footprint with boreShape() and the volume with boreBulge().
+#ifdef BORE
+const float BORE_DEPTH_FRAC = 0.55;  // the white reaches this far down the front face (field 0.4-0.65 H_f)
+const float BORE_H_FRAC     = 0.18;  // bulge height as a fraction of the carrier's crest-to-trough range
+const float BORE_BIRTH_S    = 0.55;  // the bulge is fully formed this long after the crest crosses the line
+const float BORE_TAU_S      = 12.0;  // slow fade on the crest's clock; the carrier's own decay does the thinning
+const float BORE_KNUCKLE_S  = 1.2;   // the knuckle is the bore's freshest second: densest, brightest, lumpiest
+
+// ocean()'s brkW, recomputed for a consumer that has no ocean() call (the
+// fragment): reef window x section mask, unioned with depth's own permission.
+float breakPermissionAt(vec2 xz, float t){
+  float reef = reefWindow(xz.x);
+  float mask = breakMask(xz.x);
+  float dep  = modelDepthM(xz) + setupLiftM(xz, t);
+  float Hsh  = u_H0 * shelterAt(xz.x) * shoalingKsAt(dep);
+  float gate = smoothstep(0.90, 1.25, Hsh / max(GAMMA*dep, 0.05));
+  return mix(reef*mask, max(reef*mask, gate), u_depthMix);
+}
+
+float boreWedgeAt(vec2 xz, float t, float permission, out float ageB, out float fracB){
+  float w  = 2.0*PI/max(u_T, 1e-3);
+  float zb = breakLine(xz.x);
+  float thetaHere  = w*t - rayPhase(xz);
+  float thetaBreak = w*t - rayPhase(vec2(xz.x, zb));
+  // Crests sit at theta = 2 pi m; theta falls shoreward, so the crest just
+  // SEAWARD of this water is m = ceil(theta/2pi) and ph in [0, 2pi) measures
+  // the phase run down its front face: 0 at that crest, pi at the trough,
+  // then up the back face of the next crest shoreward (m - 1).
+  float m  = ceil(thetaHere/(2.0*PI));
+  float ph = 2.0*PI*m - thetaHere;
+  bool front = ph <= PI;
+  if (!front) m -= 1.0;                         // back face: the nearer crest owns it
+  ageB  = (thetaBreak - 2.0*PI*m)/w;            // when crest m crossed the line at this station
+  // fracB is the VERTICAL drop from the crest as a fraction of the carrier's
+  // range — the quantity the field table divides by H_f — so it is read off
+  // the carrier's own shape at this phase: crestShape(-theta, q) with ocean()'s
+  // q schedule and pitch skew (the cosine drop alone put 0.55 at ~96 deg of
+  // phase, where a q = 2-4 profile has already fallen 75-95 % of its range, and
+  // the wedge covered the whole face — measured in probe_bore.mjs v1).
+  float dB    = zb - xz.y;
+  float qB    = mix(2.2, 1.6, u_pitchOdd) + mix(1.5, 3.2, u_pitchOdd)*exp(-abs(dB)/55.0)*(0.6 + 0.5*u_xi);
+  float depB  = modelDepthM(xz) + setupLiftM(xz, t);
+  float excB  = u_H0*shelterAt(xz.x)*shoalingKsAt(depB) / max(GAMMA*depB, 0.05);
+  float skewB = mix(0.0, clamp(excB*mix(0.82, 0.62, u_pitchOdd), 0.0, 0.8), u_depthMix);
+  float thB   = front ? -ph : (ph - 2.0*PI);      // signed phase from the owning crest, < 0 ahead of it
+  thB        -= skewB*mix(1.0 - cos(thB), sin(thB), u_pitchOdd);
+  float c01B  = max(0.5 + 0.5*cos(thB), 0.0);
+  fracB = (front ? 1.0 : -1.0) * (1.0 - pow(c01B, qB));
+  float env    = setEnv(rayS(vec2(xz.x, zb)), t);
+  float birth  = smoothstep(0.18, BORE_BIRTH_S, ageB);
+  float attach = smoothstep(-4.0, 2.0, xz.y - zb);
+  float g = birth * attach * permission * env*env * exp(-max(ageB, 0.0)/BORE_TAU_S);
+  if (!(g == g)) { g = 0.0; ageB = -1.0; fracB = 0.0; }   // NaN guard (house rule)
+  return clamp(g, 0.0, 1.0);
+}
+// Material footprint: full over the upper BORE_DEPTH_FRAC of the front face,
+// a thin cap over the crest onto its back so the top reads round, not cut.
+float boreShape(float fracB){
+  float frontS = 1.0 - smoothstep(BORE_DEPTH_FRAC - 0.10, BORE_DEPTH_FRAC + 0.10, fracB);
+  float backS  = 1.0 - smoothstep(0.03, 0.10, -fracB);
+  return fracB >= 0.0 ? frontS : backS;
+}
+// The bulge: zero AT the crest (the top stays level with it — nothing in the
+// footage rises above the crest line), zero at the wedge foot, round between.
+float boreBulge(float fracB){
+  float u = clamp(fracB/BORE_DEPTH_FRAC, 0.0, 1.0);
+  return fracB > 0.0 ? sin(PI*u) : 0.0;
+}
+#endif
+
 // Sharpened crest profile: q=1 sinusoid-ish, q>2 peaked (Gerstner cusp stand-in)
 float crestShape(float phase, float q){
   // rounding can push c01 a hair below 0 at troughs; pow(negative, fractional)
@@ -1612,6 +1726,28 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   float legacyMound = 0.30*u_H0*boreBandLegacy*moundNoise;
   float structuralMound = u_H0*(0.62*impactBand + 0.27*boreBand)*moundNoise*u_moundH;
   h += mix(legacyMound, structuralMound, shape);
+
+  // ---- the aerated wedge (#bore=, default OFF): the bore as a body ----
+  // See boreWedgeAt(). Height is a fraction of the LOCAL carrier range (amp
+  // carries shoaling, sheltering, the set envelope and the post-break decay),
+  // physical metres like every h term here; VIS applies at the end. The
+  // wedge OWNS the bore's volume, so the structural bore mound it replaces is
+  // withdrawn at the same gain — one mound per mechanism, not two. The impact
+  // mound (0.62*impactBand) is a different event and stays. Under the build
+  // define so the default path compiles the identical text.
+#ifdef BORE
+  float boreFoamB = 0.0;
+  if (u_bore > 0.0) {
+    float ageB, fracB;
+    float gB = boreWedgeAt(xz, t, brkW, ageB, fracB);
+    // crest lumps: a lattice in the crest's own frame (fracB), rolling over on
+    // the seconds clock — the footage's "bore with crest lumps"
+    float lumpB = 0.72 + 0.28*vnoise2(vec2(x*0.45 + 1.7, fracB*6.0 + t*0.8));
+    h += BORE_H_FRAC * (2.0*amp) * boreBulge(fracB) * gB * lumpB * min(u_bore, 1.5);
+    h -= min(u_bore, 1.0) * shape * u_H0*0.27*boreBand*moundNoise*u_moundH;
+    boreFoamB = gB * boreShape(fracB) * foamSizeAt(x) * min(u_bore, 1.0);
+  }
+#endif
 
   // ---- the crash — impact aeration + ballistic spray (#splash=0 reverts) -
   // Live verdict 2026-08-25 on the lip bundle: "we're missing the crash of
@@ -1884,6 +2020,11 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   // CONTRACT: both factors are exactly 1.0 at the H0 = 1.5 m model-card day,
   // so the size-invariance calibration is preserved either way.
   foam = mix(legacyFoam*sizeFoam, structuralFoam + residue*sizeFoam, shape);
+#ifdef BORE
+  // The wedge is whitewater by definition: a floor, like the pocket's, so the
+  // erosion downstream carves lace into it but cannot carve it away.
+  foam = max(foam, boreFoamB);
+#endif
 
   // pocket spray: whitewater thrown at the zipper itself, heavier when plunging
   // Structural mode keeps this as a thin lip edge; the separate spray pass owns
