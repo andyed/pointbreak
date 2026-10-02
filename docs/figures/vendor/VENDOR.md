@@ -1,6 +1,6 @@
 # Vendored — essay page
 
-- `reading-doppler.js` — ReadingDoppler v0.2.0 (build 2026-05-30), MIT,
+- `reading-doppler.js` — ReadingDoppler v0.2.1 (build 2026-10-02), MIT,
   https://github.com/andyed/reading-doppler. Source of truth:
   `~/Documents/dev/reading_doppler/dist/reading-doppler.js`; re-vendor with
   `node build.js` there and copy, do not hand-edit here.
