@@ -562,6 +562,44 @@ consumers read the same source-space landing. Grid recovery and attachment to
 the optional roller-raised surface remain unresolved; see the
 [experiment and verification](research/LIP_DESCENT_EXPERIMENT_2026-09-15.md).
 
+#### Breaking-water body experiment (2026-10-20)
+
+`#breaking=1` bundles an attached whitewater-body experiment with local section
+character and the existing gap fix. It reads the carrier crest, unwrapped
+crest age and break permission from `boreWedgeAt`; it does not alter forcing,
+bathymetry, dispersion or the breaking criterion. Geometry and material share
+the same rolling morphology. Adaptive mesh samples concentrate at the carrier
+crests, while the rider still queries the canonical GPU surface at its actual
+source point. Shutting sections reuse the downward curtain handoff described
+above without selecting the classic barrel profile.
+
+The falling sheet searches the displaced canonical surface for a forward,
+lower receiver instead of assuming that a source-coordinate offset lands on
+the visible face. The attached body's rolling radius factor is sampled once
+at each crest station, removing the arc-dependent reversals found in GPU
+transects; local carrier amplitude still determines its scale. Rear compaction
+ends with the foam's own rear support. The contact solver and its bounded
+one-station search are documented in the
+[landing study](research/breaking-landing-2026-10-20.md).
+
+The preview also draws attached rounded foam volumes. A small GPU state pass
+samples the canonical surface and crest clock; instanced ellipsoids descend
+and rotate in that frame, remain embedded in the supporting front, and keep
+their complete extent below the crest ceiling. Fixed instance seeds vary
+spacing, size, aspect, orientation and phase; each clump crosses the full
+front and shrinks to zero before wrapping. Their state stays on the GPU.
+They add visible aerated volume, not a second water surface for the rider or
+a new breaking criterion. The default build allocates none of this pass.
+See the [attached-volume study](research/breaking-foam-volume-2026-10-20.md)
+for its lifetime envelope, GPU bounds checks and visual limitations.
+
+This is authored render geometry and shading, not a calibrated turbulent-flow
+model. The default remains unchanged, and sustained tubes and transported
+splash-up are not enabled by this bundle. The source-footage observations,
+implementation constraints and verification are recorded in the
+[breaking-body study](research/breaking-body-2026-10-20.md). Visual review uses
+physical 1× height, matched clock/camera/forcing, and both close and cliff views.
+
 ### 2.3 The swell gets a direction (2026-08-10)
 
 §1.2 says crests refract and "the crest sweeps around the point." The runtime

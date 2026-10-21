@@ -18,6 +18,7 @@ import { GRID_VERT, GRID_FRAG, SKY_VERT, SKY_FRAG, BED_VERT, BED_FRAG,
 import { TUBE_VERT, TUBE_FRAG, TUBE_SEG_X, TUBE_SEG_U, TUBE_SPAN_M } from './tube.js';
 import { makeSurferMesh, updateSurfer } from './surfer.js';
 import { makeSurfaceQuery } from './surface-query.js';
+import { createBreakingFoamVolume } from './breaking-foam-volume.js';
 import { setAudioEnabled, toggleAudio, isAudioEnabled, updateAudio } from './sound.js';
 import { coastCurve, coastCurveSlope, swellPhi, peelAngleAt, m4RideSolve, contourZ, rayPhase,
          rayS, oceanH as oceanHJS, surferState as surferStateJS,
@@ -151,15 +152,19 @@ const TUBE_BUILD = readHashParams().get('tube') === '1';
 // uniform-only version was measured at 4-6 default pixels by 1/255 and one
 // float ulp of displaced z against pristine main. u_sectionCurl / u_gapFix are
 // the live gates inside the respective builds.
-const SECTION_CURL_BUILD = readHashParams().get('sectioncurl') === '1';
-const GAP_FIX_BUILD = readHashParams().get('gapfix') === '1';
+// One reviewable breaking-water variant; the existing experiments remain
+// independently addressable. The fragment is boot-only and survives UI edits.
+const BREAKING_BUILD = readHashParams().get('breaking') === '1';
+const SECTION_CURL_BUILD = BREAKING_BUILD || readHashParams().get('sectioncurl') === '1';
+const GAP_FIX_BUILD = BREAKING_BUILD || readHashParams().get('gapfix') === '1';
 // Every material that compiles the model text takes the same pair, so the
 // grid, the spray, the curtain, the ribbon, the thrown sheet, the plume and
-// the instrument all read one surface. (The rider's surface query keeps its
-// pinned defines literal, as under #tube: with the flags on, the rider reads
-// the unflagged surface.)
+// the instrument all read one surface. Standalone section/tube experiments
+// retain the historical rider-query flags; the breaking bundle also passes
+// these defines to the rider so it reads the compact body it is riding.
 const SECTION_DEFINES = Object.assign({}, SECTION_CURL_BUILD ? { SECTION_CURL: 1 } : {},
-                                          GAP_FIX_BUILD ? { GAP_FIX: 1 } : {});
+                                          GAP_FIX_BUILD ? { GAP_FIX: 1 } : {},
+                                          BREAKING_BUILD ? { BREAKING_BODY: 1, BORE: 1 } : {});
 // #crash= (2026-09-24): the impact PLUME, a separate mesh + material
 // (shaders.js PLUME_VERT/FRAG). Same early read as #roller for the same
 // reason — the mesh is built before the full hash parse — but it is NOT a
@@ -176,7 +181,7 @@ const CRASH_BUILD = (() => {
 // is the live gain inside a BORE build (__pointbreak.setBore).
 const BORE_BUILD = (() => {
   const v = parseFloat(readHashParams().get('bore'));
-  return Number.isFinite(v) && v > 0;
+  return BREAKING_BUILD || (Number.isFinite(v) && v > 0);
 })();
 
 // ---------- the stage -> world embedding (#mirror=0 reverts; 2026-09-24) ----------
@@ -560,6 +565,11 @@ if (BORE_BUILD) mat.defines.BORE = 1;   // see BORE_BUILD
 Object.assign(mat.defines, SECTION_DEFINES);   // see SECTION_CURL_BUILD
 const waterMesh = new THREE.Mesh(geo, mat);
 world.add(waterMesh);
+// Rounded attached whitewater uses the same canonical surface and clock.
+// A plain boot allocates no extra mesh or GPU state pass.
+const breakingFoamVolume = BREAKING_BUILD
+  ? createBreakingFoamVolume(THREE, uniforms, mat.defines) : null;
+if (breakingFoamVolume) world.add(breakingFoamVolume.mesh);
 
 // ---------- adaptive quality (auto-fallback) ----------
 // Reported 2026-08-12: slow on a mid-end Windows box. We cannot profile that
@@ -680,7 +690,9 @@ if (TUBE_BUILD) curtainMat.defines.TUBE = 1;   // compiled (hidden under the tub
 if (BORE_BUILD) curtainMat.defines.BORE = 1;   // its foot lands on the wedge, not under it
 if (!curtainMat.defines) curtainMat.defines = {};
 Object.assign(curtainMat.defines, SECTION_DEFINES);
-const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, 240, 12), curtainMat);
+// The experimental section can peak between the old 2.375 m stations.
+// Metre spacing resolves its moving fall without changing event timing.
+const curtainMesh = new THREE.Mesh(new THREE.PlaneGeometry(570, 1, BREAKING_BUILD ? 570 : 240, 12), curtainMat);
 curtainMesh.frustumCulled = false;  // positions are shader-authored
 curtainMesh.visible = true;
 world.add(curtainMesh);
@@ -868,7 +880,8 @@ world.add(surferGroup);
 // screensaver/default free view pays nothing.
 // Same compile-time flags as the water material: the query stands in for the
 // mesh, so a #roller boot's mound must displace both or the rider floats.
-const surfaceQuery = makeSurfaceQuery(renderer, uniforms, ROLLER_BUILD ? { ROLLER: 1 } : {});
+const surfaceQuery = makeSurfaceQuery(renderer, uniforms, Object.assign(ROLLER_BUILD ? { ROLLER: 1 } : {},
+  BREAKING_BUILD ? SECTION_DEFINES : {}));
 let riderSurfaceAuthoritative = true;
 let lastRiderSurface = null;
 // A1/A2: the rider's board speed, m/s. 0 / null = OFF, which is the shipped
@@ -2664,6 +2677,7 @@ function frame(now) {
   // the FFT sea is a pure function of sim time, so it advances only when the
   // clock does and costs nothing on a paused frame
   if (uniforms.u_fft.value > 0 && simTime !== fftLastT) { fftSea.update(simTime); fftLastT = simTime; }
+  if (breakingFoamVolume?.mesh.visible) breakingFoamVolume.update(renderer);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
@@ -2911,8 +2925,8 @@ function applyHashParams() {
   // #gapfix=1 gates the pocket and the crest on the same mask; #sectioncurl=1
   // makes xi a station quantity — the steady head spills, a shutting section
   // plunges to #sectionxi (0.45..3, default 0.95)
-  if (h.get('gapfix') === '1') uniforms.u_gapFix.value = 1;
-  if (h.get('sectioncurl') === '1') uniforms.u_sectionCurl.value = 1;
+  if (GAP_FIX_BUILD) uniforms.u_gapFix.value = 1;
+  if (SECTION_CURL_BUILD) uniforms.u_sectionCurl.value = 1;
   if (h.has('sectionxi')) { const g = Number.parseFloat(h.get('sectionxi')); if (Number.isFinite(g) && g >= 0.45 && g <= 3) uniforms.u_sectionXi.value = g; }
   // comet-head whitewater aging defaults ON (clean-load verdict 2026-08-14);
   // #head=0 is the A/B revert
@@ -3038,6 +3052,7 @@ function applyHashParams() {
   // #bore= arms the aerated wedge behind the head as a gain in [0, 3]; 1 is
   // the field-calibrated arm (BORE_2026-09-24.md). Absence keeps 0 — the
   // shipped frame. Unparseable values keep 0 rather than sending NaN in.
+  if (BREAKING_BUILD) uniforms.u_bore.value = 1;
   if (h.has('bore')) {
     const v = parseFloat(h.get('bore'));
     if (Number.isFinite(v) && v >= 0 && v <= 3) uniforms.u_bore.value = v;
@@ -3196,6 +3211,8 @@ window.__pointbreak = {
     povState.ready = false;
   },
   surfaceQueryStats: () => surfaceQuery.stats(),
+  breakingFoamVolume,
+  setBreakingFoam: (enabled) => { if (breakingFoamVolume) breakingFoamVolume.mesh.visible = !!enabled; },
   // Surface elevation along a ray, metres above still water, from the CPU twin
   // (model-js oceanH).
   //
@@ -3346,6 +3363,7 @@ window.__pointbreak = {
   setBore: (g) => { if (Number.isFinite(g) && g >= 0 && g <= 3) uniforms.u_bore.value = g; },
   bore: () => uniforms.u_bore.value,
   boreBuild: BORE_BUILD,
+  breakingBuild: BREAKING_BUILD,
   setSGrow: (on) => { uniforms.u_sGrow.value = on ? 1 : 0; },
   // Instrument. Leaves the mesh unbounded — read numbers with it, never ship it.
   setOffUnbound: (on) => { uniforms.u_offUnbound.value = on ? 1 : 0; },

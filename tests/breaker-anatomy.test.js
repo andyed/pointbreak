@@ -401,7 +401,7 @@ test('the splash-up sheet and the relocated spray are consumers of one landing, 
   // all compile the same flag as the water, so a #roller boot moves one
   // world, not three.
   assert.match(main, /fragmentShader: SPRAY_FRAG,\s*uniforms,[\s\S]{0,400}?defines: ROLLER_BUILD \? \{ ROLLER: 1 \} : \{\}/);
-  assert.match(main, /makeSurfaceQuery\(renderer, uniforms, ROLLER_BUILD \? \{ ROLLER: 1 \} : \{\}\)/);
+  assert.match(main, /makeSurfaceQuery\(renderer, uniforms, Object\.assign\(ROLLER_BUILD \? \{ ROLLER: 1 \} : \{\},\s*BREAKING_BUILD \? SECTION_DEFINES : \{\}\)\)/);
   assert.match(readFileSync(new URL('../web-three/js/surface-query.js', import.meta.url), 'utf8'), /defines,\s*vertexShader/);
   // Spray relocation: under the flag the droplets launch from the landing on
   // the same clock. Surface anchoring sits after the branch, so default and
@@ -537,7 +537,7 @@ test('the aerated wedge is OFF by default, build-gated, and reads the shared aut
   // accumulator is initialised outside it, so the default frame is the
   // shipped frame byte-for-byte (qa/bore-2026-09-24/parity.json).
   assert.match(model, /#ifdef BORE\s*float boreFoamB = 0\.0;\s*if \(u_bore > 0\.0\) \{/);
-  assert.match(shaders, /#ifdef BORE\s*float boreM = 0\.0, boreK = 0\.0, boreLumpT = 0\.5, ageB = -1\.0;\s*if \(u_bore > 0\.0\) \{/);
+  assert.match(shaders, /#ifdef BORE\s*float boreM = 0\.0, boreK = 0\.0, boreLumpT = 0\.5, ageB = -1\.0;\s*(?:#ifdef BREAKING_BODY[\s\S]*?#endif\s*)?if \(u_bore > 0\.0\) \{/);
   assert.ok(shaders.indexOf('foamCol = mix(foamCol, filmCol,') < shaders.indexOf('foamCol  = mix(foamCol, boreCol, boreM);'),
     'wedge shading must come after the film mix');
 });

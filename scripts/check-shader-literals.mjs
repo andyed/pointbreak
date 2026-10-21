@@ -14,7 +14,9 @@ const RESERVED = new Set(['flat', 'smooth', 'noperspective', 'sample', 'patch',
 // build (CLAUDE.md 2026-08-11) — unmaintained, so its lint state must not
 // gate npm test.
 const files = ['shared/model-glsl.js', 'shared/breaker-profile-glsl.js',
-               'web-three/js/shaders.js', 'web-three/js/tube.js'];
+               'web-three/js/shaders.js', 'web-three/js/whitewater-material.js',
+               'web-three/js/tube.js', 'web-three/js/breaking-foam-volume.js',
+               'web-three/js/breaking-foam-material.js'];
 let bad = 0;
 for (const f of files) {
   const lines = readFileSync(f, 'utf8').split('\n');

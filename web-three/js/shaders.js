@@ -21,6 +21,7 @@
 
 import { MODEL_GLSL } from '../../shared/model-glsl.js';
 import { BREAKER_PROFILE_GLSL } from '../../shared/breaker-profile-glsl.js';
+import { WHITEWATER_MATERIAL_GLSL } from './whitewater-material.js';
 
 // Varyings the spec names: world pos, displaced normal, foam, pocket, crest,
 // brk — plus the boil slick (recomputed in the vertex stage; ocean() keeps it
@@ -1322,6 +1323,72 @@ vec3 choppyPos(vec2 xz0, float t, out float foam, out float pocket, out float br
   off *= offTarget / max(offLen, 1e-6);
   if (!(dot(off, off) == dot(off, off))) off = vec2(0.0);   // NaN guard (house rule)
 
+#ifdef BREAKING_BODY
+  // GPU transects at the field-day crest found 7–9 m of white upper face
+  // over only 0.6–1.4 m of drop: a tabletop, even with a rounded height term.
+  // Earn changed none of those samples; turning approach convergence off
+  // only widened the table. Give the already-aerated front its own compact
+  // cross-section in the wave's physical height scale. The SAME crest,
+  // permission, age and carrier amplitude own it; nothing new may break.
+  if (u_bore > 0.0) {
+    float bodyAge, bodyFrac;
+    float bodyGain = boreWedgeAt(xz0, t, breakPermissionAt(xz0, t), bodyAge, bodyFrac);
+    float bodyPhase = mod(rayPhase(xz0) - 2.0*PI*t/max(u_T, 1e-3) + PI, 2.0*PI) - PI;
+    if (bodyGain > 0.001 && bodyPhase > -0.85 && bodyPhase < 1.80) {
+      vec4 body = breakingBodyAt(xz0.x, bodyFrac, bodyAge, t);
+      float depth = breakingBodyDepth(xz0.x, body.z, t);
+      float q = clamp(abs(bodyFrac)/depth, 0.0, 1.0);
+      float crestZ = breakingBodyCrestZ(xz0, t);
+      // Quarter-circle shoulder: vertical drop selects horizontal reach.
+      // Top stays at its original height; the front becomes steep and round
+      // rather than raising another ridge. Lower dark face rejoins smoothly.
+      // Radius belongs to the crest station, not each descending parcel.
+      // Arc-varying radii reversed the front near the circle's flat toe,
+      // hiding the rolling relief behind overlapping surface triangles.
+      float crestRelief = breakingRollAt(xz0.x, 0.0, t).x;
+      float radius = max(0.65*(2.0*carrierAmp)/max(VIS, 1e-3), 0.12)
+                   * (0.82 + 0.36*crestRelief);
+      float arcZ = radius*sqrt(max(q*(2.0 - q), 0.0));
+      // Retain a small monotone source-space slope at the circle's toe.
+      // Local carrier amplitude still varies down the face; without this
+      // margin its shrinking radius can reverse an otherwise flat toe.
+      // This adds horizontal reach only, anchored to the same source crest.
+      float targetZ = crestZ + (bodyFrac >= 0.0 ? arcZ : -arcZ)
+                    + 0.04*(xz0.y - crestZ);
+      // fracB is a HEIGHT coordinate: after the skewed trough it can rise
+      // again before the carrier half-cycle ends. A join keyed to fracB
+      // reactivated there and inverted the grid (GPU-probed). The raw phase
+      // run is monotone and ends this body before that lower-face return.
+      float join = bodyPhase >= 0.0
+                 ? 1.0 - smoothstep(1.05, 1.80, bodyPhase)
+                 : 1.0 - smoothstep(0.25, 0.85, -bodyPhase);
+      // Only the aerated shoulder is compacted. Continuing the circle's
+      // saturated arc through the lower dark face made a vertical fascia.
+      // The raw-phase envelope above still prevents trough reactivation.
+      // Match the narrow aerated back edge too. Extending compaction into
+      // the dark rear shoulder reversed the displaced grid as its blend
+      // crossed the existing choppy projection (GPU transect regression).
+      join *= bodyPhase >= 0.0
+            ? 1.0 - smoothstep(depth - 0.03, depth + 0.16, bodyFrac)
+            : 1.0 - smoothstep(0.025, 0.085, -bodyFrac);
+      // Established aerated water has a compact body, even on a smaller set.
+      // The same finite onset establishes its opaque material. Raw gain
+      // still controls physical relief/amplitude; applying it again here
+      // left a broad glass tabletop under an opaque foam blanket.
+      float compact = breakingBodyEstablished(bodyGain)
+                    * body.w * join * min(u_bore, 1.0);
+      // A turning/airborne lip retains the bend's horizontal projection.
+      // This body owns the returned, attached front after that curl releases.
+      compact *= 1.0 - smoothstep(0.10, 0.30, curl);
+      // Compact both horizontal coordinates coherently. Keeping the old
+      // lateral choppy shear while strongly compressing z made the full XZ
+      // Jacobian negative even where each z transect remained monotone.
+      off.x = mix(off.x, 0.0, compact);
+      off.y = mix(off.y, targetZ - xz0.y, compact);
+    }
+  }
+#endif
+
   foam   *= fade;
   pocket *= fade;
   crest  *= fade;
@@ -1378,6 +1445,57 @@ vec3 surfacePos(vec2 xz0, float t, out float foam, out float pocket,
   }
   return P;
 }
+
+#ifdef BREAKING_BODY
+// Resolve the curtain's intended reach ON the displaced receiving surface.
+// A forward SOURCE offset is not a forward contact after the lip folds:
+// the old 0.9-height source point was above and behind the drawn tip. Keep
+// the shared event frame/clock, but invert the receiving branch in drawn
+// space. The same resolver is available to curtain and splash consumers.
+// sourceZ is the actual receiving material point; valid is zero when no
+// lower, forward water is found on this crest's front. Never clamp its y.
+vec3 breakerSurfaceContactAt(float x, float t, vec3 tip, vec4 frame,
+                            out float sourceZ, out float valid){
+  float hPhys = frame.y/max(VIS, 1e-3);
+  float targetZ = tip.z + CURT_REACH*hPhys;
+  // A descending sheet reaches the lower shoulder, not a neighbouring
+  // almost-level top sample. This fraction is character within the existing
+  // face scale; the returned point itself is always the actual water.
+  float targetY = tip.y - 0.35*frame.y;
+  float kz = max(kLocalAt(vec2(x, frame.w))*cos(swellPhi()), 1e-3);
+  float span = min(0.28*2.0*PI/kz, 12.0*max(hPhys, 0.25));
+  float lo = frame.w, hi = frame.w;
+  float f,p,b,c,l,a,k;
+  vec3 contact = surfacePos(vec2(x, frame.x), t, f,p,b,c,l,a,k);
+  sourceZ = frame.x;
+  valid = 0.0;
+  for (int i = 1; i <= 12; i++) {
+    hi = frame.w + span*float(i)/12.0;
+    vec3 candidate = surfacePos(vec2(x, hi), t, f,p,b,c,l,a,k);
+    if (candidate.z >= targetZ && candidate.y <= targetY && l < 0.5) {
+      contact = candidate;
+      valid = 1.0;
+      break;
+    }
+    lo = hi;
+  }
+  if (valid > 0.5) {
+    // Refine the first forward/lower receiving branch, so contact does not
+    // hop between coarse scan samples as the crest moves through the grid.
+    for (int i = 0; i < 5; i++) {
+      float mid = 0.5*(lo + hi);
+      vec3 candidate = surfacePos(vec2(x, mid), t, f,p,b,c,l,a,k);
+      if (candidate.z >= targetZ && candidate.y <= targetY && l < 0.5) {
+        hi = mid;
+        contact = candidate;
+      } else lo = mid;
+    }
+    sourceZ = hi;
+  }
+  if (!(dot(contact,contact) == dot(contact,contact))) { contact = tip; valid = 0.0; }
+  return contact;
+}
+#endif
 `;
 
 export const GRID_VERT = `
@@ -1385,10 +1503,49 @@ ${SURFACE_PRELUDE}
 ${VARYINGS}
 ${SURFACE_GLSL}
 
+#ifdef BREAKING_BODY
+// Allocate the existing grid samples to crests. This changes only WHERE the
+// canonical surface is evaluated, not its shape, clock or physical field.
+// The phase map p -> p + .70*sin(w*t-p) has derivative >= .30. Edge fading
+// in phase (four radians, |edge'| <= .375) keeps the complete derivative
+// >= 1 - .70 - .70*.375 = .0375, even at a Psi boundary: no mesh inversion.
+// Invert the SAME piecewise-linear phase table ocean reads, rather than use
+// local k as though the shoaling phase were globally linear. Eight binary
+// steps find adjacent entries in the 256-entry table; interpolation is exact.
+vec2 breakingSampleXZ(vec2 source, float t){
+  float coast = coastCurve(source.x);
+  float zc = source.y + coast;
+  if (zc <= u_refrZ.x || zc >= u_refrZ.y) return source;
+  float zLo = u_refrZ.x - coast, zHi = u_refrZ.y - coast;
+  float phaseLo = rayPhase(vec2(source.x, zLo));
+  float phaseHi = rayPhase(vec2(source.x, zHi));
+  if (!(phaseHi > phaseLo + 1e-4)) return source;
+  float phase = rayPhase(source);
+  float edge = min(smoothstep(0.0, 4.0, phase - phaseLo),
+                   smoothstep(0.0, 4.0, phaseHi - phase));
+  float target = phase + 0.70*edge*sin(2.0*PI*t/max(u_T, 1e-3) - phase);
+  float lo = 0.0, hi = 255.0;
+  for (int i = 0; i < 8; i++) {
+    float mid = floor(0.5*(lo + hi));
+    float zMid = mix(zLo, zHi, mid/255.0);
+    float pMid = rayPhase(vec2(source.x, zMid));
+    if (pMid < target) lo = mid; else hi = mid;
+  }
+  float a = mix(zLo, zHi, lo/255.0), b = mix(zLo, zHi, hi/255.0);
+  float pa = rayPhase(vec2(source.x, a)), pb = rayPhase(vec2(source.x, b));
+  if (!(pb > pa + 1e-7)) return source;
+  float z = mix(a, b, clamp((target - pa)/(pb - pa), 0.0, 1.0));
+  return vec2(source.x, z);
+}
+#endif
+
 void main() {
   // geometry is authored in world metres on the XZ stage (see main.js), so
   // position.xz IS the model coordinate — no extra transform to keep in sync
   vec2 xz = position.xz;
+#ifdef BREAKING_BODY
+  xz = breakingSampleXZ(xz, u_time);
+#endif
 
   float foam, pocket, brk, crest, land, aer, curl;
   vec3 P = surfacePos(xz, u_time, foam, pocket, brk, crest, land, aer, curl);
@@ -1398,8 +1555,17 @@ void main() {
   // core cell: central would push the (already 3x M1) vertex cost to 5x for
   // a half-cell phase shift invisible at ~1.2 m cells.
   float f2, p2, b2, c2, l2, a2, k2;
+#ifdef BREAKING_BODY
+  // Tangents follow the same adaptive sampling map as the vertices. Keeping
+  // the old 1.6 m FD after compression would erase the resolved rounded cap.
+  vec2 sampleX = breakingSampleXZ(position.xz + vec2(u_cell.x, 0.0), u_time);
+  vec2 sampleZ = breakingSampleXZ(position.xz + vec2(0.0, u_cell.y), u_time);
+  vec3 Px = surfacePos(sampleX, u_time, f2, p2, b2, c2, l2, a2, k2);
+  vec3 Pz = surfacePos(sampleZ, u_time, f2, p2, b2, c2, l2, a2, k2);
+#else
   vec3 Px = surfacePos(xz + vec2(u_cell.x, 0.0), u_time, f2, p2, b2, c2, l2, a2, k2);
   vec3 Pz = surfacePos(xz + vec2(0.0, u_cell.y), u_time, f2, p2, b2, c2, l2, a2, k2);
+#endif
   vec3 N = cross(Pz - P, Px - P);            // +y up for an unfolded surface
   if (!(dot(N, N) > 1e-12)) N = vec3(0.0, 1.0, 0.0);   // degenerate fold cell
   N = normalize(N);
@@ -1462,6 +1628,7 @@ ${SKY_GLSL}
 ${DETAIL_GLSL}
 ${KELP_GLSL}
 ${FOG_GLSL}
+${WHITEWATER_MATERIAL_GLSL}
 
 uniform float u_camUnder;   // 1 when the eye is below the water surface
 uniform float u_matte;      // 1 = matte the unmodeled world (#matte=0 reverts)
@@ -1970,9 +2137,85 @@ void main() {
   // Lagrangian term. Under the build define: the default text is untouched.
 #ifdef BORE
   float boreM = 0.0, boreK = 0.0, boreLumpT = 0.5, ageB = -1.0;
+#ifdef BREAKING_BODY
+  vec4 bodyB = vec4(0.0), bodyRollB = vec4(0.0);
+  float bodyFracB = 0.0, bodyLaceB = 0.0, bodyFootprintB = 0.0;
+  float bodyMaterialHeight = 1.0;
+#endif
   if (u_bore > 0.0) {
     float fracB;
     float gB = boreWedgeAt(sourceXZ, t, breakPermissionAt(sourceXZ, t), ageB, fracB);
+#ifdef BREAKING_BODY
+    // Geometry and material share the rounded toe and rolling cells. The
+    // crest's signed age owns both: carrier tSince is almost T on this face
+    // and would turn newborn opaque whitewater into transparent old film.
+    bodyB = breakingBodyAt(sourceXZ.x, fracB, ageB, t);
+    bodyFracB = fracB;
+    // The geometry samples a FIXED reference depth: using its moving toe
+    // here would let lighting slip around the geometric lobes as they roll.
+    float rollArc = fracB/0.565;
+    bodyRollB = breakingRollAt(sourceXZ.x, rollArc, t);
+    float rollXFP = max(abs(dFdx(sourceXZ.x)), abs(dFdy(sourceXZ.x)))/4.2;
+    float rollAFP = max(abs(dFdx(rollArc)), abs(dFdy(rollArc)))*1.75;
+    bodyFootprintB = max(rollXFP, rollAFP);
+    float bodyDetail = 1.0 - smoothstep(0.25, 0.65, bodyFootprintB);
+    // Raised-cosine cubed has a 5/16 period mean. Filter the two normal
+    // slopes on their own axes: cross-face foreshortening must not erase an
+    // alongshore slope that is still resolved.
+    bodyRollB.x = mix(0.3125, bodyRollB.x, bodyDetail);
+    bodyRollB.y *= 1.0 - smoothstep(0.25, 0.65, rollXFP);
+    bodyRollB.z *= 1.0 - smoothstep(0.25, 0.65, rollAFP);
+    // Smaller boils ride the same crest/arc flow as the contour-scale body.
+    // They are the same analytic morphology, not an independently drifting
+    // noise carpet. Scaling arc AND time together retains descent speed;
+    // apply the chain rule to the returned physical lighting slopes.
+    // This is a bounded MATERIAL scale estimate, not a new measured wave
+    // height or geometry authority. Use the carrier's existing shoaling,
+    // depth cap, set envelope and post-break retention instead of H0 alone.
+    float bodyDep = modelDepthM(sourceXZ) + setupLiftM(sourceXZ, t);
+    float bodyHeff = u_H0*shelterAt(sourceXZ.x);
+    float bodyRun = sourceXZ.y - breakLine(sourceXZ.x);
+    float bodySynthetic = bodyHeff*(1.0 + 0.85*exp(-max(-bodyRun, 0.0)/90.0)
+                                                   *reefWindow(sourceXZ.x));
+    float bodyHeight = mix(bodySynthetic,
+                           min(bodyHeff*shoalingKsAt(bodyDep), GAMMA*bodyDep),
+                           u_depthMix);
+    bodyHeight *= setEnv(rayS(sourceXZ), t)
+                * postBreakHeightRetention(bodyRun,
+                     2.0*PI/max(kLocalAt(sourceXZ), 1e-3), breakPermissionAt(sourceXZ, t));
+    bodyMaterialHeight = clamp(bodyHeight, 0.35, 3.0);
+    // The old child spacing was 1.4m alongshore but ~0.2H down the face:
+    // stretched ribbons even when every sample was resolved. Stable 0.28m
+    // child spacing matches the observed-height range without multiplying
+    // absolute sourceX by a time-varying scale (which swims down the point).
+    float fineXScale = 15.0;
+    vec2 fineCoord = vec2(sourceXZ.x*fineXScale, rollArc*1.6);
+    vec4 fineRoll = breakingRollAt(fineCoord.x, fineCoord.y, t*1.6);
+    // Derive footprints from the actual child coordinates, so distant
+    // unresolved clumps average to their mean instead of flickering.
+    float fineXFP = max(abs(dFdx(fineCoord.x)), abs(dFdy(fineCoord.x)))/4.2;
+    float fineAFP = max(abs(dFdx(fineCoord.y)), abs(dFdy(fineCoord.y)))*1.75;
+    fineRoll.x = mix(0.3125, fineRoll.x,
+                     1.0 - smoothstep(0.25, 0.65, max(fineXFP, fineAFP)));
+    fineRoll.y *= fineXScale*(1.0 - smoothstep(0.25, 0.65, fineXFP));
+    fineRoll.z *= 1.6*(1.0 - smoothstep(0.25, 0.65, fineAFP));
+    bodyRollB = mix(bodyRollB, fineRoll, 0.30);
+    boreLumpT = bodyRollB.x;
+    // Grey hollows are still aerated water, not holes. Only the older wake
+    // opens into lace, gradually enough to avoid a travelling threshold wall.
+    bodyLaceB = smoothstep(6.0, 15.0, max(ageB, 0.0));
+    float laceField = 0.70*mix(er, foamCell, foamLook) + 0.30*boreLumpT;
+    float laceAA = max(fwidth(laceField)*1.5, 0.035);
+    float laceCut = mix(0.25, 0.57, bodyLaceB);
+    float laceCoverage = smoothstep(laceCut - laceAA, laceCut + laceAA, laceField);
+    float bodyDensity = mix(1.0, 0.18 + 0.82*laceCoverage, bodyLaceB);
+    // Permission/set gain controls how much body exists, not whether an
+    // established mass of bubbles is translucent green water. A finite
+    // onset keeps births gentle; the established fresh front is opaque.
+    float bodyEstablished = breakingBodyEstablished(gB);
+    boreM = clamp(bodyEstablished*bodyB.x*bodyB.w*bodyDensity*min(u_bore, 1.0), 0.0, 1.0);
+    boreK = gB*bodyB.x*exp(-max(ageB, 0.0)/BORE_KNUCKLE_S);
+#else
     float shapeB = boreShape(fracB);
     // crest lumps in the crest's own frame (fracB), rolling over on the
     // seconds clock: two octaves, the finer one counter-rolling
@@ -1987,6 +2230,7 @@ void main() {
     boreK = gB * shapeB * exp(-max(ageB, 0.0)/BORE_KNUCKLE_S);
     boreM = clamp(gB * shapeB * dens * min(u_bore, 1.0), 0.0, 1.0);
     foamM = max(foamM, boreM);
+#endif
   }
 #endif
   // Probe 1 changes only the material response. Probe 2 additionally spends
@@ -1999,6 +2243,13 @@ void main() {
   float hierarchy = mix(0.48 + 0.20*(1.0 - ageK), 1.0,
                         clamp(max(liveHead, 0.78*liveBore), 0.0, 1.0));
   foamM *= mix(1.0, hierarchy, fullLook);
+#ifdef BREAKING_BODY
+  // One coverage authority all the way to the final composite. Do not put
+  // an unfiltered boreM back over this result later (the old bore did that,
+  // bypassing coverage, hierarchy and its own hollow/lace treatment).
+  boreM *= mix(1.0, hierarchy, fullLook);
+  foamM = max(foamM, boreM);
+#endif
 
   // ---- 1. detail spectrum: fragment-stage normal perturbation ----
   // damped where foam owns the surface and over the boil slick; wind chop
@@ -2046,6 +2297,12 @@ void main() {
   // low — foam under a marine layer is lit mostly ambiently, strong normal
   // shading was reading as grey streaks (critique #1)
   vec2 fg = foamGrad(worldXZ, t) * 0.25 * foamM;
+#ifdef BREAKING_BODY
+  // Normal noise must also lose its unresolved octaves. In the dense body
+  // the actual rounded geometry owns the lighting; water ripples cannot
+  // glitter through an opaque mass of entrained bubbles.
+  fg *= (1.0 - smoothstep(0.10, 0.38, footprintM(worldXZ))) * (1.0 - boreM);
+#endif
   vec3 Nf = normalize(vec3(N.x - fg.x, N.y, N.z - fg.y));
 
   // base albedo: web/'s NorCal palette (slate blue -> shelf -> murky inner).
@@ -2154,6 +2411,9 @@ void main() {
   float cosV = max(dot(Ng, V), 0.0);
   float fres = 0.02 + 0.98*pow(1.0 - cosV, 5.0);
   float specKill = 1.0 - 0.95*foamM;
+#ifdef BREAKING_BODY
+  specKill *= 1.0 - smoothstep(0.12, 0.72, boreM);
+#endif
   // 0.74 (was 0.88): part of the tonal-separation pass — the mirrored sky was
   // lifting the whole far field to within a stop of the sky itself, so the
   // horizon read as one band. Real wave-slope masking keeps water a full stop
@@ -2202,6 +2462,15 @@ void main() {
   // has already rejected the opaque underside above.
   float facePocket = fullLook * steepF;
   col *= 1.0 - 0.44*facePocket;
+#ifdef BREAKING_BODY
+  // The field footage keeps the upper unbroken wall dark right up to the
+  // whitewater. Shape from the canonical crest, not world height or a new
+  // moving event: apply before whitewater so the opaque body stays luminous.
+  float upperWall = smoothstep(-0.015, 0.045, bodyFracB)
+                  * (1.0 - smoothstep(0.25, 0.72, bodyFracB))
+                  * onStripe * (gl_FrontFacing ? 1.0 : 0.0);
+  col = mix(col, col*vec3(0.60, 0.66, 0.64), 0.72*upperWall);
+#endif
   float connectedLip = max(vPocket,
                            0.34*smoothstep(0.48, 0.82, vCrest)
                            * smoothstep(0.35, 1.35, vWorldPos.y));
@@ -2287,6 +2556,18 @@ void main() {
   // the wedge's own weight so the carrier-clock ageK dimming cannot thin it.
 #ifdef BORE
   if (u_bore > 0.0) {
+#ifdef BREAKING_BODY
+    // Shared lobe slopes turn the illuminated shoulders as the actual body
+    // rolls. Do not darken the entire lower front: only local hollows are grey.
+    float materialHeight = bodyMaterialHeight*VIS;
+    vec3 boreCol = breakingWhitewaterColor(bodyRollB, Ng, sunDir,
+                                          materialHeight, bodyLaceB);
+    // The old foam floor may already be white here. It must not dilute the
+    // body's material back toward that white plate just because its mask is
+    // larger; coverage and the material occupying that coverage are distinct.
+    float bodyMaterialW = smoothstep(0.03, 0.38, boreM);
+    foamCol = mix(foamCol, boreCol, bodyMaterialW);
+#else
     // The footage bore is MOSTLY white: lumps of saturated white with grey
     // hollows between them, not a half-and-half checker. ~3/4 of the lattice
     // reads white; the hollows are a light grey, darkest where the lace has
@@ -2296,11 +2577,19 @@ void main() {
     boreCol *= 0.80 + 0.20*lamF;
     boreCol  = mix(boreCol, vec3(1.0), 0.5*clamp(boreK*1.6, 0.0, 1.0));
     foamCol  = mix(foamCol, boreCol, boreM);
+#endif
   }
 #endif
+#ifdef BREAKING_BODY
+  // Dense fresh mass is opaque even on the front-face carrier clock. Old
+  // lace has already lost coverage above; there is exactly one composite.
+  float foamOpacity = max(foamM*mix(1.15, 0.90, ageK), boreM);
+  col = mix(col, foamCol, clamp(foamOpacity, 0.0, 0.985));
+#else
   col = mix(col, foamCol, clamp(foamM*mix(1.15, 0.90, ageK), 0.0, 0.97));
 #ifdef BORE
   if (u_bore > 0.0) col = mix(col, foamCol, 0.97*boreM);
+#endif
 #endif
 
   // ---- 4.7 aerated lip (#lip=1, default OFF) ----
@@ -2323,6 +2612,12 @@ void main() {
   if (u_lipAer > 0.5) {
     float lipFresh = 0.40 + 0.60*exp(-behindC/85.0);
     float aerM = clamp(vAerLip, 0.0, 1.0) * lipFresh;
+#ifdef BREAKING_BODY
+    // Aeration describes the falling sheet until it joins the body. Once
+    // attached whitewater owns this water, repainting it with the sheet's
+    // almost-white albedo would erase all rolling relief and grey hollows.
+    aerM *= 1.0 - smoothstep(0.08, 0.55, boreM);
+#endif
     // ftex modulation keeps the curtain aerated water, not paper white
     vec3 aerCol = vec3(0.97, 0.985, 1.0) * (0.88 + 0.12*ftex);
     col = mix(col, aerCol, clamp(aerM, 0.0, 0.95));
@@ -2647,7 +2942,17 @@ void main(){
   // the top edge clears toward the landing after impact instead of retrieving
   // the bottom edge when curl fades. Every value is a function of local age;
   // no accumulated state, new event clock, or retiming of splash/foam.
+#ifdef BREAKING_BODY
+  float curtainDescent = classicDescentWeightAt(x0);
+  // A shutting section uses the same one-way handoff without opting into
+  // the classic barrel profile. Visibility still comes from the actual curl
+  // and surface contact below; section character cannot mint a curtain.
+  curtainDescent = max(curtainDescent, sectionShut(x0)
+                    * step(0.5, u_onset) * step(0.5, u_curl));
+  if (curtainDescent > 0.0) {
+#else
   if (classicDescentWeightAt(x0) > 0.0) {
+#endif
     vec4 landing = breakerLandingFrameAt(x0, u_time);
     float age = landing.z + CRASH_PEAK_S;
     float endAge = CRASH_PEAK_S + 1.5*CRASH_SIGMA_S;
@@ -2662,6 +2967,16 @@ void main(){
                         f1, p1, b1, c1, l1, a1, curlT);
       Pland = surfacePos(vec2(x0, landing.x), u_time,
                          f2, p2, b2, c2, l2, a2, k2);
+#ifdef BREAKING_BODY
+      float receiverSource, receiverValid;
+      // Solve only for an actually turned lip. The source clock and source
+      // pose above remain the shared impact event, including after release.
+      if (curlT > 0.30) {
+        Pland = breakerSurfaceContactAt(x0, u_time, Ptip, landing,
+                                        receiverSource, receiverValid);
+        l2 = 1.0 - receiverValid;
+      }
+#endif
       float head = clamp(age/CRASH_PEAK_S, 0.0, 1.0);
       head *= head;
       float tail = smoothstep(CRASH_PEAK_S, endAge, age);

@@ -7,8 +7,10 @@
 //
 // This query compiles the SAME SURFACE_PRELUDE + SURFACE_GLSL text as the water
 // vertex shader into a three-pixel fragment pass. One batched read returns the
-// source point plus the exact two forward-difference taps GRID_VERT uses for
-// its structural normal. No foam/material clone, no second height model.
+// source point plus two forward-difference taps for its structural normal.
+// The experimental adaptive mesh uses nonuniform spacing; its query takes
+// a smaller local derivative without warping the requested source point.
+// No foam/material clone, no second height model.
 
 import * as THREE from 'three';
 import { SURFACE_PRELUDE, SURFACE_GLSL } from './shaders.js';
@@ -81,7 +83,7 @@ export function makeSurfaceQuery(renderer, sharedUniforms, defines = {}) {
     if (latencies.length > 240) latencies.shift();
     if (!result.valid) { failures++; return; }
 
-    // Bit-identical construction to GRID_VERT: cross(Pz-P, Px-P). The query
+    // Same orientation as GRID_VERT: cross(Pz-P, Px-P). The query
     // intentionally stops before fragment-only detail normals; a board rides
     // the displaced structural surface, not glitter/ripple shading.
     dx.subVectors(px, result.position);
@@ -105,7 +107,11 @@ export function makeSurfaceQuery(renderer, sharedUniforms, defines = {}) {
     // a PIXEL_PACK_BUFFER + fence; while it is pending the caller consumes the
     // last completed result (and its matching ride-state metadata).
     if (!pending) {
-      queryUniform.value.set(x, z, cellX, cellZ);
+      // Resolve the compact shoulder at the adaptive grid's densest spacing.
+      // These are local derivative taps, not an inverse mesh-coordinate map.
+      const stepX = defines.BREAKING_BODY ? Math.min(cellX*0.30, 0.50) : cellX;
+      const stepZ = defines.BREAKING_BODY ? Math.min(cellZ*0.30, 0.25) : cellZ;
+      queryUniform.value.set(x, z, stepX, stepZ);
       const started = performance.now();
       const previousTarget = renderer.getRenderTarget();
       try {

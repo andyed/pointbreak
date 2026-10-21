@@ -1554,7 +1554,12 @@ float boreWedgeAt(vec2 xz, float t, float permission, out float ageB, out float 
   // phase, where a q = 2-4 profile has already fallen 75-95 % of its range, and
   // the wedge covered the whole face — measured in probe_bore.mjs v1).
   float dB    = zb - xz.y;
+#ifdef BREAKING_BODY
+  // The face coordinate must use the SAME local section character as ocean.
+  float qB    = mix(2.2, 1.6, u_pitchOdd) + mix(1.5, 3.2, u_pitchOdd)*exp(-abs(dB)/55.0)*(0.6 + 0.5*xiAt(xz.x));
+#else
   float qB    = mix(2.2, 1.6, u_pitchOdd) + mix(1.5, 3.2, u_pitchOdd)*exp(-abs(dB)/55.0)*(0.6 + 0.5*u_xi);
+#endif
   float depB  = modelDepthM(xz) + setupLiftM(xz, t);
   float excB  = u_H0*shelterAt(xz.x)*shoalingKsAt(depB) / max(GAMMA*depB, 0.05);
   float skewB = mix(0.0, clamp(excB*mix(0.82, 0.62, u_pitchOdd), 0.0, 0.8), u_depthMix);
@@ -1582,6 +1587,109 @@ float boreBulge(float fracB){
   float u = clamp(fracB/BORE_DEPTH_FRAC, 0.0, 1.0);
   return fracB > 0.0 ? sin(PI*u) : 0.0;
 }
+#ifdef BREAKING_BODY
+float breakingBodyEstablished(float gain){
+  return smoothstep(0.015, 0.26, gain);
+}
+
+// Overlapping compact lobes roll down the attached front. The analytic
+// derivatives let the material light the SAME moving relief as the mesh.
+// Returns (relief 0..1, derivative/metre along x, derivative/arc, reserved).
+// arc is the normalized vertical drop along the aerated shoulder, 0..1.
+float breakingRollCycleAt(float sourceX, float t){
+  float station = floor(sourceX/4.2);
+  float seed = 0.5 + 0.5*sin(station*2.37 + 6.1);
+  return t*(0.75 + 0.12*sin(station*1.73)) - seed;
+}
+vec4 breakingRollAt(float sourceX, float arc, float t){
+  float spacing = 4.2;
+  float cell = floor(sourceX/spacing);
+  float sum = 0.0, weight = 0.0, sumDx = 0.0, weightDx = 0.0, sumDa = 0.0;
+  for (int i = -1; i <= 1; i++) {
+    float station = cell + float(i);
+    float seed = 0.5 + 0.5*sin(station*2.37 + 6.1);
+    float centre = (station + 0.5 + 0.18*(seed - 0.5))*spacing;
+    float r = (sourceX - centre)/(1.05*spacing);
+    float w0 = max(1.0 - r*r, 0.0);
+    float w = w0*w0*w0;
+    float dw = -6.0*r*w0*w0/(1.05*spacing);
+    float phase = 2.0*PI*(1.75*arc - breakingRollCycleAt((station + 0.5)*spacing, t));
+    // Full raised-cosine shoulders overlap throughout the front. A clipped
+    // cosine left long zero-relief plateaus that read as a smooth grey slab.
+    float c = 0.5 + 0.5*cos(phase);
+    float lobe = c*c*c;
+    float da = -1.5*c*c*sin(phase)*(2.0*PI*1.75);
+    sum += w*lobe; weight += w;
+    sumDx += dw*lobe; weightDx += dw; sumDa += w*da;
+  }
+  float inv = 1.0/max(weight, 1e-5);
+  return vec4(sum*inv, (sumDx - sum*inv*weightDx)*inv, sumDa*inv, 0.0);
+}
+
+// A rounded aerated body, not an extra breaking event. Read the existing
+// crest coordinate and unwrapped age from boreWedgeAt in BOTH shader stages.
+// Returns (coverage, rounded cross-section, rolling relief, age activity).
+// x is the Lagrangian source station in metres; t is simulation seconds.
+// Two advected scales let protrusions grow, roll down the face and merge;
+// no modulo clock, independently moving foam sheet, or new break permission.
+vec4 breakingBodyAt(float sourceX, float fracB, float ageB, float t){
+  float broad = vnoise2(vec2(sourceX*0.18 + 4.1, t*0.31));
+  // A fixed reference depth prevents a circular dependency between the
+  // moving relief and its gently scalloped toe.
+  float relief = breakingRollAt(sourceX, fracB/0.565, t).x;
+  // Depth down the original face: 0.48–0.65 H_f, the observed thick bore
+  // bracket. A soft ragged toe keeps the dark face connected below it.
+  float depth = mix(0.48, 0.65, 0.65*broad + 0.35*relief);
+  float coverage = (1.0 - smoothstep(depth - 0.08, depth + 0.04, fracB))
+                 * (1.0 - smoothstep(0.025, 0.085, -fracB));
+  float u = clamp(fracB/depth, 0.0, 1.0);
+  // Broad rounded shoulder with a steepening toe; exactly zero at either
+  // end. The lift below is bounded by the carrier's actual crest clearance.
+  // Circular shoulder: fracB is approximately proportional to distance^2
+  // at the carrier crest. This arc retains curvature there; a parabolic
+  // lift nearly cancelled that curvature and reproduced the flat-cap defect.
+  float profile = 4.0*max(u - 1.0 + sqrt(max(1.0 - u, 0.0)), 0.0)
+                * (1.0 - smoothstep(0.85, 1.0, u));
+  // Keep the 7.5 s observed peel alive, then let older shoreward rows flatten.
+  // The carrier already thins with shoaling/decay; this is relative activity.
+  float activity = 1.0 - 0.82*smoothstep(8.0, 28.0, max(ageB, 0.0));
+  return vec4(coverage, profile, relief, activity);
+}
+
+// Signed change as a fraction of the LOCAL physical crest-to-trough range.
+// Never raises the cap: relief comes from the front shoulder and shallow
+// hollows below the prior crest. The existing bend owns any overturning.
+float breakingBodyLift(float fracB, float ageB, vec4 body){
+  float shoulder = min(body.y*(0.10 + 0.20*body.z),
+                       0.72*max(fracB, 0.0));
+  float cap = (1.0 - smoothstep(0.035, 0.18, abs(fracB))) * body.x;
+  float hollow = 0.14*(0.15 + 0.85*(1.0 - body.z))
+               * smoothstep(0.55, 2.2, ageB) * cap;
+  return (shoulder - hollow)*body.w;
+}
+
+// Source crest, from the carrier's phase at this very station. Three Newton
+// corrections read the canonical piecewise-linear phase, not a frozen LAM.
+// This is a coordinate for the attached body, never a new breaking locus.
+float breakingBodyCrestZ(vec2 source, float t){
+  float phase = rayPhase(source);
+  float delta = mod(2.0*PI*t/max(u_T, 1e-3) - phase + PI, 2.0*PI) - PI;
+  float target = phase + delta;
+  float z = source.y;
+  for (int i = 0; i < 3; i++) {
+    float p = rayPhase(vec2(source.x, z));
+    float kz = 0.5*(rayPhase(vec2(source.x, z + 1.0)) - rayPhase(vec2(source.x, z - 1.0)));
+    if (!(kz > 1e-4)) return source.y;
+    z += clamp((target - p)/kz, -24.0, 24.0);
+  }
+  return z;
+}
+
+float breakingBodyDepth(float sourceX, float relief, float t){
+  float broad = vnoise2(vec2(sourceX*0.18 + 4.1, t*0.31));
+  return mix(0.48, 0.65, 0.65*broad + 0.35*relief);
+}
+#endif
 #endif
 
 // Sharpened crest profile: q=1 sinusoid-ish, q>2 peaked (Gerstner cusp stand-in)
@@ -1895,12 +2003,20 @@ float ocean(vec2 xz, float t, out float foam, out float pocket, out float brk, o
   if (u_bore > 0.0) {
     float ageB, fracB;
     float gB = boreWedgeAt(xz, t, brkW, ageB, fracB);
+#ifdef BREAKING_BODY
+    vec4 bodyB = breakingBodyAt(x, fracB, ageB, t);
+    // A >1 artist gain must not defeat the crest-clearance bound.
+    h += (2.0*amp) * breakingBodyLift(fracB, ageB, bodyB) * gB * min(u_bore, 1.0);
+    h -= min(u_bore, 1.0) * shape * u_H0*0.27*boreBand*moundNoise*u_moundH;
+    boreFoamB = gB * bodyB.x * bodyB.w * foamSizeAt(x) * min(u_bore, 1.0);
+#else
     // crest lumps: a lattice in the crest's own frame (fracB), rolling over on
     // the seconds clock — the footage's "bore with crest lumps"
     float lumpB = 0.72 + 0.28*vnoise2(vec2(x*0.45 + 1.7, fracB*6.0 + t*0.8));
     h += BORE_H_FRAC * (2.0*amp) * boreBulge(fracB) * gB * lumpB * min(u_bore, 1.5);
     h -= min(u_bore, 1.0) * shape * u_H0*0.27*boreBand*moundNoise*u_moundH;
     boreFoamB = gB * boreShape(fracB) * foamSizeAt(x) * min(u_bore, 1.0);
+#endif
   }
 #endif
 

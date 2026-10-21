@@ -101,13 +101,14 @@ test('a hand-edited hash reloads only when the boot-only set changes', () => {
 
 // Doc-parity gate: every hash param main.js parses has a CONTROLS.md row, and
 // no row documents a param the runtime no longer reads. `controls`/`hud` are
-// read through shouldShowControls() and `q` through an early standalone read,
-// so the h.get/h.has scan cannot see them — whitelisted, still documented.
+// read through shouldShowControls(); early compile flags use readHashParams().
+// Both parser forms are checked, and helper-owned controls stay explicit.
 test('CONTROLS.md documents exactly the hash params main.js reads', () => {
   const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
   const main = read('../web-three/js/main.js');
   const doc = read('../docs/CONTROLS.md');
   const parsed = new Set([...main.matchAll(/\bh\.(?:get|has)\('([a-z0-9]+)'\)/g)].map((m) => m[1]));
+  for (const m of main.matchAll(/readHashParams\(\)\.(?:get|has)\('([a-z0-9]+)'\)/g)) parsed.add(m[1]);
   for (const k of ['controls', 'hud', 'q']) parsed.add(k);
   const documented = new Set([...doc.matchAll(/^\| `([a-z0-9]+)` \|/gm)].map((m) => m[1]));
   assert.deepEqual([...parsed].sort(), [...documented].sort());
